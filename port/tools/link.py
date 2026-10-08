@@ -21,7 +21,9 @@ def link(objs, extra):
               ["-lSDL3", "-lm", "-lwinmm", "-lws2_32", "-static-libgcc", "-Wl,-Bstatic", "-lstdc++", "-lwinpthread", "-Wl,-Bdynamic",
                "-Wl,--image-base,0x20000000", "-Wl,--disable-dynamicbase", "-Wl,--disable-reloc-section", "-Wl,--disable-high-entropy-va", "-Wl,--wrap=main",
                "-Wl,--stack,0x1000000", "-mwindows"] + common
-        return subprocess.run(cmd, capture_output=True, text=True)
+        argsfile = B / "link.rsp"
+        argsfile.write_text("\n".join('"' + a.replace('\\', '/').replace('"', '\\"') + '"' for a in cmd[1:]))
+        return subprocess.run([cmd[0], "@" + str(argsfile)], capture_output=True, text=True)
     m = "-m64" if VARIANT == "clang64" else "-m32"
     # 64-bit: the program below 4 GB and clear of the PS2 regions (plat_mem.c); the game's main() on a low stack
     base64 = ["-Wl,-Ttext-segment=0x20000000", "-Wl,--wrap=main"] if VARIANT == "clang64" else []

@@ -187,7 +187,10 @@ def main():
         else:
             objs.append(str(o))
     defined, undef = set(), collections.Counter()
-    out = subprocess.run([PREFIX + "nm", "-A"] + objs, capture_output=True, text=True).stdout
+    # Native Windows has a 32767-character CreateProcess limit; absolute object paths exceed it.
+    argsfile = ROOT / "port/build/nm-objects.rsp"
+    argsfile.write_text("\n".join('"' + p.replace('\\', '/') + '"' for p in objs))
+    out = subprocess.run([PREFIX + "nm", "-A", "@" + str(argsfile)], capture_output=True, text=True, check=True).stdout
     for l in out.splitlines():
         m = re.match(r"\S+:\s*([0-9a-f]*)\s+(\w)\s+(\S+)$", l)
         if not m:

@@ -12,7 +12,7 @@ Contents:  Tenkaichi3Decomp, Tenkaichi3Decomp.dat   the game without the data ta
            lib/            SDL3, so that it does not have to be installed
            README.txt, licenses/
 The user needs nothing but their disc image. Nothing from the disc is in the zip."""
-import os, pathlib, shutil, subprocess, sys, zipfile
+import os, pathlib, re, shutil, subprocess, sys, zipfile
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -97,6 +97,31 @@ def take_program(exe, out):
     (out / ("bt3.exe" if exe.suffix == ".exe" else "bt3")).rename(out / name)  # strip_data.py writes bt3 and bt3.dat
     (out / "bt3.dat").rename(out / (NAME + ".dat"))
 
+def bundle_sdl_dependencies(dll, out, lic, prefix):
+    """MSYS2 SDL can import libiconv; the official SDL archive is self-contained.
+    Collect vendor DLLs from the SDL bin folder, never Windows system DLLs."""
+    todo, seen = [dll], set()
+    while todo:
+        current = todo.pop()
+        if current.name.lower() in seen:
+            continue
+        seen.add(current.name.lower())
+        result = subprocess.run([prefix + "objdump", "-p", str(current)], capture_output=True, text=True, check=True)
+        for name in re.findall(r"DLL Name:\s*(\S+)", result.stdout):
+            source = dll.parent / name
+            if source.exists() and name.lower() not in seen:
+                shutil.copy2(source, out / name)
+                todo.append(source)
+            elif name.lower().startswith("lib") and not source.exists():
+                sys.exit("missing SDL runtime dependency: " + name)
+    if "libiconv-2.dll" in seen:
+        notices = dll.parent.parent / "share/licenses/libiconv"
+        shutil.copy2(notices / "COPYING.LIB", lic / "libiconv-lgpl.txt")
+        shutil.copy2(notices / "README", lic / "libiconv-readme.txt")
+        (lic / "libiconv-source.txt").write_text(
+            "libiconv source: https://ftp.gnu.org/pub/gnu/libiconv/\n"
+            "MSYS2 build recipe: https://github.com/msys2/MINGW-packages/tree/master/mingw-w64-libiconv\n")
+
 def main_win():
     """BT3_CC=win64: bt3.exe (cross-built or built in MSYS2), Tenkaichi3Decomp-setup.exe (port/setup/build.sh win), SDL3.dll."""
     import toolchain
@@ -118,6 +143,7 @@ def main_win():
     (out / "README.txt").write_text(WIN_README.replace("\n", "\r\n"))
     lic = out / "licenses"
     lic.mkdir()
+    bundle_sdl_dependencies(dll, out, lic, toolchain.PREFIX)
     shutil.copy2(ROOT / "port/third_party/imgui/LICENSE.txt", lic / "dear-imgui.txt")
     shutil.copy2(ROOT / "port/third_party/newlib_libm/COPYING.NEWLIB", lic / "newlib.txt")
     shutil.copy2(ROOT / "port/third_party/xxhash/LICENSE", lic / "xxhash.txt")
