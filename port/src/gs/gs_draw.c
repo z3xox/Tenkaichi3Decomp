@@ -1169,6 +1169,7 @@ void GsDraw_FullscreenToggle(void) {
    scale, the effects switched off and the glow are shared state; the shape, the full screen and the display
    are the window's. */
 void GsGpu_GetSettings(PortVideo *v) {
+    v->fps60 = Port_Setting("fps60", 0) != 0;
     v->scale = gsPendingScale ? gsPendingScale : gsScale;
     v->aspectMilli = Port_AspectMilli();
     v->fullscreen = sFullscreen;
@@ -1183,6 +1184,7 @@ void GsGpu_GetSettings(PortVideo *v) {
 
 /* Applies what differs from the current state, all of it at once, and keeps it for the next run. */
 void GsGpu_SetSettings(const PortVideo *v) {
+    Port_SettingSave("fps60", v->fps60 != 0);
     PortVideo now;
     GsGpu_GetSettings(&now);
     if (v->scale != now.scale) {
@@ -1270,13 +1272,137 @@ int GsGpu_Init(void) {
     return 1;
 }
 
+/* Presentation only: never run the game's update, pads, RNG or sound twice. A midpoint is
+   safe only when the recorded model topology is identical; cuts/loads snap to the new pose. */
+static Vu0Uniform *sPreviousPose;
+static uint64_t *sPreviousKeys;
+static uint32_t sPreviousUniCount;
+
+static void interpolation_forget(void) {
+    free(sPreviousPose); free(sPreviousKeys);
+    sPreviousPose = NULL; sPreviousKeys = NULL; sPreviousUniCount = 0;
+}
+
+static uint64_t key_bytes(uint64_t h, const void *data, size_t bytes) {
+    const unsigned char *p = data;
+    while (bytes--) h = (h ^ *p++) * 1099511628211ull;
+    return h;
+}
+
+static uint64_t *interpolation_keys(void) {
+    uint32_t i, n;
+    uint64_t *keys = calloc(gsVuUniCount, sizeof(*keys));
+    if (!keys) return NULL;
+    for (i = 0; i < gsDrawCount; ++i) {
+        GsDraw *d = &gsDraws[i];
+        uint64_t h;
+        if (!d->vu || d->uniform < 0 || (uint32_t)d->uniform >= gsVuUniCount ||
+            d->first + d->count > gsVuIdxCount) continue;
+        h = keys[d->uniform] ? keys[d->uniform] : 1469598103934665603ull;
+        h = key_bytes(h, &d->vu, sizeof(d->vu));
+        h = key_bytes(h, &d->tex, sizeof(d->tex));
+        h = key_bytes(h, &d->count, sizeof(d->count));
+        h = key_bytes(h, &gsVuUni[d->uniform].color0[3], sizeof(float)); /* object's alpha id */
+        h = key_bytes(h, gsVuUni[d->uniform].misc, sizeof(gsVuUni[d->uniform].misc));
+        for (n = 0; n < d->count; ++n) {
+            uint32_t v = gsVuIdx[d->first + n];
+            if (v >= gsVuVertCount) { h = 0; break; }
+            h = key_bytes(h, gsVuVerts + v * 12, 12 * sizeof(float));
+        }
+        keys[d->uniform] = h;
+    }
+    return keys;
+}
+
+static int interpolation_blend(const uint64_t *keys) {
+    uint32_t i, j, k;
+    int matched = 0;
+    if (!keys || !sPreviousKeys) return 0;
+    for (i = 0; i < gsVuUniCount; ++i) {
+        int best = -1;
+        float distance = 400.0f * 400.0f;
+        if (!keys[i]) continue;
+        for (j = 0; j < sPreviousUniCount; ++j) {
+            float delta = 0.0f;
+            if (keys[i] != sPreviousKeys[j]) continue;
+            for (k = 12; k < 15; ++k) {
+                float d = gsVuUni[i].boneA[k] - sPreviousPose[j].boneA[k];
+                delta += d * d;
+            }
+            if (delta < distance) { distance = delta; best = (int)j; }
+        }
+        if (best >= 0) {
+            float *current = (float *)&gsVuUni[i];
+            const float *prior = (const float *)&sPreviousPose[best];
+            int valid = 1;
+            for (k = 0; k < 56; ++k) if (!isfinite(current[k]) || !isfinite(prior[k])) valid = 0;
+            if (!valid) continue;
+            for (k = 0; k < 56; ++k) current[k] = current[k] * 0.5f + prior[k] * 0.5f;
+            matched++;
+        }
+    }
+    return matched;
+}
+
+static void interpolation_remember(const Vu0Uniform *pose, uint64_t *keys) {
+    interpolation_forget();
+    if (!gsVuUniCount || !keys) { free(keys); return; }
+    sPreviousPose = malloc(gsVuUniCount * sizeof(*pose));
+    if (!sPreviousPose) { free(keys); return; }
+    memcpy(sPreviousPose, pose, gsVuUniCount * sizeof(*pose));
+    sPreviousKeys = keys;
+    sPreviousUniCount = gsVuUniCount;
+}
+
+static void interpolation_present(void) {
+    static uint64_t measuredFrom;
+    static unsigned measuredFrames, measuredMatches;
+    uint32_t i, j, draw = gsDrawCount, vert = gsVertCount, vu = gsVuVertCount;
+    uint32_t idx = gsVuIdxCount, uni = gsVuUniCount;
+    int anchor = gsAnchor, skipped = gsSkipped;
+    unsigned native = gsNative;
+    GsTarget targets[MAX_TARGETS];
+    Vu0Uniform *original = uni ? malloc(uni * sizeof(*original)) : NULL;
+    uint64_t *keys = interpolation_keys();
+    int matched = 0;
+    uint64_t secondAt = SDL_GetTicksNS() + 16683350ull;
+    memcpy(targets, gsTargets, sizeof(targets));
+    if (original) memcpy(original, gsVuUni, uni * sizeof(*original));
+    if (original) matched = interpolation_blend(keys);
+    interpolation_remember(original ? original : gsVuUni, keys);
+    sBackend->frameEnd();
+    /* Back ends consume the list and clear its counters. Reuse that same list for the original pose. */
+    gsDrawCount = draw; gsVertCount = vert; gsVuVertCount = vu;
+    gsVuIdxCount = idx; gsVuUniCount = uni; gsAnchor = anchor; gsSkipped = skipped; gsNative = native;
+    memcpy(gsTargets, targets, sizeof(targets));
+    if (original) { memcpy(gsVuUni, original, uni * sizeof(*original)); free(original); }
+    if (getenv("BT3_UNCAPPED") == NULL) {
+        uint64_t now = SDL_GetTicksNS();
+        if (secondAt > now) SDL_DelayNS(secondAt - now);
+    }
+    sBackend->frameEnd();
+    if (getenv("BT3_FPS_DIAG") != NULL) {
+        uint64_t now = SDL_GetTicksNS();
+        if (!measuredFrom) measuredFrom = now;
+        measuredFrames++;
+        if (matched) measuredMatches++;
+        if (measuredFrames == 120) {
+            fprintf(stderr, "fps60: %.2f presentations/s; %u/120 interpolated model frames\n",
+                    240e9 / (double)(now - measuredFrom), measuredMatches);
+            measuredFrames = measuredMatches = 0; measuredFrom = now;
+        }
+    }
+}
+
 void GsGpu_FrameEnd(void) {
     if (gPortResim) { /* a frame that is only being re-run: nothing was recorded, nothing is shown */
         return;
     }
     uint64_t t0 = gpu_now();
     if (sBackend != NULL) {
-        sBackend->frameEnd();
+        int fps60 = getenv("BT3_FPS60") != NULL ? atoi(getenv("BT3_FPS60")) != 0 : Port_Setting("fps60", 0) != 0;
+        if (fps60 && !gPortMenuMode && gsDrawCount) interpolation_present();
+        else { interpolation_forget(); sBackend->frameEnd(); }
         scale_apply();
     }
     gGpuEndNs += gpu_now() - t0;

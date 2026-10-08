@@ -475,6 +475,10 @@ static bool tab(const char *label, int index) {
 }
 
 static void video_tab(PortVideo &v) {
+    static const char *const rates[] = {"Original (30 fps)", "60 fps (visual interpolation)"};
+    ImGui::Combo("Frame rate", &v.fps60, rates, 2);
+    ImGui::SetItemTooltip("Preserves original combat, timers and replay speed.\n"
+                          "Interpolates stable model transforms; topology changes use the original pose.");
     static const struct { const char *name; int milli; } aspects[] = {{"4:3 (original)", 1333}, {"16:10", 1600}, {"16:9", 1778}, {"21:9", 2389}, {"32:9", 3556}};
     char label[64];
     int best = 0, count = 0;

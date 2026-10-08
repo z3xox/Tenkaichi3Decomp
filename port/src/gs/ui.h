@@ -8,6 +8,7 @@ extern "C" {
 
 typedef struct PortVideo {
     int scale;       /* internal resolution multiplier, 1..8 */
+    int fps60;       /* presentation interpolation; simulation stays at its original rate */
     int aspectMilli; /* width / height of the picture * 1000 */
     int fullscreen;
     int fxOff;       /* bits: 1 outline, 2 see-through tint, 4 depth tint, 8 glare and glow, 16 distance blur */
