@@ -1442,7 +1442,11 @@ f32 TeamSel_Input(s32 *result) {
                     TeamSel_ClipGoto(0, 0, TEAMSEL_CLIP_STAGE_CHIP, "fl_on_start");
                     gTeamSel->stage->bgm = gTeamSel->stage->bgmCursor;
                     if (gTeamSel->bgmIds[gTeamSel->stage->bgm] != TS_BGM_RANDOM) {
+#ifdef PORT /* (a song added from outside the disc has a file id of its own) */
+                        Bgm_Play(PORT_BGM_FILE(gTeamSel->bgmIds[gTeamSel->stage->bgm]));
+#else
                         Bgm_Play(gTeamSel->bgmIds[gTeamSel->stage->bgm] + TS_BGM_FILE);
+#endif
                     }
                     gTeamSel->stage->state = TEAMSEL_STAGE_GRID;
                     Snd_PlaySe(1, 1);
