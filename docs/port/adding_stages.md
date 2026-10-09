@@ -243,3 +243,10 @@ file (releases 0.1.9 to 0.1.11). Found while listing the file ids for added char
 archive's end (`PORT_STAGE_FILE_INDEX` in plat_stages.c, the same number in battle_load.c). Checked: fights start
 on the first and the last added stage and on a disc stage; the replay check on the Linux programs. Not checked:
 the training guide's lines heard.
+
+## Added stages were missing in team and DP battles (2026-10-10)
+
+The team select (src/menu/menu_e_b.c) builds its own stage list, and only the duel's select had been given the
+added stages (the same gap the added songs had). It has them now, the same way: appended after the disc's, the
+last row padded, the reel's rows counted from the list, a borrowed icon and picture, the name drawn by the port.
+Checked: builds, the replay check. NOT seen: the team select with added stages (no recorded session reaches it).
