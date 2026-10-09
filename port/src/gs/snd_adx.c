@@ -85,6 +85,12 @@ static int adx_blanks(const char *path) {
     if (h[0x12] == 4 && header >= 0x38 && (h[0x24] | h[0x25] | h[0x26] | h[0x27]) != 0) {
         return -1;
     }
+    {
+        extern int PortSongs_IsFile(const char *path); /* plat_songs.c: an added song is played round and round (start()) */
+        if (PortSongs_IsFile(path)) {
+            return -1;
+        }
+    }
     return rate == 0 ? 0 : (int)(((uint64_t)total * 60000 + (uint64_t)rate * 1001 - 1) / ((uint64_t)rate * 1001)) + 1;
 }
 
@@ -333,6 +339,17 @@ static void start(Player *p, const char *path) {
         p->loopStart = be32(p->file + 0x28);
         p->loopEnd = be32(p->file + 0x30);
         p->loop = p->loopEnd > p->loopStart && p->loopEnd <= p->total;
+    }
+    if (!p->loop && p->total >= 64) {
+        /* A song added from outside the disc: the disc's music has its loop in the file and goes on for as long as
+           the fight does; a file made from an mp3 has none and stopped after one play, leaving the rest of the fight
+           silent. It is played again from its start. (A file that has loop points keeps them.) */
+        extern int PortSongs_IsFile(const char *path); /* plat_songs.c */
+        if (PortSongs_IsFile(path)) {
+            p->loopStart = 0;
+            p->loopEnd = p->total & ~31u; /* (whole frames) */
+            p->loop = 1;
+        }
     }
     adx_coefs(highpass, p->rate, &p->c1, &p->c2);
     memset(p->hist, 0, sizeof(p->hist));

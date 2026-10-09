@@ -134,6 +134,20 @@ int PortSongs_Offset(int index) {
     return gPortSongOffsets[index];
 }
 
+/* Whether `path` is the file of a song added from outside the disc (for the sound code: such a file is played
+   round and round like the disc's music, though it has no loop points of its own). */
+int PortSongs_IsFile(const char *path) {
+    size_t pl = strlen(path), tl;
+    int i;
+    for (i = 0; i < sAliasCount; i++) {
+        tl = strlen(sAliases[i].target);
+        if (tl != 0 && tl <= pl && strcmp(path + pl - tl, sAliases[i].target) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 int PortSongs_Alias(const char *rel, char *out, unsigned n) {
     int i;
     for (i = 0; i < sAliasCount; i++) {

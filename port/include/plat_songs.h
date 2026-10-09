@@ -30,5 +30,6 @@ extern int gPortSongOffsets[PORT_SONG_MAX];
 
 /* 1 if the file the game asks for is an added song served from elsewhere; `out` gets its path. */
 int PortSongs_Alias(const char *rel, char *out, unsigned n);
+int PortSongs_IsFile(const char *path); /* the file of an added song */
 
 #endif

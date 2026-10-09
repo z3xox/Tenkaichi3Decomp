@@ -52,6 +52,25 @@ or shipped; the letters exist while the program runs, made from the player's own
 
 ---
 
+## Team battles, and playing round (2026-10-10)
+
+Two reports, both true:
+
+- **Added songs were missing in team and DP battles.** The team select (src/menu/menu_e_b.c) builds its own music
+  list, and only the duel's select (menu_c_e.c) had been given the added songs. It has them now, the same way:
+  appended after the disc's and before "random", their own file numbers for the preview (`PORT_BGM_FILE`), their
+  names drawn by the port or, without the overlay, in the game's plain font.
+- **An added song played once and then the fight was silent.** The port plays a track round only if the ADX file
+  has loop points (the disc's music has them: flag at 0x24, start and end samples at 0x28 and 0x30). A file made
+  from an mp3 has none. Such a file is now played again from its start, when it is the file of an added song
+  (`PortSongs_IsFile`, port/src/gs/snd_adx.c `start`); the game is told it never ends, as for the disc's music. A
+  file that has loop points of its own keeps them.
+
+Checked: a 2.7-second file without loop points, installed as a song and forced as a fight's music
+(`BT3_TEST_BGM=26`, a dummy sound device): it is started once as a looping track and not again in a minute's
+fight; the replay check is unchanged. NOT seen: the team select's music list with added songs in it (no recorded
+session reaches that screen).
+
 ## Quick start (script)
 
 From the repository root:
