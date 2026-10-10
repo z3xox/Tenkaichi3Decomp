@@ -348,6 +348,24 @@ int Port_AspectMilli(void) {
         if (sAspectMilli < 1333) { sAspectMilli = 1333; }
         if (sAspectMilli > 4000) { sAspectMilli = 4000; }
     }
+    {
+        /* BT3_ASPECT_AT=<frame>:<w>:<h> (testing): from that frame on the shape is w:h, as if it had been changed in
+           the settings window at that moment (a run without a window can then show a change made during a fight). */
+        static int at = -2, to;
+        extern unsigned gGsFrame; /* gs_core.c */
+        if (at == -2) {
+            int f = 0, w = 0, h = 0;
+            const char *e = getenv("BT3_ASPECT_AT");
+            at = -1;
+            if (e != NULL && sscanf(e, "%d:%d:%d", &f, &w, &h) == 3 && w > 0 && h > 0) {
+                at = f;
+                to = w * 1000 / h;
+            }
+        }
+        if (at >= 0 && (int)gGsFrame >= at) {
+            return to < 1333 ? 1333 : to > 4000 ? 4000 : to;
+        }
+    }
     return sAspectMilli;
 }
 /* The settings overlay changes the shape while the game runs: the game asks every frame. */

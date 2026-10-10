@@ -167,6 +167,32 @@ void View_SetProjection(View *view, Vec4 *screenSize, f32 screenDist, f32 aspect
 
 /* Combines the projections with the view matrix, records the camera position and makes the view current. */
 void View_UpdateMatrices(View *view, Vec4 *pos) {
+#ifdef PORT
+    {
+        /* PC build: the picture's shape can be changed while the game runs (the settings window), and a view's
+           projection is only worked out when the view is set up, at the start of a fight or of a scene: changed in
+           a fight, the picture was shown at the new shape with the old projection, stretched, until the next
+           fight. The view is held to the shape of now: its two factors as View_SetProjection makes them of
+           `aspect` (the larger becomes 1), and the projection again when they are not those. With the shape
+           unchanged the factors are the same numbers and nothing is done. */
+        f32 y = view->aspect * Port_WideFactor();
+        f32 x = 1.0f;
+        f32 dx, dy;
+        if (view->aspect > 0.0f) {
+            if (y > 1.0f) {
+                x = 1.0f / y;
+                y = 1.0f;
+            }
+            dx = view->aspectX - x;
+            dy = view->aspectY - y;
+            if (dx > 0.0005f || dx < -0.0005f || dy > 0.0005f || dy < -0.0005f) {
+                view->aspectX = x;
+                view->aspectY = y;
+                View_BuildProjection(view);
+            }
+        }
+    }
+#endif
     Vu0Screen_SetMulMtx(&view->view2screen, &view->world2view2);
     Vu0Screen_StoreMtx(&view->world2screen);
     Vu0Clip_SetMulMtx(&view->view2clip, &view->world2view2);
