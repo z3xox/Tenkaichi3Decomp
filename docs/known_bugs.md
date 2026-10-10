@@ -133,5 +133,10 @@ GS memory in the software renderer, and in the GPU back ends by reading the fram
 (`GsBackend.targetRead`), reduced to 512 x 448; black with the back end on a thread of its own (`BT3_GS_THREAD`).
 `ScrXfade_StoreHalf` is the decompilation's matched version now (the port's copy was an earlier draft; it was
 compiled all the same). Checked without a window, in the software renderer: with the cross-fade asked for in a
-fight (`BT3_XFADE_AT=<frame>`) the frame taken shows over the following ones and fades out. NOT seen: the GPU back
-ends' read-back (Vulkan, OpenGL), and an intro itself.
+fight (`BT3_XFADE_AT=<frame>`) the frame taken shows over the following ones and fades out.
+With that alone the GPU back ends still showed no cross-fade (seen by the user): the game uploads the frame it read
+over the DEPTH page (0x1C00) and draws it from there, and gs_draw.c dropped every draw that samples the depth page
+(the passes that read it as depth). A 24-bit picture drawn from there as a sprite is let through now.
+Checked: the OpenGL back end without a window (`SDL_VIDEODRIVER=offscreen BT3_GS=gpu`: the Vulkan one cannot
+start there, OpenGL takes over, and `BT3_SHOT` writes its pictures) shows the frame taken fading out over the next
+ones, the right way up and in its colours. NOT seen: the Vulkan back end's read-back, and an intro itself.

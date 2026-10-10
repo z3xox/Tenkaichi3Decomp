@@ -512,7 +512,11 @@ static int draw_state(int ctx, int topo, int sprite, int vu, GsDraw *d, float *u
             gsSkipped++;
             return 0;
         }
-        if (tme && ((tpsm & 0x30) == 0x30 || tbp / 32 == zbp || tpsm == 0x1B || tpsm == 0x24 || tpsm == 0x2C)) {
+        /* (Not the cross-fade of a fight's scenes: the frame the game read back is uploaded over the depth page as a
+           24-bit picture and drawn from there over the new shot, stg_b.c ScrXfade_Draw. That is a picture like any
+           other, taken from GS memory; the passes dropped here read the page as depth or as one of its bytes.) */
+        if (tme && !(tpsm == 1 && sprite && tbp / 32 == zbp) &&
+            ((tpsm & 0x30) == 0x30 || tbp / 32 == zbp || tpsm == 0x1B || tpsm == 0x24 || tpsm == 0x2C)) {
             int t = GsDraw_TargetGet(fbp, 0);
             if (t >= 0 && fbp != (uint32_t)gGsMainFbp) {
                 gsTargets[t].stale = 1; /* a work buffer missed a pass */
