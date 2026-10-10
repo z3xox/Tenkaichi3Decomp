@@ -114,4 +114,4 @@ went to the host's, which reads its arguments from the float unit. What came bac
 held, often 0, and the list divided by it. In every release up to 0.1.19, on Linux and Windows.
 Fixed: `Port_pow` (port/src/plat_libm.c). The other calls of the host's `pow` are the port's own code (the settings
 window, the sound), which is built for the float unit. Checked: the program's code calls the bridge at all four
-places; the replay check. NOT seen: the list on a screen.
+places; the replay check. Seen fixed by the user (2026-10-10).
