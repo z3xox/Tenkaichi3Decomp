@@ -1195,6 +1195,13 @@ void GsDraw_FullscreenToggle(void) {
    F1 opens it (ui.cpp, Dear ImGui). What the user changes there reaches the renderer through these two: the
    scale, the effects switched off and the glow are shared state; the shape, the full screen and the display
    are the window's. */
+/* For the game's code: whether an effect of the settings window is switched off (the bits of fx_off). Asked by the
+   one effect that is left out where the game draws it and not here: the blur while the view turns (32,
+   src/sys/gfxm_a.c StgPanBlur_Draw), which is several passes through work buffers. */
+int Port_FxOff(int bit) {
+    return (gsFxOff & (unsigned)bit) != 0;
+}
+
 void GsGpu_GetSettings(PortVideo *v) {
     v->scale = gsPendingScale ? gsPendingScale : gsScale;
     v->aspectMilli = Port_AspectMilli();
@@ -1223,7 +1230,7 @@ void GsGpu_SetSettings(const PortVideo *v) {
     if (v->fullscreen != now.fullscreen) {
         GsDraw_FullscreenSet(v->fullscreen);
     }
-    gsFxOff = (unsigned)v->fxOff & 31;
+    gsFxOff = (unsigned)v->fxOff & 63;
     gsGlowPercent = v->glow;
     gPortSePercent = v->effects;
     if (v->music != now.music) {
@@ -1291,7 +1298,7 @@ int GsGpu_Init(void) {
         }
     }
     gsWhite = sb->whiteTex();
-    gsFxOff = (unsigned)(getenv("BT3_FX_OFF") != NULL ? atoi(getenv("BT3_FX_OFF")) : Port_Setting("fx_off", 0)) & 31;
+    gsFxOff = (unsigned)(getenv("BT3_FX_OFF") != NULL ? atoi(getenv("BT3_FX_OFF")) : Port_Setting("fx_off", 0)) & 63;
     gsGlowPercent = getenv("BT3_GLOW") != NULL ? atoi(getenv("BT3_GLOW")) : Port_Setting("glow", GLOW_DEFAULT);
     sTexPackOn = Port_Setting("texture_pack", 1) != 0;
     sSmooth2d = getenv("BT3_2D_SMOOTH") != NULL ? atoi(getenv("BT3_2D_SMOOTH")) != 0 : Port_Setting("smooth_2d", 1) != 0;

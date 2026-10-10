@@ -703,6 +703,10 @@ with a third of the interpreter's work gone.
   and is off by about +-24 in bands in the middle (either the reference's 16-bit view of the depth page is not
   exact, or the console really bands; not settled). On the test stage the tint makes no visible difference
   (compared on / off), so this stage does not prove it either way.
+- 32 of `BT3_FX_OFF` / `fx_off` ("Movement blur" in the settings window, 2026-10-10): the game's blur of the scenery
+  while the view turns (StgPanBlur, src/sys/gfxm_a.c). Left out where the game draws it (`Port_FxOff(32)` in
+  `StgPanBlur_Draw`: the views are still kept up to date), not in the renderer: it is several passes through work
+  buffers. Checked without a window: with it off the scenery of a turning view is sharp, and the fight is the same.
 - Switches: `BT3_FX_OFF=<mask>` or F1..F4 while running: 1 outline, 2 see-through tint, 4 depth tint, 8 glow
   (glare and object glow: reserved, the glow pass itself is not written yet).
 - Still dropped: the glow pass (shrink, blur, add), pan blur, haze, stage blur, water wobble, lens. (The cross-fade

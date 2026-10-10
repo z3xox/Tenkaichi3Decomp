@@ -660,14 +660,15 @@ static void video_tab(PortVideo &v) {
 }
 
 static void effects_tab(PortVideo &v) {
-    static const struct { const char *name, *tip; } fx[5] = {
+    static const struct { const char *name, *tip; } fx[6] = {
         {"Outline", "The black line around the fighters."},
         {"See-through tint", "The tint that shows a fighter behind scenery."},
         {"Depth tint", "The haze that colours distant things."},
         {"Glare and glow", "The bloom around bright things and the sky's glare."},
         {"Distance blur", "The soft focus on distant scenery."},
+        {"Movement blur", "The blur of the scenery while the view turns or moves fast."},
     };
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 6; i++) {
         bool on = !((v.fxOff >> i) & 1);
         if (ImGui::Checkbox(fx[i].name, &on)) { v.fxOff = (v.fxOff & ~(1 << i)) | (on ? 0 : 1 << i); }
         ImGui::SetItemTooltip("%s", fx[i].tip);
