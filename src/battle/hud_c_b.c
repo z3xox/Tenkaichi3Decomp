@@ -726,6 +726,12 @@ void HudCombo_DrawText(void) {
         f32 alpha = gHudCombo->textAlpha[side];
 
         if (pos[0] >= 0 && pos[1] >= 0) {
+#ifdef PORT
+            /* Widescreen: the text belongs to its side's panel. Both lines are drawn here, after both combo
+               trees, so the marker was still side 2's: player 1's technique name was narrowed about the right
+               edge and stood where it stands in 4:3, away from its panel (seen by the user). */
+            Port_GsMarker(HUD_SCR(side) ? PORT_2D_RIGHT : PORT_2D_LEFT);
+#endif
             BtlMenu_SetScript2(BtlCtrl_GetObj(side)->skillScript);
             BtlText_DrawEntryName(pos[0], pos[1], gHudCombo->text[side], HUD_SCR(side), alpha); /* (the 4th: left or right aligned) */
         }
