@@ -139,4 +139,7 @@ over the DEPTH page (0x1C00) and draws it from there, and gs_draw.c dropped ever
 (the passes that read it as depth). A 24-bit picture drawn from there as a sprite is let through now.
 Checked: the OpenGL back end without a window (`SDL_VIDEODRIVER=offscreen BT3_GS=gpu`: the Vulkan one cannot
 start there, OpenGL takes over, and `BT3_SHOT` writes its pictures) shows the frame taken fading out over the next
-ones, the right way up and in its colours. NOT seen: the Vulkan back end's read-back, and an intro itself.
+ones, the right way up and in its colours. Seen by the user in an intro (the Vulkan back end).
+In a wide picture the old shot was then drawn at three quarters of the width (seen by the user): it is drawn back
+in strips, each narrower than the screen, and the rule that keeps 2D art in proportion took the strips for art. The
+cross-fade's picture is left at full width (`sWholeFrame`, gs_draw.c). Checked at 16:9 without a window (OpenGL).

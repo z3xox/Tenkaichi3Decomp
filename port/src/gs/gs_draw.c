@@ -46,6 +46,7 @@ extern int gPortMenuMode;       /* headless.c: the menus are running */
 extern int gPortMusicPercent, gPortSePercent;
 
 static GsBackend *sBackend;
+static int sWholeFrame; /* the draw being set up shows a frame the game read back (the cross-fade) */
 
 /* The one window both back ends share: shape (aspect), full screen and display are the renderer's, not a
    back end's, so the settings window and F11 work the same whichever back end is running. */
@@ -476,6 +477,7 @@ static int draw_state(int ctx, int topo, int sprite, int vu, GsDraw *d, float *u
     {
         uint32_t fpsm = (uint32_t)((gGs.frame[ctx] >> 24) & 0x3F), fbp = (uint32_t)(gGs.frame[ctx] & 0x1FF), zbp = (uint32_t)(gGs.zbuf[ctx] & 0x1FF);
         uint32_t tpsm = (uint32_t)((t0 >> 20) & 0x3F), tbp = (uint32_t)(t0 & 0x3FFF);
+        sWholeFrame = tme && tpsm == 1 && sprite && tbp / 32 == zbp; /* the cross-fade's picture (below) */
         if (Gs_PsmBits(fpsm) != 16 && fbp == zbp && tme) {
             /* The two passes that fill the depth page's spare byte: from the frame's top byte through the fog
                ramp (GfxDepthFog_Draw), or a plain copy of the frame's alpha (GfxPost_CopyAlphaToDepth). */
@@ -795,7 +797,10 @@ void GsGpu_Draw(int type, int ctx, const GsVertex *v) {
             }
         }
     }
-    if (Port_IsWide() && !gPortMenuMode && !d.tex_is_target && (type == 6 || fst) && gsTargets[d.target].fbp == (uint32_t)gGsMainFbp) {
+    /* (Not the cross-fade's picture: it is the whole frame as it was shown, wide view and all, drawn back over the
+       whole frame in strips. Each strip is narrower than the screen, so the rule below took it for a piece of 2D
+       art and the old shot was drawn at three quarters of the width over the new one: seen by the user.) */
+    if (Port_IsWide() && !gPortMenuMode && !sWholeFrame && !d.tex_is_target && (type == 6 || fst) && gsTargets[d.target].fbp == (uint32_t)gGsMainFbp) {
         /* Widescreen. The 3D scene is projected for a 16:9 picture by the game itself; 2D art is laid out for
            4:3 and would come out a third too wide. Each 2D piece is narrowed to 3/4 about a fixed point:
              (not in the menus: their pages are shown whole, stretched to the width; see Port_WideFactor)
