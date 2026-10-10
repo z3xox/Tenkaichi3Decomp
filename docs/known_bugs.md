@@ -148,4 +148,5 @@ outlines in an intro): that is what a read-back and an upload leave of a picture
 GPU back ends now keep the frame on the card as it was drawn (`GsGpu_Snapshot`: a copy into a target of its own,
 `GsBackend.targetCopy`) and the cross-fade's draws take that as their texture; the game is handed black, which it
 uploads and never shows. `BT3_XFADE_READ=1` is the read-back again. Checked without a window (OpenGL, 4x, 16:9):
-the old shot fades out at the picture's own resolution. NOT seen: the Vulkan back end's copy.
+the old shot fades out at the picture's own resolution. Seen by the user in an intro under both back ends
+(Vulkan and OpenGL).
