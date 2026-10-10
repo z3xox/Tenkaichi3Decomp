@@ -695,7 +695,12 @@ void GsGpu_Draw(int type, int ctx, const GsVertex *v) {
         /* 2D art: sprites, and triangles with whole-texel coordinates (the logo, HUD pieces drawn as quads):
            texture coordinates per GS pixel (gs.frag). Not for a texture pack's replacement: that has several
            texels per GS pixel, and sampling it once per GS pixel would show it at the original's resolution. */
-        if (sLast != NULL && sLast->tex == d.tex && sLast->replaced && !(getenv("BT3_TEX_2D") != NULL && atoi(getenv("BT3_TEX_2D")) == 0)) {
+        static int smooth = -1; /* BT3_2D_SMOOTH=1 (an experiment): the game's own 2D art the same way */
+        if (smooth < 0) {
+            smooth = getenv("BT3_2D_SMOOTH") != NULL && atoi(getenv("BT3_2D_SMOOTH")) != 0;
+        }
+        if ((smooth && d.tex != gsWhite) ||
+            (sLast != NULL && sLast->tex == d.tex && sLast->replaced && !(getenv("BT3_TEX_2D") != NULL && atoi(getenv("BT3_TEX_2D")) == 0))) {
             packed2d = 1; /* its rectangle is worked out below, from the vertices */
         } else {
             d.misc[3] = (float)SCALE;
