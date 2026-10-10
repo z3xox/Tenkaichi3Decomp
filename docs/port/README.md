@@ -737,6 +737,14 @@ with a third of the interpreter's work gone.
   at its own centre, a quarter or three quarters of a texel past where the GS samples, which at a sprite's edge
   is the neighbouring picture. 2D sprites now take the coordinate at the whole GS pixel (gs.frag, misc.w), so
   2D art looks as on the console (2x point-scaled), not sharper. Not yet confirmed by the user.
+  **Since 2026-10-10 this is the setting "2D filtering"** (F1, `smooth_2d`, `BT3_2D_SMOOTH=0/1`): "Sharp
+  (console)" is the above; "Smooth", the default, samples the game's own 2D art at every output pixel, held inside
+  the piece's rectangle of its sheet by the middles of its edge texels (the rectangle worked out for a texture
+  pack's replacement, gs_draw.c; the rule in gs.frag is its own: the plain coordinate). The replacement's rule,
+  tried first, picks one of two formulas per pixel by a derivative and flickered on art near one texel a pixel:
+  comb stripes in small print at 6x, which the user saw as blurred text, a line in a letter, a pop-up cut short
+  and tearing on moving pieces. Seen by the user: the fight's display, the title, the main menu. Not seen by
+  anyone: every other screen.
 
 ## 2026-10-06: repository rule, widescreen
 

@@ -46,6 +46,7 @@ extern int gPortMenuMode;       /* headless.c: the menus are running */
 extern int gPortMusicPercent, gPortSePercent;
 
 static GsBackend *sBackend;
+static int sSmooth2d = 1; /* the setting "2D filtering" (smooth_2d; BT3_2D_SMOOTH=0/1 wins): 1 smooth */
 static int sWholeFrame; /* the draw being set up shows a frame the game read back (the cross-fade) */
 
 /* The one window both back ends share: shape (aspect), full screen and display are the renderer's, not a
@@ -695,16 +696,10 @@ void GsGpu_Draw(int type, int ctx, const GsVertex *v) {
         /* 2D art: sprites, and triangles with whole-texel coordinates (the logo, HUD pieces drawn as quads):
            texture coordinates per GS pixel (gs.frag). Not for a texture pack's replacement: that has several
            texels per GS pixel, and sampling it once per GS pixel would show it at the original's resolution. */
-        static int smooth = -1; /* BT3_2D_SMOOTH=1 (an experiment): the game's own 2D art the same way */
-        if (smooth < 0) {
-            smooth = getenv("BT3_2D_SMOOTH") != NULL ? atoi(getenv("BT3_2D_SMOOTH")) : 0;
-        }
-        /* Only the fight's display (the pieces its code marks: gsAnchor), not the menus and not other 2D: tried on
-           everything, the menus showed seams between the tiles of moving pieces, a line down the first letter of a
-           label, blurred small print and a pop-up cut at its lower edge (seen by the user). Those are pieces drawn
-           as several primitives, each of which gets a rectangle of its own here, and art drawn 1:1 that this
-           samples half a pixel off the GS's grid. */
-        if ((smooth && d.tex != gsWhite && (smooth >= 2 || (gsAnchor != 0 && !gPortMenuMode))) || /* (2: everything, to look at) */
+        /* The setting "2D filtering" (sSmooth2d): the game's own 2D art is sampled at every output pixel too, inside
+           the piece's rectangle of its sheet (gs.frag has the rule for it, another than the replacement's). Off,
+           a GS pixel of 2D art is one block of output pixels, as on the console. */
+        if ((sSmooth2d && d.tex != gsWhite) ||
             (sLast != NULL && sLast->tex == d.tex && sLast->replaced && !(getenv("BT3_TEX_2D") != NULL && atoi(getenv("BT3_TEX_2D")) == 0))) {
             packed2d = 1; /* its rectangle is worked out below, from the vertices */
         } else {
@@ -1211,6 +1206,7 @@ void GsGpu_GetSettings(PortVideo *v) {
     v->display = sDisplaySetting;
     v->texPack = sTexPackOn;
     v->texPackCount = TexPack_Count();
+    v->smooth2d = sSmooth2d;
 }
 
 /* Applies what differs from the current state, all of it at once, and keeps it for the next run. */
@@ -1236,6 +1232,8 @@ void GsGpu_SetSettings(const PortVideo *v) {
     }
     sDisplaySetting = v->display;
     sTexPackOn = v->texPack != 0;
+    sSmooth2d = v->smooth2d != 0;
+    Port_SettingSave("smooth_2d", sSmooth2d);
     Port_SettingSave("texture_pack", sTexPackOn);
     Port_SettingSave("scale", gsPendingScale ? gsPendingScale : gsScale);
     Port_SettingSave("aspect_milli", Port_AspectMilli());
@@ -1296,6 +1294,7 @@ int GsGpu_Init(void) {
     gsFxOff = (unsigned)(getenv("BT3_FX_OFF") != NULL ? atoi(getenv("BT3_FX_OFF")) : Port_Setting("fx_off", 0)) & 31;
     gsGlowPercent = getenv("BT3_GLOW") != NULL ? atoi(getenv("BT3_GLOW")) : Port_Setting("glow", GLOW_DEFAULT);
     sTexPackOn = Port_Setting("texture_pack", 1) != 0;
+    sSmooth2d = getenv("BT3_2D_SMOOTH") != NULL ? atoi(getenv("BT3_2D_SMOOTH")) != 0 : Port_Setting("smooth_2d", 1) != 0;
     gPortMusicPercent = Port_Setting("music", 100);
     gPortSePercent = Port_Setting("effects", 100);
     TexPack_Init();

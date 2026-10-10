@@ -16,6 +16,7 @@ typedef struct PortVideo {
     int display;     /* 0 = the desktop chooses, n = the n-th display; used at the next start */
     int texPack;     /* 1 = the texture pack's replacements are used */
     int texPackCount; /* read only: replacement textures found in the textures folder */
+    int smooth2d;    /* "2D filtering": 0 sharp (a PS2 pixel is a block), 1 smooth (sampled per output pixel) */
 } PortVideo;
 
 /* gs_draw.c */
