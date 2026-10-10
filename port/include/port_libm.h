@@ -17,6 +17,7 @@ float Port_logf(float);
 float Port_atan2f(float, float);
 float Port_powf(float, float);
 float Port_fmodf(float, float);
+double Port_pow(double, double); /* the one double function the game calls (the replay list's slot number) */
 #define sinf Port_sinf
 #define cosf Port_cosf
 #define tanf Port_tanf
@@ -32,6 +33,7 @@ float Port_fmodf(float, float);
 #define fmodf Port_fmodf
 #define expf Port_expf
 #define logf Port_logf
+#define pow Port_pow
 #define Ref_atan2f Port_atan2f /* the vector library's hook for the game's atan2f */
 /* The PS2 C library's generator (port/src/plat_sys.c), not the host's. */
 #define rand Port_Rand

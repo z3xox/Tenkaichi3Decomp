@@ -103,3 +103,15 @@ later on Linux). The others are in registers, where a 32-bit write clears the up
 The reporting player, for whom it crashed with every character every time, confirmed that a build with the fix
 starts the match (2026-10-09). Released in 0.1.17.
 
+
+## The replay list stopped the game (found 2026-10-10, reported by a player)
+
+Opening the replay list (to save a replay after a fight, or in the Data Center) ended the game with an arithmetic
+fault in `ReplayMenu_Draw`. The list works out its slot number's digits with `pow(10.0, i)`, the game's only call of
+a `double` maths function. The game code is built with software floating point (doubles as 64-bit patterns in the
+integer registers) and every `float` function goes through a bridge (port/include/port_libm.h); `pow` had none and
+went to the host's, which reads its arguments from the float unit. What came back was whatever the integer register
+held, often 0, and the list divided by it. In every release up to 0.1.19, on Linux and Windows.
+Fixed: `Port_pow` (port/src/plat_libm.c). The other calls of the host's `pow` are the port's own code (the settings
+window, the sound), which is built for the float unit. Checked: the program's code calls the bridge at all four
+places; the replay check. NOT seen: the list on a screen.

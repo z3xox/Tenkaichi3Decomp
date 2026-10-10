@@ -21,6 +21,11 @@ static uint64_t q(double x) { uint64_t v; __builtin_memcpy(&v, &x, 8); return v;
 F1(ceilf) F1(expf) F1(logf)
 F2(fmodf)
 
+/* pow: called once by the game, by the replay list for its slot number (src/menu/menu_za_d.c). It went to the host's
+   own, which takes its arguments in the float unit: the list divided by whatever came back, often 0, and the game
+   stopped with an arithmetic fault when the list was opened to save or load a replay. */
+uint64_t Port_pow(uint64_t a, uint64_t b) { return q(pow(d(a), d(b))); }
+
 uint64_t __adddf3(uint64_t a, uint64_t b) { return q(d(a) + d(b)); }
 uint64_t __subdf3(uint64_t a, uint64_t b) { return q(d(a) - d(b)); }
 uint64_t __muldf3(uint64_t a, uint64_t b) { return q(d(a) * d(b)); }
