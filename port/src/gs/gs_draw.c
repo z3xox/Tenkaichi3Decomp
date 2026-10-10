@@ -697,14 +697,14 @@ void GsGpu_Draw(int type, int ctx, const GsVertex *v) {
            texels per GS pixel, and sampling it once per GS pixel would show it at the original's resolution. */
         static int smooth = -1; /* BT3_2D_SMOOTH=1 (an experiment): the game's own 2D art the same way */
         if (smooth < 0) {
-            smooth = getenv("BT3_2D_SMOOTH") != NULL && atoi(getenv("BT3_2D_SMOOTH")) != 0;
+            smooth = getenv("BT3_2D_SMOOTH") != NULL ? atoi(getenv("BT3_2D_SMOOTH")) : 0;
         }
         /* Only the fight's display (the pieces its code marks: gsAnchor), not the menus and not other 2D: tried on
            everything, the menus showed seams between the tiles of moving pieces, a line down the first letter of a
            label, blurred small print and a pop-up cut at its lower edge (seen by the user). Those are pieces drawn
            as several primitives, each of which gets a rectangle of its own here, and art drawn 1:1 that this
            samples half a pixel off the GS's grid. */
-        if ((smooth && d.tex != gsWhite && gsAnchor != 0 && !gPortMenuMode) ||
+        if ((smooth && d.tex != gsWhite && (smooth >= 2 || (gsAnchor != 0 && !gPortMenuMode))) || /* (2: everything, to look at) */
             (sLast != NULL && sLast->tex == d.tex && sLast->replaced && !(getenv("BT3_TEX_2D") != NULL && atoi(getenv("BT3_TEX_2D")) == 0))) {
             packed2d = 1; /* its rectangle is worked out below, from the vertices */
         } else {

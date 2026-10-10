@@ -44,6 +44,17 @@ void main() {
             vec2 at = uv - (dx * (f.x - g.x) + dy * (f.y - g.y)); // where the GS takes it
             if (p.misc.w > 0.0) {
                 uv = at;
+            } else if (p.mode.x != 3) {
+                // The game's own 2D art, shown smooth (BT3_2D_SMOOTH): the coordinate of this output pixel as it
+                // is. The GS shows the texel its whole pixel falls into over the whole GS pixel, so that texel's
+                // middle belongs at the GS pixel's middle, which is where the plain coordinate puts it; the
+                // filter then blends towards the neighbours on either side. Held inside the piece's own rectangle
+                // of the sheet (rect), by the middles of its edge texels, so nothing of the next piece is blended
+                // in. (The replacement's rule below, tried here, chooses between two formulas by a derivative
+                // for every pixel: on art near one texel a pixel the choice flickered from pixel to pixel, seen as
+                // comb-like stripes in small text.)
+                vec2 inset = 0.5 / vec2(textureSize(tex, 0));
+                uv = clamp(uv, p.rect.xy + inset, p.rect.zw - inset);
             } else {
                 // A texture pack's replacement (several texels per original texel; orig.xy = the original's size,
                 // rect = this piece's rectangle of the sheet). o: this output pixel's place inside its GS pixel.
