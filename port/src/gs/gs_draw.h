@@ -157,4 +157,6 @@ extern GsBackend sGlBackend;     /* gs_gl.c */
    with the back end's attachments through GsBackend.targetEnsure). */
 int GsDraw_TargetGet(uint32_t fbp, int create);
 
+void GsGpu_TitlePoll(void); /* gs_draw.c */
+
 #endif

@@ -9,6 +9,7 @@
 #include <windows.h>
 #include <stdint.h>
 #include <stdio.h>
+extern const char *Port_DataSummary(void); /* plat_verify.c */
 
 extern const char *volatile gPortStage; /* plat_mem.c: how far the start got */
 
@@ -98,6 +99,10 @@ static LONG WINAPI on_crash(EXCEPTION_POINTERS *e) {
     crash_hex((unsigned long long)(uintptr_t)tib->StackLimit);
     crash_put(" to ");
     crash_hex((unsigned long long)(uintptr_t)tib->StackBase);
+    if (Port_DataSummary()[0] != '\0') { /* (plat_verify.c: not the original disc's data) */
+        crash_put("\r\n");
+        crash_put(Port_DataSummary());
+    }
     crash_put("\r\nbacktrace (innermost first; addresses in Tenkaichi3Decomp.exe are looked up in the build's map file):\r\n");
     n = RtlCaptureStackBackTrace(0, 32, frames, NULL);
     for (i = 0; i < n; i++) {
@@ -132,6 +137,8 @@ __attribute__((constructor(101))) static void crash_init(void) {
 #include <string.h>
 #include <unistd.h>
 
+extern const char *Port_DataSummary(void); /* plat_verify.c */
+
 static void put(int fd, const char *s) {
     if (write(fd, s, strlen(s)) < 0) {
     }
@@ -150,6 +157,10 @@ static void on_crash(int sig) {
         }
         put(out, "bt3: crashed: ");
         put(out, name);
+        if (Port_DataSummary()[0] != '\0') { /* (plat_verify.c: not the original disc's data) */
+            put(out, "\n");
+            put(out, Port_DataSummary());
+        }
         put(out, "\nbacktrace (innermost first):\n");
         backtrace_symbols_fd(frames, n, out);
     }

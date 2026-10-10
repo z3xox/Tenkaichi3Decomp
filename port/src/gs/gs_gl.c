@@ -759,6 +759,7 @@ static void frame_end(void) {
     struct { int32_t mode[4]; float misc[4]; float rect[4]; float orig[4]; } fu, lastFu;
     int haveFu = 0;
 
+    GsGpu_TitlePoll();
     while (SDL_PollEvent(&ev)) {
         if (ev.type == SDL_EVENT_QUIT) { exit(0); }
         if (ev.type == SDL_EVENT_KEY_DOWN && !ev.key.repeat && ev.key.key == SDLK_F1) { Ui_Toggle(); continue; }

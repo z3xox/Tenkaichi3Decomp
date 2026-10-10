@@ -52,6 +52,16 @@ static int sWholeFrame; /* the draw being set up shows a frame the game read bac
 /* The one window both back ends share: shape (aspect), full screen and display are the renderer's, not a
    back end's, so the settings window and F11 work the same whichever back end is running. */
 static SDL_Window *sWindow;
+/* Called once a frame by the back ends: when the check of the game data (plat_verify.c) has found it modified, the
+   window's title says so from then on, so that a screenshot of the window carries it. */
+void GsGpu_TitlePoll(void) {
+    extern int Port_DataState(void);
+    static int done;
+    if (!done && sWindow != NULL && Port_DataState() == 2) {
+        SDL_SetWindowTitle(sWindow, "Tenkaichi3Decomp [modified game data]");
+        done = 1;
+    }
+}
 static int sFullscreen;
 static float sWantAspect;
 static int sDisplaySetting;

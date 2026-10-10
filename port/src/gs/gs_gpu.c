@@ -497,6 +497,7 @@ static void vk_frame_end(void) {
     float lastBlend = -1.0f;
     uint32_t n;
 
+    GsGpu_TitlePoll();
     while (SDL_PollEvent(&ev)) {
         if (ev.type == SDL_EVENT_QUIT) {
             exit(0);

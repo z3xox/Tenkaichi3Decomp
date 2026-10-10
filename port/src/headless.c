@@ -99,6 +99,10 @@ int __wrap_Progress_Main(int arg) {
     const char *path;
     PortStages_Init();
     PortSongs_Init();
+    {
+        extern void Port_VerifyStart(void); /* plat_verify.c: is the data the original disc's (in the background) */
+        Port_VerifyStart();
+    }
     port_stage_replace_init();
     path = getenv("BT3_REPLAY");
 
