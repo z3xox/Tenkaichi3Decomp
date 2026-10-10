@@ -699,7 +699,12 @@ void GsGpu_Draw(int type, int ctx, const GsVertex *v) {
         if (smooth < 0) {
             smooth = getenv("BT3_2D_SMOOTH") != NULL && atoi(getenv("BT3_2D_SMOOTH")) != 0;
         }
-        if ((smooth && d.tex != gsWhite) ||
+        /* Only the fight's display (the pieces its code marks: gsAnchor), not the menus and not other 2D: tried on
+           everything, the menus showed seams between the tiles of moving pieces, a line down the first letter of a
+           label, blurred small print and a pop-up cut at its lower edge (seen by the user). Those are pieces drawn
+           as several primitives, each of which gets a rectangle of its own here, and art drawn 1:1 that this
+           samples half a pixel off the GS's grid. */
+        if ((smooth && d.tex != gsWhite && gsAnchor != 0 && !gPortMenuMode) ||
             (sLast != NULL && sLast->tex == d.tex && sLast->replaced && !(getenv("BT3_TEX_2D") != NULL && atoi(getenv("BT3_TEX_2D")) == 0))) {
             packed2d = 1; /* its rectangle is worked out below, from the vertices */
         } else {
