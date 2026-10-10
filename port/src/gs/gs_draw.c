@@ -2333,7 +2333,12 @@ blend:
                 /* it stands as it stood: its bones are this picture's to the last bit (pieces of scenery laid over
                    each other must come out at exactly the same depth) */
                 memcpy(o->boneA, c->boneA, 40 * sizeof(float));
-            } else if (sInterpSig[i] != 0x53484457u && c->misc[3] <= 1.0f) { /* (a model's two bones: not the shadow's and other programs' use of these slots) */
+            } else if (sInterpSig[i] != 0x53484457u && (c->misc[3] <= 1.0f || c->misc[3] == 5.0f)) { /* (a model's two bones: not the shadow's and other programs' use of these slots) */
+                /* Layer 5 is the reflection of a shiny model (program 1's second texture), drawn over the same
+                   triangles as its layer 0. With the plain average of the matrices above, its triangles were a
+                   little smaller and elsewhere than the layer's under it, in the in-between pictures only: the
+                   two fought for the depth and the shine came and went with every picture (Perfect Cell's black
+                   parts; seen by the user, reproduced from a recording). Both go the same way now. */
                 int around = bonesInView && !scenery && memcmp(c->screen, q->screen, 64) == 0;
                 interp_bone(q->boneA, c->boneA, t, around, o->boneA);
                 interp_bone(q->boneB, c->boneB, t, around, o->boneB);

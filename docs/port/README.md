@@ -1396,3 +1396,14 @@ of the vertices into the transfer buffer could be saved by recording straight in
 - Checked: the original data (clean); a copy with one byte changed in a file, another file longer and a third
   missing (3 of 68,605 named, both on the full pass and from the cache); the replay check unchanged. NOT seen:
   the title and the notice on a real window (screenshots of the offscreen renderer are taken under the overlay).
+
+## In-between pictures: a shiny model's reflection flickered (2026-10-11)
+
+- Seen by the user on characters with a reflection (Perfect Cell's black parts) with "interp" on; reproduced from
+  a pad recording in the offscreen renderer, pictures written one by one (`BT3_SHOT=1`).
+- The reflection is program 1's layer 1 (`misc.w == 5`), drawn over the same triangles as layer 0. In
+  `interp_build` layers 0 and 1 got `interp_bone` (axes given back their length, the place moved around the
+  camera) and every other layer the plain average of the matrices, so in the in-between pictures the reflection's
+  triangles were not where the layer under them was: depth fighting, the shine there in one picture and gone or
+  in shreds in the next. Layer 5 goes through `interp_bone` now.
+- Checked: the same six consecutive pictures before and after; after, the shine is whole and the same in each.
