@@ -1388,6 +1388,9 @@ of the vertices into the transfer buffer could be saved by recording straight in
   `Tenkaichi3Decomp [modified game data]`, the notice line is shown once, and a crash report carries the line.
 - The result is kept in `<root>/.verified` with a signature of every file's size and time; a later start only
   looks at those. Measured here: under 4 s for the full pass (files in the system's cache), under 1 s after.
+- A quick pass first: sizes only, no reading. A replaced, missing or resized file is reported at once ("at least
+  N files") and nothing is read; a romhack's data stopped the game in its first seconds, before the full pass
+  would have ended. A crash report written while the check runs says "not checked yet".
 - Texture packs, added songs, stages and characters are outside the data folder and do not count.
 - `BT3_VERIFY=0` turns it off; without a window (`BT3_GS=none`) it runs only with `BT3_VERIFY=1`.
 - Checked: the original data (clean); a copy with one byte changed in a file, another file longer and a third

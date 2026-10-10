@@ -35,11 +35,14 @@ enum { DATA_CHECKING = 0, DATA_ORIGINAL = 1, DATA_MODIFIED = 2, DATA_OFF = 3 };
 static volatile int sState = DATA_OFF;
 static int sDiffer, sMissing, sMods, sTotal;
 static char sFirst[4][40];
+static int sAtLeast; /* counted by size only (the quick pass): files of the same size were not read */
 static char sSummary[160];
 
 int Port_DataState(void) { return sState; }
 /* One line for the log, the notice and the crash report; "" unless the data is modified. */
-const char *Port_DataSummary(void) { return sState == DATA_MODIFIED ? sSummary : ""; }
+const char *Port_DataSummary(void) {
+    return sState == DATA_MODIFIED ? sSummary : sState == DATA_CHECKING ? "game data: not checked yet (the check was still running)" : "";
+}
 
 /* CRC-32 (the zlib one), eight bytes a step. */
 static uint32_t sTab[8][256];
@@ -92,6 +95,12 @@ static void rel_of(int n, char *out, size_t size) {
 
 static void note(const char *rel) {
     int seen = sDiffer + sMissing + sMods;
+    if (seen == 0 && sState == DATA_CHECKING) {
+        /* The first difference found: known from here on, whatever happens before the count is finished (a crash
+           report written a second after the start has the line). */
+        snprintf(sSummary, sizeof(sSummary), "modified game data: files are not the original disc's (%s first; still counting)", rel);
+        sState = DATA_MODIFIED;
+    }
     if (seen < 4) {
         snprintf(sFirst[seen], sizeof(sFirst[seen]), "%s", rel);
     }
@@ -104,7 +113,8 @@ static void finish(void) {
         sState = DATA_ORIGINAL;
         return;
     }
-    snprintf(sSummary, sizeof(sSummary), "modified game data: %d of %d files are not the original disc's", bad, sTotal);
+    snprintf(sSummary, sizeof(sSummary), "modified game data: %s%d of %d files are not the original disc's",
+             sAtLeast ? "at least " : "", bad, sTotal);
     fprintf(stderr, "bt3: %s (%d changed, %d missing, %d replaced through mods/). This build supports the original USA "
                     "disc (SLUS-21678); glitches are expected. The first:", sSummary, sDiffer, sMissing, sMods);
     for (k = 0; k < bad && k < 4; k++) {
@@ -140,7 +150,26 @@ static void *verify_thread(void *arg) {
         if (stat(path, &st) == 0) {
             rec[2] = (uint64_t)st.st_size + 1;
         }
+        /* the quick pass: a replaced, missing or resized file shows without reading anything */
+        if (rec[2] != 0) {
+            note(rel);
+            sMods++;
+        } else if (rec[0] == 0) {
+            note(rel);
+            sMissing++;
+        } else if (rec[0] - 1 != kVerify[n][0]) {
+            note(rel);
+            sDiffer++;
+        }
         sig = crc_add(sig, (const uint8_t *)rec, sizeof(rec));
+    }
+    if (sDiffer + sMissing + sMods > 0) {
+        /* Enough to say so, and at once: a modified disc's data can stop the game within seconds of its start
+           (seen with a romhack's models), long before 3 GB are read. Files of the original's size are not read
+           then, so the number is a lower bound. */
+        sAtLeast = 1;
+        finish();
+        return NULL;
     }
     snprintf(cache, sizeof(cache), "%s/.verified", root);
     f = fopen(cache, "r");
