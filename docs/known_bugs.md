@@ -143,3 +143,9 @@ ones, the right way up and in its colours. Seen by the user in an intro (the Vul
 In a wide picture the old shot was then drawn at three quarters of the width (seen by the user): it is drawn back
 in strips, each narrower than the screen, and the rule that keeps 2D art in proportion took the strips for art. The
 cross-fade's picture is left at full width (`sWholeFrame`, gs_draw.c). Checked at 16:9 without a window (OpenGL).
+The old shot was still shown at the PS2's 512 x 448, blocky over the new one (seen by the user as pixelated
+outlines in an intro): that is what a read-back and an upload leave of a picture drawn at several times that. The
+GPU back ends now keep the frame on the card as it was drawn (`GsGpu_Snapshot`: a copy into a target of its own,
+`GsBackend.targetCopy`) and the cross-fade's draws take that as their texture; the game is handed black, which it
+uploads and never shows. `BT3_XFADE_READ=1` is the read-back again. Checked without a window (OpenGL, 4x, 16:9):
+the old shot fades out at the picture's own resolution. NOT seen: the Vulkan back end's copy.

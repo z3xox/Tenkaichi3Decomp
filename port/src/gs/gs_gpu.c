@@ -1179,6 +1179,26 @@ static int vk_target_read(int i, uint8_t *rgba) {
     return px != NULL;
 }
 
+static void vk_target_copy(int src, int dst) {
+    SDL_GPUCommandBuffer *cmd;
+    SDL_GPUBlitInfo bl;
+    if (sDev == NULL || sTgCol[src] == NULL || sTgCol[dst] == NULL) {
+        return;
+    }
+    cmd = SDL_AcquireGPUCommandBuffer(sDev);
+    SDL_zero(bl);
+    bl.source.texture = sTgCol[src];
+    bl.source.w = GS_W * SCALE;
+    bl.source.h = GS_H * SCALE;
+    bl.destination.texture = sTgCol[dst];
+    bl.destination.w = GS_W * SCALE;
+    bl.destination.h = GS_H * SCALE;
+    bl.load_op = SDL_GPU_LOADOP_DONT_CARE;
+    bl.filter = SDL_GPU_FILTER_NEAREST;
+    SDL_BlitGPUTexture(cmd, &bl);
+    SDL_SubmitGPUCommandBuffer(cmd);
+}
+
 GsBackend sVulkanBackend = {
     "vulkan",
     vk_init,
@@ -1196,4 +1216,5 @@ GsBackend sVulkanBackend = {
     target_depth,
     pipe_get,
     vk_target_read,
+    vk_target_copy,
 };

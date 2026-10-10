@@ -538,9 +538,17 @@ static int draw_state(int ctx, int topo, int sprite, int vu, GsDraw *d, float *u
         gsTargets[d->target].stale = 0; /* cleared by the game: what is drawn into it from here on is real */
     }
     if (tme) {
+        int kept = 0;
         src = GsDraw_TargetGet((uint32_t)((t0 & 0x3FFF) / 32), 0);
+        if (sWholeFrame) { /* the cross-fade's picture: the frame kept on the card (GsGpu_Snapshot), if there is one */
+            int sn = GsDraw_TargetGet(0x1FF, 0);
+            if (sn >= 0 && gsTargets[sn].cleared && sn != d->target) {
+                src = sn;
+                kept = 1;
+            }
+        }
         /* a frame buffer used as a texture: only if nothing was uploaded over it since it was drawn */
-        if (src >= 0 && (t0 & 0x1F) == 0 && gsTargets[src].cleared && gsTargets[src].gen == gGsPageGen[gsTargets[src].fbp & 511]) {
+        if (src >= 0 && (kept || ((t0 & 0x1F) == 0 && gsTargets[src].cleared && gsTargets[src].gen == gGsPageGen[gsTargets[src].fbp & 511]))) {
             uint32_t tp = (uint32_t)((t0 >> 20) & 0x3F);
             if (gsTargets[src].stale) {
                 /* The buffer was meant to hold a copy or a step of an effect that was dropped; what it holds now
@@ -1033,6 +1041,31 @@ void GsGpu_DrawVu0(int layer, int ctx, const float *vertices, uint32_t count, co
 
 /* The game uploaded pixels straight into a display buffer (a movie frame). Remembers the place in the frame's
    draw order; the pixels are taken from GS memory at the end of the frame (frame_end). */
+/* The frame the game reads back for its cross-fade, kept on the card at the resolution it was drawn in: a target of
+   its own (an address no frame buffer of the game has), which the cross-fade's draws then take as their texture
+   (draw_state). Read back and uploaded again as the game does it, the old shot came out at the PS2's 512 x 448,
+   blocky over the new one (seen by the user as pixelated outlines in an intro). 0 = not kept (the game's own
+   way is used). */
+#define SNAP_FBP 0x1FF
+int GsGpu_Snapshot(uint32_t fbp) {
+    int src = GsDraw_TargetGet(fbp, 0), dst;
+    if (src < 0 || !gsTargets[src].cleared) {
+        src = gGsMainFbp >= 0 ? GsDraw_TargetGet((uint32_t)gGsMainFbp, 0) : -1;
+    }
+    if (sBackend == NULL || sBackend->targetCopy == NULL || src < 0 || !gsTargets[src].cleared) {
+        return 0;
+    }
+    dst = GsDraw_TargetGet(SNAP_FBP, 1);
+    if (dst < 0 || dst == src) {
+        return 0;
+    }
+    sBackend->targetCopy(src, dst);
+    gsTargets[dst].cleared = 1;
+    gsTargets[dst].stale = 0;
+    gsTargets[dst].gen = gGsPageGen[SNAP_FBP & 511];
+    return 1;
+}
+
 /* The picture of the frame buffer at `fbp` as the GS has it, 512 x 448 RGBA (the game reads the shown frame back
    for its cross-fade: Gs_StoreImage in gs_core.c). The buffer asked for, or else the frame's own. */
 int GsGpu_ReadFrame(uint32_t fbp, uint8_t *rgba) {

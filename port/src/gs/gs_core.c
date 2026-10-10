@@ -1466,6 +1466,22 @@ void Gs_StoreImage(unsigned bp, unsigned w, unsigned h, unsigned char *rgb) {
         if (sThreaded) {
             return;
         }
+        {
+            /* First choice: the frame stays on the card as it was drawn and the cross-fade draws from that (the
+               game is handed black, which it uploads and never shows). BT3_XFADE_READ=1: the game's own way. */
+            extern int GsGpu_Snapshot(uint32_t fbp);
+            static unsigned snapFrame = ~0u, snapFbp = ~0u;
+            if (getenv("BT3_XFADE_READ") == NULL) {
+                if (snapFrame == sFrame && snapFbp == fbp) {
+                    return;
+                }
+                if (GsGpu_Snapshot(fbp)) {
+                    snapFrame = sFrame;
+                    snapFbp = fbp;
+                    return;
+                }
+            }
+        }
         if (keptFrame != sFrame || keptFbp != fbp) {
             if (!GsGpu_ReadFrame(fbp, kept)) {
                 return;

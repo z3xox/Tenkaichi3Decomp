@@ -1094,6 +1094,23 @@ static int gl_target_read(int i, uint8_t *rgba) {
     return 1;
 }
 
+static void gl_target_copy(int src, int dst) {
+    GLenum one[1] = {GL_COLOR_ATTACHMENT0};
+    if (sTgCol[src] == 0 || sTgCol[dst] == 0) {
+        return;
+    }
+    glDisable(GL_SCISSOR_TEST); /* (the copy must be whole; frame_end sets its own state when it runs) */
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, sScratchRead);
+    glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, sTgCol[src], 0);
+    glReadBuffer(GL_COLOR_ATTACHMENT0);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, sScratchDraw);
+    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, sTgCol[dst], 0);
+    glDrawBuffers(1, one);
+    glBlitFramebuffer(0, 0, GS_W * SCALE, GS_H * SCALE, 0, 0, GS_W * SCALE, GS_H * SCALE, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+}
+
 GsBackend sGlBackend = {
     "opengl",
     gl_init,
@@ -1111,4 +1128,5 @@ GsBackend sGlBackend = {
     target_depth,
     pipe_get,
     gl_target_read,
+    gl_target_copy,
 };
