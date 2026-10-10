@@ -41,8 +41,22 @@ int func_00296B48() { return 0; }      /* sceSdRemoteCallbackInit */
 static int (*sVsyncHandler)(int);
 void sceGsResetGraph() {}
 void sceGsResetPath() {}
-void sceGsSetDefStoreImage() {}
-int sceGsExecStoreImage() { return 0; }
+/* Reading pixels back from the GS (the screen cross-fade of the fight's scenes reads the frame being shown: stg_b.c).
+   SetDef says what: the place in GS memory (in 64-pixel units), the size; Exec delivers it, 3 bytes a pixel. */
+static int sStoreBp, sStoreW, sStoreH;
+int sceGsSetDefStoreImage(void *si, int sbp, int sbw, int spsm, int x, int y, int w, int h) {
+    (void)si; (void)sbw; (void)spsm; (void)x; (void)y;
+    sStoreBp = sbp & 0xFFFF;
+    sStoreW = w & 0xFFFF;
+    sStoreH = h & 0xFFFF;
+    return 0;
+}
+int sceGsExecStoreImage(void *si, void *dst) {
+    extern void Gs_StoreImage(unsigned bp, unsigned w, unsigned h, unsigned char *rgb); /* gs/gs_core.c */
+    (void)si;
+    Gs_StoreImage((unsigned)sStoreBp, (unsigned)sStoreW, (unsigned)sStoreH, (unsigned char *)dst);
+    return 0;
+}
 int sceGsSyncPath() { return 0; }
 void *sceGsSyncVCallback(int (*handler)(int)) { void *old = (void *)sVsyncHandler; sVsyncHandler = handler; return old; }
 /* One vertical blank: runs the game's VBlank handler, as the interrupt would. */

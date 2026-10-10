@@ -1025,7 +1025,23 @@ static void screenshot(void) {
             }
         }
     }
-    if (every > 0 && best != NULL && !sGpu && sFrame % (unsigned)every == 0) {
+    {
+        /* BT3_XFADE_AT=<frame> (testing): the fight's screen cross-fade is asked for at that frame, as the game does
+           between the shots of an intro, so a run without a window can show it in any fight. */
+        static int at = -2;
+        if (at == -2) {
+            at = getenv("BT3_XFADE_AT") != NULL ? atoi(getenv("BT3_XFADE_AT")) : -1;
+        }
+        if (at >= 0 && (int)sFrame == at) {
+            extern void ScrXfade_RequestCapture(void);
+            extern void ScrXfade_Start(int request, uint32_t seconds); /* (the game's float, as its 32 bits) */
+            ScrXfade_RequestCapture();
+            ScrXfade_Start(1, 0x3F800000u);
+        }
+    }
+    if (every > 0 && best != NULL && !sGpu && sFrame % (unsigned)every == 0 &&
+        (getenv("BT3_SHOT_FROM") == NULL || (int)sFrame >= atoi(getenv("BT3_SHOT_FROM"))) &&
+        (getenv("BT3_SHOT_TO") == NULL || (int)sFrame <= atoi(getenv("BT3_SHOT_TO")))) {
         uint64_t fr = (gs.frame[0] & 0x1FF) == best->fbp ? gs.frame[0] : (gs.frame[1] & 0x1FF) == best->fbp ? gs.frame[1] : shown;
         uint32_t fbw = (fr >> 16) & 0x3F, fpsm = (fr >> 24) & 0x3F;
 
@@ -1426,4 +1442,48 @@ static void run_chain(uint32_t tadr, int tte) {
         fprintf(stderr, "gs: frame %u: %u texel reads from textures that were never uploaded\n", sFrame, sMissingTex);
     }
     sMissingTex = 0;
+}
+
+/* The game reads a piece of a frame buffer back (sceGsExecStoreImage; the cross-fade of the fight's scenes takes the
+   frame being shown, 512 x 224 at a time). `bp` in units of 64 pixels: 0xE00 a frame buffer (32 a page), 8 a row of
+   512. Delivered as 3 bytes a pixel, top row first.
+     - software renderer: from its GS memory;
+     - GPU back end: the frame buffer's picture is read from the card once and kept for the calls that follow in the
+       same frame (two halves), reduced to the GS's 512 x 448;
+     - nothing drawn (tests) or the back end on a thread of its own: black, and the game is not told otherwise. */
+void Gs_StoreImage(unsigned bp, unsigned w, unsigned h, unsigned char *rgb) {
+    extern int GsGpu_ReadFrame(uint32_t fbp, uint8_t *rgba); /* gs_draw.c */
+    static uint8_t kept[512 * 448 * 4];
+    static unsigned keptFrame = ~0u, keptFbp = ~0u;
+    unsigned fbp = bp / 0xE00 * 0x70, y0 = bp % 0xE00 / 8, x, y;
+
+    if (w > 512) { w = 512; }
+    memset(rgb, 0, (size_t)w * h * 3);
+    if (getenv("BT3_GS_VERBOSE") != NULL || getenv("BT3_STORE_LOG") != NULL) {
+        fprintf(stderr, "gs: frame %u: the game reads %ux%u back from buffer %#x, row %u\n", sFrame, w, h, fbp, y0);
+    }
+    if (sGpu) {
+        if (sThreaded) {
+            return;
+        }
+        if (keptFrame != sFrame || keptFbp != fbp) {
+            if (!GsGpu_ReadFrame(fbp, kept)) {
+                return;
+            }
+            keptFrame = sFrame;
+            keptFbp = fbp;
+        }
+        for (y = 0; y < h && y0 + y < 448; y++) {
+            for (x = 0; x < w; x++) {
+                memcpy(rgb + (y * w + x) * 3, kept + ((y0 + y) * 512 + x) * 4, 3);
+            }
+        }
+    } else if (gs_mode() != NULL) {
+        for (y = 0; y < h && y0 + y < 448; y++) {
+            for (x = 0; x < w; x++) {
+                uint32_t c = vram_rw(fbp << 5, 8, 0, x, y0 + y, 0, 0);
+                memcpy(rgb + (y * w + x) * 3, &c, 3);
+            }
+        }
+    }
 }

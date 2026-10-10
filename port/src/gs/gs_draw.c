@@ -1019,6 +1019,19 @@ void GsGpu_DrawVu0(int layer, int ctx, const float *vertices, uint32_t count, co
 
 /* The game uploaded pixels straight into a display buffer (a movie frame). Remembers the place in the frame's
    draw order; the pixels are taken from GS memory at the end of the frame (frame_end). */
+/* The picture of the frame buffer at `fbp` as the GS has it, 512 x 448 RGBA (the game reads the shown frame back
+   for its cross-fade: Gs_StoreImage in gs_core.c). The buffer asked for, or else the frame's own. */
+int GsGpu_ReadFrame(uint32_t fbp, uint8_t *rgba) {
+    int t = GsDraw_TargetGet(fbp, 0);
+    if (t < 0 || !gsTargets[t].cleared) {
+        t = gGsMainFbp >= 0 ? GsDraw_TargetGet((uint32_t)gGsMainFbp, 0) : -1;
+    }
+    if (sBackend == NULL || sBackend->targetRead == NULL || t < 0 || !gsTargets[t].cleared) {
+        return 0;
+    }
+    return sBackend->targetRead(t, rgba);
+}
+
 void GsGpu_FbUpload(int second) {
     if (gPortResim) { /* a frame that is only being re-run: nothing is drawn */
         return;

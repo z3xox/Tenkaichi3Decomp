@@ -1071,6 +1071,29 @@ static void frame_end(void) {
     gsNative = 0;
 }
 
+/* Target i's picture, reduced to the GS's 512 x 448 (as the Vulkan back end's). */
+static int gl_target_read(int i, uint8_t *rgba) {
+    GLsizei w = 512 * SCALE, h = 448 * SCALE; /* (the picture's part of the target, as the screenshot's) */
+    uint8_t *px;
+    int x, y;
+
+    if (sTgFbo[i] == 0 || (px = malloc((size_t)w * h * 4)) == NULL) {
+        return 0;
+    }
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, sTgFbo[i]);
+    glReadBuffer(GL_COLOR_ATTACHMENT0);
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+    glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, px);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    for (y = 0; y < 448; y++) { /* (rows come back in texture order: the first is the scene's top) */
+        for (x = 0; x < 512; x++) {
+            memcpy(rgba + (y * 512 + x) * 4, px + ((size_t)(y * SCALE + SCALE / 2) * w + x * SCALE + SCALE / 2) * 4, 4);
+        }
+    }
+    free(px);
+    return 1;
+}
+
 GsBackend sGlBackend = {
     "opengl",
     gl_init,
@@ -1087,4 +1110,5 @@ GsBackend sGlBackend = {
     target_aux,
     target_depth,
     pipe_get,
+    gl_target_read,
 };

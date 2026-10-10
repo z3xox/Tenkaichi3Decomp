@@ -705,7 +705,8 @@ with a third of the interpreter's work gone.
   (compared on / off), so this stage does not prove it either way.
 - Switches: `BT3_FX_OFF=<mask>` or F1..F4 while running: 1 outline, 2 see-through tint, 4 depth tint, 8 glow
   (glare and object glow: reserved, the glow pass itself is not written yet).
-- Still dropped: the glow pass (shrink, blur, add), pan blur, haze, stage blur, water wobble, lens, cross-fade.
+- Still dropped: the glow pass (shrink, blur, add), pan blur, haze, stage blur, water wobble, lens. (The cross-fade
+  is drawn since 2026-10-10: the game's read-back of the frame is answered, see docs/known_bugs.md.)
 - **Buffer-to-buffer passes are drawn** (glare, object glow, blur of distant things; `draw_state` in gs_gpu.c):
   textured sprites from one render target into another, with sampling held inside the buffer's own area (the GS
   CLAMP register done by hand, since each buffer is a corner of a larger texture). Not drawable and dropped: a

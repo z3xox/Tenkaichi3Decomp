@@ -115,3 +115,23 @@ held, often 0, and the list divided by it. In every release up to 0.1.19, on Lin
 Fixed: `Port_pow` (port/src/plat_libm.c). The other calls of the host's `pow` are the port's own code (the settings
 window, the sound), which is built for the float unit. Checked: the program's code calls the bridge at all four
 places; the replay check. Seen fixed by the user (2026-10-10).
+
+## Two reports of 2026-10-10 (both in every release up to 0.1.20)
+
+**The picture was stretched after the shape was changed during a fight.** A view's projection is worked out when
+the view is set up (`View_InitLayout`: the start of a fight or of a scene), and the port widened it there. Changed
+in the settings window during a fight, the picture was shown at the new shape with the old projection until the
+next fight. `View_UpdateMatrices` now holds every view to the shape of now (src/battle/btl_cam.c). Checked without
+a window: a run that changes from 4:3 to 16:9 partway (`BT3_ASPECT_AT=<frame>:16:9`) gives, after the change, the
+same pictures as a run at 16:9 throughout.
+
+**The cross-fade between the shots of a fight's intro was missing.** The game reads the frame being shown back
+from the GS (`ScrXfade_Capture`, `sceGsExecStoreImage`), uploads it again as a texture and draws it over the new
+shot with a falling alpha, for a second. The port answered the read-back with nothing (docs/port/README.md listed
+the cross-fade among the effects still dropped). It is answered now (`Gs_StoreImage`, port/src/gs/gs_core.c): from
+GS memory in the software renderer, and in the GPU back ends by reading the frame buffer's picture from the card
+(`GsBackend.targetRead`), reduced to 512 x 448; black with the back end on a thread of its own (`BT3_GS_THREAD`).
+`ScrXfade_StoreHalf` is the decompilation's matched version now (the port's copy was an earlier draft; it was
+compiled all the same). Checked without a window, in the software renderer: with the cross-fade asked for in a
+fight (`BT3_XFADE_AT=<frame>`) the frame taken shows over the following ones and fades out. NOT seen: the GPU back
+ends' read-back (Vulkan, OpenGL), and an intro itself.

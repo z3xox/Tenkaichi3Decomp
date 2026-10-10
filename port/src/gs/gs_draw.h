@@ -146,6 +146,7 @@ typedef struct GsBackend {
     GsTex (*targetAux)(int i);
     GsTex (*targetDepth)(int i);
     int (*pipeGet)(uint32_t key);         /* the back end's pipeline for a key, creating it if new */
+    int (*targetRead)(int i, uint8_t *rgba); /* target i's picture as 512 x 448 RGBA, top row first; 0 = not read */
 } GsBackend;
 
 extern GsBackend sVulkanBackend; /* gs_gpu.c */

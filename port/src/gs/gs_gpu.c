@@ -1129,6 +1129,56 @@ static void vk_frame_end(void) {
     gsNative = 0;
 }
 
+/* Target i's picture, reduced to the GS's 512 x 448 (the nearest pixel of each: the cross-fade it is for is a
+   half-second blend). A copy from the card, waited for: a few times in a fight's intro. */
+static int vk_target_read(int i, uint8_t *rgba) {
+    SDL_GPUTransferBufferCreateInfo ti;
+    SDL_GPUTransferBuffer *tb;
+    SDL_GPUTextureRegion src;
+    SDL_GPUTextureTransferInfo dst;
+    SDL_GPUCommandBuffer *cmd;
+    SDL_GPUCopyPass *cp;
+    SDL_GPUFence *fence;
+    Uint32 w = 512 * SCALE, h = 448 * SCALE, x, y; /* (the picture's part of the target, as the screenshot's) */
+    const uint8_t *px;
+
+    if (sDev == NULL || sTgCol[i] == NULL) {
+        return 0;
+    }
+    SDL_zero(ti);
+    ti.usage = SDL_GPU_TRANSFERBUFFERUSAGE_DOWNLOAD;
+    ti.size = w * h * 4;
+    tb = SDL_CreateGPUTransferBuffer(sDev, &ti);
+    if (tb == NULL) {
+        return 0;
+    }
+    cmd = SDL_AcquireGPUCommandBuffer(sDev);
+    cp = SDL_BeginGPUCopyPass(cmd);
+    SDL_zero(src);
+    src.texture = sTgCol[i];
+    src.w = w;
+    src.h = h;
+    src.d = 1;
+    SDL_zero(dst);
+    dst.transfer_buffer = tb;
+    SDL_DownloadFromGPUTexture(cp, &src, &dst);
+    SDL_EndGPUCopyPass(cp);
+    fence = SDL_SubmitGPUCommandBufferAndAcquireFence(cmd);
+    SDL_WaitForGPUFences(sDev, true, &fence, 1);
+    SDL_ReleaseGPUFence(sDev, fence);
+    px = SDL_MapGPUTransferBuffer(sDev, tb, false);
+    if (px != NULL) {
+        for (y = 0; y < 448; y++) {
+            for (x = 0; x < 512; x++) {
+                memcpy(rgba + (y * 512 + x) * 4, px + ((size_t)(y * SCALE + SCALE / 2) * w + x * SCALE + SCALE / 2) * 4, 4);
+            }
+        }
+        SDL_UnmapGPUTransferBuffer(sDev, tb);
+    }
+    SDL_ReleaseGPUTransferBuffer(sDev, tb);
+    return px != NULL;
+}
+
 GsBackend sVulkanBackend = {
     "vulkan",
     vk_init,
@@ -1145,4 +1195,5 @@ GsBackend sVulkanBackend = {
     target_aux,
     target_depth,
     pipe_get,
+    vk_target_read,
 };
