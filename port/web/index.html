@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tenkaichi3Decomp (browser)</title>
+<style>
+  :root { --bg: #0d0f14; --panel: #161a22; --raised: #1e2330; --line: #2c3343; --text: #d8dce4; --dim: #8a93a5;
+          --ok: #6fcf8f; --bad: #ff6b6b; --warn: #f0b85a; --accent: #f0b85a; --focus: #7fb2ff; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px system-ui, sans-serif; }
+  main { max-width: 1100px; margin: 0 auto; padding: 16px; display: grid; gap: 12px; }
+  h1 { font-size: 18px; margin: 0; font-weight: 600; }
+  header { display: flex; align-items: center; gap: 8px; }
+  header h1 { flex: 1; }
+  /* the picture's shape (--aspect: the engine's aspect ratio, settings.js fitStage) */
+  #stage { --aspect: 4 / 3; width: 100%; aspect-ratio: var(--aspect); background: #000; border-radius: 6px; overflow: hidden;
+           position: relative; display: flex; align-items: center; justify-content: center; }
+  #canvas { width: 100%; height: 100%; display: block; outline: none; }
+  #stage:fullscreen { border-radius: 0; }
+  #stage:fullscreen #canvas { object-fit: contain; } /* (the whole screen, the picture's shape kept) */
+  button { font: inherit; color: var(--text); background: var(--raised); border: 1px solid var(--line); border-radius: 6px;
+           padding: 6px 12px; cursor: pointer; }
+  button:hover:not(:disabled) { border-color: var(--dim); }
+  button:disabled { opacity: .5; cursor: default; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  #notice { margin: 0; padding: 8px 12px; border-radius: 6px; background: var(--raised); border-left: 3px solid var(--warn); }
+  /* the settings: an overlay over the page (a dimmed backdrop behind a centred window), never drawn into the game's
+     canvas. Not a modal dialog: while a key is being bound the engine hears it on the canvas, which must stay focusable. */
+  #settings { position: fixed; inset: 0; margin: auto; width: min(880px, calc(100vw - 32px)); height: min(760px, calc(100dvh - 32px));
+              max-width: none; max-height: none; padding: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+              background: var(--panel); color: var(--text); display: none; flex-direction: column;
+              box-shadow: 0 24px 64px #000a, 0 0 0 1px #ffffff08; z-index: 10; }
+  /* notifications (toasts.js): over everything, the game's full screen included (a fixed child of the stage); they let
+     clicks through to the game, only their close button takes one */
+  #toasts { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 20; display: flex; flex-direction: column;
+            align-items: center; gap: 6px; pointer-events: none; width: max-content; max-width: calc(100vw - 24px); }
+  .toast { pointer-events: auto; display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 14px; border-radius: 10px;
+           background: #1b2029f2; color: var(--text); border: 1px solid var(--line); border-left: 4px solid var(--ok);
+           box-shadow: 0 8px 24px #0009; font-size: 14px; animation: toast-in .18s ease-out; transition: opacity .2s, transform .2s; }
+  .toast-warn { border-left-color: var(--warn); }
+  .toast.leaving { opacity: 0; transform: translateY(-6px); }
+  .toast-close { border: 0; background: none; color: var(--dim); font-size: 18px; line-height: 1; padding: 2px 6px; cursor: pointer; }
+  .toast-close:hover { color: var(--text); }
+  @keyframes toast-in { from { opacity: 0; transform: translateY(-8px); } }
+  @media (prefers-reduced-motion: reduce) { .toast { animation: none; transition: none; } }
+  #settings-backdrop { position: fixed; inset: 0; background: #05070bb8; backdrop-filter: blur(3px); z-index: 9; display: none; }
+  #settings[open] ~ #settings-backdrop { display: block; }
+  @media (max-width: 600px) { #settings { width: calc(100vw - 16px); height: calc(100dvh - 16px); border-radius: 10px; } }
+  #settings[open] { display: flex; }
+  #settings > .head { display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  #settings > .head h2 { flex: 1; margin: 0; font-size: 15px; text-transform: none; letter-spacing: 0; color: var(--text); }
+  #settings-tabs { display: flex; gap: 2px; padding: 8px 12px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  #settings-tabs [role=tab] { border: 0; border-bottom: 2px solid transparent; border-radius: 4px 4px 0 0; background: none; color: var(--dim); }
+  #settings-tabs [role=tab][aria-selected=true] { color: var(--text); border-bottom-color: var(--accent); }
+  #settings .body { overflow: auto; padding: 12px 16px 24px; flex: 1; }
+  #settings .row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 12px; margin: 0 0 14px; }
+  #settings .row.check { grid-template-columns: auto 1fr; }
+  #settings [hidden] { display: none; } /* (over the rows' own display) */
+  #settings .row.inline { display: flex; flex-wrap: wrap; gap: 8px; }
+  #settings .row > .help, #settings .row > h3 { grid-column: 1 / -1; }
+  #settings .row > input[type=range] { grid-column: 1; width: 100%; }
+  #settings .help { margin: 0; color: var(--dim); font-size: 12.5px; }
+  #settings h3 { font-size: 13px; margin: 16px 0 6px; }
+  #settings select { font: inherit; color: var(--text); background: var(--raised); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; }
+  #settings input[type=checkbox], #settings input[type=radio] { accent-color: var(--accent); width: 16px; height: 16px; margin: 0; }
+  #settings input[type=range] { accent-color: var(--accent); }
+  #settings table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  #settings th, #settings td { text-align: left; padding: 3px 4px; border-bottom: 1px solid var(--line); font-weight: normal; }
+  #settings thead th { color: var(--dim); font-size: 12px; }
+  #settings button.bind { width: 100%; padding: 3px 8px; text-align: left; }
+  #settings button.bind.waiting { border-color: var(--accent); color: var(--accent); }
+  /* the controller picture of the Controls tab (gamepad.svg): choose a control, its bindings show below it */
+  #settings .gp-picture { max-width: 560px; margin: 0 auto 8px; }
+  #settings .gp-picture svg { display: block; width: 100%; height: auto; }
+  #settings .gp-chosen { display: grid; grid-template-columns: auto 1fr 1fr; align-items: center; gap: 6px 10px; max-width: 560px;
+                         margin: 0 auto 14px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--raised); }
+  #settings .gp-chosen > strong { min-width: 9em; }
+  #settings .gp-chosen > .help { grid-column: 1 / -1; }
+  #settings tr.chosen > th { color: var(--accent); }
+  #settings .pad-status { margin: 0 0 10px; padding: 6px 10px; border-radius: 8px; background: var(--raised); font-size: 13px;
+                          border-left: 3px solid var(--ok); }
+  #settings .pad-status.none { border-left-color: var(--line); color: var(--dim); }
+  #settings .who { align-items: center; margin-bottom: 10px; }
+  #settings .who select { flex: 1; min-width: 12em; }
+  #settings .segmented { position: relative; display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  #settings .segmented input { position: absolute; opacity: 0; pointer-events: none; }
+  #settings .segmented label { padding: 5px 12px; cursor: pointer; color: var(--dim); }
+  #settings .segmented input:checked + label { background: var(--accent); color: var(--bg); }
+  #settings .segmented input:focus-visible + label { outline: 2px solid var(--focus); outline-offset: -2px; }
+  #settings .quick { justify-content: center; }
+  #settings .body details.more { border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; margin: 0 0 12px; max-height: none; overflow: visible; }
+  #settings .body details.more[open] > summary { margin-bottom: 8px; }
+  #settings tr.chosen { background: #f0b85a14; }
+  #settings .dim { color: var(--dim); }
+  #settings .ok-text { color: var(--ok); margin-left: 8px; }
+  #settings details { border-top: 1px solid var(--line); padding: 8px 16px; }
+  #settings details[open] { max-height: 45%; overflow: auto; } /* (the settings above keep their room) */
+  #settings summary { cursor: pointer; color: var(--dim); }
+  #settings dl.stats { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; font: 12px ui-monospace, monospace; margin: 8px 0 12px; }
+  #settings dl.stats dt { color: var(--dim); } #settings dl.stats dd { margin: 0; }
+  #settings .warning { margin: 0 0 10px; padding: 6px 10px; border-radius: 6px; background: var(--raised); border-left: 3px solid var(--bad); }
+  #settings ul.pads { margin: 0 0 10px; font-size: 13px; }
+  #settings .cells, #settings .padtest { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
+  #settings .cell { min-width: 2.2em; padding: 2px 6px; text-align: center; border: 1px solid var(--line); border-radius: 4px; font-size: 12px; }
+  #settings .cell.on { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  #settings .axes { display: flex; flex-wrap: wrap; gap: 8px; } #settings .axes meter { width: 90px; }
+  #settings .wizard { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; margin: 0 0 12px; }
+  #settings canvas.graph { width: 100%; height: 120px; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; }
+  #unlock-confirm { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px; max-width: 420px; }
+  #unlock-confirm::backdrop { background: #0009; }
+  #unlock-confirm menu { display: flex; gap: 8px; justify-content: flex-end; padding: 0; margin: 16px 0 0; }
+  #start { position: absolute; inset: 0; margin: auto; width: 200px; height: 56px; font-size: 16px; border-radius: 8px;
+           border: 1px solid #3a4152; background: #232938; color: var(--text); cursor: pointer; }
+  #start:disabled { opacity: .5; cursor: default; }
+  section { background: var(--panel); border-radius: 6px; padding: 10px 12px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--dim); margin: 0 0 6px; }
+  ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 3px; }
+  .ok::before { content: "✓ "; color: var(--ok); } .bad::before { content: "✗ "; color: var(--bad); }
+  .wait::before { content: "… "; color: var(--warn); }
+  #error { display: none; border: 1px solid var(--bad); }
+  #error pre, #log { font: 12px ui-monospace, monospace; white-space: pre-wrap; word-break: break-all; margin: 0; }
+  #log { max-height: 320px; overflow: auto; color: var(--dim); }
+  #stats { font: 12px ui-monospace, monospace; color: var(--dim); }
+  /* the touch controls (touch.js): over the stage; only the controls themselves take input */
+  #touch { position: absolute; inset: 0; pointer-events: none; z-index: 2; --touch-opacity: .55; }
+  #touch[hidden], #touch [hidden] { display: none; }
+  #touch .touch-box { position: absolute; inset: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
+                      env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
+  .touch-ctl { position: absolute; pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none;
+               -webkit-touch-callout: none; opacity: var(--touch-opacity); display: flex; align-items: center;
+               justify-content: center; color: #fff; background: #141820a0; border: 2px solid #ffffff90; border-radius: 50%;
+               font: 600 clamp(11px, 2.4vmin, 24px) system-ui, sans-serif; transition: transform .05s, background .05s; }
+  .touch-ctl.pressed { opacity: 1; background: #f0b85ab0; border-color: #fff; transform: scale(.94); }
+  .touch-shoulder, .touch-pill { border-radius: 999px; }
+  .touch-pill, .touch-small { font-size: clamp(9px, 1.8vmin, 16px); }
+  .touch-ctl[data-tone=triangle] .touch-label { color: #6fd3b8; }
+  .touch-ctl[data-tone=circle] .touch-label { color: #ff7a8a; }
+  .touch-ctl[data-tone=cross] .touch-label { color: #8ab4ff; }
+  .touch-ctl[data-tone=square] .touch-label { color: #e39bd8; }
+  .touch-button .touch-label { font-size: 1.4em; }
+  .touch-stick .touch-knob { width: 46%; height: 46%; border-radius: 50%; background: #ffffff55; border: 2px solid #ffffffb0; }
+  .touch-dpad { background: none; border: 0; border-radius: 0; } /* (square: its corners, the diagonals, can be touched) */
+  .touch-arm { position: absolute; background: #141820c0; border: 2px solid #ffffff90; border-radius: 6px; }
+  .touch-arm.on { background: #f0b85ad0; border-color: #fff; }
+  .touch-up, .touch-down { left: 34%; width: 32%; height: 38%; }
+  .touch-left, .touch-right { top: 34%; height: 32%; width: 38%; }
+  .touch-up { top: 0; } .touch-down { bottom: 0; } .touch-left { left: 0; } .touch-right { right: 0; }
+  .touch-portrait { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); margin: 0; padding: 6px 12px;
+                    background: #000c; color: #fff; border-radius: 6px; font-size: 13px; pointer-events: none; z-index: 1; }
+  #touch.editing .touch-ctl { outline: 2px dashed #ffffffa0; outline-offset: 2px; opacity: max(var(--touch-opacity), .6); }
+  #touch.editing .touch-ctl.selected { outline: 3px solid var(--accent); }
+  .touch-toolbar { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); pointer-events: auto; display: flex;
+                   flex-wrap: wrap; gap: 6px; align-items: center; padding: 6px 8px; background: var(--panel);
+                   border: 1px solid var(--line); border-radius: 8px; z-index: 3; max-width: calc(100% - 16px); }
+  .touch-toolbar button.primary { border-color: var(--accent); }
+  .touch-selname { color: var(--dim); font-size: 12.5px; }
+  /* the play layout: on a touch screen with the controls shown, the stage fills the window (picture letterboxed) */
+  body.touch-play #stage { position: fixed; inset: 0; width: 100vw; height: 100dvh; aspect-ratio: auto; border-radius: 0;
+                           z-index: 5; }
+  body.touch-play #canvas { object-fit: contain; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Tenkaichi3Decomp — browser build</h1>
+    <button id="fullscreen" type="button">Full screen</button>
+    <button id="settings-open" type="button" aria-controls="settings" aria-expanded="false" disabled
+            title="Settings (in the game: F1, or START + SELECT on a controller)">Settings</button>
+  </header>
+  <div id="stage">
+    <canvas id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()"></canvas>
+    <div id="toasts" aria-live="polite"></div>
+    <button id="start" disabled>Checking…</button>
+  </div>
+  <p id="notice" role="status" aria-live="polite" hidden></p>
+  <section id="error"><h2>Stopped</h2><pre id="errtext"></pre></section>
+  <section><h2>Start-up</h2><ul id="steps"></ul><div id="stats"></div></section>
+  <section><h2>Log</h2><pre id="log"></pre></section>
+</main>
+<dialog id="settings" aria-labelledby="settings-title">
+  <div class="head"><h2 id="settings-title">Settings</h2><button id="settings-close" type="button" aria-label="Close the settings">Close</button></div>
+  <div id="settings-tabs" role="tablist" aria-label="Settings sections"></div>
+  <div class="body" id="settings-pages"></div>
+  <details id="dev"><summary>Developer</summary><div id="dev-dashboard"></div></details>
+</dialog>
+<div id="settings-backdrop" aria-hidden="true"></div>
+<dialog id="unlock-confirm" aria-labelledby="unlock-title">
+  <form method="dialog">
+    <h2 id="unlock-title">Unlock everything?</h2>
+    <p>Your records list will be emptied. This cannot be undone once the game saves.</p>
+    <menu><button value="cancel" autofocus>Cancel</button><button value="unlock">Unlock</button></menu>
+  </form>
+</dialog>
+<script src="bt3_data.js"></script>
+<script src="dashboard.js"></script>
+<script src="toasts.js"></script>
+<script src="controllers.js"></script>
+<script src="saves.js"></script>
+<script src="touch.js"></script>
+<script src="settings.js"></script>
+<script>
+'use strict';
+// Query: ?data=<url of the gamedata folder> (default /gamedata/), ?env=NAME=value,NAME=value (the game's BT3_*
+// variables), ?autostart=1 (no click; sound may stay muted until one), ?report=<name> (the log is posted to the
+// dev server's /__result for unattended tests).
+const q = new URLSearchParams(location.search);
+const dataBase = q.get('data') || '/gamedata/';
+const renderer = q.get('gpu') || 'gl';  // ?gpu=webgpu: the WebGPU back end; default the WebGL 2 one (the reference)
+const report = q.get('report');
+const data = new Bt3Data(dataBase, { log });  // the game's files, read on demand (bt3_data.js)
+// the game's saves, kept in the browser (saves.js); its notices go through the settings panel's
+const saves = new Bt3Saves({ log: (s) => log(s), notice: (t) => settings.notice(t) });
+const settings = new Bt3Settings({ canvas: document.getElementById('canvas'), stage: document.getElementById('stage'),
+                                   renderer, query: location.search, log: (s) => log(s), data, getLog: () => lines, saves });
+const logEl = document.getElementById('log'), stepsEl = document.getElementById('steps');
+const lines = [];
+let reported = 0, mod = null, stopped = false;
+
+// The log is cheap on purpose: the game's output arrives inside its frame (printf), so writing the page there would
+// be counted in the frame's time. Lines are queued (with their time) and shown a few times a second; tools read
+// window.bt3Out (port/tests/bench). ?console=1 also copies every line to the browser console.
+const toConsole = q.has('console');
+let pending = '', paint = 0;
+window.bt3Out = [];
+function log(s) {
+  s = String(s);
+  lines.push(s);
+  window.bt3Out.push([performance.now(), s]);
+  if (window.bt3Out.length > 200000) window.bt3Out.splice(0, 100000);  // nobody reads them: keep memory bounded
+  if (toConsole) console.log(s);
+  pending += s + '\n';
+  if (!paint) paint = setTimeout(showLog, 250);
+}
+function showLog() {
+  paint = 0;
+  logEl.textContent += pending;
+  pending = '';
+  if (logEl.textContent.length > 200000) logEl.textContent = logEl.textContent.slice(-150000);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+function step(text, state = 'wait') {
+  const li = document.createElement('li');
+  li.className = state;
+  li.textContent = text;
+  stepsEl.appendChild(li);
+  log(`[${state === 'ok' ? 'ok' : state === 'bad' ? 'FAIL' : '..'}] ${text}`);
+  return (t, s) => { li.textContent = t; li.className = s; log(`[${s === 'ok' ? 'ok' : s === 'bad' ? 'FAIL' : '..'}] ${t}`); };
+}
+function stop(title, detail) {
+  if (stopped) return;
+  stopped = true;
+  let ctx = '';
+  try { if (mod && mod._Port_CrashContext) ctx = '\nengine ' + mod.UTF8ToString(mod._Port_CrashContext()); } catch (e) { ctx = ''; }
+  const text = `${title}\n${detail || ''}${ctx}`;
+  document.getElementById('error').style.display = 'block';
+  document.getElementById('errtext').textContent = text;
+  log('STOPPED: ' + text);
+  flush();
+}
+async function flush() {
+  if (!report || reported >= lines.length) return;
+  const body = lines.slice(reported).join('\n');
+  reported = lines.length;
+  try { await fetch(`/__result?name=${encodeURIComponent(report)}`, { method: 'POST', body }); } catch (e) { /* no dev server */ }
+}
+if (report) setInterval(flush, 1000);
+addEventListener('error', (e) => stop('Uncaught error', (e.error && e.error.stack) || e.message));
+addEventListener('unhandledrejection', (e) => stop('Unhandled rejection', (e.reason && e.reason.stack) || String(e.reason)));
+
+// ?gldebug=1: every WebGL call is followed by getError(); the first errors are logged with the call, its arguments
+// and the stack (wasm function names), to find exactly which call fails. Slow: for diagnosis only.
+if (q.get('gldebug')) {
+  const proto = WebGL2RenderingContext.prototype, names = new Map([[0x500, 'INVALID_ENUM'], [0x501, 'INVALID_VALUE'],
+    [0x502, 'INVALID_OPERATION'], [0x505, 'OUT_OF_MEMORY'], [0x506, 'INVALID_FRAMEBUFFER_OPERATION']]);
+  const getError = proto.getError, counts = new Map();
+  let shown = 0;
+  for (const k of Object.getOwnPropertyNames(proto)) {
+    const d = Object.getOwnPropertyDescriptor(proto, k);
+    if (typeof d.value !== 'function' || k === 'getError' || k === 'constructor') continue;
+    const fn = d.value;
+    proto[k] = function (...a) {
+      const r = fn.apply(this, a);
+      const e = getError.call(this);
+      if (e) {
+        const key = `${k} ${names.get(e) || e}`;
+        counts.set(key, (counts.get(key) || 0) + 1);
+        if (shown++ < 12) {
+          const args = a.map((v) => typeof v === 'number' ? '0x' + v.toString(16) : v && v.constructor ? v.constructor.name : String(v));
+          if (/^draw/.test(k)) {  // a draw: is a texture being sampled also attached to the framebuffer drawn into?
+            const att = {}, fb = this.getParameter(this.DRAW_FRAMEBUFFER_BINDING);
+            if (fb) {
+              for (const [n, p] of [['color0', this.COLOR_ATTACHMENT0], ['color1', this.COLOR_ATTACHMENT0 + 1], ['depth', this.DEPTH_ATTACHMENT]]) {
+                att[n] = this.getFramebufferAttachmentParameter(this.DRAW_FRAMEBUFFER, p, this.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME);
+              }
+            }
+            const active = this.getParameter(this.ACTIVE_TEXTURE), loops = [];
+            for (let u = 0; u < 8; u++) {
+              this.activeTexture(this.TEXTURE0 + u);
+              const t = this.getParameter(this.TEXTURE_BINDING_2D);
+              for (const [n, o] of Object.entries(att)) if (t && o === t) loops.push(`unit ${u} = ${n} attachment`);
+            }
+            this.activeTexture(active);
+            getError.call(this);  // (the queries above cannot fail, but keep the error state clean)
+            args.push(`feedback: ${loops.length ? loops.join(', ') : 'none'}; program ${this.getParameter(this.CURRENT_PROGRAM) ? 'bound' : 'none'}`);
+          }
+          const stack = (new Error().stack || '').split('\n').slice(2, 9).map((l) => l.trim().replace(/\(http.*?\)/, '')).join(' < ');
+          log(`gldebug: ${k}(${args.join(', ')}) -> ${names.get(e) || e}; ${stack}`);
+        }
+      }
+      return r;
+    };
+  }
+  proto.getError = function () { return 0; };  // (errors are taken above; the game's own check sees none)
+  setInterval(() => { if (counts.size) log('gldebug: counts ' + [...counts].map(([k, v]) => `${k}: ${v}`).join(', ')); }, 5000);
+}
+
+setInterval(() => {
+  const s = data.stats;
+  document.getElementById('stats').textContent =
+    `data: ${s.files} files opened, ${s.requests} requests, ${(s.bytes / 1048576).toFixed(1)} MB fetched, ` +
+    `${s.hits} cache hits / ${s.misses} misses, ${s.errors} errors, cache ${(data.cached / 1048576).toFixed(1)} MB` +
+    (mod ? `; memory ${(mod.HEAPU8.length / 1048576).toFixed(0)} MB` : '');
+}, 500);
+
+async function checks() {
+  let ok = true;
+  const c = (cond, good, badText) => { step(cond ? good : badText, cond ? 'ok' : 'bad'); ok = ok && cond; };
+  c(typeof WebAssembly === 'object', 'WebAssembly available', 'WebAssembly is not available');
+  c(typeof WebAssembly.Suspending === 'function' && typeof WebAssembly.promising === 'function',
+    'JavaScript Promise Integration (JSPI) available',
+    'JSPI is not available in this browser (needed: the game waits for files and frames). Use a current Chrome or Edge.');
+  const gl = document.createElement('canvas').getContext('webgl2');
+  if (renderer === 'webgpu') {
+    const adapter = navigator.gpu ? await navigator.gpu.requestAdapter() : null;
+    if (adapter && adapter.info) settings.gpuName = `${adapter.info.vendor} ${adapter.info.architecture} (WebGPU adapter)`;
+    c(!!adapter, `WebGPU available (${adapter && adapter.info ? `${adapter.info.vendor} ${adapter.info.architecture}` : ''})`,
+      'WebGPU is not available in this browser (the page was asked for it: ?gpu=webgpu)');
+  } else {
+    c(!!gl, `WebGL 2 available (${gl ? gl.getParameter(gl.VERSION) : ''})`, 'WebGL 2 is not available');
+  }
+  if (gl) {  // the real GPU, for the record of every measurement
+    const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+    if (renderer === 'gl') settings.gpuName = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : '';
+    log(`gpu: ${dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : '(renderer string not available)'}`);
+  }
+  log(`user agent: ${navigator.userAgent}; ${navigator.hardwareConcurrency} logical processors`);
+  const s = step(`game data at ${dataBase}`);
+  try {
+    const n = await data.init();
+    const size = await data.size('disc/SLUS_216.78');
+    if (size > 0) s(`game data at ${dataBase}: reachable (${n ? n + ' files in its manifest' : 'no manifest: sizes by HEAD'})`, 'ok');
+    else { s(`game data at ${dataBase}: disc/SLUS_216.78 not found (${size === -1 ? 'HTTP 404' : 'server error'}). ` +
+             'Serve your own unpacked gamedata folder there (see BROWSER_PORT_STATUS.md).', 'bad'); ok = false; }
+  } catch (e) { s(`game data at ${dataBase}: ${e.message}`, 'bad'); ok = false; }
+  return ok;
+}
+
+async function start() {
+  const btn = document.getElementById('start');
+  btn.style.display = 'none';
+  const env = {
+    BT3_GPU_API: renderer,  // (gs_draw.c: gl or webgpu)
+    // SDL hears the keyboard on the canvas only (its default is the whole window): keys typed in the page's controls do
+    // not reach the game, and SDL does not swallow Tab and the arrows of the page.
+    SDL_EMSCRIPTEN_KEYBOARD_ELEMENT: '#canvas',
+    // Dragon Net Battle (main-menu item 4): online play is not in the browser build (port/src/web/net_off.c)
+    BT3_MENU_ITEM4: '0',
+    // Texture packs (gs_texpack.c): natively the folder `textures` next to the program; here the program has no folder
+    // of its own, so the data folder's `textures` (read over HTTP, web_fs.c). ?env=BT3_TEXTURES=... names another.
+    BT3_TEXTURES: 'gamedata/textures',
+  };
+  // NAME=value,NAME=value; a part without "=" belongs to the value before it (BT3_PAD=2800:start,2950:cross)
+  let last = null;
+  for (const kv of (q.get('env') || '').split(',').filter(Boolean)) {
+    const i = kv.indexOf('=');
+    if (i < 0 && last !== null) { env[last] += ',' + kv; continue; }
+    last = kv.slice(0, i);
+    env[last] = kv.slice(i + 1);
+  }
+  let s = step('loading bt3.js');
+  await new Promise((res, rej) => {
+    const el = document.createElement('script');
+    el.src = 'bt3.js';
+    el.onload = res;
+    el.onerror = () => rej(new Error('bt3.js could not be loaded'));
+    document.head.appendChild(el);
+  }).catch((e) => { s(e.message, 'bad'); throw e; });
+  s('bt3.js loaded', 'ok');
+  // The two programs plat_mem.c reads in a constructor, before main (where a read cannot wait): fetched first.
+  const early = ['disc/SLUS_216.78', 'disc/BIN/DBZP.BIN'];
+  const pre = {};
+  s = step('fetching the game\'s programs from the data folder');
+  for (const rel of early) pre[rel] = await data.whole(rel);
+  s(`fetched ${early.map((r) => `${r} (${pre[r].length} bytes)`).join(', ')}`, 'ok');
+  s = step('compiling and instantiating bt3.wasm');
+  const t0 = performance.now();
+  try {
+    mod = await createBt3({
+      canvas: document.getElementById('canvas'),
+      print: log,
+      printErr: log,
+      onAbort: (what) => stop('Aborted', String(what)),
+      bt3Ui: settings.handlers(),  // what the engine calls (port/src/web/web_ui.c)
+      preRun: [(m) => {
+        for (const rel of early) {
+          const path = '/gamedata/' + rel;
+          m.FS.mkdirTree(path.slice(0, path.lastIndexOf('/')));
+          m.FS.writeFile(path, pre[rel]);
+        }
+        Object.assign(m.ENV, env);
+        Bt3Settings.restore(m.FS);  // the settings saved by an earlier visit
+        settings.attach(m);
+      }],
+    });
+  } catch (e) {
+    // an exit() during start-up (the engine's own checks, e.g. the game data) arrives as an ExitStatus: its message
+    // was printed to the log just above
+    const what = e && e.name === 'ExitStatus' ? `the engine stopped during start-up (exit ${e.status}); its message is in the log`
+                                              : (e && e.message) || String(e);
+    s(`instantiation failed: ${what}`, 'bad');
+    stop('The module could not start', e && e.name === 'ExitStatus' ? what : (e && e.stack) || String(e));
+    return;
+  }
+  data.module = mod;
+  window.bt3Module = mod;  // for test tools (port/tests/bench: screenshots the engine writes to its file system)
+  mod.bt3Data = data;
+  s(`instantiated in ${(performance.now() - t0).toFixed(0)} ms; memory ${(mod.HEAPU8.length / 1048576).toFixed(0)} MB; ` +
+    'constructors done (memory map, game data tables)', 'ok');
+  s = step('putting the kept saves on the memory card');
+  await saves.prepare(mod);
+  s(`saves: ${saves.store.db ? (saves.loaded ? `the ${saves.loaded} version is on the card` : 'none kept yet') : 'browser storage not available'}`, 'ok');
+  s = step('running the game (main)');
+  document.getElementById('canvas').focus();  // (the game hears the keyboard on its canvas)
+  try {
+    await mod.callMain([]);
+    s('main returned', 'ok');
+  } catch (e) {
+    if (e && e.name === 'ExitStatus') { s(`the game ended (exit ${e.status})`, e.status ? 'bad' : 'ok'); if (e.status) stop('Exit', `status ${e.status}`); }
+    else { s('the game stopped with an error', 'bad'); stop('Runtime error', (e && e.stack) || String(e)); }
+  }
+}
+
+checks().then((ok) => {
+  const btn = document.getElementById('start');
+  if (!ok) { btn.textContent = 'Cannot start'; return; }
+  btn.disabled = false;
+  btn.textContent = 'Start';
+  btn.onclick = () => start().catch((e) => stop('Start-up failed', (e && e.stack) || String(e)));
+  if (q.get('autostart')) btn.click();
+});
+</script>
+</body>
+</html>

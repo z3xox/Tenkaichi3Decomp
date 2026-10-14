@@ -1,0 +1,92 @@
+# The browser build (WebAssembly), from a clean checkout, with the checks that need no game data
+# (port/tests/ci/browser_checks.sh). No secrets are used and nothing is published: no artifact is uploaded, and the
+# build contains no game data (the data tables are shapes; the user's disc fills them at run time).
+# Toolchain pinned as on the development machine (docs/BROWSER_BUILD.md).
+name: Browser build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      EMSDK_VERSION: "6.0.12"
+      NODE_VERSION: "24.19.0"
+      PYTHON_VERSION: "3.12"
+      LIBCLANG_VERSION: "18.1.1"
+      RUST_VERSION: "1.99.0"
+      NAGA_VERSION: "30.0.1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: libclang for Python (ptr32.r2l)
+        run: python -m pip install "libclang==${LIBCLANG_VERSION}"
+
+      - name: Cache Emscripten and naga
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ runner.temp }}/emsdk
+            ${{ runner.temp }}/naga
+          key: browser-tools-emsdk${{ env.EMSDK_VERSION }}-naga${{ env.NAGA_VERSION }}-rust${{ env.RUST_VERSION }}
+
+      - name: Emscripten ${{ env.EMSDK_VERSION }}
+        run: |
+          if [ ! -x "$RUNNER_TEMP/emsdk/emsdk" ]; then
+            git clone --depth 1 --branch "$EMSDK_VERSION" https://github.com/emscripten-core/emsdk.git "$RUNNER_TEMP/emsdk"
+          fi
+          "$RUNNER_TEMP/emsdk/emsdk" install "$EMSDK_VERSION"
+          "$RUNNER_TEMP/emsdk/emsdk" activate "$EMSDK_VERSION"
+          echo "$RUNNER_TEMP/emsdk/upstream/emscripten" >> "$GITHUB_PATH"
+          echo "$RUNNER_TEMP/emsdk/upstream/bin" >> "$GITHUB_PATH"  # llvm-objdump, llvm-nm (wasm_obj.py, wasm_sig.py)
+          echo "EMSDK=$RUNNER_TEMP/emsdk" >> "$GITHUB_ENV"
+          echo "EM_CONFIG=$RUNNER_TEMP/emsdk/.emscripten" >> "$GITHUB_ENV"
+
+      - name: naga ${{ env.NAGA_VERSION }} (Rust ${{ env.RUST_VERSION }})
+        run: |
+          if [ ! -x "$RUNNER_TEMP/naga/bin/naga" ]; then
+            rustup toolchain install "$RUST_VERSION" --profile minimal
+            cargo "+$RUST_VERSION" install naga-cli --version "$NAGA_VERSION" --locked --root "$RUNNER_TEMP/naga"
+          fi
+          echo "BT3_NAGA=$RUNNER_TEMP/naga/bin/naga" >> "$GITHUB_ENV"
+
+      - name: Build and data-free checks
+        run: sh port/tests/ci/browser_checks.sh
+
+      - name: What this job does not check
+        if: always()
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          ### Browser build: what is checked here, and what is not
+
+          **Automated here** (no game data, no GPU, no controllers): the build from a clean checkout (game sources,
+          port code, data-table shapes, link, WGSL generated and validated by naga), `port/tests/wasm_sf`,
+          `port/tests/pipekey`, `port/tests/web_data`, `port/tests/wasm_mem`.
+
+          **Not run here; run them locally** (docs/BROWSER_BUILD.md §4):
+
+          | Needs | Tests |
+          |---|---|
+          | The user's own game data (never in CI) | `port/tests/bench/bench.js` (demo and boot, trace and screenshots, both renderers), `port/tests/bench/present_rate.js`, `port/tests/web/dashboard.js`, `port/tests/web/controllers.js`, `port/tests/web/saves.js`, `port/tests/web/verify.js`, `port/tests/web/extras.js` |
+          | A browser with a WebGPU adapter | `port/tests/wgsl/check.js` (the browser's own shader compiler) |
+          | Physical controllers | the controller set-up by hand (`port/tests/web/controllers.js` covers simulated ones) |
+          | The native toolchain and PCSX2 data | `port/tests/ps2float` |
+          EOF

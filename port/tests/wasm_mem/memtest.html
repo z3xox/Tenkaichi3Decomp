@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Memory test</title>
+<style>body { font: 13px monospace; background: #111; color: #ddd; margin: 16px; } .fail { color: #f66; }</style>
+</head>
+<body>
+<pre id="out">running...</pre>
+<script>
+// memtest.html?layout=A|B&tag=<browser name>: runs memtest.c's checks and posts the output to the dev server.
+const params = new URLSearchParams(location.search);
+const layout = params.get('layout') || 'B';
+const tag = params.get('tag') || 'browser';
+const lines = [];
+const log = (s) => { lines.push(String(s)); document.getElementById('out').textContent = lines.join('\n'); };
+
+async function main() {
+  log(`user agent: ${navigator.userAgent}`);
+  log(`crossOriginIsolated: ${self.crossOriginIsolated}`);
+  // How this browser refuses memory it cannot give (what the game's loader has to catch and explain).
+  for (const pages of [65536, 32768]) {
+    try {
+      const m = new WebAssembly.Memory({ initial: pages, maximum: pages });
+      log(`  WebAssembly.Memory of ${pages / 16} MB: allocated (${m.buffer.byteLength} bytes)`);
+    } catch (e) {
+      log(`  WebAssembly.Memory of ${pages / 16} MB: refused: ${e.name}: ${e.message}`);
+    }
+  }
+  await new Promise((ok, fail) => {
+    const s = document.createElement('script');
+    s.src = `memtest_${layout}.js`;
+    s.onload = ok;
+    s.onerror = () => fail(new Error(`cannot load memtest_${layout}.js`));
+    document.head.appendChild(s);
+  });
+  const t0 = performance.now();
+  let mod;
+  try {
+    mod = await self[`createMemtest_${layout}`]({ print: log, printErr: (s) => log('stderr: ' + s) });
+  } catch (e) {
+    log(`FAIL instantiate: ${e.name}: ${e.message}`);
+    return false;
+  }
+  log(`  instantiated in ${(performance.now() - t0).toFixed(1)} ms, memory ${mod.HEAPU8.length} bytes`);
+  const failed = mod._run_tests();
+  let ok = failed === 0;
+  // The scratchpad: in layout B it is outside memory until the heap grows past it.
+  const probe = (when) => {
+    try {
+      mod._touch(0x70000000);
+      log(`  scratchpad 0x70000000 ${when}: readable`);
+      return 'readable';
+    } catch (e) {
+      log(`  scratchpad 0x70000000 ${when}: trap: ${e.name}: ${e.message}`);
+      return 'trap';
+    }
+  };
+  const before = probe('before growth');
+  if (layout === 'B' && before !== 'trap') { log('FAIL layout B: the scratchpad address should be outside memory'); ok = false; }
+  if (layout === 'A' && before !== 'readable') { log('FAIL layout A: the scratchpad should be mapped'); ok = false; }
+  const t1 = performance.now();
+  const mb = mod._grow_test(32);
+  log(`  grow test: ${mb} MB allocated in ${(performance.now() - t1).toFixed(0)} ms; memory now ${mod.HEAPU8.length} bytes`);
+  if (mb < 0) ok = false;
+  if (mb < 1000) { log('FAIL less than 1000 MB could be allocated'); ok = false; }
+  const after = probe('after growth');
+  if (layout === 'B' && after !== 'trap') { log('FAIL layout B: memory must stop below the scratchpad address'); ok = false; }
+  log(`RESULT layout ${layout}: ${ok ? 'PASS' : 'FAIL'}`);
+  return ok;
+}
+
+main().catch((e) => log(`FAIL exception: ${e.stack || e}`)).finally(async () => {
+  try {
+    await fetch(`/__result?name=memtest_${layout}_${tag}`, { method: 'POST', body: lines.join('\n') });
+  } catch (e) { /* opened without the dev server */ }
+  document.title = 'Memory test: done';
+});
+</script>
+</body>
+</html>

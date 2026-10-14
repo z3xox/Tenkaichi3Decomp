@@ -123,6 +123,28 @@ The release archives for Linux and Windows are built from the repository alone, 
 repository carries the shape of the game's built-in data tables without their values (`port/data`); the
 finished program fetches the values from your disc when it starts.
 
+## Playing in the browser
+
+The same game also runs in a web page: the game's code and this port's engine (memory, files, saves, sound, input,
+the OpenGL renderer) compiled to WebAssembly with Emscripten, with a WebGL 2 renderer and a WebGPU one
+(`?gpu=webgpu`). The page is served from your own computer by a small local server (127.0.0.1 only) and reads the
+game's data from the folder `extract_disc.py` makes; nothing is uploaded and the build holds no game data. It is
+not a website: it does not let anyone host the game, and it needs the player's own disc like the PC build.
+
+```
+python port/tools/extract_disc.py <your disc image> gamedata
+python port/tools/wasm_build.py game && python port/tools/wasm_build.py port
+python port/tools/wasm_build.py data && python port/tools/wasm_build.py link
+python port/web/play.py gamedata
+```
+
+`play.py` starts the server and opens the page (a current Chrome or Edge: it needs JavaScript Promise Integration).
+The page has its own settings window (F1 or START + SELECT), controller set-up with a picture of the controller,
+touch controls for phones and tablets, and saves kept in the browser with export and import. Not in the browser:
+online play and Vulkan. `python port/tools/browser_package.py <name>` makes a package to hand out (the page, the
+server and the unpacker; no game data). Build, toolchain and tests: [docs/BROWSER_BUILD.md](docs/BROWSER_BUILD.md);
+what works and how it was checked: [docs/BROWSER_FEATURE_MATRIX.md](docs/BROWSER_FEATURE_MATRIX.md).
+
 ## Layout
 
 | Path | Contents |
@@ -133,6 +155,8 @@ finished program fetches the values from your disc when it starts.
 | `port/data/` | The game's built-in data tables as shape only (labels, sizes, pointer slots), no values |
 | `port/release/` | The container and scripts that build the release archives |
 | `port/setup/` | The setup window |
+| `port/web/`, `port/src/web/` | The browser build: the page (settings, controllers, touch, saves) and its engine side |
+| `port/tests/web/` | The browser build's tests (headless Chrome) |
 | `port/third_party/` | Dear ImGui (MIT), the maths library of newlib |
 | `docs/` | Notes on the game (from the decompilation) and `docs/port/` on the port |
 

@@ -7,7 +7,16 @@
 // is the amount to SUBTRACT from the picture (the pipeline's blend is destination minus source).
 layout(location = 0) in vec2 vUv;
 layout(location = 0) out vec4 outColor;
+// SEPARATE_SAMPLERS: the WebGPU build (port/tools/wasm_shaders.py: naga -D SEPARATE_SAMPLERS). WGSL has no
+// combined texture + sampler: each becomes a texture at binding 2k and its sampler at 2k + 1 of the same set
+// (k = its binding below). Vulkan (glslc) and OpenGL compile the #else part, as before.
+#ifdef SEPARATE_SAMPLERS
+layout(set = 2, binding = 0) uniform texture2D aux_texture; // .r = the GS alpha byte / 255
+layout(set = 2, binding = 1) uniform sampler aux_sampler;
+#define aux sampler2D(aux_texture, aux_sampler)
+#else
 layout(set = 2, binding = 0) uniform sampler2D aux; // .r = the GS alpha byte / 255
+#endif
 layout(set = 3, binding = 0) uniform Params {
     vec4 step; // xy: one PS2 pixel in uv, z: darkness (0x64 / 255)
 } p;

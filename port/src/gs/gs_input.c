@@ -473,6 +473,16 @@ void Port_ClashLog(int player, const char *what, int fromInput, int total, int f
     }
 }
 
+/* On-screen controls: the actions they hold for `socket` (bits in kActions' order), as held keys are, and the left
+   stick's analog position (0..255) where one is held (-1 otherwise). None natively: the browser build's
+   port/src/web/web_ui.c gives its page's touch controls. */
+__attribute__((weak)) uint32_t PortInput_VirtualActions(int socket, int *lx, int *ly) {
+    (void)socket;
+    (void)lx;
+    (void)ly;
+    return 0;
+}
+
 /* The sticks.
  *
  * The game (src/sys/pad.c, Pad_Update) takes each axis as a byte, 0..255 with the rest between 127 and 128, and
@@ -774,17 +784,30 @@ int Port_PadRead(int socket, unsigned char *data) {
         }
         sKeySwallow = held;
     }
-    /* the settings window takes the keyboard while it is open, and the online chat while a line is typed (the
-       controller still plays then) */
-    if (!gPortOverlayOpen && !gPortChatTyping && !sKeySwallow) {
-        const bool *ks = SDL_GetKeyboardState(NULL);
-        const int *k = sKeys[socket];
+    {
+        /* the actions held through the keyboard and the on-screen controls (bits by kActions' order). The settings
+           window takes both while it is open; the online chat takes the keyboard while a line is typed (the
+           controller and the on-screen controls still play then) */
+        uint32_t held = 0;
+        int vlx = -1, vly = -1;
+        if (!gPortOverlayOpen && !gPortChatTyping && !sKeySwallow) {
+            const bool *ks = SDL_GetKeyboardState(NULL);
+            const int *k = sKeys[socket];
+            for (a = 0; a < PORT_ACTIONS; a++) {
+                if (k[a] > 0 && k[a] < SDL_SCANCODE_COUNT && ks[k[a]]) {
+                    held |= 1u << a;
+                }
+            }
+        }
+        if (!gPortOverlayOpen) {
+            held |= PortInput_VirtualActions(socket, &vlx, &vly);
+        }
         for (a = 0; a < PORT_PAD_BUTTONS; a++) {
-            if (k[a] > 0 && k[a] < SDL_SCANCODE_COUNT && ks[k[a]]) {
+            if (held >> a & 1u) {
                 btn |= kActions[a].bit;
             }
         }
-#define HELD(n) (k[n] > 0 && k[n] < SDL_SCANCODE_COUNT && ks[k[n]])
+#define HELD(n) (held >> (n) & 1u)
         if (HELD(16)) { ly = 0x00; }
         if (HELD(17)) { ly = 0xFF; }
         if (HELD(18)) { lx = 0x00; }
@@ -794,6 +817,8 @@ int Port_PadRead(int socket, unsigned char *data) {
         if (HELD(22)) { rx = 0x00; }
         if (HELD(23)) { rx = 0xFF; }
 #undef HELD
+        if (vlx >= 0) { lx = (unsigned char)vlx; } /* an on-screen analog stick, where it is held */
+        if (vly >= 0) { ly = (unsigned char)vly; }
     }
     if (socket == 0) {
         btn |= script_buttons();

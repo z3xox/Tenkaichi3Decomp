@@ -385,65 +385,27 @@ static GsTex clut_texture(uint32_t cbp) {
     return tex;
 }
 
-/* ((A - B) * C >> 7) + D as the pipeline key's blend bits: ks * Cs + kd * Cd with ks, kd from
-   {0, 1, C, -C, 1 - C, 1 + C}. Each of A, B, D is source, destination or zero, so bit i of A/B decides
-   which side is scaled. Returns the key of pure GS state (bits 0..8); the back end turns it back into
-   blend factors. k[i]: 0 nothing, 1 one, 2 C, 3 -C, 4 1 - C, 5 1 + C; i = 0 source, 1 destination. */
-static uint32_t blend_key(uint64_t alpha, int abe) {
-    int A = alpha & 3, B = (alpha >> 2) & 3, C = (alpha >> 4) & 3, D = (alpha >> 6) & 3, k[2], i;
-
-    if (!abe) {
-        return 0;
+/* The pipeline a draw uses: everything a pipeline depends on is in the key (gs_pipekey.c), so this is pure GS state ->
+   an index (the back end makes and caches one pipeline per key). */
+static int pipeline_get(int ctx, GsTopology topology, GsVertexSource vertices, int tablePass) {
+    GsPipeState s = GsPipeState_FromGs(gGs.alpha[ctx], (int)((gGs.prim >> 6) & 1), gGs.test[ctx], gGs.zbuf[ctx],
+                                       (uint32_t)(gGs.frame[ctx] >> 32), topology, vertices, tablePass);
+    /* The fragment shader without its own depth output (gsnz.frag; see the end of gs.frag for why writing depth in the
+       shader costs), where it changes nothing (GsPipeState_FragDepthRedundant). Measured on an integrated chip at 2x in
+       a fight: 112 pictures a second before the depth output existed (0.1.24), 82 with it on every draw (0.1.25 to
+       0.1.30), and with this rule see docs/port/README.md. BT3_NZ=0: every draw with the full shader again (to compare). */
+    static int nz = -1;
+    if (nz < 0) {
+        nz = getenv("BT3_NZ") != NULL ? atoi(getenv("BT3_NZ")) : 1;
     }
-    for (i = 0; i < 2; i++) {
-        int c = (A == i) - (B == i), one = D == i;
-        k[i] = c == 0 ? one : c > 0 ? (one ? 5 : 2) : (one ? 4 : 3);
-    }
-    return 1u | (uint32_t)k[0] << 1 | (uint32_t)k[1] << 4 | (uint32_t)C << 7;
-}
-
-/* The pipeline a draw uses: everything a pipeline depends on is in the key (the back end makes and caches
-   one pipeline per key, so this is pure GS state -> an index):
-   bits 0..8 blend, 10..11 depth test, 12 depth write, 13..14 topology, 16..19 colour write mask,
-   20..21 vertices: 0 GS vertices, 1 program 0, 2 program 4, 3 program 6, 22 full-screen table pass,
-   23 the fragment shader without its own depth output. */
-static int pipeline_get(int ctx, int topo, int vu) {
-    uint64_t test = gGs.test[ctx], zb = gGs.zbuf[ctx];
-    int zte = (test >> 16) & 1, ztst = (test >> 17) & 3, zwrite = !((zb >> 32) & 1);
-    uint32_t bkey, key, wmask, m = (uint32_t)(gGs.frame[ctx] >> 32);
-
-    bkey = blend_key(gGs.alpha[ctx], (int)((gGs.prim >> 6) & 1));
-    if (!zte) {
-        ztst = 1;
-    }
-    /* FRAME.FBMSK, in the whole-channel forms ordinary drawing uses (alpha only, everything but alpha, ...):
-       a channel whose eight mask bits are all set is not written. Partial masks are not representable. */
-    wmask = ((m & 0xFF) != 0xFF ? GS_CC_R : 0) | ((m & 0xFF00) != 0xFF00 ? GS_CC_G : 0) |
-            ((m & 0xFF0000) != 0xFF0000 ? GS_CC_B : 0) | ((m & 0xFF000000u) != 0xFF000000u ? GS_CC_A : 0);
-    key = bkey | (uint32_t)ztst << 10 | (uint32_t)zwrite << 12 | (uint32_t)topo << 13 | wmask << 16 | (uint32_t)vu << 20;
-    {   /* Bit 23: the fragment shader without its own depth output (gsnz.frag; see the end of gs.frag for why
-           writing depth in the shader costs). Taken where it changes nothing: a draw that does not write depth
-           and tests with "greater or equal" (or not at all). What is in the depth buffer was written through
-           the other shader, so it is whole numbers; and z >= N is the same as floor(z) >= N for a whole N.
-           ("Greater" is not the same: N + 0.5 > N but floor(N + 0.5) > N is not. Those keep the full shader, and
-           so does everything that writes depth.) Measured on an integrated chip at 2x in a fight: 112 pictures a
-           second before the depth output existed (0.1.24), 82 with it on every draw (0.1.25 to 0.1.30), and
-           with this rule see docs/port/README.md. BT3_NZ=0: every draw with the full shader again (to compare). */
-        static int nz = -1;
-        if (nz < 0) { nz = getenv("BT3_NZ") != NULL ? atoi(getenv("BT3_NZ")) : 1; }
-        if (nz && !zwrite && ztst != 3 && vu != 4) {
-            key |= 1u << 23;
-        }
-    }
-    if (vu == 4) { /* asked for by depth_clut: the table pass, which only depends on blending and the write mask */
-        key = bkey | wmask << 16 | 1u << 22;
-    }
+    s.noFragDepth = nz && GsPipeState_FragDepthRedundant(&s);
     {
-        /* The back end finds a pipeline by going through all it has made (some hundreds) and is asked once for
-           every primitive: 6% of a fight frame's processor time in a profile. The answer is remembered here by
-           key. A pipeline keeps its number for the whole run (they are only ever added), so nothing goes stale. */
+        /* (upstream 0.1.33) The back end finds a pipeline by going through all it has made (some hundreds) and is asked
+           once for every primitive: 6% of a fight frame's processor time in a profile. The answer is remembered here by
+           key. A pipeline keeps its number for the whole run (they are only ever added: gs_gl.c pipe_get, gs_gpu.c,
+           web/gs_wgpu.c wg_pipe_get), so nothing goes stale. */
         static struct { uint32_t key; int idx; } cache[4096]; /* idx + 1; 0 = empty */
-        uint32_t h = (key * 2654435761u) >> 20;
+        uint32_t key = GsPipeKey_Encode(&s), h = (key * 2654435761u) >> 20;
         int i;
         if (cache[h].idx != 0 && cache[h].key == key) {
             return cache[h].idx - 1;
@@ -499,8 +461,6 @@ int GsDraw_TargetGet(uint32_t fbp, int create) {
     return slot;
 }
 
-static int pipeline_get(int ctx, int topo, int vu);
-
 /* GfxPost_DrawDepthClut as one full-screen pass (the game sends 16 strips; they become one draw). */
 static void depth_clut(int ctx) {
     uint64_t sc = gGs.scissor[ctx];
@@ -511,7 +471,7 @@ static void depth_clut(int ctx) {
         return;
     }
     memset(&d, 0, sizeof(d));
-    d.native = 3;
+    d.native = GS_NATIVE_TABLE_PASS;
     d.src = gsDepthByteIsFog ? 0 : 1;
     d.target = GsDraw_TargetGet((uint32_t)(gGs.frame[ctx] & 0x1FF), 0);
     /* switched off by the user: the passes that colour the picture (the ones that only write alpha feed the glow) */
@@ -531,14 +491,14 @@ static void depth_clut(int ctx) {
     if (d.tex == 0) {
         return;
     }
-    d.pipeline = pipeline_get(ctx, 0, 4);
+    d.pipeline = pipeline_get(ctx, GS_TOPOLOGY_TRIANGLES, GS_VERTS_GS, 1);
     d.blendc = (float)((gGs.alpha[ctx] >> 32) & 0xFF) / 128.0f;
     d.misc[0] = ((gGs.zbuf[ctx] >> 24) & 15) == 0 ? 4294967295.0f : ((gGs.zbuf[ctx] >> 24) & 15) == 1 ? 16777215.0f : 65535.0f;
     d.scissor[0] = (int)(sc & 0x7FF) * SCALE;
     d.scissor[1] = (int)((sc >> 32) & 0x7FF) * SCALE;
     d.scissor[2] = ((int)((sc >> 16) & 0x7FF) + 1) * SCALE - d.scissor[0];
     d.scissor[3] = ((int)((sc >> 48) & 0x7FF) + 1) * SCALE - d.scissor[1];
-    if (last != NULL && last->native == 3 && last->tex == d.tex && last->target == d.target && last->pipeline == d.pipeline && last->src == d.src) {
+    if (last != NULL && last->native == GS_NATIVE_TABLE_PASS && last->tex == d.tex && last->target == d.target && last->pipeline == d.pipeline && last->src == d.src) {
         return; /* the next strip of the same pass */
     }
     gsDraws[gsDrawCount++] = d;
@@ -566,9 +526,9 @@ static int draw_state(int ctx, int topo, int sprite, int vu, GsDraw *d, float *u
             if (tpsm != 0x1B) { /* the copy of the ids: taken now, read by the passes that follow */
                 GsDraw c, *last = gsDrawCount ? &gsDraws[gsDrawCount - 1] : NULL;
                 memset(&c, 0, sizeof(c));
-                c.native = 4;
+                c.native = GS_NATIVE_COPY_IDS;
                 c.target = GsDraw_TargetGet(tbp / 32, 0);
-                if (c.target >= 0 && gsDrawCount < MAX_DRAWS && !(last != NULL && last->native == 4)) {
+                if (c.target >= 0 && gsDrawCount < MAX_DRAWS && !(last != NULL && last->native == GS_NATIVE_COPY_IDS)) {
                     gsDraws[gsDrawCount++] = c;
                 }
             }
@@ -678,14 +638,15 @@ static int draw_state(int ctx, int topo, int sprite, int vu, GsDraw *d, float *u
             d->tex = texture_get(ctx);
         }
     }
-    d->sampler = (int)((gGs.tex1[ctx] >> 5) & 1) | ((cl & 3) ? 2 : 0) | (((cl >> 2) & 3) ? 4 : 0);
+    d->sampler = (((gGs.tex1[ctx] >> 5) & 1) ? GS_SAMPLER_LINEAR : 0) | ((cl & 3) ? GS_SAMPLER_CLAMP_U : 0) |
+                 (((cl >> 2) & 3) ? GS_SAMPLER_CLAMP_V : 0);
     /* A replacement is several times the original's size: with the nearest-texel sampling the game asks for on
        its text and 2D art (right for a texture drawn 1:1) it is shown smaller than it is, and its edges come out
        jagged. Replacements are always sampled with filtering. */
     if (d->tex != 0 && sLast != NULL && sLast->tex == d->tex && sLast->replaced) {
-        d->sampler |= 1 | 8; /* (GsGpu_Draw takes the 8 off again for 2D art) */
+        d->sampler |= GS_SAMPLER_LINEAR | GS_SAMPLER_MIPMAPS; /* (GsGpu_Draw takes the mipmaps off again for 2D art) */
     }
-    d->pipeline = pipeline_get(ctx, topo, vu);
+    d->pipeline = pipeline_get(ctx, (GsTopology)topo, (GsVertexSource)vu, 0);
     d->mode[0] = !tme ? 0 : d->tex_is_target ? 2 : 1; /* 2: a frame buffer as texture, its alpha is already rescaled */
     /* (BT3_TEX_ALPHA=0 switches the replacement's alpha treatment off, for telling which one a fault comes from) */
     if (d->mode[0] == 1 && sLast != NULL && sLast->tex == d->tex && sLast->replaced == 1 &&
@@ -716,6 +677,10 @@ static int depth_frac(void) {
 }
 
 float gsZMax = 16777215.0f; /* the depth buffer's largest value, as the frame's draws had it (the fragment shader rounds with it) */
+
+float GsDraw_DepthMax(const GsDraw *d) {
+    return d->vu ? (gsVuUni[d->uniform].misc[2] > 0.0f ? gsVuUni[d->uniform].misc[2] : 0.0f) : gsZMax;
+}
 
 static void put(const GsVertex *v, float x, float y, float s, float t, float q, uint8_t r, uint8_t g, uint8_t b, uint8_t a, float zmax) {
     Vtx *o = &gsVerts[gsVertCount++];
@@ -804,7 +769,7 @@ static void date_snapshot(const GsDraw *d) {
         return;
     }
     memset(&c, 0, sizeof(c));
-    c.native = 5;
+    c.native = GS_NATIVE_COPY_DATE;
     c.target = d->target;
     if (gsDrawCount + 1 < MAX_DRAWS) {
         gsDraws[gsDrawCount++] = c;
@@ -906,7 +871,7 @@ void GsGpu_Draw(int type, int ctx, const GsVertex *v) {
         return;
     }
     if (type == 6 || fst) {
-        d.sampler &= 7; /* 2D art: never the smaller copies of a replacement */
+        d.sampler &= ~GS_SAMPLER_MIPMAPS; /* 2D art: never the smaller copies of a replacement */
     }
     if ((type == 6 || fst) && !d.tex_is_target) {
         /* 2D art: sprites, and triangles with whole-texel coordinates (the logo, HUD pieces drawn as quads):
@@ -1225,7 +1190,7 @@ void GsGpu_DrawVu4(int ctx, const float *vertices, uint32_t count, const float *
         }
     }
     d.count = gsVuIdxCount - d.first;
-    memcpy(&gsVuVerts[gsVuVertCount * 12], vertices, count * 48);
+    memcpy(&gsVuVerts[gsVuVertCount * VU_VERT_FLOATS], vertices, count * VU_VERT_BYTES);
     gsVuVertCount += count;
     gsTargets[d.target].draws++;
     gsTargets[d.target].gen = gGsPageGen[gsTargets[d.target].fbp & 511];
@@ -1287,7 +1252,7 @@ void GsGpu_DrawVu0(int layer, int ctx, const float *vertices, uint32_t count, co
         }
     }
     d.count = gsVuIdxCount - d.first;
-    memcpy(&gsVuVerts[gsVuVertCount * 12], vertices, count * 48);
+    memcpy(&gsVuVerts[gsVuVertCount * VU_VERT_FLOATS], vertices, count * VU_VERT_BYTES);
     gsVuVertCount += count;
     gsTargets[d.target].draws++;
     gsTargets[d.target].gen = gGsPageGen[gsTargets[d.target].fbp & 511];
@@ -1351,8 +1316,8 @@ void GsGpu_FbUpload(int second) {
         return;
     }
     memset(&d, 0, sizeof(d));
-    d.native = 100 + (second != 0);
-    d.target = GsDraw_TargetGet(second ? 0x70 : 0, 1);
+    d.native = GS_NATIVE_FB_UPLOAD + (second != 0);
+    d.target = GsDraw_TargetGet(GS_DISPLAY_FBP(second), 1);
     if (d.target >= 0) {
         gsDraws[gsDrawCount++] = d;
     }
@@ -1376,7 +1341,7 @@ void GsGpu_Native(int effect) {
         gsAnchor = effect == 0x13 ? 0 : effect == 0x14 ? 4 : effect - 0x0F; /* 1 left, 2 right, 3 centre, 4 by position */
         return;
     }
-    if (effect != 1 || gsDrawCount == MAX_DRAWS || (gsFxOff & 1)) {
+    if (effect != GS_NATIVE_OUTLINE || gsDrawCount == MAX_DRAWS || (gsFxOff & 1)) {
         return;
     }
     gsNative++;
@@ -1404,7 +1369,7 @@ static void scale_apply(void) {
     gsPendingScale = 0;
     sBackend->scaleChanged();
     gsTargetCount = 0;
-    fprintf(stderr, "bt3: internal resolution %dx (%d x %d)\n", gsScale, 512 * gsScale, 448 * gsScale);
+    fprintf(stderr, "bt3: internal resolution %dx (%d x %d)\n", gsScale, GS_DISPLAY_W * gsScale, GS_DISPLAY_H * gsScale);
 }
 
 /* The list of menu labels is made in a thread at start when it is not there (menu_labels.c, menu_text.c). What it
@@ -1471,7 +1436,7 @@ SDL_Window *GsDraw_WindowCreate(int opengl) {
     if (sWindow != NULL && !sFullscreen) {
         SDL_SetWindowSize(sWindow, (int)((float)896 * want + 0.5f), 896);
     }
-    fprintf(stderr, "bt3: internal resolution %dx (%d x %d)\n", gsScale, 512 * gsScale, 448 * gsScale);
+    fprintf(stderr, "bt3: internal resolution %dx (%d x %d)\n", gsScale, GS_DISPLAY_W * gsScale, GS_DISPLAY_H * gsScale);
     return sWindow;
 }
 
@@ -1499,6 +1464,157 @@ void GsDraw_FullscreenToggle(void) {
     GsDraw_FullscreenSet(!sFullscreen);
     Port_SettingSave("fullscreen", sFullscreen);
     Port_SettingsWrite();
+}
+
+/* F9: in-between pictures on and off (the same setting as F1, Video, Smooth motion: off, or back to what it was). */
+/* The highest smooth-motion setting (gsInterp) that is shown: all of them natively. The browser build's depends on the
+   renderer and was measured (port/src/web/web_ui.c Web_InterpLimit; BROWSER_PORT_STATUS.md): a page's picture reaches
+   the screen only at a display refresh after the page yields, and each in-between picture replays the frame's list. */
+#define INTERP_SETTING_MAX 3
+#ifdef __EMSCRIPTEN__
+extern int Web_InterpLimit(const char *renderer); /* port/src/web/web_ui.c */
+#endif
+int GsDraw_InterpLimit(void) {
+#ifdef __EMSCRIPTEN__
+    return Web_InterpLimit(sBackend != NULL ? sBackend->name : "");
+#else
+    return INTERP_SETTING_MAX;
+#endif
+}
+
+static void smooth_motion_toggle(void) {
+    extern int gsInterp;
+    static int was = 1;
+    if (GsDraw_InterpLimit() == 0) {
+        fprintf(stderr, "bt3: smooth motion is not available with this renderer here (F9 does nothing)\n");
+        return;
+    }
+    if (gsInterp > 0) {
+        was = gsInterp;
+        gsInterp = 0;
+    } else {
+        gsInterp = was < GsDraw_InterpLimit() ? was : GsDraw_InterpLimit();
+    }
+    Port_SettingSave("interp", gsInterp);
+    Port_SettingsWrite();
+    fprintf(stderr, "bt3: smooth motion %s\n", gsInterp == 0 ? "off" : gsInterp == 1 ? "60" : gsInterp == 2 ? "120" : "240");
+}
+
+void GsDraw_PollEvents(void) {
+    SDL_Event ev;
+
+    GsGpu_TitlePoll();
+    while (SDL_PollEvent(&ev)) {
+        if (ev.type == SDL_EVENT_QUIT) {
+            exit(0);
+        }
+        { extern void PortA11y_Event(const SDL_Event *ev); PortA11y_Event(&ev); } /* a11y.c: the repeat key and button */
+        if (PortInput_Hotkey(&ev)) { /* F1, START + SELECT, or what the settings window's list says */
+            Ui_Toggle();
+            continue;
+        }
+        if (Ui_Event(&ev)) { /* the settings window is open and used it (Esc closes it) */
+            continue;
+        }
+        if (ev.type == SDL_EVENT_KEY_DOWN && ev.key.key == SDLK_ESCAPE && !ev.key.repeat && !Ui_QuitAsk()) {
+            exit(0); /* (the settings window asks first: Ui_QuitAsk; 0 = there is no window to ask in) */
+        }
+        if (ev.type == SDL_EVENT_KEY_DOWN && !ev.key.repeat && ev.key.key == SDLK_F9) {
+            smooth_motion_toggle();
+        }
+        if (ev.type == SDL_EVENT_KEY_DOWN && !ev.key.repeat && ev.key.key == SDLK_F11) {
+            GsDraw_FullscreenToggle();
+        }
+    }
+}
+
+void GsDraw_PictureSize(int windowW, int windowH, int *w, int *h) {
+    /* The picture keeps its shape whatever the window's: 4:3, or 16:9 in widescreen (the 512 x 448 buffer is not
+       square-pixelled: it always fills a 4:3 or 16:9 screen). The page's shape: 4:3 while the menus run if
+       "Menus in 4:3" is on (plat_stub.c), as upstream 0.1.32's present steps do. */
+    float want = (float)Port_PageAspectMilli() / 1000.0f;
+    *w = windowW;
+    *h = windowH;
+    if ((float)windowW > (float)windowH * want) {
+        *w = (int)((float)windowH * want + 0.5f);
+    } else {
+        *h = (int)((float)windowW / want + 0.5f);
+    }
+}
+
+/* GS memory addressing (GS manual): a frame-buffer page (FBP) is 32 blocks (BP); buffer widths count 64 pixels. */
+#define GS_BLOCKS_PER_PAGE 32
+#define GS_WIDTH_UNIT 64
+#define GS_PSMCT32 0 /* 32-bit pixels */
+#define GS_OPAQUE 0xFF000000u
+
+void GsDraw_DisplayBufferPixels(int buffer, uint32_t *px) {
+    uint32_t x, y;
+    for (y = 0; y < GS_H; y++) {
+        for (x = 0; x < GS_W; x++) {
+            px[y * GS_W + x] = Gs_VramRead(GS_DISPLAY_FBP(buffer) * GS_BLOCKS_PER_PAGE, GS_DISPLAY_W / GS_WIDTH_UNIT, GS_PSMCT32, x, y) |
+                               GS_OPAQUE;
+        }
+    }
+}
+
+void GsDraw_DisplayReduce(const uint8_t *px, uint8_t *rgba) {
+    int x, y, w = GS_DISPLAY_W * SCALE;
+    for (y = 0; y < GS_DISPLAY_H; y++) {
+        for (x = 0; x < GS_DISPLAY_W; x++) {
+            memcpy(rgba + (y * GS_DISPLAY_W + x) * 4, px + ((size_t)(y * SCALE + SCALE / 2) * w + x * SCALE + SCALE / 2) * 4, 4);
+        }
+    }
+}
+
+int GsDraw_ShotDue(void) {
+    static int every = -1;
+    if (every < 0) { every = getenv("BT3_SHOT") != NULL ? atoi(getenv("BT3_SHOT")) : 0; }
+    return every > 0 && gGsFrame % (unsigned)every == 0 &&
+           (getenv("BT3_SHOT_FROM") == NULL || (int)gGsFrame >= atoi(getenv("BT3_SHOT_FROM"))) &&
+           (getenv("BT3_SHOT_TO") == NULL || (int)gGsFrame <= atoi(getenv("BT3_SHOT_TO")));
+}
+
+int GsDraw_ShotAux(void) { return getenv("BT3_SHOT_AUX") != NULL; }
+
+void GsDraw_ShotWrite(const uint8_t *px, int w, int h, int aux) {
+    char name[64];
+    FILE *fp;
+    int x, y;
+    snprintf(name, sizeof(name), "port/build/shots/gpu_%05u.ppm", gGsFrame);
+    fp = fopen(name, "wb");
+    if (fp == NULL) {
+        fprintf(stderr, "bt3: screenshot %s not written\n", name);
+        return;
+    }
+    fprintf(fp, "P6\n%d %d\n255\n", w, h);
+    for (y = 0; y < h; y++) {
+        for (x = 0; x < w; x++) {
+            if (aux) {
+                /* the alpha byte (object ids, small numbers) brightened to be seen */
+                uint8_t v = px[y * w + x], t[3] = {(uint8_t)(v * 16), (uint8_t)(v * 16), v};
+                fwrite(t, 1, 3, fp);
+            } else {
+                fwrite(&px[(y * w + x) * 4], 1, 3, fp);
+            }
+        }
+    }
+    fclose(fp);
+}
+
+void GsDraw_FrameReset(void) {
+    int i;
+    for (i = 0; i < gsTargetCount; i++) {
+        gsTargets[i].draws = 0;
+    }
+    gsVertCount = 0;
+    gsVuVertCount = 0;
+    gsVuIdxCount = 0;
+    gsVuUniCount = 0;
+    gsDrawCount = 0;
+    gsAnchor = 0;
+    gsSkipped = 0;
+    gsNative = 0;
 }
 
 /* ------------------------------------------------------------------------------------------- the settings window
@@ -1598,10 +1714,29 @@ int GsGpu_Init(void) {
     gsScale = gsScale < 1 ? 1 : gsScale > 8 ? 8 : gsScale;
     gsPendingScale = 0;
     gsVerts = malloc(MAX_VERTS * sizeof(Vtx));
-    gsVuVerts = malloc(MAX_VU_VERTS * 48);
+    gsVuVerts = malloc(MAX_VU_VERTS * VU_VERT_BYTES);
     gsVuIdx = malloc(MAX_VU_IDX * sizeof(uint32_t));
     gsVuUni = malloc(MAX_VU_UNIFORMS * sizeof(Vu0Uniform));
     gsDraws = malloc(MAX_DRAWS * sizeof(GsDraw));
+#ifdef __EMSCRIPTEN__
+    /* The browser build: BT3_GPU_API=gl (default: the OpenGL back end on WebGL 2, the reference) or webgpu (gs_wgpu.c).
+       SDL3 has no browser back end for its GPU API, so gs_gpu.c is not built. A renderer that cannot start is not
+       replaced by the other one: the page reports it. */
+    if (api == NULL || strcmp(api, "gl") == 0) {
+        sb = &sGlBackend;
+    } else if (strcmp(api, "webgpu") == 0) {
+        sb = &sWebGpuBackend;
+    } else {
+        fprintf(stderr, "bt3: unknown BT3_GPU_API=%s (the browser build has gl and webgpu)\n", api);
+        return 0;
+    }
+    sBackend = sb;
+    if (!sb->init()) {
+        fprintf(stderr, "bt3: the %s renderer could not start\n", sb == &sGlBackend ? "WebGL 2" : "WebGPU");
+        sBackend = NULL;
+        return 0;
+    }
+#else
     /* BT3_GPU_API=vulkan|gl|auto picks the back end. Both are complete renderers of the same list, so a
        picture from either should be the same (see the frame-by-frame compare in the port's docs). */
     if (api == NULL || strcmp(api, "auto") == 0) {
@@ -1634,6 +1769,7 @@ int GsGpu_Init(void) {
             return 0;
         }
     }
+#endif
     gsWhite = sb->whiteTex();
     gsFxOff = (unsigned)(getenv("BT3_FX_OFF") != NULL ? atoi(getenv("BT3_FX_OFF")) : Port_Setting("fx_off", 0)) & 63;
     gsGlowPercent = getenv("BT3_GLOW") != NULL ? atoi(getenv("BT3_GLOW")) : Port_Setting("glow", GLOW_DEFAULT);
@@ -4079,7 +4215,7 @@ void GsGpu_FrameEnd(void) {
         }
         if (gsInterp < 0) {
             gsInterp = getenv("BT3_INTERP") != NULL ? atoi(getenv("BT3_INTERP")) : Port_Setting("interp", 0);
-            gsInterp = gsInterp < 0 ? 0 : gsInterp > 3 ? 3 : gsInterp;
+            gsInterp = gsInterp < 0 ? 0 : gsInterp > GsDraw_InterpLimit() ? GsDraw_InterpLimit() : gsInterp;
             sInterpPrev = malloc(MAX_VU_UNIFORMS * sizeof(Vu0Uniform));
             sInterpBlend = malloc(MAX_VU_UNIFORMS * sizeof(Vu0Uniform));
             sInterpPrevSig = malloc(MAX_VU_UNIFORMS * sizeof(uint32_t));

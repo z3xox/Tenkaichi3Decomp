@@ -13,9 +13,24 @@
 layout(location = 0) in vec2 vUv;
 layout(location = 0) out vec4 outColor;
 layout(location = 1) out vec4 outAux;
+// SEPARATE_SAMPLERS: the WebGPU build (port/tools/wasm_shaders.py: naga -D SEPARATE_SAMPLERS). WGSL has no
+// combined texture + sampler: each becomes a texture at binding 2k and its sampler at 2k + 1 of the same set
+// (k = its binding below). Vulkan (glslc) and OpenGL compile the #else part, as before.
+#ifdef SEPARATE_SAMPLERS
+layout(set = 2, binding = 0) uniform texture2D depthTex_texture;
+layout(set = 2, binding = 1) uniform sampler depthTex_sampler;
+#define depthTex sampler2D(depthTex_texture, depthTex_sampler)
+layout(set = 2, binding = 2) uniform texture2D auxTex_texture;
+layout(set = 2, binding = 3) uniform sampler auxTex_sampler;
+#define auxTex sampler2D(auxTex_texture, auxTex_sampler)
+layout(set = 2, binding = 4) uniform texture2D clutTex_texture;
+layout(set = 2, binding = 5) uniform sampler clutTex_sampler;
+#define clutTex sampler2D(clutTex_texture, clutTex_sampler)
+#else
 layout(set = 2, binding = 0) uniform sampler2D depthTex;
 layout(set = 2, binding = 1) uniform sampler2D auxTex;
 layout(set = 2, binding = 2) uniform sampler2D clutTex;
+#endif
 layout(set = 3, binding = 0) uniform Params {
     vec4 p; // x: source (0 fog from depth, 1 alpha copy), y: depth maximum
 } u;

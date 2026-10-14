@@ -23,4 +23,11 @@
 #define fabsf Port_fabsf
 #define scalbnf Port_scalbnf
 #define copysignf Port_copysignf
+#ifdef __EMSCRIPTEN__
+/* <math.h> above declares scalbnf before the rename, so calls of Port_scalbnf (ef_pow.c, kf_rem_pio2.c) are implicit
+   `int Port_scalbnf()` declarations: the float argument is passed as a double and the result read as an int. The
+   PS2's newlib had the prototype. The browser build needs it (a call must match its definition there); the native
+   builds are left as they are (see BROWSER_PORT_STATUS.md). */
+float Port_scalbnf(float, int);
+#endif
 #endif

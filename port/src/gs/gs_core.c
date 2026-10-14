@@ -1333,6 +1333,28 @@ void Port_GsVif1Chain(uint32_t tadr, int tte) {
                 fprintf(stderr, "slow:   of the display list time: texture decoding %.1f ms, pipeline creation %.1f ms, submitting the frame %.1f ms\n",
                         (double)gGpuTexNs / 1e6, (double)gGpuPipeNs / 1e6, (double)gGpuEndNs / 1e6);
             }
+            {   /* BT3_FRAME_LOG=1: one line per frame, for measurements (port/tests/bench): work, game code, display list,
+                   and of the list the texture decoding / pipeline creation / submitting, all in microseconds */
+                static int frameLog = -1;
+                if (frameLog < 0) {
+                    frameLog = getenv("BT3_FRAME_LOG") != NULL;
+                }
+                if (frameLog) {
+                    extern unsigned gPortVBlanks;
+                    fprintf(stderr, "frame %u %u %u %u %u %u %u %u\n", sFrame, gPortVBlanks, (unsigned)(work / 1000),
+                            (unsigned)((tChain - start > waited ? tChain - start - waited : 0) / 1000), (unsigned)((t - tChain) / 1000),
+                            (unsigned)(gGpuTexNs / 1000), (unsigned)(gGpuPipeNs / 1000), (unsigned)(gGpuEndNs / 1000));
+                }
+            }
+#ifdef __EMSCRIPTEN__
+            {   /* the browser page's live numbers (port/src/web/web_ui.c): the same values, into a ring the page reads */
+                extern void Web_FrameSample(unsigned frame, unsigned vblanks, uint64_t workNs, uint64_t gameNs, uint64_t listNs,
+                                            uint64_t submitNs);
+                extern unsigned gPortVBlanks;
+                Web_FrameSample(sFrame, gPortVBlanks, work, tChain - start > waited ? tChain - start - waited : 0, t - tChain,
+                                gGpuEndNs);
+            }
+#endif
             /* per second: where the work goes (the game's own code, walking the list, and of that the GPU side) */
             sumGame += tChain - start > waited ? tChain - start - waited : 0;
             sumList += t - tChain;

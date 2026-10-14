@@ -1,0 +1,181 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="gp" viewBox="0 0 600 380" role="group" aria-labelledby="gp-title">
+  <!-- The controller for the browser configurator (port/web/controllers.js): every bindable control is a group with a
+       stable id (gp-...), data-action = the engine's action label (gs_input.c kActions; Bt3Ui_ActionLabel) and
+       data-anchor = where its binding label goes (x y in this viewBox). States are classes on a control:
+       is-selected, is-pressed, is-capturing, is-unbound (hover and keyboard focus are CSS). The plate and the round
+       button in the middle are decoration: the PS2 pad has nothing to bind there. -->
+  <title id="gp-title">Controller</title>
+  <style>
+    /* Colours and states are variables, so the page can restyle the controller (dark theme by default) */
+    .gp {
+      --gp-body-top: #2c3241; --gp-body-bottom: #161a22; --gp-body-edge: #3c4456; --gp-sheen: #ffffff12;
+      --gp-plate: #1b2029; --gp-plate-edge: #343c4d; --gp-well: #10131a; --gp-well-edge: #262c38;
+      --gp-key: #232834; --gp-key-edge: #4a5468; --gp-key-hover: #2e3544; --gp-glyph: #c9cfdb;
+      --gp-pressed: #f0b85a; --gp-pressed-glyph: #1a1d24; --gp-accent: #f0b85a; --gp-focus: #7fb2ff;
+      --gp-triangle: #45d4a8; --gp-circle: #ff6f86; --gp-cross: #7aa7ff; --gp-square: #e690dc;
+      width: 100%; height: auto; display: block; font-family: system-ui, sans-serif;
+    }
+    .gp-body { fill: url(#gp-body-fill); stroke: var(--gp-body-edge); stroke-width: 2; }
+    .gp-body-sheen { fill: url(#gp-sheen); pointer-events: none; }
+    .gp-plate { fill: var(--gp-plate); stroke: var(--gp-plate-edge); stroke-width: 1.5; }
+    .gp-home { fill: var(--gp-well); stroke: var(--gp-plate-edge); stroke-width: 1.5; }
+    .gp-well { fill: var(--gp-well); stroke: var(--gp-well-edge); stroke-width: 1.5; }
+    .gp-deco { pointer-events: none; }
+    .gp-trigger { fill: #1c2029; }
+    .gp-bumper { fill: #262b37; }
+
+    .gp-control { cursor: pointer; outline: none; }
+    .gp-control .gp-face { fill: var(--gp-key); stroke: var(--gp-key-edge); stroke-width: 1.5;
+                           transition: fill .08s, stroke .08s; }
+    .gp-control .gp-trigger { fill: #1c2029; } .gp-control .gp-bumper { fill: #262b37; }
+    .gp-control .gp-zone { fill: #ffffff08; stroke: #ffffff20; }
+    .gp-glyph { fill: var(--gp-glyph); pointer-events: none; }
+    .gp-arrow { fill: #8892a6; }
+    .gp-sym { fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+    .gp-face-triangle .gp-sym { stroke: var(--gp-triangle); }
+    .gp-face-circle .gp-sym { stroke: var(--gp-circle); }
+    .gp-face-cross .gp-sym { stroke: var(--gp-cross); }
+    .gp-face-square .gp-sym { stroke: var(--gp-square); }
+    .gp-shoulder-text, .gp-cap-text { font-size: 15px; font-weight: 700; text-anchor: middle; letter-spacing: .5px; }
+    .gp-caption { fill: #8892a6; font-size: 11px; font-weight: 600; text-anchor: middle; letter-spacing: .8px;
+                  pointer-events: none; }
+    .gp-cap-dish { fill: none; stroke: #ffffff14; stroke-width: 1.5; pointer-events: none; }
+    .gp-cap-grip { fill: none; stroke: #ffffff1a; stroke-width: 2; stroke-dasharray: 1.5 3.2; pointer-events: none; }
+    .gp-cap-text { fill: #7d8699; font-size: 12px; }
+
+    /* states: hover, keyboard focus, selected, pressed (live), remapping (capture), unbound */
+    .gp-control:hover .gp-face { fill: var(--gp-key-hover); stroke: #6c7890; }
+    .gp-control:hover .gp-zone { fill: #ffffff20; }
+    .gp-control:focus-visible .gp-face { stroke: var(--gp-focus); stroke-width: 3; }
+    .gp-control.is-selected .gp-face { stroke: var(--gp-accent); stroke-width: 3; }
+    .gp-control.is-pressed .gp-face { fill: var(--gp-pressed); stroke: #fff; }
+    .gp-control.is-pressed .gp-glyph, .gp-control.is-pressed .gp-sym { fill: var(--gp-pressed-glyph); stroke: var(--gp-pressed-glyph); }
+    .gp-control.is-pressed .gp-sym { fill: none; }
+    .gp-control.is-capturing .gp-face { stroke: var(--gp-accent); stroke-width: 3; animation: gp-pulse 1s ease-in-out infinite; }
+    .gp-control.is-unbound .gp-face { stroke-dasharray: 4 3; }
+    @keyframes gp-pulse { 50% { fill: #f0b85a55; } }
+    @media (prefers-reduced-motion: reduce) { .gp-control.is-capturing .gp-face { animation: none; fill: #f0b85a55; } }
+  </style>
+  <defs>
+    <linearGradient id="gp-body-fill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="var(--gp-body-top)" style="stop-color: var(--gp-body-top)"/>
+      <stop offset="1" stop-color="var(--gp-body-bottom)" style="stop-color: var(--gp-body-bottom)"/>
+    </linearGradient>
+    <radialGradient id="gp-sheen" cx="0.5" cy="0.05" r="0.75">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".09"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <g class="gp-shoulders">
+  <g id="gp-l2" class="gp-control" data-action="L2" data-anchor="150 14" role="button" tabindex="0" aria-label="L2">
+    <path class="gp-face gp-trigger" d="M 112 76 C 113 44 136 24 166 22 L 201 22 C 213 22 219 31 217 43 L 212 84 Z"/>
+    <text class="gp-glyph gp-shoulder-text" x="166" y="43">L2</text>
+  </g>
+  <g id="gp-r2" class="gp-control" data-action="R2" data-anchor="450 14" role="button" tabindex="0" aria-label="R2">
+    <path class="gp-face gp-trigger" d="M 488 76 C 487 44 464 24 434 22 L 399 22 C 387 22 381 31 383 43 L 388 84 Z"/>
+    <text class="gp-glyph gp-shoulder-text" x="434" y="43">R2</text>
+  </g>
+  <g id="gp-l1" class="gp-control" data-action="L1" data-anchor="96 60" role="button" tabindex="0" aria-label="L1">
+    <path class="gp-face gp-bumper" d="M 86 116 C 92 86 122 62 166 57 L 219 55 C 230 55 235 63 231 72 L 224 86 Z"/>
+    <text class="gp-glyph gp-shoulder-text" x="170" y="71">L1</text>
+  </g>
+  <g id="gp-r1" class="gp-control" data-action="R1" data-anchor="504 60" role="button" tabindex="0" aria-label="R1">
+    <path class="gp-face gp-bumper" d="M 514 116 C 508 86 478 62 434 57 L 381 55 C 370 55 365 63 369 72 L 376 86 Z"/>
+    <text class="gp-glyph gp-shoulder-text" x="430" y="71">R1</text>
+  </g>
+  </g>
+  <g class="gp-deco" aria-hidden="true">
+    <path class="gp-body" d="M 300 78 C 250 78 205 72 170 74 C 130 76 98 90 80 118 C 58 152 44 205 38 255 C 32 305 40 345 70 358 C 100 371 130 354 150 330 C 168 305 190 294 222 291 C 250 289 275 292 300 292 C 325 292 350 289 378 291 C 410 294 432 305 450 330 C 470 354 500 371 530 358 C 560 345 568 305 562 255 C 556 205 542 152 520 118 C 502 90 470 76 430 74 C 395 72 350 78 300 78 Z"/>
+    <path class="gp-body-sheen" d="M 300 78 C 250 78 205 72 170 74 C 130 76 98 90 80 118 C 58 152 44 205 38 255 C 32 305 40 345 70 358 C 100 371 130 354 150 330 C 168 305 190 294 222 291 C 250 289 275 292 300 292 C 325 292 350 289 378 291 C 410 294 432 305 450 330 C 470 354 500 371 530 358 C 560 345 568 305 562 255 C 556 205 542 152 520 118 C 502 90 470 76 430 74 C 395 72 350 78 300 78 Z"/>
+    <rect class="gp-plate" x="246" y="90" width="108" height="64" rx="12"/>
+    <circle class="gp-home" cx="300" cy="196" r="11"/>
+    <circle class="gp-well" cx="150" cy="150" r="50"/>
+    <circle class="gp-well" cx="450" cy="150" r="52"/>
+    <circle class="gp-well gp-stick-well" cx="220" cy="226" r="38"/>
+    <circle class="gp-well gp-stick-well" cx="380" cy="226" r="38"/>
+  </g>
+  <g class="gp-dpad">
+  <g id="gp-dpad-up" class="gp-control" data-action="D-pad up" data-anchor="150 92" role="button" tabindex="0" aria-label="D-pad up">
+    <path class="gp-face" d="M 137 136 L 137 116 Q 137 109 144 109 L 156 109 Q 163 109 163 116 L 163 136 L 150 148 Z"/>
+    <path class="gp-glyph gp-arrow" d="M 150 117 L 154 124 L 146 124 Z" transform="rotate(0 150 121)"/>
+  </g>
+  <g id="gp-dpad-down" class="gp-control" data-action="D-pad down" data-anchor="150 208" role="button" tabindex="0" aria-label="D-pad down">
+    <path class="gp-face" d="M 137 164 L 137 184 Q 137 191 144 191 L 156 191 Q 163 191 163 184 L 163 164 L 150 152 Z"/>
+    <path class="gp-glyph gp-arrow" d="M 150 175 L 154 182 L 146 182 Z" transform="rotate(180 150 179)"/>
+  </g>
+  <g id="gp-dpad-left" class="gp-control" data-action="D-pad left" data-anchor="92 150" role="button" tabindex="0" aria-label="D-pad left">
+    <path class="gp-face" d="M 136 137 L 116 137 Q 109 137 109 144 L 109 156 Q 109 163 116 163 L 136 163 L 148 150 Z"/>
+    <path class="gp-glyph gp-arrow" d="M 121 146 L 125 153 L 117 153 Z" transform="rotate(270 121 150)"/>
+  </g>
+  <g id="gp-dpad-right" class="gp-control" data-action="D-pad right" data-anchor="208 150" role="button" tabindex="0" aria-label="D-pad right">
+    <path class="gp-face" d="M 164 137 L 184 137 Q 191 137 191 144 L 191 156 Q 191 163 184 163 L 164 163 L 152 150 Z"/>
+    <path class="gp-glyph gp-arrow" d="M 179 146 L 183 153 L 175 153 Z" transform="rotate(90 179 150)"/>
+  </g>
+  </g>
+  <g class="gp-face-buttons">
+  <g id="gp-triangle" class="gp-control gp-face-triangle" data-action="Triangle" data-anchor="450 96" role="button" tabindex="0" aria-label="Triangle">
+    <circle class="gp-face" cx="450" cy="119" r="15"/>
+    <path class="gp-glyph gp-sym" d="M 450 112 L 457.5 124.5 L 442.5 124.5 Z"/>
+  </g>
+  <g id="gp-circle" class="gp-control gp-face-circle" data-action="Circle" data-anchor="512 150" role="button" tabindex="0" aria-label="Circle">
+    <circle class="gp-face" cx="481" cy="150" r="15"/>
+    <circle class="gp-glyph gp-sym" cx="481" cy="150" r="6.5"/>
+  </g>
+  <g id="gp-cross" class="gp-control gp-face-cross" data-action="Cross" data-anchor="450 204" role="button" tabindex="0" aria-label="Cross">
+    <circle class="gp-face" cx="450" cy="181" r="15"/>
+    <path class="gp-glyph gp-sym" d="M 444 175 L 456 187 M 456 175 L 444 187"/>
+  </g>
+  <g id="gp-square" class="gp-control gp-face-square" data-action="Square" data-anchor="388 150" role="button" tabindex="0" aria-label="Square">
+    <circle class="gp-face" cx="419" cy="150" r="15"/>
+    <rect class="gp-glyph gp-sym" x="413" y="144" width="12" height="12" rx="1"/>
+  </g>
+  </g>
+  <g id="gp-select" class="gp-control" data-action="SELECT" data-anchor="226 100" role="button" tabindex="0" aria-label="SELECT">
+    <rect class="gp-face" x="212" y="114" width="28" height="12" rx="6"/>
+    <text class="gp-caption" x="226" y="143">SELECT</text>
+  </g>
+  <g id="gp-start" class="gp-control" data-action="START" data-anchor="374 100" role="button" tabindex="0" aria-label="START">
+    <rect class="gp-face" x="360" y="114" width="28" height="12" rx="6"/>
+    <text class="gp-caption" x="374" y="143">START</text>
+  </g>
+  <g class="gp-stick gp-stick-l">
+  <g id="gp-ls-up" class="gp-control" data-action="Left stick up" data-anchor="220 172" role="button" tabindex="0" aria-label="Left stick up">
+    <path class="gp-face gp-zone" d="M 198.45 198.42 A 35 35 0 0 1 241.55 198.42 L 236.62 204.72 A 27 27 0 0 0 203.38 204.72 Z"/>
+  </g>
+  <g id="gp-ls-right" class="gp-control" data-action="Left stick right" data-anchor="274 226" role="button" tabindex="0" aria-label="Left stick right">
+    <path class="gp-face gp-zone" d="M 247.58 204.45 A 35 35 0 0 1 247.58 247.55 L 241.28 242.62 A 27 27 0 0 0 241.28 209.38 Z"/>
+  </g>
+  <g id="gp-ls-down" class="gp-control" data-action="Left stick down" data-anchor="220 280" role="button" tabindex="0" aria-label="Left stick down">
+    <path class="gp-face gp-zone" d="M 241.55 253.58 A 35 35 0 0 1 198.45 253.58 L 203.38 247.28 A 27 27 0 0 0 236.62 247.28 Z"/>
+  </g>
+  <g id="gp-ls-left" class="gp-control" data-action="Left stick left" data-anchor="166 226" role="button" tabindex="0" aria-label="Left stick left">
+    <path class="gp-face gp-zone" d="M 192.42 247.55 A 35 35 0 0 1 192.42 204.45 L 198.72 209.38 A 27 27 0 0 0 198.72 242.62 Z"/>
+  </g>
+  <g id="gp-l3" class="gp-control" data-action="L3" data-anchor="220 296" role="button" tabindex="0" aria-label="L3 (left stick press)">
+    <circle class="gp-face gp-cap" cx="220" cy="226" r="22"/>
+    <circle class="gp-cap-dish" cx="220" cy="226" r="15"/>
+    <circle class="gp-cap-grip" cx="220" cy="226" r="19"/>
+    <text class="gp-glyph gp-cap-text" x="220" y="230">L3</text>
+  </g>
+  </g>
+  <g class="gp-stick gp-stick-r">
+  <g id="gp-rs-up" class="gp-control" data-action="Right stick up" data-anchor="380 172" role="button" tabindex="0" aria-label="Right stick up">
+    <path class="gp-face gp-zone" d="M 358.45 198.42 A 35 35 0 0 1 401.55 198.42 L 396.62 204.72 A 27 27 0 0 0 363.38 204.72 Z"/>
+  </g>
+  <g id="gp-rs-right" class="gp-control" data-action="Right stick right" data-anchor="434 226" role="button" tabindex="0" aria-label="Right stick right">
+    <path class="gp-face gp-zone" d="M 407.58 204.45 A 35 35 0 0 1 407.58 247.55 L 401.28 242.62 A 27 27 0 0 0 401.28 209.38 Z"/>
+  </g>
+  <g id="gp-rs-down" class="gp-control" data-action="Right stick down" data-anchor="380 280" role="button" tabindex="0" aria-label="Right stick down">
+    <path class="gp-face gp-zone" d="M 401.55 253.58 A 35 35 0 0 1 358.45 253.58 L 363.38 247.28 A 27 27 0 0 0 396.62 247.28 Z"/>
+  </g>
+  <g id="gp-rs-left" class="gp-control" data-action="Right stick left" data-anchor="326 226" role="button" tabindex="0" aria-label="Right stick left">
+    <path class="gp-face gp-zone" d="M 352.42 247.55 A 35 35 0 0 1 352.42 204.45 L 358.72 209.38 A 27 27 0 0 0 358.72 242.62 Z"/>
+  </g>
+  <g id="gp-r3" class="gp-control" data-action="R3" data-anchor="380 296" role="button" tabindex="0" aria-label="R3 (right stick press)">
+    <circle class="gp-face gp-cap" cx="380" cy="226" r="22"/>
+    <circle class="gp-cap-dish" cx="380" cy="226" r="15"/>
+    <circle class="gp-cap-grip" cx="380" cy="226" r="19"/>
+    <text class="gp-glyph gp-cap-text" x="380" y="230">R3</text>
+  </g>
+  </g>
+</svg>

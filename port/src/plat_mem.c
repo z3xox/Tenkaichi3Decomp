@@ -176,6 +176,31 @@ int __wrap_main(int argc, char **argv) {
     return sResult;
 }
 
+#elif defined(__EMSCRIPTEN__)
+/* ------------------------------------------------------------------------------------------------------ Browser
+   The program is linked above the GS registers (-sGLOBAL_BASE=0x12010000, port/tools/wasm_build.py), so the PS2
+   regions below it are plain linear memory at their own addresses, zero at start. The scratchpad (0x70000000) is
+   left outside memory on purpose (-sMAXIMUM_MEMORY=0x70000000): the game's C has no access to it, and any access
+   traps instead of landing in the C heap. See BROWSER_PORT_STATUS.md, memory model. */
+#include <emscripten/heap.h>
+#include <unistd.h>
+
+static void map(uint32_t addr, uint32_t size, const char *what) {
+    extern char __global_base;
+    if (addr == 0x70000000u) {
+        return; /* the scratchpad: deliberately not in memory */
+    }
+    if ((uintptr_t)addr + size > (uintptr_t)&__global_base || (uintptr_t)addr + size > emscripten_get_heap_size()) {
+        fprintf(stderr, "bt3: %s at 0x%08X does not lie below the program (0x%08X)\n", what, addr,
+                (unsigned)(uintptr_t)&__global_base);
+        exit(2);
+    }
+}
+
+static void map_heap(void) {
+    map(HEAP_BASE, HEAP_END - HEAP_BASE, "the game heap");
+}
+
 #elif defined(__APPLE__)
 /* -------------------------------------------------------------------------------------------------------- macOS
    The same regions, in the window of the game's addresses (port_addr.h): each at W + its PS2 address. The program
@@ -390,6 +415,31 @@ static void Port_LoadGameData(void) {
     size_t listSize = 0, elfSize = 0, srcSize[2] = {0, 0};
     uint64_t hash = 0xCBF29CE484222325ull, want;
     uint32_t count, i, k;
+#ifdef __EMSCRIPTEN__
+    /* The browser build is always built from the blank tables; its list is compiled in (port/tools/wasm_data.py
+       writes the records of <program>.dat as C, the addresses filled in by the linker). It is turned into the
+       same bytes as the file, so everything below is the native code. */
+    typedef struct { void *addr; uint32_t source, offset, length; } PortDataRun;
+    extern const uint32_t gPortDataRunCount;
+    extern const uint64_t gPortDataChecksum;
+    extern const PortDataRun gPortDataRuns[];
+    (void)exe;
+    gPortDataStripped = 1;
+    snprintf(path, sizeof(path), "(the list compiled into the program)");
+    listSize = 16 + (size_t)gPortDataRunCount * 16;
+    list = malloc(listSize);
+    if (list == NULL) {
+        data_fail("out of memory", NULL);
+    }
+    memcpy(list, "BT3D", 4);
+    memcpy(list + 4, &gPortDataRunCount, 4);
+    memcpy(list + 8, &gPortDataChecksum, 8);
+    for (i = 0; i < gPortDataRunCount; i++) {
+        uint32_t r[4] = {(uint32_t)(uintptr_t)gPortDataRuns[i].addr, gPortDataRuns[i].source, gPortDataRuns[i].offset,
+                         gPortDataRuns[i].length};
+        memcpy(list + 16 + (size_t)i * 16, r, 16);
+    }
+#else
 #ifdef _WIN32
     long n = (long)GetModuleFileNameA(NULL, exe, sizeof(exe) - 1);
 #elif defined(__APPLE__)
@@ -442,6 +492,7 @@ static void Port_LoadGameData(void) {
         }
         return; /* no list: the data is linked in */
     }
+#endif
     if (listSize < 16 || memcmp(list, "BT3D", 4) != 0) {
         data_fail("damaged file", path);
     }
