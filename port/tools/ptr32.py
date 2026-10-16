@@ -14,9 +14,23 @@ is rewritten; text from the port's files and from system headers is left alone, 
 The parse is done with libclang on the unchanged text; the edits are applied by byte offset afterwards.
 All game memory has to lie below 4 GB for this to hold (see docs/port/README.md).
 """
-import bisect, ctypes, re, sys
+import bisect, ctypes, os, pathlib, re, sys
+
+# macOS (Apple Silicon): the pip bindings' own libclang 18 ignores `__ptr32` on arm64, so the game's structures would
+# be read with 8-byte pointers and their static assertions would fail. Homebrew's LLVM understands them; its own
+# python bindings match it (the pip ones are 18 and would not know every kind of a newer libclang), so both are
+# taken from there when they are installed (BT3_LLVM names another LLVM bin/ folder, as toolchain.py).
+_LLVM = pathlib.Path(os.environ.get("BT3_LLVM", "/opt/homebrew/opt/llvm/bin")).parent if sys.platform == "darwin" else None
+if _LLVM is not None:
+    _sp = _LLVM / "lib" / f"python{sys.version_info.major}.{sys.version_info.minor}" / "site-packages"
+    if (_sp / "clang" / "cindex.py").exists():
+        sys.path.insert(0, str(_sp))
+
 import clang.cindex as ci
 from clang.cindex import CursorKind as K, TokenKind, TypeKind
+
+if _LLVM is not None and (_LLVM / "lib" / "libclang.dylib").exists():
+    ci.Config.set_library_file(str(_LLVM / "lib" / "libclang.dylib"))
 
 _kind_from_id = K.from_id
 def _known_kind(kind_id):
