@@ -14,6 +14,7 @@
 #include <string.h>
 #include "plat_stages.h"
 #include "plat_songs.h"
+#include "plat_lang.h"
 
 #define SECTOR 2048
 enum { STAT_STOP = 1, STAT_READING = 2, STAT_READEND = 3, STAT_ERROR = 4 };
@@ -57,6 +58,13 @@ static const char *alias_target(const char *rel) {
     }
     if (PortSongs_Alias(rel, buf, sizeof(buf))) {
         return buf;
+    }
+    {
+        const char *lang = PortLang_Alias(rel);
+        if (lang != NULL) {
+            snprintf(buf, sizeof(buf), "%s", lang);
+            return buf;
+        }
     }
     if (list == NULL) {
         return NULL;

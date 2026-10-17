@@ -772,6 +772,12 @@ void McFlow_UpdateLoad(void) {
                 break;
             }
             *gSaveData = gMcFlow->saveBuf;
+#ifdef PORT
+            {
+                extern void PortLang_SyncSaveVoice(void);
+                PortLang_SyncSaveVoice(); /* F1 voice_lang overrides the card's voice bit */
+            }
+#endif
             SndOpt_Apply();
             Progress_ClearSession();
             MCF_GO(0x14);
@@ -1083,6 +1089,12 @@ void McFlow_UpdateBootLoad(void) {
                 break;
             }
             *gSaveData = gMcFlow->saveBuf;
+#ifdef PORT
+            {
+                extern void PortLang_SyncSaveVoice(void);
+                PortLang_SyncSaveVoice(); /* F1 voice_lang overrides the card's voice bit */
+            }
+#endif
             SndOpt_Apply();
             MCF_GO(0x14);
         }

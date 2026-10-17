@@ -221,12 +221,12 @@ void copy_out(Iso &iso, Uint64 offset, Uint64 size, const std::string &path, std
 }
 
 void step_disc(Iso &iso, const std::string &path) {
-    say("@step 1 3 Disc image");
+    say("@step 1 4 Disc image");
     iso.open(path);
     const IsoFile *slus = iso.find("SLUS_216.78"), *dbzp = iso.find("BIN/DBZP.BIN");
     if (slus == NULL || dbzp == NULL) {
         throw Stop{"This is not a disc image of the USA release of Budokai Tenkaichi 3 (no SLUS_216.78 on it).\n"
-                   "Other regions and the Wii version have different programs and are not supported."};
+                   "Pass the USA image first. A Europe disc (SLES-549.45) is optional for Italian menu text."};
     }
     say("@note checking");
     std::vector<Uint8> elf((size_t)slus->size), rom(kRomEnd - kRomBase, 0), menu((size_t)dbzp->size);
@@ -259,7 +259,7 @@ void step_disc(Iso &iso, const std::string &path) {
 void step_data(Iso &iso, const std::string &root) {
     std::string data = root + "gamedata/", marker = data + ".installed";
     SDL_PathInfo info;
-    say("@step 2 3 Game data");
+    say("@step 2 4 Game data");
     if (SDL_GetPathInfo(marker.c_str(), &info)) {
         say("@skip already unpacked");
         return;
@@ -332,10 +332,132 @@ void step_data(Iso &iso, const std::string &root) {
     say(line);
 }
 
+// Italian UI archives on the Europe disc: USA pzs3us1/N.bin <- EU pzs3eu1/(N+127).bin (see port/tools/map_eu_lang.py).
+/* 449 omitted: EU Italian archive is truncated vs USA (crashes Res_RelocateOffsets). */
+static const int kMenuUsa[] = {448, 450, 451, 452, 453, 459, 460, 461, 463, 472};
+enum { kEuItDelta = 127 };
+
+/* Writes Italian UI into both gamedata/lang/it/ (install path) and patcheu/ (drop-in pack beside the exe). */
+static void write_italian_pack(Iso &eu, const IsoFile *afs, const std::vector<Uint32> &table, Uint32 count,
+                               const std::string &outDir) {
+    std::string part = outDir + "pzs3us1/";
+    SDL_CreateDirectory(outDir.c_str());
+    SDL_CreateDirectory(part.c_str());
+    std::vector<Uint8> buf;
+    std::string manifest = "# usa_rel\teu_source\tbytes — Italian UI archives for the USA port\n";
+    int copied = 0;
+    for (int usaIdx : kMenuUsa) {
+        int euIdx = usaIdx + kEuItDelta;
+        char name[32], line[160];
+        if (euIdx < 0 || (Uint32)euIdx >= count) {
+            continue;
+        }
+        Uint32 off = table[(size_t)euIdx * 2], size = table[(size_t)euIdx * 2 + 1];
+        if ((Uint64)off + size > afs->size) {
+            throw Stop{"DATA/PZS3EU1.AFS on the Europe disc looks damaged."};
+        }
+        snprintf(name, sizeof(name), "%05d.bin", usaIdx);
+        buf.resize(size);
+        eu.read(afs->offset + off, buf.data(), size);
+        SDL_IOStream *out = SDL_IOFromFile((part + name).c_str(), "wb");
+        if (out == NULL || SDL_WriteIO(out, buf.data(), size) != size || !SDL_CloseIO(out)) {
+            if (out != NULL) {
+                SDL_CloseIO(out);
+            }
+            throw Stop{"Could not write the Italian overlay (" + outDir + ")."};
+        }
+        snprintf(line, sizeof(line), "pzs3us1/%s\teu_pzs3eu1/%05d.bin\t%u\n", name, euIdx, size);
+        manifest += line;
+        copied++;
+        check_cancel();
+    }
+    {
+        SDL_IOStream *m = SDL_IOFromFile((outDir + "manifest.txt").c_str(), "wb");
+        if (m != NULL) {
+            SDL_WriteIO(m, manifest.data(), manifest.size());
+            SDL_CloseIO(m);
+        }
+        char readyBody[80];
+        snprintf(readyBody, sizeof(readyBody), "lang=it\nfiles=%d\nsource=europe\n", copied);
+        m = SDL_IOFromFile((outDir + "READY").c_str(), "wb");
+        if (m != NULL) {
+            SDL_WriteIO(m, readyBody, strlen(readyBody));
+            SDL_CloseIO(m);
+        }
+        static const char *kReadme =
+            "Tenkaichi3Decomp patcheu — Italian menu/dialogue TEXT (no Italian voices).\n"
+            "Keep this folder next to Tenkaichi3Decomp.exe (beside gamedata/).\n"
+            "In game: F1, Impostazioni / Settings → testi menu e dialoghi → Italiano.\n";
+        m = SDL_IOFromFile((outDir + "README.txt").c_str(), "wb");
+        if (m != NULL) {
+            SDL_WriteIO(m, kReadme, strlen(kReadme));
+            SDL_CloseIO(m);
+        }
+        m = SDL_IOFromFile((outDir + "PATCHEU").c_str(), "wb");
+        if (m != NULL) {
+            const char *tag = "Tenkaichi3Decomp Italian UI pack (from Europe disc SLES-549.45)\n";
+            SDL_WriteIO(m, tag, strlen(tag));
+            SDL_CloseIO(m);
+        }
+    }
+    if (copied == 0) {
+        throw Stop{"No Italian UI archives could be read from the Europe disc."};
+    }
+}
+
+void step_italian(const std::string &root, const std::string &isoEu, bool wantItalian) {
+    std::string langDir = root + "gamedata/lang/it/", patchDir = root + "patcheu/";
+    std::string ready = patchDir + "READY";
+    SDL_PathInfo info;
+    say(wantItalian ? "@step 3 4 Italiano (EU)" : "@step 3 4 Italian (EU)");
+    if (SDL_GetPathInfo(ready.c_str(), &info) || SDL_GetPathInfo((langDir + "READY").c_str(), &info)) {
+        say("@skip already built");
+        if (wantItalian) {
+            Native_SetGameLang(root, 2);
+            say("@note game_lang=2 (Italian text; voices stay En/Ja)");
+        }
+        return;
+    }
+    if (isoEu.empty() || !SDL_GetPathInfo(isoEu.c_str(), &info) || info.type != SDL_PATHTYPE_FILE) {
+        if (wantItalian) {
+            throw Stop{"Hai scelto l'italiano: serve l'ISO Europe (SLES-549.45).\n"
+                       "Italian text was selected: add the Europe disc image (SLES-549.45)."};
+        }
+        say("@skip no Europe disc (optional)");
+        return;
+    }
+    say("@note " + isoEu);
+    Iso eu;
+    eu.open(isoEu);
+    const IsoFile *boot = eu.find("SLES_549.45"), *afs = eu.find("DATA/PZS3EU1.AFS");
+    if (boot == NULL || afs == NULL) {
+        throw Stop{"The optional Europe image has no SLES_549.45 / DATA/PZS3EU1.AFS.\n"
+                   "Use the Europe / Australia disc (En,Ja,Fr,De,Es,It), or leave the Europe field empty."};
+    }
+    Uint8 head[8];
+    Uint32 count = 0;
+    eu.read(afs->offset, head, 8);
+    memcpy(&count, head + 4, 4);
+    if (memcmp(head, "AFS\0", 4) != 0 || (Uint64)count * 8 + 8 > afs->size) {
+        throw Stop{"DATA/PZS3EU1.AFS on the Europe disc looks damaged."};
+    }
+    std::vector<Uint32> table((size_t)count * 2);
+    eu.read(afs->offset + 8, table.data(), table.size() * 4);
+    SDL_CreateDirectory((root + "gamedata").c_str());
+    SDL_CreateDirectory((root + "gamedata/lang").c_str());
+    write_italian_pack(eu, afs, table, count, patchDir);
+    write_italian_pack(eu, afs, table, count, langDir);
+    if (wantItalian) {
+        Native_SetGameLang(root, 2);
+        say("@note game_lang=2 (Italian text; no Italian voices on this game)");
+    }
+    say("@ok patcheu/ + gamedata/lang/it/");
+}
+
 void step_test(const std::string &root) {
     std::string exe = root + kGame, saves = root + "gamedata/.selftest";
     const char *args[2] = {exe.c_str(), NULL};
-    say("@step 3 3 Self-test");
+    say("@step 4 4 Self-test");
     say("@note the game's demo fight, no window");
     SDL_Environment *env = SDL_CreateEnvironment(true);
     SDL_SetEnvironmentVariable(env, "BT3_DEMO", "1", true);
@@ -400,12 +522,14 @@ void step_test(const std::string &root) {
     say("@ok the demo fight ran to its end");
 }
 
-void work(std::string root, std::string path) {
+void work(std::string root, std::string path, std::string pathEu, bool wantItalian) {
     try {
         Iso iso;
         step_disc(iso, path);
         check_cancel();
         step_data(iso, root);
+        check_cancel();
+        step_italian(root, pathEu, wantItalian);
         check_cancel();
         step_test(root);
         say("@done " + root + kGame);
@@ -422,13 +546,50 @@ void work(std::string root, std::string path) {
 
 } // namespace
 
+void Native_SetGameLang(const std::string &root, int lang) {
+    std::string path = root + "bt3_settings.txt";
+    std::string text;
+    size_t n = 0;
+    char *raw = (char *)SDL_LoadFile(path.c_str(), &n);
+    if (raw != NULL) {
+        text.assign(raw, n);
+        SDL_free(raw);
+    }
+    char line[32];
+    snprintf(line, sizeof(line), "game_lang=%d", lang);
+    size_t pos = text.find("game_lang=");
+    if (pos != std::string::npos) {
+        size_t end = text.find('\n', pos);
+        if (end == std::string::npos) {
+            text.replace(pos, text.size() - pos, line);
+        } else {
+            text.replace(pos, end - pos, line);
+        }
+    } else {
+        if (!text.empty() && text.back() != '\n') {
+            text += '\n';
+        }
+        text += line;
+        text += '\n';
+    }
+    SDL_IOStream *out = SDL_IOFromFile(path.c_str(), "wb");
+    if (out != NULL) {
+        SDL_WriteIO(out, text.data(), text.size());
+        SDL_CloseIO(out);
+    }
+}
+
 void Native_Start(const std::string &root, const std::string &iso) {
+    Native_StartEu(root, iso, "", false);
+}
+
+void Native_StartEu(const std::string &root, const std::string &iso, const std::string &isoEu, bool wantItalian) {
     if (sThread.joinable()) {
         sThread.join();
     }
     sCancel = false;
     sRunning = true;
-    sThread = std::thread(work, root, iso);
+    sThread = std::thread(work, root, iso, isoEu, wantItalian);
 }
 
 bool Native_Poll(std::string &line) {

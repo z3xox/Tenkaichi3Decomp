@@ -167,6 +167,13 @@ s32 Option_Init(s32 section) {
             gOption->key[i][7] = 7;
         }
     } while (0);
+#ifdef PORT
+    {
+        /* F1 voice_lang wins over whatever the save last stored. */
+        extern void PortLang_SyncSaveVoice(void);
+        PortLang_SyncSaveVoice();
+    }
+#endif
     return 1;
 }
 
@@ -1165,6 +1172,13 @@ s32 Option_Input(void) {
                 } else {
                     gSaveData->flags |= SAVE_FLAG_VOICE;
                 }
+#ifdef PORT
+                {
+                    /* Keep F1 Audio "Voice language" on the same En/Ja choice. */
+                    extern void PortLang_SetVoice(int voice);
+                    PortLang_SetVoice(gOption->value != 0 ? 1 : 0); /* 1=JA, 0=EN */
+                }
+#endif
             }
         } else if (gPad[0].gamePressed & PADG_TRIANGLE) {
             Snd_PlaySe(1, 2);
@@ -2119,6 +2133,12 @@ void Option_UpdateReset(void) {
                 gSaveData->bgmVolume = 9;
                 gSaveData->seVolume = 9;
                 gSaveData->flags |= SAVE_FLAG_VOICE;
+#ifdef PORT
+                {
+                    extern void PortLang_SetVoice(int voice);
+                    PortLang_SetVoice(0); /* English — same as SAVE_FLAG_VOICE set */
+                }
+#endif
                 SndOpt_Apply();
             } else if (gOption->state == YOPT_CTRL_RESET) {
                 if (gSaveData->flags & 8) {

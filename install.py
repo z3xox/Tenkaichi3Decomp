@@ -8,13 +8,18 @@
 The repository contains no game data. Everything the game needs (models, sounds, text, and the data tables of the
 executable itself) is taken from your disc image of the USA release (SLUS-21678) and stays on your machine.
 
+An optional Europe disc (SLES-549.45) can be given with --iso-eu: Italian menu/UI text is copied into
+gamedata/lang/it/ for the in-game language option (F1, Audio). Battle voices on that disc are still English /
+Japanese only.
+
 Steps (each is skipped when its result is already there; --force redoes them):
   1. requirements       compilers and tools, with what to install when one is missing
   2. disc image         found, read, and checked against the known checksum of the release
   3. game data          unpacked into gamedata/ as loose files
-  4. executable data    the data tables of the game's two programs, split out for the build
-  5. build              the port itself (64-bit; --32 for the 32-bit build)
-  6. self-test          the game's own demo fight, run without a window
+  4. Italian (EU)       optional: Italian UI archives from a Europe disc into gamedata/lang/it/
+  5. executable data    the data tables of the game's two programs, split out for the build
+  6. build              the port itself (64-bit; --32 for the 32-bit build)
+  7. self-test          the game's own demo fight, run without a window
 (The list of menu labels of the "Menu font" setting was a step here. The game makes it itself now, the first time
 it starts with a window: port/src/gs/menu_labels.c, docs/port/menu_font.md.)
 Everything the tools print goes to install.log.
@@ -66,8 +71,8 @@ def run(cmd, env=None, cwd=ROOT):
 
 
 class Step:
-    """One line of the wizard: `[3/6] Game data ... done (41 s)` with a running clock while it works."""
-    count, total = 0, 6
+    """One line of the wizard: `[3/7] Game data ... done (41 s)` with a running clock while it works."""
+    count, total = 0, 7
 
     def __init__(self, title):
         Step.count += 1
@@ -197,6 +202,12 @@ def step_requirements(args):
 
 # ---------------------------------------------------------------------------------------------- 2. the disc image
 
+def iso_listing(iso):
+    bsdtar = MAC and shutil.which("7z") is None and shutil.which("bsdtar") is not None
+    code, listing = run(["bsdtar", "-tf", iso] if bsdtar else ["7z", "l", iso])
+    return code, listing
+
+
 def find_iso(args):
     if args.iso:
         p = pathlib.Path(args.iso).expanduser()
@@ -204,14 +215,23 @@ def find_iso(args):
             raise Failed(f"No such file: {p}")
         return p
     here = sorted(ROOT.glob("*.iso")) + sorted(ROOT.parent.glob("*.iso"))
-    if len(here) == 1:
-        return here[0]
+    usa = []
+    for p in here:
+        code, listing = iso_listing(p)
+        if code == 0 and "SLUS_216.78" in listing:
+            usa.append(p)
+    if len(usa) == 1:
+        return usa[0]
+    if len(here) == 1 and not usa:
+        raise Failed(f"{here[0].name} is not the USA release (need SLUS_216.78).\n"
+                     "    Put the USA disc image here, or pass --iso <USA.iso>. "
+                     "A Europe disc alone is not enough; use --iso-eu with it after the USA image is installed.")
     if not sys.stdin.isatty():
-        raise Failed("Give the disc image with --iso <file>.")
+        raise Failed("Give the USA disc image with --iso <file> (SLUS-21678).")
     print(f"\n    The port needs your own disc image of {BOLD('Dragon Ball Z: Budokai Tenkaichi 3')} (USA, SLUS-21678), as an .iso file.")
     while True:
         try:
-            line = input("    Path to the disc image (you can drag the file here): ").strip().strip("'\"")
+            line = input("    Path to the USA disc image (you can drag the file here): ").strip().strip("'\"")
         except EOFError:
             raise Failed("No disc image given.")
         p = pathlib.Path(line).expanduser()
@@ -219,6 +239,20 @@ def find_iso(args):
             print()
             return p
         print(f"    {BAD('not a file:')} {line or '(nothing)'}")
+
+
+def find_iso_eu(args):
+    """Optional Europe disc for Italian UI text. None when the user did not give one."""
+    if args.iso_eu:
+        p = pathlib.Path(args.iso_eu).expanduser()
+        if not p.is_file():
+            raise Failed(f"No such file: {p}")
+        return p
+    for p in sorted(ROOT.glob("*.iso")) + sorted(ROOT.parent.glob("*.iso")):
+        code, listing = iso_listing(p)
+        if code == 0 and "SLES_549.45" in listing:
+            return p
+    return None
 
 
 def flat_image(elf):
@@ -249,10 +283,10 @@ def step_disc(args):
     iso = find_iso(args)
     s = Step("Disc image")
     bsdtar = MAC and shutil.which("7z") is None and shutil.which("bsdtar") is not None  # (macOS only: the system's own reader)
-    code, listing = run(["bsdtar", "-tf", iso] if bsdtar else ["7z", "l", iso])
+    code, listing = iso_listing(iso)
     if code != 0 or "SLUS_216.78" not in listing:
         s.fail(f"{iso.name} is not a disc image of the USA release (no SLUS_216.78 on it).\n"
-               "    Other regions and the Wii version have different programs and are not supported.")
+               "    Pass the USA image with --iso. A Europe disc (SLES-549.45) is optional via --iso-eu for Italian text.")
     if bsdtar:
         disc.mkdir(exist_ok=True)  # (7z makes its output folder itself)
     code, _ = run(["bsdtar", "-xf", iso, "-C", disc, "SLUS_216.78", "BIN"] if bsdtar else ["7z", "x", "-y", f"-o{disc}", iso, "SLUS_216.78", "BIN"])
@@ -284,7 +318,36 @@ def step_gamedata(args, iso):
     s.ok(f"{files:,} files in gamedata/")
 
 
-# -------------------------------------------------------------------------------------------- 4. executable data
+# ---------------------------------------------------------------------------------------- 4. Italian from Europe
+
+def step_eu_italian(args):
+    """Optional: Italian UI archives from a Europe disc into gamedata/lang/it/."""
+    ready = ROOT / "gamedata" / "lang" / "it" / "READY"
+    if not args.force and ready.is_file():
+        Step("Italian (EU)").skip("already built")
+        return
+    eu = find_iso_eu(args)
+    if eu is None:
+        Step("Italian (EU)").skip("no Europe disc (optional: --iso-eu)")
+        return
+    s = Step("Italian (EU)")
+    s.note = eu.name
+    code, listing = iso_listing(eu)
+    if code != 0 or "SLES_549.45" not in listing:
+        s.fail(f"{eu.name} is not a Europe disc image (no SLES_549.45 on it).")
+    code, _ = run([sys.executable, ROOT / "port/tools/make_patcheu.py",
+                   "--eu-iso", eu, "--usa-data", ROOT / "gamedata", "--out", ROOT / "patcheu"])
+    if code != 0 or not (ROOT / "patcheu" / "READY").is_file():
+        s.fail("Building patcheu failed (see install.log).")
+    # Keep the install-time path too (same files under gamedata/lang/it/).
+    code, _ = run([sys.executable, ROOT / "port/tools/map_eu_lang.py",
+                   "--eu-iso", eu, "--usa-data", ROOT / "gamedata", "--out", ROOT / "gamedata" / "lang" / "it"])
+    if code != 0 or not ready.is_file():
+        s.fail("Building the Italian overlay failed (see install.log).")
+    s.ok("patcheu/ + Italian UI from the Europe disc")
+
+
+# -------------------------------------------------------------------------------------------- 5. executable data
 
 def venv_python():
     return VENV / "bin" / "python"
@@ -394,6 +457,7 @@ def write_launcher(exe, bits32):
 def main():
     ap = argparse.ArgumentParser(description="Setup wizard of the Budokai Tenkaichi 3 PC port.", epilog="Run without arguments to be asked for the disc image.")
     ap.add_argument("--iso", help="your disc image of the USA release (SLUS-21678)")
+    ap.add_argument("--iso-eu", help="optional Europe disc (SLES-549.45) for Italian menu/UI text")
     ap.add_argument("--32", dest="bits32", action="store_true", help="make the 32-bit build instead of the 64-bit one")
     ap.add_argument("--check", action="store_true", help="only check the requirements")
     ap.add_argument("--rebuild", action="store_true", help="build again even if the program is there")
@@ -420,6 +484,7 @@ def main():
             return 0
         iso = step_disc(args)
         step_gamedata(args, iso)
+        step_eu_italian(args)
         step_split(args)
         exe = step_build(args)
         step_test(args, exe)
@@ -440,6 +505,8 @@ def main():
     print(f"\n  {OK('Ready.')}" + (DIM(f"  ({mins:.0f} min)") if mins >= 1 else ""))
     print(f"\n    Play:      {BOLD('./' + play.name)}")
     print("    Settings:  F1 in the game (resolution, widescreen, controls, sound)")
+    if (ROOT / "gamedata" / "lang" / "it" / "READY").is_file():
+        print("    Language:  F1 → Menu & dialogue text → Italian (from your Europe disc)")
     print("    Saves:     saves/      Mods: gamedata/mods/<same path as the original file>\n")
     return 0
 

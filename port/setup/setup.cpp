@@ -31,11 +31,13 @@ struct Missing { std::string name, why, pkg; };
 
 // The steps of the two ways to install: from a source checkout (install.py does the work and needs build tools) and
 // in a release folder (Tenkaichi3Decomp and Tenkaichi3Decomp.dat next to this program: native.cpp unpacks the disc itself).
-static const char *kSourceSteps[] = {"Requirements", "Disc image", "Game data", "Executable data", "Build", "Self-test"};
-static const char *kReleaseSteps[] = {"Disc image", "Game data", "Self-test"};
+static const char *kSourceSteps[] = {"Requirements", "Disc image", "Game data", "Italian (EU)", "Executable data", "Build", "Self-test"};
+static const char *kReleaseSteps[] = {"Disc image", "Game data", "Italian (EU)", "Self-test"};
 static const struct { const char *title, *help; } kHelp[] = {
-    {"Requirements", "Compilers and tools on this computer"}, {"Disc image", "Your disc image is read and checked"},
-    {"Game data", "Models, sounds and text are unpacked"}, {"Executable data", "The data tables of the game's programs"},
+    {"Requirements", "Compilers and tools on this computer"}, {"Disc image", "Your USA disc image is read and checked"},
+    {"Game data", "Models, sounds and text are unpacked"},
+    {"Italian (EU)", "Optional: Italian menu text from a Europe disc"},
+    {"Executable data", "The data tables of the game's programs"},
     {"Build", "The port is compiled (a few minutes)"}, {"Self-test", "The game's demo fight, without a window"}};
 static bool sRelease;
 
@@ -57,6 +59,12 @@ static SDL_GLContext sGl;
 static bool sUseGl;
 static Page sPage = PAGE_PICK;
 static char sIso[1024];
+static char sIsoEu[1024]; /* Europe disc for Italian text when sWantItalian */
+static bool sWantItalian; /* setup switch: Italian menu/dialogue text (no Italian voices) */
+static int sBrowseTarget; /* 0 = USA field, 1 = Europe field */
+
+/* Setup UI copy: follows the Italian install switch (not the in-game F1 language). */
+static const char *T(const char *en, const char *it) { return sWantItalian ? it : en; }
 static std::string sRoot, sError, sLauncher, sLine;
 static std::vector<StepRow> sRows;
 static std::vector<Missing> sMissing;
@@ -123,8 +131,8 @@ static void reset_rows() {
 }
 
 static void start_install() {
-    static std::string iso;
-    const char *args[8];
+    static std::string iso, isoEu;
+    const char *args[12];
     SDL_PropertiesID props = SDL_CreateProperties();
     std::string script = sRoot + "install.py";
     int n = 0;
@@ -137,16 +145,21 @@ static void start_install() {
         sLauncher.clear();
         sRunStart = SDL_GetTicks();
         sNative = true;
-        Native_Start(sRoot, sIso);
+        Native_StartEu(sRoot, sIso, sIsoEu, sWantItalian);
         sPage = PAGE_RUN;
         return;
     }
     iso = sIso;
+    isoEu = sIsoEu;
     args[n++] = "python3";
     args[n++] = script.c_str();
     args[n++] = "--machine";
     args[n++] = "--iso";
     args[n++] = iso.c_str();
+    if (isoEu[0] != '\0' && file_exists(isoEu.c_str())) {
+        args[n++] = "--iso-eu";
+        args[n++] = isoEu.c_str();
+    }
     if (getenv("BT3_SETUP_ARGS") != NULL) { // one extra argument for testing, such as --skip-test
         args[n++] = getenv("BT3_SETUP_ARGS");
     }
@@ -256,10 +269,13 @@ static void pump_install() {
                 }
             }
             if (!sLauncher.empty()) {
+                if (sWantItalian) {
+                    Native_SetGameLang(sRoot, 2);
+                }
                 sPage = PAGE_DONE;
             } else {
                 if (sError.empty()) {
-                    sError = "The setup stopped unexpectedly.";
+                    sError = T("The setup stopped unexpectedly.", "L'installazione si è interrotta in modo imprevisto.");
                 }
                 sPage = PAGE_FAILED;
             }
@@ -296,10 +312,14 @@ static void pump_install() {
             }
         }
         if (code == 0 && !sLauncher.empty()) {
+            if (sWantItalian) {
+                Native_SetGameLang(sRoot, 2);
+            }
             sPage = PAGE_DONE;
         } else {
             if (sError.empty()) {
-                sError = "The setup script stopped unexpectedly. The details are in install.log.";
+                sError = T("The setup script stopped unexpectedly. The details are in install.log.",
+                           "Lo script di installazione si è interrotto. Dettagli in install.log.");
             }
             sPage = PAGE_FAILED;
         }
@@ -353,32 +373,68 @@ static void bottom_row(int buttons) {
 static void page_pick() {
     static const SDL_DialogFileFilter filters[] = {{"PS2 disc image", "iso;bin;img"}, {"All files", "*"}};
     bool ok = file_exists(sIso);
+    bool euOk = sWantItalian ? file_exists(sIsoEu) : (sIsoEu[0] == '\0' || file_exists(sIsoEu));
 
-    heading(GAME, "This sets the game up on your computer from your own PlayStation 2 disc.");
-    ImGui::TextWrapped("Choose your disc image of Dragon Ball Z: Budokai Tenkaichi 3, USA release (SLUS-21678), as an .iso file. "
-                       "The game's data is taken from it and stays on this computer. %s",
-                       sRelease ? "Nothing is downloaded." : "Nothing is downloaded except one small tool.");
-    ImGui::Dummy(ImVec2(0.0f, 10.0f));
-    ImGui::TextUnformatted("Disc image");
+    heading(GAME, T("This sets the game up on your computer from your own PlayStation 2 disc.",
+                     "Installa il gioco sul PC usando i tuoi dischi PlayStation 2."));
+    ImGui::TextWrapped(
+        "%s",
+        T("Choose the USA disc image of Dragon Ball Z: Budokai Tenkaichi 3 (SLUS-21678). "
+          "Italian is menu and dialogue text only — this game has no Italian voice acting. "
+          "Data stays on this computer.",
+          "Scegli l'ISO USA di Dragon Ball Z: Budokai Tenkaichi 3 (SLUS-21678). "
+          "L'italiano riguarda solo testi di menu e dialoghi: non esiste il doppiaggio italiano. "
+          "I dati restano su questo computer."));
+    ImGui::Dummy(ImVec2(0.0f, 8.0f));
+    if (ImGui::Checkbox(T("Italian text (menus & dialogues)", "Testi in italiano (menu e dialoghi)"), &sWantItalian)) {
+        /* setup UI language follows the switch immediately */
+    }
+    ImGui::SetItemTooltip("%s",
+                          T("Uses the Europe disc (SLES-549.45) for on-screen text. Voices stay English or Japanese.\n"
+                            "After install: F1 settings open in Italian; you can switch language anytime.",
+                            "Usa il disco Europe (SLES-549.45) per i testi a schermo. Le voci restano inglese o giapponese.\n"
+                            "Dopo l'installazione: F1 apre le impostazioni in italiano; puoi cambiare lingua quando vuoi."));
+    ImGui::Dummy(ImVec2(0.0f, 8.0f));
+    ImGui::TextUnformatted(T("USA disc image (required)", "ISO USA (obbligatoria)"));
     ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 130.0f);
-    ImGui::InputTextWithHint("##iso", "drop the file on this window, or browse", sIso, sizeof(sIso));
+    ImGui::InputTextWithHint("##iso", T("drop the file here, or browse", "trascina il file qui, oppure Sfoglia"), sIso, sizeof(sIso));
     ImGui::SameLine();
-    if (ImGui::Button("Browse...", ImVec2(120.0f, 0.0f))) {
+    if (ImGui::Button(T("Browse...##usa", "Sfoglia...##usa"), ImVec2(120.0f, 0.0f))) {
+        sBrowseTarget = 0;
+        SDL_ShowOpenFileDialog(dialog_done, NULL, sWindow, filters, 2, NULL, false);
+    }
+    ImGui::Dummy(ImVec2(0.0f, 6.0f));
+    ImGui::TextUnformatted(sWantItalian ? T("Europe disc image (required for Italian text)", "ISO Europe (obbligatoria per l'italiano)")
+                                         : T("Europe disc image (optional)", "ISO Europe (opzionale)"));
+    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 130.0f);
+    ImGui::InputTextWithHint("##iso_eu",
+                             sWantItalian ? "SLES-549.45" : T("SLES-549.45 — leave empty to skip", "SLES-549.45 — vuoto per saltare"),
+                             sIsoEu, sizeof(sIsoEu));
+    ImGui::SameLine();
+    if (ImGui::Button(T("Browse...##eu", "Sfoglia...##eu"), ImVec2(120.0f, 0.0f))) {
+        sBrowseTarget = 1;
         SDL_ShowOpenFileDialog(dialog_done, NULL, sWindow, filters, 2, NULL, false);
     }
     if (sIso[0] != '\0' && !ok) {
-        ImGui::TextColored(kRed, "That file does not exist.");
+        ImGui::TextColored(kRed, "%s", T("That USA disc file does not exist.", "File ISO USA non trovato."));
+    } else if (sWantItalian && sIsoEu[0] == '\0') {
+        ImGui::TextColored(kRed, "%s", T("Italian text needs the Europe disc image.", "Per l'italiano serve l'ISO Europe."));
+    } else if (sIsoEu[0] != '\0' && !file_exists(sIsoEu)) {
+        ImGui::TextColored(kRed, "%s", T("That Europe disc file does not exist.", "File ISO Europe non trovato."));
     } else if (sRoot.empty()) {
-        ImGui::TextColored(kRed, "Neither the game (" GAME ", " GAME ".dat) nor install.py was found next to this program.");
+        ImGui::TextColored(kRed, "%s", T("Neither the game (" GAME ", " GAME ".dat) nor install.py was found next to this program.",
+                                         "Non trovo " GAME " / " GAME ".dat né install.py accanto a questo programma."));
     } else {
-        ImGui::TextColored(kDim, sRelease ? "Needs about 4 GB of free space and takes a minute or two." : "Needs about 4 GB of free space and takes 5 to 10 minutes.");
+        ImGui::TextColored(kDim, "%s",
+                           sRelease ? T("Needs about 4 GB free; about one or two minutes.", "Servono circa 4 GB liberi; 1–2 minuti.")
+                                    : T("Needs about 4 GB free; about 5 to 10 minutes.", "Servono circa 4 GB liberi; 5–10 minuti."));
     }
     bottom_row(2);
-    if (big_button("Close", false)) {
+    if (big_button(T("Close", "Chiudi"), false)) {
         sQuit = true;
     }
     ImGui::SameLine();
-    if (big_button("Install", true, ok && !sRoot.empty())) {
+    if (big_button(T("Install", "Installa"), true, ok && euOk && !sRoot.empty())) {
         start_install();
     }
 }
@@ -436,7 +492,9 @@ static void step_list() {
 
 static void page_run() {
     int done = 0;
-    heading("Setting up", "You can leave this running. Finished steps are kept if it is interrupted.");
+    heading(T("Setting up", "Installazione in corso"),
+            T("You can leave this running. Finished steps are kept if it is interrupted.",
+              "Puoi lasciare la finestra aperta. I passi completati restano se si interrompe."));
     step_list();
     for (auto &r : sRows) {
         done += r.state == OK || r.state == SKIPPED;
@@ -444,33 +502,39 @@ static void page_run() {
     ImGui::Dummy(ImVec2(0.0f, 4.0f));
     ImGui::ProgressBar((float)done / (float)(sRows.empty() ? 1 : sRows.size()), ImVec2(-FLT_MIN, 8.0f), "");
     bottom_row(1);
-    if (big_button("Cancel", false)) {
+    if (big_button(T("Cancel", "Annulla"), false)) {
         if (sProc != NULL) {
             SDL_KillProcess(sProc, false);
         }
         Native_Cancel();
-        sError = "Cancelled. Finished steps are kept; Install continues from where it stopped.";
+        sError = T("Cancelled. Finished steps are kept; Install continues from where it stopped.",
+                   "Annullato. I passi finiti restano; Installa riprende da dove si era fermato.");
     }
 }
 
 static void page_done() {
     char sub[128];
     if (sRunEnd > sRunStart) {
-        snprintf(sub, sizeof(sub), "The game is installed and its demo fight ran correctly.  (%d min %d s)", (int)((sRunEnd - sRunStart) / 60000),
-                 (int)((sRunEnd - sRunStart) / 1000 % 60));
+        snprintf(sub, sizeof(sub),
+                 sWantItalian ? "Gioco installato; il combattimento demo è andato a buon fine.  (%d min %d s)"
+                              : "The game is installed and its demo fight ran correctly.  (%d min %d s)",
+                 (int)((sRunEnd - sRunStart) / 60000), (int)((sRunEnd - sRunStart) / 1000 % 60));
     } else {
-        snprintf(sub, sizeof(sub), "The game is installed.");
+        snprintf(sub, sizeof(sub), "%s", T("The game is installed.", "Il gioco è installato."));
     }
-    heading("Ready to play", sub);
+    heading(T("Ready to play", "Pronto per giocare"), sub);
     step_list();
     ImGui::Dummy(ImVec2(0.0f, 4.0f));
-    ImGui::TextColored(kDim, "In the game, F1 opens the settings: resolution, widescreen, controls and sound.");
+    ImGui::TextColored(kDim, "%s",
+                       sWantItalian
+                           ? "In gioco, F1 apre le Impostazioni in italiano (testi). Puoi cambiare lingua da lì. Le voci restano En/Ja."
+                           : "In the game, F1 opens the settings: resolution, widescreen, controls and sound.");
     bottom_row(2);
-    if (big_button("Close", false)) {
+    if (big_button(T("Close", "Chiudi"), false)) {
         sQuit = true;
     }
     ImGui::SameLine();
-    if (big_button("Play", true)) {
+    if (big_button(T("Play", "Gioca"), true)) {
         const char *args[2] = {sLauncher.c_str(), NULL};
         SDL_PropertiesID props = SDL_CreateProperties();
         SDL_Environment *env = SDL_CreateEnvironment(true);
@@ -492,16 +556,18 @@ static void page_done() {
 }
 
 static void page_failed() {
-    heading("Setup stopped", "Nothing is broken: finished steps are kept, and Install continues from where it stopped.");
+    heading(T("Setup stopped", "Installazione interrotta"),
+            T("Nothing is broken: finished steps are kept, and Install continues from where it stopped.",
+              "Non è rotto nulla: i passi finiti restano e Installa riprende da dove si era fermato."));
     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.93f, 0.36f, 0.33f, 0.10f));
     ImGui::BeginChild("why", ImVec2(0.0f, sMissing.empty() ? 150.0f : 90.0f), ImGuiChildFlags_AlwaysUseWindowPadding);
     ImGui::TextWrapped("%s", sError.c_str());
     ImGui::EndChild();
     ImGui::PopStyleColor();
     if (!sMissing.empty() && ImGui::BeginTable("missing", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV)) {
-        ImGui::TableSetupColumn("Missing");
-        ImGui::TableSetupColumn("Used for");
-        ImGui::TableSetupColumn("Package to install");
+        ImGui::TableSetupColumn(T("Missing", "Manca"));
+        ImGui::TableSetupColumn(T("Used for", "Serve per"));
+        ImGui::TableSetupColumn(T("Package to install", "Pacchetto"));
         ImGui::TableHeadersRow();
         for (auto &m : sMissing) {
             ImGui::TableNextRow();
@@ -512,15 +578,15 @@ static void page_failed() {
         ImGui::EndTable();
     }
     bottom_row(3);
-    if (big_button("Open the log", false)) {
+    if (big_button(T("Open the log", "Apri il log"), false)) {
         SDL_OpenURL(("file://" + sRoot + "install.log").c_str());
     }
     ImGui::SameLine();
-    if (big_button("Close", false)) {
+    if (big_button(T("Close", "Chiudi"), false)) {
         sQuit = true;
     }
     ImGui::SameLine();
-    if (big_button("Back", true)) {
+    if (big_button(T("Back", "Indietro"), true)) {
         sPage = PAGE_PICK;
     }
 }
@@ -660,16 +726,17 @@ int main(int argc, char **argv) {
     }
 #endif
     if (argc > 2 && strcmp(argv[1], "--install") == 0) {
-        // Without a window: Tenkaichi3Decomp-setup --install <disc.iso>. A release folder only; prints the event lines.
+        // Without a window: Tenkaichi3Decomp-setup --install <usa.iso> [europe.iso]. Release folder only.
         std::string line;
         bool ok = false;
         SDL_Init(0);
         sRoot = find_root();
         if (!sRelease) {
-            fprintf(stderr, GAME "-setup --install works in a release folder (" GAME " and " GAME ".dat next to it).\nIn a source checkout: python3 install.py --iso <file>\n");
+            fprintf(stderr, GAME "-setup --install works in a release folder (" GAME " and " GAME ".dat next to it).\n"
+                            "In a source checkout: python3 install.py --iso <USA.iso> [--iso-eu <Europe.iso>]\n");
             return 2;
         }
-        Native_Start(sRoot, argv[2]);
+        Native_StartEu(sRoot, argv[2], argc > 3 ? argv[3] : "");
         for (bool last = false; !last;) {
             last = !Native_Running(); // one more round after the worker has ended: nothing is left behind
             while (Native_Poll(line)) {
@@ -774,6 +841,9 @@ int main(int argc, char **argv) {
     if (argc > 1) {
         SDL_strlcpy(sIso, argv[1], sizeof(sIso));
     }
+    if (getenv("BT3_SETUP_ISO_EU") != NULL) {
+        SDL_strlcpy(sIsoEu, getenv("BT3_SETUP_ISO_EU"), sizeof(sIsoEu));
+    }
     if (getenv("BT3_SETUP_ISO") != NULL) {
         SDL_strlcpy(sIso, getenv("BT3_SETUP_ISO"), sizeof(sIso));
         if (!sRoot.empty() && file_exists(sIso)) {
@@ -787,13 +857,22 @@ int main(int argc, char **argv) {
             if (ev.type == SDL_EVENT_QUIT || ev.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED) {
                 sQuit = true;
             } else if (ev.type == SDL_EVENT_DROP_FILE && sPage == PAGE_PICK && ev.drop.data != NULL) {
-                SDL_strlcpy(sIso, ev.drop.data, sizeof(sIso));
+                /* First drop fills USA if empty; otherwise Europe. */
+                if (sIso[0] == '\0') {
+                    SDL_strlcpy(sIso, ev.drop.data, sizeof(sIso));
+                } else {
+                    SDL_strlcpy(sIsoEu, ev.drop.data, sizeof(sIsoEu));
+                }
             }
         }
         {
             std::lock_guard<std::mutex> lock(sDialogLock);
             if (sDialogReady) {
-                SDL_strlcpy(sIso, sDialogResult.c_str(), sizeof(sIso));
+                if (sBrowseTarget == 1) {
+                    SDL_strlcpy(sIsoEu, sDialogResult.c_str(), sizeof(sIsoEu));
+                } else {
+                    SDL_strlcpy(sIso, sDialogResult.c_str(), sizeof(sIso));
+                }
                 sDialogReady = false;
             }
         }

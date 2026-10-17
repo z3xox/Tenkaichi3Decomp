@@ -610,6 +610,10 @@ __attribute__((constructor)) static void Port_MapMemory(void) {
 #endif
     gPortStage = "reading the game's programs from gamedata";
     Port_LoadGameData();
+    {
+        extern void PortLang_Init(void); /* plat_lang.c: Italian overlay from a Europe disc, if present */
+        PortLang_Init();
+    }
     gPortStage = "reserving the game's memory";
 #if defined(__APPLE__)
     map(STACK_BASE, STACK_SIZE, "the game thread's stack");

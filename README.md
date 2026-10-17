@@ -44,6 +44,9 @@ game's data from it, and it stays on your computer.
   Cross, Circle to leave, L1 / R1 for the tabs). Controls has a row to choose another key or button. **Esc** asks
   before it closes the game, and the window has an "Exit game" button. Its Cheats tab has "Unlock everything" (a debug function the game's
   developers left in: all characters, stages, music, items and Zenni).
+- **Italian menus and dialogues** (optional): if you also have the Europe disc (SLES-549.45), the setup can pull its
+  Italian text archives and leave a `patcheu` folder next to the game. F1 then has "Menu & dialogue text" (English /
+  Italian). The same Europe layout has French, German and Spanish text packs; only Italian is wired in the UI for now.
 
 - **Online play, experimental** (from release 0.1.8): the main menu's hidden "Dragon Net Battle"
   entry is back and opens a small window. One player hosts and gets a six-character room code, the other joins
@@ -86,8 +89,16 @@ See [docs/port/README.md](docs/port/README.md) for the running log of what is do
 
 ## Installing a release
 
-Unpack the release, start `Tenkaichi3Decomp-setup` (`Tenkaichi3Decomp-setup.exe` on Windows), choose your disc image, press Play. The
-setup checks that the image is the unmodified USA release and unpacks the game's data next to the program.
+Unpack the release, start `Tenkaichi3Decomp-setup` (`Tenkaichi3Decomp-setup.exe` on Windows), choose your USA disc
+image (SLUS-21678), press Play. The setup checks that the image is the unmodified USA release and unpacks the game's
+data next to the program.
+
+For Italian menus and story text, tick the Italian option in the same window and give the Europe disc
+(SLES-549.45) as well. That writes a `patcheu` folder beside the exe (and `gamedata/lang/it/` when installing from
+source). Afterwards, in the game: F1 → Menu & dialogue text → Italian. If you already installed from the USA disc
+alone, you can build only the text pack with `make_patcheu.bat` or
+`python3 port/tools/make_patcheu.py --eu-iso <Europe.iso>` and put the resulting `patcheu` next to
+`Tenkaichi3Decomp.exe`.
 
 On a machine without a working Vulkan the setup window and the game use OpenGL by themselves. To ask for OpenGL
 from the start (a Vulkan driver that starts but is incomplete, as on Intel Ivy Bridge), set `BT3_GPU_API=gl`:
@@ -97,12 +108,13 @@ window: `./Tenkaichi3Decomp-setup --install <disc image>`.
 ## Building from source
 
 ```
-python3 install.py --iso <your disc image>
+python3 install.py --iso <USA disc image> [--iso-eu <Europe disc image>]
 ```
 
 does everything on Linux: checks the tools, reads the disc, builds the 64-bit program and runs the game's demo
-fight as a test. `python3 install.py --check` lists what is missing. `port/setup/build.sh && ./Tenkaichi3Decomp-setup` is
-the same with a window.
+fight as a test. `--iso-eu` is optional and builds the Italian text overlay from the Europe disc.
+`python3 install.py --check` lists what is missing. `port/setup/build.sh && ./Tenkaichi3Decomp-setup` is the same
+with a window.
 
 ### macOS (experimental)
 

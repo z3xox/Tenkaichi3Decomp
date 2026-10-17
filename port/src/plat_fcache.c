@@ -28,8 +28,10 @@ static volatile int sLock;
 FILE *Port_FileOpenHost(const char *rel, char *path, size_t n) {
     extern int PortStages_Alias(const char *rel, char *out, unsigned n); /* plat_stages.c */
     extern int PortSongs_Alias(const char *rel, char *out, unsigned n);  /* plat_songs.c: the same for a song */
+    extern const char *PortLang_Alias(const char *rel);                  /* plat_lang.c: Italian UI from Europe disc */
     char target[256];
     FILE *fp = NULL;
+    const char *lang;
 
     /* a stage added from outside the disc: the game asks for a file id past the disc's own, and the file is
        the one the stage list names (plat_stages.c), under the data folder */
@@ -41,6 +43,10 @@ FILE *Port_FileOpenHost(const char *rel, char *path, size_t n) {
             fp = fopen(path, "rb");
         }
     }
+    if (fp == NULL && (lang = PortLang_Alias(rel)) != NULL) {
+        snprintf(path, n, "%s", lang);
+        fp = fopen(path, "rb");
+    }
     if (fp == NULL) { /* a file under mods/ wins over the original */
         snprintf(path, n, "%s/mods/%s", Port_FileRoot(), rel);
         fp = fopen(path, "rb");
@@ -50,6 +56,21 @@ FILE *Port_FileOpenHost(const char *rel, char *path, size_t n) {
         fp = fopen(path, "rb");
     }
     return fp;
+}
+
+/* Closes every cached host file so a language change opens the overlay (or the USA original) again. */
+void Port_FileCacheFlush(void) {
+    int i;
+    while (__sync_lock_test_and_set(&sLock, 1)) {
+    }
+    for (i = 0; i < SLOTS; i++) {
+        if (sSlot[i].fp != NULL) {
+            fclose(sSlot[i].fp);
+            sSlot[i].fp = NULL;
+            sSlot[i].rel[0] = '\0';
+        }
+    }
+    __sync_lock_release(&sLock);
 }
 
 static int slot_of(const char *rel) {

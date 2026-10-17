@@ -16,11 +16,12 @@
 #include "menu_text.h"
 #include "../quit_dialog.h"
 #include "net_chat.h"
+#include "../../include/plat_lang.h"
+#include "ui_i18n.h"
 
 static int sMeter = -1; // the meter (frame rate, connection): -1 not read yet
 static bool meter_on(void);
 static int sGL; // 1: the OpenGL back end draws the window (ImGui's OpenGL3 backend, no SDL GPU device)
-static char sGpuName[256];
 
 extern "C" {
 extern volatile int gPortNetMenuRequest;
@@ -446,15 +447,13 @@ static void style() {
     c[ImGuiCol_TableRowBgAlt] = ImVec4(1.0f, 1.0f, 1.0f, 0.03f);
 }
 
-int Ui_Init(SDL_Window *window, SDL_GPUDevice *device, void *gl_context, const char *gpu_name) {
+int Ui_Init(SDL_Window *window, SDL_GPUDevice *device, void *gl_context) {
     static const char *fonts[] = { // a proportional system font if there is one; else the library's built-in font
         "/usr/share/fonts/TTF/DejaVuSans.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
         "/usr/share/fonts/noto/NotoSans-Regular.ttf", "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
         "/usr/share/fonts/liberation/LiberationSans-Regular.ttf", "C:\\Windows\\Fonts\\segoeui.ttf",
     };
     ImGui_ImplSDLGPU3_InitInfo info;
-
-    snprintf(sGpuName, sizeof(sGpuName), "%s", gpu_name && gpu_name[0] ? gpu_name : "Unavailable");
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -1257,7 +1256,6 @@ static void video_tab(PortVideo &v) {
         if (api != (sGL ? 1 : 0)) {
             ImGui::TextDisabled("Running now: %s. %s from the next start.", kApi[sGL ? 1 : 0], kApi[api]);
         }
-        ImGui::TextWrapped("Active GPU: %s", sGpuName);
     }
     {
         // In-between pictures (gs_draw.c): the fight is computed 30 times a second, as on the console; with this
@@ -1410,7 +1408,31 @@ static void misc_tab(void) {
     }
 }
 
+static void lang_text_combo(void) {
+    /* Text only: Italian menus/dialogues from Europe. Voices are separate (Audio tab). */
+    const char *kText[] = {Tr("English", "Inglese"), Tr("Italian", "Italiano")};
+    int text = (PortLang_Get() == PORT_LANG_IT) ? 1 : 0;
+    if (PortLang_HasItalian()) {
+        if (ImGui::Combo(Tr("Menu & dialogue text", "Testi menu e dialoghi"), &text, kText, 2)) {
+            PortLang_Set(text == 1 ? PORT_LANG_IT : PORT_LANG_EN);
+        }
+        ImGui::SetItemTooltip("%s",
+                              Tr("On-screen text: menus, dialogue and this settings window.\n"
+                                 "Italian from Europe pack (patcheu). No Italian voices — Audio → Voice language for En/Ja.",
+                                 "Testi a schermo: menu, dialoghi e questa finestra impostazioni.\n"
+                                 "Italiano dal pack Europe (patcheu). Non esiste doppiaggio IT — Audio → Lingua voci per En/Ja."));
+    } else {
+        ImGui::BeginDisabled();
+        ImGui::Combo(Tr("Menu & dialogue text", "Testi menu e dialoghi"), &text, kText, 1);
+        ImGui::EndDisabled();
+        ImGui::SetItemTooltip("%s",
+                              Tr("Install with Italian text (Europe ISO) or put patcheu next to the exe.",
+                                 "Installa con testi italiani (ISO Europe) oppure metti patcheu accanto all'exe."));
+    }
+}
+
 static void ui_tab(PortVideo &v) {
+    lang_text_combo();
     if (ImGui::BeginCombo("Menu font", MenuText_FontName(v.menuFont))) {
         for (int i = 0; i < MenuText_FontCount(); i++) {
             if (!MenuText_FontAvailable(i, MENU_TEXT_MENU)) { continue; }
@@ -1490,6 +1512,19 @@ static void audio_tab(PortVideo &v) {
     ImGui::SetItemTooltip("Hits, blasts, menu sounds. Takes effect with the next sound that starts.");
     ImGui::SliderInt("Voices", &v.voices, 0, 200, "%d%%", ImGuiSliderFlags_AlwaysClamp);
     ImGui::SetItemTooltip("The fighters' voices in a fight and the spoken lines outside one.");
+    {
+        /* Spoken lines only (En/Ja). Does not touch menu archives or Italian text. */
+        const char *kVoice[] = {Tr("English", "Inglese"), Tr("Japanese", "Giapponese")};
+        int voice = PortLang_GetVoice();
+        if (ImGui::Combo(Tr("Voice language", "Lingua voci"), &voice, kVoice, 2)) {
+            PortLang_SetVoice(voice == 1 ? PORT_VOICE_JA : PORT_VOICE_EN);
+        }
+        ImGui::SetItemTooltip("%s",
+                              Tr("Battle and story voices: English or Japanese. This game has no Italian dub.\n"
+                                 "Italian on-screen text: Menu & dialogue text (top of Settings or UI tab).",
+                                 "Voci in battaglia e storia: inglese o giapponese. Non esiste doppiaggio italiano.\n"
+                                 "Testi italiani: Testi menu e dialoghi (in alto nelle Impostazioni o scheda Interfaccia)."));
+    }
     ImGui::SliderInt("Stage sounds", &v.stage, 0, 200, "%d%%", ImGuiSliderFlags_AlwaysClamp);
     ImGui::SetItemTooltip("A stage's background sound (wind, water) and its own effects.");
     {
@@ -1801,81 +1836,90 @@ static void build(void) {
     ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.5f), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
     // (760 high where the picture has the room: the Controls tab's sticks and its list of bindings together)
     ImGui::SetNextWindowSize(ImVec2(640.0f, io.DisplaySize.y >= 800.0f ? 760.0f : 600.0f), ImGuiCond_Appearing);
-    if (ImGui::Begin("Settings", &open, ImGuiWindowFlags_NoCollapse)) {
-        {
-            int latest = update_latest();
-            if (latest > PORT_RELEASE) {
-                ImGui::AlignTextToFramePadding();
-                ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.3f, 1.0f), "Update available: 0.%d.%d (this is 0.%d.%d).", latest / 100, latest % 100,
-                                   PORT_RELEASE / 100, PORT_RELEASE % 100);
-                ImGui::SameLine();
-                if (ImGui::Button("Download page")) {
-                    SDL_OpenURL("https://github.com/" PORT_UPDATE_REPO "/releases/latest");
-                }
-                ImGui::SetItemTooltip("Opens the release page in your browser. To update, copy the new files over the old ones.");
-                ImGui::Separator();
-            }
-        }
-        // the tabs in a region of their own, above a last line that is always there
-        ImGui::BeginChild("body", ImVec2(0.0f, -ImGui::GetFrameHeightWithSpacing() - ImGui::GetStyle().ItemSpacing.y), ImGuiChildFlags_NavFlattened);
-        if (ImGui::BeginTabBar("tabs")) {
-            if (tab("Video", 0)) { video_tab(v); ImGui::EndTabItem(); }
-            if (tab("Effects", 1)) { effects_tab(v); ImGui::EndTabItem(); }
-            if (tab("Audio", 2)) { audio_tab(v); ImGui::EndTabItem(); }
-            if (tab("UI", 3)) { ui_tab(v); ImGui::EndTabItem(); }
-            if (tab("Controls", 4)) {
-                bool cs = Port_ClashSquare() != 0;
-                if (ImGui::Checkbox("Clashes: Square counts as a direction", &cs)) {
-                    Port_ClashSquareSet(cs);
-                }
-                ImGui::SetItemTooltip("In a clash of two beams or two rushes the game counts newly pressed directions:\n"
-                                      "turning the stick, or tapping the d-pad. With this on, each press of Square\n"
-                                      "counts as one of them while the clash lasts, as a tap of the d-pad does.\n"
-                                      "It only changes your own pad, so it can be used in online play.");
-                if (cs) {
-                    static const int kQuarters[] = {4, 6, 7, 8};
-                    static const char *const kWorth[] = {"1", "1.5", "1.75", "2"};
-                    int at = 2;
-                    for (int i = 0; i < 4; i++) {
-                        if (kQuarters[i] == Port_ClashSquareX()) {
-                            at = i;
-                        }
-                    }
+    {
+        char title[80];
+        snprintf(title, sizeof(title), "%s###bt3settings", Tr("Settings", "Impostazioni"));
+        if (ImGui::Begin(title, &open, ImGuiWindowFlags_NoCollapse)) {
+            {
+                int latest = update_latest();
+                if (latest > PORT_RELEASE) {
+                    ImGui::AlignTextToFramePadding();
+                    ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.3f, 1.0f),
+                                       Tr("Update available: 0.%d.%d (this is 0.%d.%d).", "Aggiornamento disponibile: 0.%d.%d (questa è 0.%d.%d)."),
+                                       latest / 100, latest % 100, PORT_RELEASE / 100, PORT_RELEASE % 100);
                     ImGui::SameLine();
-                    ImGui::SetNextItemWidth(80.0f);
-                    if (ImGui::Combo("per press", &at, kWorth, 4)) {
-                        Port_ClashSquareXSet(kQuarters[at]);
+                    if (ImGui::Button(Tr("Download page", "Pagina download"))) {
+                        SDL_OpenURL("https://github.com/" PORT_UPDATE_REPO "/releases/latest");
                     }
-                    ImGui::SetItemTooltip("What one press of Square is worth. The d-pad has four buttons to tap in turn and the\n"
-                                          "stick four directions a turn; Square is one button. 1 is a single d-pad tap.\n"
-                                          "Never more than one a frame, which is the most the game counts from any pad.");
+                    ImGui::SetItemTooltip("%s", Tr("Opens the release page in your browser. To update, copy the new files over the old ones.",
+                                                   "Apre la pagina release nel browser. Per aggiornare, copia i file nuovi su quelli vecchi."));
+                    ImGui::Separator();
                 }
-                ImGui::Separator();
-                controls_tab();
-                ImGui::EndTabItem();
             }
-            if (tab("Cheats", 5)) { cheats_tab(); ImGui::EndTabItem(); }
-            if (tab("Misc", 6)) { misc_tab(); ImGui::EndTabItem(); }
-            ImGui::EndTabBar();
+            lang_text_combo();
+            ImGui::Separator();
+            // the tabs in a region of their own, above a last line that is always there
+            ImGui::BeginChild("body", ImVec2(0.0f, -ImGui::GetFrameHeightWithSpacing() - ImGui::GetStyle().ItemSpacing.y), ImGuiChildFlags_NavFlattened);
+            if (ImGui::BeginTabBar("tabs")) {
+                if (tab(Tr("Video", "Video"), 0)) { video_tab(v); ImGui::EndTabItem(); }
+                if (tab(Tr("Effects", "Effetti"), 1)) { effects_tab(v); ImGui::EndTabItem(); }
+                if (tab(Tr("Audio", "Audio"), 2)) { audio_tab(v); ImGui::EndTabItem(); }
+                if (tab(Tr("UI", "Interfaccia"), 3)) { ui_tab(v); ImGui::EndTabItem(); }
+                if (tab(Tr("Controls", "Comandi"), 4)) {
+                    bool cs = Port_ClashSquare() != 0;
+                    if (ImGui::Checkbox(Tr("Clashes: Square counts as a direction", "Scontri: Quadrato conta come direzione"), &cs)) {
+                        Port_ClashSquareSet(cs);
+                    }
+                    ImGui::SetItemTooltip("In a clash of two beams or two rushes the game counts newly pressed directions:\n"
+                                          "turning the stick, or tapping the d-pad. With this on, each press of Square\n"
+                                          "counts as one of them while the clash lasts, as a tap of the d-pad does.\n"
+                                          "It only changes your own pad, so it can be used in online play.");
+                    if (cs) {
+                        static const int kQuarters[] = {4, 6, 7, 8};
+                        static const char *const kWorth[] = {"1", "1.5", "1.75", "2"};
+                        int at = 2;
+                        for (int i = 0; i < 4; i++) {
+                            if (kQuarters[i] == Port_ClashSquareX()) {
+                                at = i;
+                            }
+                        }
+                        ImGui::SameLine();
+                        ImGui::SetNextItemWidth(80.0f);
+                        if (ImGui::Combo("per press", &at, kWorth, 4)) {
+                            Port_ClashSquareXSet(kQuarters[at]);
+                        }
+                        ImGui::SetItemTooltip("What one press of Square is worth. The d-pad has four buttons to tap in turn and the\n"
+                                              "stick four directions a turn; Square is one button. 1 is a single d-pad tap.\n"
+                                              "Never more than one a frame, which is the most the game counts from any pad.");
+                    }
+                    ImGui::Separator();
+                    controls_tab();
+                    ImGui::EndTabItem();
+                }
+                if (tab(Tr("Cheats", "Cheat"), 5)) { cheats_tab(); ImGui::EndTabItem(); }
+                if (tab(Tr("Misc", "Altro"), 6)) { misc_tab(); ImGui::EndTabItem(); }
+                ImGui::EndTabBar();
+            }
+            ImGui::EndChild();
+            if (sPadTab) { // (a tab chosen with the shoulder buttons)
+                sPadTab = false;
+                sTab = sForceTab;
+                sForceTab = -1;
+            } else if (ImGui::GetFrameCount() > 3) {
+                sForceTab = -1;
+            }
+            ImGui::Separator();
+            if (ImGui::Button(Tr("Exit game", "Esci dal gioco"))) {
+                Ui_QuitAsk();
+            }
+            if ((io.BackendFlags & ImGuiBackendFlags_HasGamepad) != 0) {
+                ImGui::SameLine();
+                ImGui::TextDisabled("%s", Tr("D-pad: move   Cross / A: choose   Circle / B: back   L1 / R1: tab",
+                                             "D-pad: muovi   Croce / A: scegli   Cerchio / B: indietro   L1 / R1: scheda"));
+            }
         }
-        ImGui::EndChild();
-        if (sPadTab) { // (a tab chosen with the shoulder buttons)
-            sPadTab = false;
-            sTab = sForceTab;
-            sForceTab = -1;
-        } else if (ImGui::GetFrameCount() > 3) {
-            sForceTab = -1;
-        }
-        ImGui::Separator();
-        if (ImGui::Button("Exit game")) {
-            Ui_QuitAsk();
-        }
-        if ((io.BackendFlags & ImGuiBackendFlags_HasGamepad) != 0) {
-            ImGui::SameLine();
-            ImGui::TextDisabled("D-pad: move   Cross / A: choose   Circle / B: back   L1 / R1: tab");
-        }
+        ImGui::End();
     }
-    ImGui::End();
     if (memcmp(&v, &was, sizeof(v)) != 0) {
         GsGpu_SetSettings(&v);
     }

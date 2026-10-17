@@ -428,9 +428,11 @@ static GsTex texture_get(int ctx) {
     /* A texture pack still uses the game's source pixels to identify Battle text for widescreen geometry. */
     px = !replaced || MenuText_MayHaveBattleTexture((int)tw, (int)th, bits <= 8) ?
          malloc((size_t)tw * th * 4) : NULL;
-    if (!replaced && px == NULL) { return gsWhite; }
-    for (y = 0; px != NULL && y < th; y++) {
-        for (x = 0; x < tw; x++) {
+    /* OOM (32-bit process, large menu packs): never write through a null pixel buffer. */
+    if (!replaced && px == NULL) {
+        return gsWhite;
+    }
+    for (y = 0; px != NULL && y < th; y++) {        for (x = 0; x < tw; x++) {
             uint32_t c = Gs_VramRead(tbp, tbw, psm, x, y), a;
             if (bits > 8) {
                 c = Gs_Expand(c, psm);
@@ -590,8 +592,8 @@ static uint32_t blend_key(uint64_t alpha, int abe) {
    one pipeline per key, so this is pure GS state -> an index):
    bits 0..8 blend, 10..11 depth test, 12 depth write, 13..14 topology, 16..19 colour write mask,
    20..21 vertices: 0 GS vertices, 1 program 0, 2 program 4, 3 program 6, 22 full-screen table pass,
-   23 the fragment shader without its own depth output, 24 flat-shadow stencil mask. */
-static int pipeline_get(int ctx, int topo, int vu, int shadow) {
+   23 the fragment shader without its own depth output. */
+static int pipeline_get(int ctx, int topo, int vu) {
     uint64_t test = gGs.test[ctx], zb = gGs.zbuf[ctx];
     int zte = (test >> 16) & 1, ztst = (test >> 17) & 3, zwrite = !((zb >> 32) & 1);
     uint32_t bkey, key, wmask, m = (uint32_t)(gGs.frame[ctx] >> 32);
@@ -604,8 +606,7 @@ static int pipeline_get(int ctx, int topo, int vu, int shadow) {
        a channel whose eight mask bits are all set is not written. Partial masks are not representable. */
     wmask = ((m & 0xFF) != 0xFF ? GS_CC_R : 0) | ((m & 0xFF00) != 0xFF00 ? GS_CC_G : 0) |
             ((m & 0xFF0000) != 0xFF0000 ? GS_CC_B : 0) | ((m & 0xFF000000u) != 0xFF000000u ? GS_CC_A : 0);
-    key = bkey | (uint32_t)ztst << 10 | (uint32_t)zwrite << 12 | (uint32_t)topo << 13 | wmask << 16 | (uint32_t)vu << 20 |
-          (uint32_t)shadow << 24;
+    key = bkey | (uint32_t)ztst << 10 | (uint32_t)zwrite << 12 | (uint32_t)topo << 13 | wmask << 16 | (uint32_t)vu << 20;
     {   /* Bit 23: the fragment shader without its own depth output (gsnz.frag; see the end of gs.frag for why
            writing depth in the shader costs). Taken where it changes nothing: a draw that does not write depth
            and tests with "greater or equal" (or not at all). What is in the depth buffer was written through
@@ -684,7 +685,7 @@ int GsDraw_TargetGet(uint32_t fbp, int create) {
     return slot;
 }
 
-static int pipeline_get(int ctx, int topo, int vu, int shadow);
+static int pipeline_get(int ctx, int topo, int vu);
 
 /* GfxPost_DrawDepthClut as one full-screen pass (the game sends 16 strips; they become one draw). */
 static void depth_clut(int ctx) {
@@ -716,7 +717,7 @@ static void depth_clut(int ctx) {
     if (d.tex == 0) {
         return;
     }
-    d.pipeline = pipeline_get(ctx, 0, 4, 0);
+    d.pipeline = pipeline_get(ctx, 0, 4);
     d.blendc = (float)((gGs.alpha[ctx] >> 32) & 0xFF) / 128.0f;
     d.misc[0] = ((gGs.zbuf[ctx] >> 24) & 15) == 0 ? 4294967295.0f : ((gGs.zbuf[ctx] >> 24) & 15) == 1 ? 16777215.0f : 65535.0f;
     d.scissor[0] = (int)(sc & 0x7FF) * SCALE;
@@ -872,7 +873,7 @@ static int draw_state(int ctx, int topo, int sprite, int vu, GsDraw *d, float *u
     if (d->tex != 0 && sLast != NULL && sLast->tex == d->tex && sLast->replaced) {
         d->sampler |= 1 | 8; /* (GsGpu_Draw takes the 8 off again for 2D art) */
     }
-    d->pipeline = pipeline_get(ctx, topo, vu, 0);
+    d->pipeline = pipeline_get(ctx, topo, vu);
     d->mode[0] = !tme ? 0 : d->tex_is_target ? 2 : 1; /* 2: a frame buffer as texture, its alpha is already rescaled */
     /* (BT3_TEX_ALPHA=0 switches the replacement's alpha treatment off, for telling which one a fault comes from) */
     if (d->mode[0] == 1 && sLast != NULL && sLast->tex == d->tex && sLast->replaced == 1 &&
@@ -1453,11 +1454,6 @@ void GsGpu_DrawVu0(int layer, int ctx, const float *vertices, uint32_t count, co
     }
     if (!draw_state(ctx, 0, 0, 1, &d, &us, &vs)) {
         return;
-    }
-    if (layer == 2 && d.misc[1] == 1.0f && d.misc[2] != 0.0f) {
-        /* TEST.DATE rejects pixels marked by FBA. Stencil also rejects overlap within this
-           draw run, which a single snapshot of the alpha buffer cannot see. */
-        d.pipeline = pipeline_get(ctx, 0, 1, 1);
     }
     date_snapshot(&d);
     memcpy(u.boneA, &consts[0], 64);

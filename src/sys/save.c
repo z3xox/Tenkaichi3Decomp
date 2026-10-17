@@ -170,6 +170,12 @@ void Save_Init(void) {
     memset(gSaveData, 0, SAVE_SIZE);
     Save_SetDefaults(gSaveData);
     Save_Stub266600(gSaveData);
+#ifdef PORT
+    {
+        extern void PortLang_SyncSaveVoice(void); /* plat_lang.c: En/Ja/It from F1 Audio */
+        PortLang_SyncSaveVoice();
+    }
+#endif
 }
 
 /* Gives item idx (0-based) if it is not owned yet, marking it new. */
