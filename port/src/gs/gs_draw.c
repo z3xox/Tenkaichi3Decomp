@@ -26,6 +26,7 @@
 #include "gs_texpack.h" /* texture packs (replacement textures) */
 #include "menu_text.h"  /* editable labels in the original menu texture slots */
 #include <math.h>
+#include "plat_discord.h"/* Discord integration */
 
 /* Stage-name overlay: defined here (C) so both the renderer (gs_gpu.c) and the game's menu (menu_c_e.c) can
    reach them without C++ name mangling. Where they mean is in ui.h. */
@@ -1674,6 +1675,13 @@ SDL_Window *GsDraw_WindowCreate(int opengl) {
         SDL_SetWindowSize(sWindow, (int)((float)896 * want + 0.5f), 896);
     }
     fprintf(stderr, "bt3: internal resolution %dx (%d x %d)\n", gsScale, 512 * gsScale, 448 * gsScale);
+    {
+        /* Initialize Discord Rich Presence and register clean shutdown */
+        extern void PortDiscord_Init(void);
+        extern void PortDiscord_Shutdown(void);
+        PortDiscord_Init();
+        atexit(PortDiscord_Shutdown);
+    }
     return sWindow;
 }
 

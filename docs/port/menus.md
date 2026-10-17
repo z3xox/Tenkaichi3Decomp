@@ -96,7 +96,10 @@ MAINMENU_CHOOSE(MPROG_MODE_PORT_SCREEN);
 `PortScreen_Main` reads what the screens need (the versus mode's archive, `gMenuArc5`, for the game's windows),
 runs the screen, and turns what it returns into the next mode (for Tenkaichi Budokai Online: back to the main
 menu, or the Ultimate Training's fight of "Train While Waiting"). A new screen is a `PORT_SCREEN_` number and a
-`case` there. No game mode is borrowed: an online session's character select is the versus mode's own.
+`case` there, which also sets `gPortScreenTitle` (cleared when the screen ends): Discord's presence shows that title
+for the mode. A screen with pages also sets `gPortScreenDetail`, the name of the page that is up (Tenkaichi Budokai
+Online: `Tb_PageDetail`, called from `Tb_SetMode`), and Discord shows it under the title; with it empty the line says
+"In Menus". `PortScreen_Main` clears both when the screen ends. No game mode is borrowed: an online session's character select is the versus mode's own.
 
 **The frame loop** is the game's own kind (src/menu/port_tbo.c, `PortTbo_Run`):
 

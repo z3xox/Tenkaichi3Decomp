@@ -15,6 +15,8 @@
 extern s32 PortTbo_Run(void); /* menu/port_tbo.c: 1 = left for "Train While Waiting" (its fight is set up) */
 
 s32 gPortScreen;
+char gPortScreenTitle[64];
+char gPortScreenDetail[64];
 
 /* ---------------------------------------------------------------------------------------------- how a screen draws
    The kit every screen of the port's own draws with (it began as Tenkaichi Budokai Online's, menu/port_tbo.c): the
@@ -593,7 +595,10 @@ s32 PortScreen_Main(void) {
     switch (screen) {
     case PORT_SCREEN_TBO:
         Bgm_Play(0x10B16 + 2);
+        Ps_Copy(gPortScreenTitle, "Tenkaichi Budokai Online", sizeof(gPortScreenTitle));
         result = PortTbo_Run();
+        gPortScreenTitle[0] = 0;
+        gPortScreenDetail[0] = 0;
         Adx_StopAll();
         gProgress->mode = result ? 45 : 4; /* the Ultimate Training's fight, or back to the main menu */
         break;
@@ -601,6 +606,8 @@ s32 PortScreen_Main(void) {
         gProgress->mode = 4;
         break;
     }
+    gPortScreenTitle[0] = 0;
+    gPortScreenDetail[0] = 0;
     return result;
 }
 #endif

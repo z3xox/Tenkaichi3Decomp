@@ -5,7 +5,7 @@
  *
  * The settings overlay (port/src/gs/gs_gpu.c) writes it whenever a setting changes. At start an environment
  * variable (BT3_SCALE, BT3_ASPECT, ...) still wins over the file, so a single run can be started differently.
- * Names: scale, aspect_milli, fullscreen, fx_off, glow, music, effects, voices, stage_sounds, hud_layout, game_speed, music_follows_speed, display; the bindings of port/src/gs/gs_input.c
+ * Names: scale, aspect_milli, fullscreen, fx_off, glow, music, effects, voices, stage_sounds, hud_layout, game_speed, music_follows_speed, display, discord (1: Rich Presence on, 0: off); the bindings of port/src/gs/gs_input.c
  * (key_p1_cross = an SDL scancode, pad_p1_cross = a controller button, padslot_p1 = which controller,
  * deadzone_p1_ls / deadzone_p1_rs = a stick's deadzone, vibration_p1 and vibration_p1_strength).
  */
