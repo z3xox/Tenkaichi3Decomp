@@ -8,7 +8,7 @@
  * headers the catalogue reads, which a damaged compressed stream never gets to). Built with the address and
  * undefined-behaviour sanitizers, which stop the program at the first such read or write.
  *
- *   gcc -g -O1 -fsanitize=address,undefined -fno-sanitize-recover=all port/tests/menu_font/labels.c -lm -o labels_test
+ *   gcc -g -O1 -DUI_TEXT_HOST_ALLOC -fsanitize=address,undefined -fno-sanitize-recover=all port/tests/menu_font/labels.c port/src/gs/menu_translation.c port/src/gs/ui_text_extract.c port/src/gs/ui_text_translate.c port/src/plat_settings.c -lm -lpthread -o labels_test
  *   labels_test <gamedata> <out folder>                        as the game does it (the disc is checked)
  *   labels_test --any <gamedata> <out folder>                  without the check
  *   labels_test --fuzz <rounds> <seed> <gamedata> <out folder> damaged after unpacking; prints how often the list
@@ -17,6 +17,8 @@
  * <gamedata> is only read. The first two forms print the result and the time taken, and write the list. */
 #include "../../src/gs/menu_labels.c"
 #include <time.h>
+
+int MenuText_FirstFontId(int setting) { (void)setting; return 0; }
 
 static uint64_t sSeed = 88172645463325252ull;
 static uint32_t rnd(void) {

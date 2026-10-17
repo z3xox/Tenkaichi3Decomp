@@ -7,7 +7,7 @@ extern "C" {
 #endif
 
 /* Header of the current labels.tsv layout. A list without this version is made again. */
-#define MENU_LABELS_VERSION "BT3 menu text v10:"
+#define MENU_LABELS_VERSION "BT3 menu text v12:"
 
 enum { MENU_LABELS_MADE = 0, MENU_LABELS_OTHER_DISC = 1, MENU_LABELS_FAILED = -1 };
 

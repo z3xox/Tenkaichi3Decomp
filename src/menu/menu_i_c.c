@@ -1,6 +1,9 @@
 #include "common.h"
 #include "menu/menu_i.h"
 #include "sys/pad.h"
+#ifdef PORT
+#include "menu/port_screen.h"
+#endif
 
 Logo *gLogo = NULL; /* 0x3B590C */
 
@@ -178,6 +181,9 @@ extern int Port_NetFixedStart(void);
 s32 FirstRun_Main(void) {
     u32 *res;
 
+#ifdef PORT
+    PortLanguage_Run(); /* first choose a language in the game window, before loading the game partition */
+#endif
     File_LoadPartitionNw(2);
     FirstRun_WaitPad(0, 0);
     PadWatch_SetEnabled(0);

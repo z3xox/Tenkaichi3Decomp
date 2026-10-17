@@ -3,8 +3,8 @@
  * The menus' labels are lettering painted into textures. To draw one again from a font (menu_text.c) the renderer
  * has to know which texture holds which label, in which row, and how large its letters are. That list
  * (labels.tsv, and name-styles.tsv for the names of added stages and songs) is made here, from the HUD and menu archives
- * in the player's gamedata: nothing of it is in the repository or in a release. What this file carries is what a
- * contributor wrote down: which archive, section and texture a menu's labels are in, and what they SAY (catalog()).
+ * in the player's gamedata: nothing of it is in the repository or in a release. This file identifies the archive,
+ * section and texture of each label, plus its style; game-text/translations/labels/en.json holds its English wording.
  * Everything else is measured: the textures are unpacked and decoded, hashed the way the renderer hashes a decoded
  * texture, and each row's letter height, baseline, margin and width are taken from its pixels; for the long name
  * strips (stages, songs, the main menu) the port's own letter cutter (namefont.c) tells capitals from lower case.
@@ -45,11 +45,7 @@
 #include "namefont.c"
 
 
-/* The texts of the main menu's labels, in the order of their rows (the list's, and the PC's item: menu_a.c). */
-static const char kMlMain[] = "Dragon History|Ultimate Battle|Dragon World Tour|Duel|Dragon Net Battle|Evolution Z|"
-                              "Ultimate Training|Data Center|Character Reference|Options|Shenron";
-/* The PC's item: its label is written into the free row after them (src/menu/menu_a.c). */
-static const char kMlItem[] = "Tenkaichi Budokai Online";
+/* The selected locale is loaded from game-text/translations/labels/<locale>.json by menu_translation.c. */
 
 /* The letter cutter (namefont.c's, this file's copy) is used by MenuLabels_Make and MenuLabels_MainItem, which
    may run in two threads: one at a time. */
@@ -70,7 +66,7 @@ static const struct { int number; uint32_t size, crc; } kMlFiles[ML_FILES] = {
     {452, 3466880, 0x0EC0646D}, {453, 1776896, 0x717BA147}, {459, 3329600, 0xE34CA2A0}, {460, 2398528, 0x13642238},
     {461, 3604416, 0xD60327A4}, {463, 875072, 0xB576B4B2}, {472, 740992, 0x26936C01}};
 
-/* The colours of a label. They are chosen by what a label is (ml_color_style), never read from the texture. */
+/* The colours of a label. They are chosen by label ID, never read from the texture. */
 typedef struct MlColors {
     const char *name;
     uint8_t top[3], bottom[3], outline[3];
@@ -109,10 +105,157 @@ static const MlColors kMlColors[] = {
     {"win-counter", {242, 242, 242}, {150, 150, 150}, {68, 68, 68}, 1.5f, 0, {20, 20, 20}, 0, 3, 0, 0, 0, 1, {216, 216, 216}},
     {"blast-stock-counter", {255, 139, 0}, {254, 122, 2}, {0, 0, 0}, 3, 0, {0, 0, 0}, 0, 0, 0, 0, 0, 1, {255, 254, 0}},
 };
+
 enum { ML_TITLE_PROMPT, ML_MAIN_MENU, ML_MAIN_HEADING, ML_PURPLE, ML_ORANGE,
        ML_NOTICE_BLUE, ML_NOTICE_ORANGE, ML_NOTICE_RED, ML_NOTICE_SILVER, ML_NOTICE_GREEN, ML_NOTICE_GOLD, ML_NOTICE_PURPLE,
        ML_COMBO_RED_DIGITS, ML_COMBO_HITS, ML_COMBO_ORANGE_DIGITS, ML_COMBO_MESSAGE, ML_COMBO_POWER,
        ML_TIMER_WHITE, ML_TIMER_YELLOW, ML_TIMER_RED, ML_WIN_COUNTER, ML_BLAST_STOCK_COUNTER };
+/* Stable label group IDs own their visual styles; locale JSON only supplies wording. */
+static const struct { const char *id; int style; } kMlGroupStyles[] = {
+    {"battle-class-heading", ML_MAIN_HEADING},
+    {"battle-training-normal", ML_PURPLE},
+    {"battle-training-selected", ML_ORANGE},
+    {"bgm-heading", ML_MAIN_HEADING},
+    {"bgm-select-heading", ML_MAIN_HEADING},
+    {"blast-stock-counter", ML_BLAST_STOCK_COUNTER},
+    {"character-color-normal", ML_PURPLE},
+    {"character-color-selected", ML_ORANGE},
+    {"character-preview-color", ML_ORANGE},
+    {"character-reference-normal", ML_PURPLE},
+    {"character-reference-selected", ML_ORANGE},
+    {"combo-boost", ML_COMBO_MESSAGE},
+    {"combo-counter", ML_COMBO_MESSAGE},
+    {"combo-first-attack", ML_COMBO_MESSAGE},
+    {"combo-hits", ML_COMBO_HITS},
+    {"combo-lock-on", ML_COMBO_MESSAGE},
+    {"combo-max-power", ML_COMBO_POWER},
+    {"combo-orange-digits", ML_COMBO_ORANGE_DIGITS},
+    {"combo-red-digits", ML_COMBO_RED_DIGITS},
+    {"controller-heading", ML_MAIN_HEADING},
+    {"customize-menu-normal", ML_PURPLE},
+    {"customize-menu-selected", ML_ORANGE},
+    {"customize-slots-normal", ML_PURPLE},
+    {"customize-slots-selected", ML_ORANGE},
+    {"data-center-normal", ML_PURPLE},
+    {"data-center-selected", ML_ORANGE},
+    {"data-heading", ML_MAIN_HEADING},
+    {"evolution-heading", ML_MAIN_HEADING},
+    {"evolution-normal", ML_PURPLE},
+    {"evolution-selected", ML_ORANGE},
+    {"fighter-heading", ML_MAIN_HEADING},
+    {"fusion-heading", ML_MAIN_HEADING},
+    {"heading-battle-training", ML_MAIN_HEADING},
+    {"history-action-normal", ML_PURPLE},
+    {"history-action-selected", ML_ORANGE},
+    {"history-difficulty-normal", ML_PURPLE},
+    {"history-difficulty-selected", ML_ORANGE},
+    {"history-heading", ML_MAIN_HEADING},
+    {"item-shop-confirm-normal", ML_PURPLE},
+    {"item-shop-confirm-selected", ML_ORANGE},
+    {"item-shop-normal", ML_PURPLE},
+    {"item-shop-selected", ML_ORANGE},
+    {"main-5", ML_MAIN_MENU},
+    {"main-6", ML_ORANGE},
+    {"main-heading", ML_MAIN_HEADING},
+    {"map-heading", ML_MAIN_HEADING},
+    {"mission-heading", ML_MAIN_HEADING},
+    {"notice-blue", ML_NOTICE_BLUE},
+    {"notice-gold", ML_NOTICE_GOLD},
+    {"notice-green", ML_NOTICE_GREEN},
+    {"notice-orange", ML_NOTICE_ORANGE},
+    {"notice-purple", ML_NOTICE_PURPLE},
+    {"notice-red", ML_NOTICE_RED},
+    {"notice-silver", ML_NOTICE_SILVER},
+    {"options-actions-normal", ML_PURPLE},
+    {"options-actions-selected", ML_ORANGE},
+    {"options-controls-normal", ML_PURPLE},
+    {"options-controls-selected", ML_ORANGE},
+    {"options-heading", ML_MAIN_HEADING},
+    {"options-normal", ML_PURPLE},
+    {"options-selected", ML_ORANGE},
+    {"options-sound-normal", ML_PURPLE},
+    {"options-sound-selected", ML_ORANGE},
+    {"options-values-normal", ML_PURPLE},
+    {"options-values-selected", ML_ORANGE},
+    {"password-heading", ML_MAIN_HEADING},
+    {"practice-normal", ML_PURPLE},
+    {"practice-selected", ML_ORANGE},
+    {"reference-heading", ML_MAIN_HEADING},
+    {"replay-heading", ML_MAIN_HEADING},
+    {"save-confirm-normal", ML_PURPLE},
+    {"save-confirm-selected", ML_ORANGE},
+    {"screen-heading", ML_MAIN_HEADING},
+    {"shenron-heading", ML_MAIN_HEADING},
+    {"shop-heading", ML_MAIN_HEADING},
+    {"sim-dragon-actions", ML_ORANGE},
+    {"sim-dragon-actions-normal", ML_PURPLE},
+    {"sim-heading", ML_MAIN_HEADING},
+    {"song", ML_PURPLE},
+    {"song-highlighted", ML_ORANGE},
+    {"song-random", ML_PURPLE},
+    {"song-random-highlighted", ML_ORANGE},
+    {"sound-digits-normal", ML_PURPLE},
+    {"sound-digits-selected", ML_ORANGE},
+    {"sound-heading", ML_MAIN_HEADING},
+    {"stage", ML_ORANGE},
+    {"survival-heading", ML_MAIN_HEADING},
+    {"team-end-normal", ML_PURPLE},
+    {"team-end-selected", ML_ORANGE},
+    {"timer-red", ML_TIMER_RED},
+    {"timer-white", ML_TIMER_WHITE},
+    {"timer-yellow", ML_TIMER_YELLOW},
+    {"title-normal", ML_PURPLE},
+    {"title-press-start", ML_TITLE_PROMPT},
+    {"title-selected", ML_ORANGE},
+    {"tour-heading", ML_MAIN_HEADING},
+    {"training-controller-normal", ML_PURPLE},
+    {"training-controller-selected", ML_ORANGE},
+    {"training-heading", ML_MAIN_HEADING},
+    {"training-normal", ML_PURPLE},
+    {"training-selected", ML_ORANGE},
+    {"ultimate-battle", ML_ORANGE},
+    {"ultimate-battle-normal", ML_PURPLE},
+    {"ultimate-heading", ML_MAIN_HEADING},
+    {"versus-com-level-normal", ML_PURPLE},
+    {"versus-com-level-selected", ML_ORANGE},
+    {"versus-dp-normal", ML_PURPLE},
+    {"versus-dp-selected", ML_ORANGE},
+    {"versus-heading", ML_MAIN_HEADING},
+    {"versus-normal", ML_PURPLE},
+    {"versus-onoff-normal", ML_PURPLE},
+    {"versus-onoff-selected", ML_ORANGE},
+    {"versus-referee-normal", ML_PURPLE},
+    {"versus-referee-selected", ML_ORANGE},
+    {"versus-selected", ML_ORANGE},
+    {"versus-settings-normal", ML_PURPLE},
+    {"versus-settings-selected", ML_ORANGE},
+    {"versus-time-normal", ML_PURPLE},
+    {"versus-time-selected", ML_ORANGE},
+    {"versus-transform-1p-normal", ML_PURPLE},
+    {"versus-transform-1p-selected", ML_ORANGE},
+    {"versus-transform-2p-normal", ML_PURPLE},
+    {"versus-transform-2p-selected", ML_ORANGE},
+    {"versus-type-normal", ML_PURPLE},
+    {"versus-type-selected", ML_ORANGE},
+    {"win-counter", ML_WIN_COUNTER},
+    {"world-tour-custom-normal", ML_PURPLE},
+    {"world-tour-custom-selected", ML_ORANGE},
+    {"world-tour-list-normal", ML_PURPLE},
+    {"world-tour-list-selected", ML_ORANGE},
+};
+
+static int ml_style_for_id(const char *id) {
+    const char *slash = strchr(id, '/');
+    size_t n;
+    int i;
+    if (slash == NULL) return -1;
+    n = (size_t)(slash - id);
+    for (i = 0; i < (int)(sizeof(kMlGroupStyles) / sizeof(kMlGroupStyles[0])); i++) {
+        if (strlen(kMlGroupStyles[i].id) == n && strncmp(kMlGroupStyles[i].id, id, n) == 0)
+            return kMlGroupStyles[i].style;
+    }
+    return -1;
+}
 static const uint8_t kHeadingOutlineBottom[3] = {100, 24, 12};
 static const uint8_t kHeadingBevelLight[3] = {168, 108, 91};
 static const uint8_t kHeadingBevelDark[3] = {24, 6, 3};
@@ -581,15 +724,17 @@ static MlGroup *ml_strip(MlCtx *c, const char *id, int height, MlBuf pack, int p
 
 /* One texture of labels, by its place: archive `file`, its member `outer` (unpacked), in it the texture file `part`
    (inside the member `nested` if that is not -1), in it the texture `index`, which has to be `width` wide.
-   `labels`: see ml_labels; NULL for none. `textFrom`: the group whose labels these are the other state of. */
-static MlGroup *ml_add(MlCtx *c, const char *id, int file, int outer, int part, int index, const char *labels, int centered,
+   The original rows come from the selected locale's `original` fields. `textFrom` names the other selection state's group. */
+static MlGroup *ml_add(MlCtx *c, const char *id, int file, int outer, int part, int index, int centered,
                        const char *textFrom, int width, int nested) {
     MlGroup *g = ml_group(c, id, 32, width);
     MlBuf pack, d;
     int actual = 0;
+    const char *labels = MenuTranslation_Group(id);
 
     if (g == NULL || !ml_screen(c, file, outer, &pack) || (nested >= 0 && !ml_section(c, pack, (uint32_t)nested, &pack)) ||
-        (part >= 0 && !ml_section(c, pack, (uint32_t)part, &d)) || !ml_labels(c, g, labels)) {
+        (part >= 0 && !ml_section(c, pack, (uint32_t)part, &d)) || labels == NULL || !ml_labels(c, g, labels)) {
+        if (labels == NULL) { ml_fail(c, "translation labels are missing for %s", id); }
         return NULL;
     }
     if (part < 0) { d = pack; }
@@ -622,64 +767,59 @@ static void ml_cells(MlGroup *g, int count, int perRow, int w, int first) {
     g->nRects = count;
 }
 
-/* The textures that hold labels, and what the labels say. The numbers are the USA disc's (kMlFiles); the texts are
-   what the pictures show, read off them by the contributor. A texture often shares its file with panels and
-   backgrounds, so each is named by its number. Most menus have two sheets, the labels as they are and as they are
-   while chosen: the second takes its texts from the first (`textFrom`), so that an edited label changes in both. */
+/* The textures that hold labels. The numbers are the USA disc's (kMlFiles); the English text comes from en.json.
+   A texture often shares its file with panels and backgrounds, so each is named by its number.
+   Normal and chosen sheets have separate labels and translation entries. */
 static int ml_catalog(MlCtx *c) {
     /* Shared face heights for headings with the same measured letter size. Baselines remain per texture. */
     enum { ML_HEADING_CAP_REPLAY = 20, ML_HEADING_CAP_COMPACT = 21,
            ML_HEADING_CAP_STANDARD = 22, ML_HEADING_CAP_LARGE = 24 };
     typedef struct MlHeading {
-        const char *id, *text;
+        const char *id;
         int file, outer, part, index, width, cap, baseline, margin, art, centered;
     } MlHeading;
     /* The measured face inside each cream border: archive, member, texture file, texture, width, cap, baseline,
        left margin, face width. Password and Replay are centered on their 512-pixel sheets. */
     static const MlHeading kHeadings[] = {
-        {"history-heading", "Dragon History", 460, 1, 11, 1, 512, ML_HEADING_CAP_STANDARD, 28, 9, 319, 0},
-        {"ultimate-heading", "Ultimate Battle", 451, 1, 4, 1, 512, ML_HEADING_CAP_STANDARD, 29, 9, 318, 0},
-        {"sim-heading", "Sim Dragon", 451, 3, 8, 1, 512, ML_HEADING_CAP_STANDARD, 28, 8, 244, 0},
-        {"mission-heading", "Mission 100", 451, 2, 8, 1, 512, ML_HEADING_CAP_STANDARD, 29, 9, 249, 0},
-        {"survival-heading", "Survival", 451, 2, 9, 1, 512, ML_HEADING_CAP_STANDARD, 29, 8, 169, 0},
-        {"fusion-heading", "Disc Fusion", 451, 6, 4, 1, 512, ML_HEADING_CAP_STANDARD, 29, 9, 237, 0},
-        {"tour-heading", "Dragon World Tour", 450, 1, 22, 1, 512, ML_HEADING_CAP_STANDARD, 28, 9, 322, 0},
-        {"evolution-heading", "Evolution Z", 452, 1, 3, 1, 512, ML_HEADING_CAP_COMPACT, 29, 9, 203, 0},
-        {"shop-heading", "Item Shop", 452, 2, 20, 1, 512, ML_HEADING_CAP_LARGE, 30, 8, 190, 0},
-        {"map-heading", "Map Select", 448, 2, 55, 1, 512, ML_HEADING_CAP_COMPACT, 29, 9, 230, 0},
-        {"bgm-select-heading", "BGM Select", 448, 2, 55, 2, 512, ML_HEADING_CAP_STANDARD, 29, 9, 236, 0},
-        {"training-heading", "Ultimate Training", 461, 1, 5, 1, 512, ML_HEADING_CAP_STANDARD, 28, 9, 366, 0},
-        {"heading-battle-training", "Battle Training", 461, 1, 5, 3, 512, ML_HEADING_CAP_STANDARD, 28, 9, 310, 0},
-        {"data-heading", "Data Center", 459, 1, 9, 1, 512, ML_HEADING_CAP_COMPACT, 29, 9, 250, 0},
-        {"password-heading", "Password Input Screen", 459, 3, 2, 6, 512, ML_HEADING_CAP_COMPACT, 32, 8, 332, 1},
-        {"fighter-heading", "Fighter Catalog", 459, 2, 4, 4, 256, ML_HEADING_CAP_COMPACT, 29, 11, 192, 0},
-        {"replay-heading", "Replay Data", 459, 4, 4, 6, 512, ML_HEADING_CAP_REPLAY, 42, 8, 200, 1},
-        {"reference-heading", "Character Reference", 463, 1, 4, 1, 512, ML_HEADING_CAP_LARGE, 29, 8, 345, 0},
-        {"options-heading", "Options", 453, 1, 18, 1, 512, ML_HEADING_CAP_COMPACT, 29, 8, 161, 0},
-        {"screen-heading", "Screen", 453, 1, 18, 2, 512, ML_HEADING_CAP_COMPACT, 29, 8, 141, 0},
-        {"sound-heading", "Sound", 453, 1, 18, 3, 512, ML_HEADING_CAP_STANDARD, 29, 8, 128, 0},
-        {"bgm-heading", "BGM Test", 453, 1, 18, 4, 512, ML_HEADING_CAP_COMPACT, 29, 9, 195, 0},
-        {"controller-heading", "Controller", 453, 1, 18, 5, 512, ML_HEADING_CAP_STANDARD, 29, 8, 210, 0},
-        {"shenron-heading", "Shenron", 472, 2, 5, 1, 512, ML_HEADING_CAP_STANDARD, 29, 8, 173, 0},
+        {"history-heading", 460, 1, 11, 1, 512, ML_HEADING_CAP_STANDARD, 28, 9, 319, 0},
+        {"ultimate-heading", 451, 1, 4, 1, 512, ML_HEADING_CAP_STANDARD, 29, 9, 318, 0},
+        {"sim-heading", 451, 3, 8, 1, 512, ML_HEADING_CAP_STANDARD, 28, 8, 244, 0},
+        {"mission-heading", 451, 2, 8, 1, 512, ML_HEADING_CAP_STANDARD, 29, 9, 249, 0},
+        {"survival-heading", 451, 2, 9, 1, 512, ML_HEADING_CAP_STANDARD, 29, 8, 169, 0},
+        {"fusion-heading", 451, 6, 4, 1, 512, ML_HEADING_CAP_STANDARD, 29, 9, 237, 0},
+        {"tour-heading", 450, 1, 22, 1, 512, ML_HEADING_CAP_STANDARD, 28, 9, 322, 0},
+        {"evolution-heading", 452, 1, 3, 1, 512, ML_HEADING_CAP_COMPACT, 29, 9, 203, 0},
+        {"shop-heading", 452, 2, 20, 1, 512, ML_HEADING_CAP_LARGE, 30, 8, 190, 0},
+        {"map-heading", 448, 2, 55, 1, 512, ML_HEADING_CAP_COMPACT, 29, 9, 230, 0},
+        {"bgm-select-heading", 448, 2, 55, 2, 512, ML_HEADING_CAP_STANDARD, 29, 9, 236, 0},
+        {"training-heading", 461, 1, 5, 1, 512, ML_HEADING_CAP_STANDARD, 28, 9, 366, 0},
+        {"heading-battle-training", 461, 1, 5, 3, 512, ML_HEADING_CAP_STANDARD, 28, 9, 310, 0},
+        {"data-heading", 459, 1, 9, 1, 512, ML_HEADING_CAP_COMPACT, 29, 9, 250, 0},
+        {"password-heading", 459, 3, 2, 6, 512, ML_HEADING_CAP_COMPACT, 32, 8, 332, 1},
+        {"fighter-heading", 459, 2, 4, 4, 256, ML_HEADING_CAP_COMPACT, 29, 11, 192, 0},
+        {"replay-heading", 459, 4, 4, 6, 512, ML_HEADING_CAP_REPLAY, 42, 8, 200, 1},
+        {"reference-heading", 463, 1, 4, 1, 512, ML_HEADING_CAP_LARGE, 29, 8, 345, 0},
+        {"options-heading", 453, 1, 18, 1, 512, ML_HEADING_CAP_COMPACT, 29, 8, 161, 0},
+        {"screen-heading", 453, 1, 18, 2, 512, ML_HEADING_CAP_COMPACT, 29, 8, 141, 0},
+        {"sound-heading", 453, 1, 18, 3, 512, ML_HEADING_CAP_STANDARD, 29, 8, 128, 0},
+        {"bgm-heading", 453, 1, 18, 4, 512, ML_HEADING_CAP_COMPACT, 29, 9, 195, 0},
+        {"controller-heading", 453, 1, 18, 5, 512, ML_HEADING_CAP_STANDARD, 29, 8, 210, 0},
+        {"shenron-heading", 472, 2, 5, 1, 512, ML_HEADING_CAP_STANDARD, 29, 8, 173, 0},
     };
     static const char *const kState[2] = {"normal", "selected"};
-    const char *kMain = kMlMain;
-    static const char kUltimate[] = "Sim Dragon|Mission 100|Survival|Disc Fusion|???";
-    static const char kSimDragon[] = "Start|Battle Record|Explanation";
-    static const struct { const char *family; int part; const char *labels; } kVersusLists[3] = {
-        {"versus-time", 15, "60|90|180|240|\xE2\x88\x9E"}, /* (the last one: the infinity sign) */
-        {"versus-com-level", 16, "Very Weak|Weak|Average|Strong|Very Strong"},
-        {"versus-referee", 18, "Ox King|Videl|Supreme Kai\xE2\x84\xA2|Shenron|Announcer 1|Announcer 2|Announcer 3"}};
+    const char *kMain = MenuTranslation_MainOriginal(), *kMlItem = MenuTranslation_ItemOriginal();
+    static const struct { const char *family; int part; } kVersusLists[3] = {
+        {"versus-time", 15}, {"versus-com-level", 16}, {"versus-referee", 18}};
     MlBuf select, main, timer;
     MlGroup *g;
-    char id[48], from[48], text[48];
+    char id[48], from[48];
     int i, k, n;
 
 #define ML_ID(...) (snprintf(id, sizeof(id), __VA_ARGS__), id)
 #define ML_FROM(on, ...) ((on) ? (snprintf(from, sizeof(from), __VA_ARGS__), from) : NULL)
 #define ML_ADD(...) do { g = ml_add(c, __VA_ARGS__); if (g == NULL) { return 0; } } while (0)
-#define ML_NOTICE(id, index, labels) do { \
-    ML_ADD(id, 5, 4, -1, index, labels, 1, NULL, 512, -1); \
+#define ML_NOTICE(id, index) do { \
+    ML_ADD(id, 5, 4, -1, index, 1, NULL, 512, -1); \
     g->height = 64; g->hasFont = 1; g->fontCap = 43; g->fontBaseline = 50; g->fontMargin = 8; \
 } while (0)
 
@@ -688,58 +828,58 @@ static int ml_catalog(MlCtx *c) {
     if (!ml_screen(c, 5, 1, &timer)) { return 0; }
     for (i = 0; i < 3; i++) {
         ML_ADD(i == 0 ? "timer-white" : i == 1 ? "timer-yellow" : "timer-red",
-               5, 1, -1, 0, NULL, 1, NULL, 128, -1);
+               5, 1, -1, 0, 1, NULL, 128, -1);
         if (i != 0 && ml_texture_palette(c, timer, 0, (uint32_t)i, &g->tex[0]) <= 0) { return 0; }
         ml_cells(g, 10, 4, 32, 0);
         g->nRects = 11;
-        snprintf(g->rect[10].text, sizeof(g->rect[10].text), "\xE2\x88\x9E");
+        snprintf(g->rect[10].text, sizeof(g->rect[10].text), "%s", MenuTranslation_Text("timer-white/0/10"));
         g->rect[10].x = 64; g->rect[10].y = 64; g->rect[10].w = 64; g->rect[10].h = 32;
         g->hasFont = 1; g->fontCap = 22; g->fontBaseline = 28;
     }
-    ML_ADD("win-counter", 5, 1, -1, 4, NULL, 1, NULL, 64, -1);
+    ML_ADD("win-counter", 5, 1, -1, 4, 1, NULL, 64, -1);
     g->nRects = 1;
-    snprintf(g->rect[0].text, sizeof(g->rect[0].text), "Wins");
+    snprintf(g->rect[0].text, sizeof(g->rect[0].text), "%s", MenuTranslation_Text("win-counter/0/0"));
     g->rect[0].x = 0; g->rect[0].y = 0; g->rect[0].w = 64; g->rect[0].h = 32;
     g->hasFont = 1; g->fontCap = 10; g->fontBaseline = 15;
-    ML_ADD("blast-stock-counter", 5, 1, -1, 14, NULL, 1, NULL, 128, -1);
+    ML_ADD("blast-stock-counter", 5, 1, -1, 14, 1, NULL, 128, -1);
     ml_cells(g, 8, 4, 32, 0);
     g->hasFont = 1; g->fontCap = 19; g->fontBaseline = 25;
 
     /* File ID 6 is pzs3us1/00005.bin. Member 4 is the battle announcement texture file: the first seven
        textures hold words, with two 64-pixel rows in textures 3 and 4. Textures 7 and 8 are effects/icons. */
-    ML_NOTICE("notice-blue", 0, "Ready!");
-    ML_NOTICE("notice-orange", 1, "Fight!");
-    ML_NOTICE("notice-red", 2, "K.O.!");
-    ML_NOTICE("notice-silver", 3, "Success|Perfect!");
+    ML_NOTICE("notice-blue", 0);
+    ML_NOTICE("notice-orange", 1);
+    ML_NOTICE("notice-red", 2);
+    ML_NOTICE("notice-silver", 3);
     /* The second row has more pale fill than border; name the border explicitly for both rows' measurements. */
     g->hasOutline = 1;
     g->outline[0] = 106; g->outline[1] = 116; g->outline[2] = 158;
-    ML_NOTICE("notice-green", 4, "Ringout!|Time Up!");
-    ML_NOTICE("notice-gold", 5, "Winner!");
-    ML_NOTICE("notice-purple", 6, "Loser");
+    ML_NOTICE("notice-green", 4);
+    ML_NOTICE("notice-gold", 5);
+    ML_NOTICE("notice-purple", 6);
 
     /* Member 5 is the combo HUD sheet. Textures 0 and 1 are 32x32 digit atlases; texture 2
        has Hits! in its upper right. The event messages each occupy the top half of 3..7. */
-    ML_ADD("combo-red-digits", 5, 5, -1, 0, NULL, 1, NULL, 128, -1);
+    ML_ADD("combo-red-digits", 5, 5, -1, 0, 1, NULL, 128, -1);
     ml_cells(g, 10, 4, 32, 0);
     g->hasFont = 1; g->fontCap = 19; g->fontBaseline = 26;
-    ML_ADD("combo-orange-digits", 5, 5, -1, 1, NULL, 1, NULL, 128, -1);
+    ML_ADD("combo-orange-digits", 5, 5, -1, 1, 1, NULL, 128, -1);
     ml_cells(g, 10, 4, 32, 0);
     g->hasFont = 1; g->fontCap = 9; g->fontBaseline = 22;
-    ML_ADD("combo-hits", 5, 5, -1, 2, NULL, 1, NULL, 128, -1);
+    ML_ADD("combo-hits", 5, 5, -1, 2, 1, NULL, 128, -1);
     g->nRects = 1;
-    snprintf(g->rect[0].text, sizeof(g->rect[0].text), "Hits!");
+    snprintf(g->rect[0].text, sizeof(g->rect[0].text), "%s", MenuTranslation_Text("combo-hits/0/0"));
     g->rect[0].x = 64; g->rect[0].y = 0; g->rect[0].w = 64; g->rect[0].h = 32;
     g->hasFont = 1; g->fontCap = 10; g->fontBaseline = 29;
-    ML_ADD("combo-counter", 5, 5, -1, 3, "Counter!", 1, NULL, 128, -1);
+    ML_ADD("combo-counter", 5, 5, -1, 3, 1, NULL, 128, -1);
     g->height = 32; g->hasFont = 1; g->fontCap = 13; g->fontBaseline = 23; g->fontMargin = 4;
-    ML_ADD("combo-max-power", 5, 5, -1, 4, "MAX POWER!", 1, NULL, 128, -1);
+    ML_ADD("combo-max-power", 5, 5, -1, 4, 1, NULL, 128, -1);
     g->height = 32; g->hasFont = 1; g->fontCap = 13; g->fontBaseline = 23; g->hasArt = 1; g->fontArt = 124;
-    ML_ADD("combo-lock-on", 5, 5, -1, 5, "Lock on", 1, NULL, 128, -1);
+    ML_ADD("combo-lock-on", 5, 5, -1, 5, 1, NULL, 128, -1);
     g->height = 32; g->hasFont = 1; g->fontCap = 13; g->fontBaseline = 23; g->fontMargin = 4;
-    ML_ADD("combo-first-attack", 5, 5, -1, 6, "First Attack!", 1, NULL, 128, -1);
+    ML_ADD("combo-first-attack", 5, 5, -1, 6, 1, NULL, 128, -1);
     g->height = 32; g->hasFont = 1; g->fontCap = 13; g->fontBaseline = 23; g->hasArt = 1; g->fontArt = 124;
-    ML_ADD("combo-boost", 5, 5, -1, 7, "BOOST!", 1, NULL, 128, -1);
+    ML_ADD("combo-boost", 5, 5, -1, 7, 1, NULL, 128, -1);
     g->height = 32; g->hasFont = 1; g->fontCap = 13; g->fontBaseline = 23; g->fontMargin = 4;
 
     if (!ml_screen(c, 448, 2, &select) || !ml_screen(c, 449, 2, &main)) {
@@ -747,12 +887,12 @@ static int ml_catalog(MlCtx *c) {
     }
     /* the name strips. Their texts are namefont.c's tables: the names of the stages and of the songs */
     g = ml_strip(c, "stage", 64, select, 6, ML_TEXTURES);
-    for (n = 0; g != NULL && n < (int)(sizeof(kStageNames) / sizeof(kStageNames[0])); n++) {
+    for (n = 0; g != NULL && n < STAGE_NAMES; n++) {
         g->labels[g->nLabels++] = kStageNames[n];
     }
     for (i = 0; g != NULL && i < 2; i++) {
         g = ml_strip(c, i ? "song-highlighted" : "song", 32, select, i ? 3 : 4, 3);
-        for (n = 0; g != NULL && n < (int)(sizeof(kSongNames) / sizeof(kSongNames[0])); n++) {
+        for (n = 0; g != NULL && n < SONG_NAMES; n++) {
             g->labels[g->nLabels++] = kSongNames[n];
         }
     }
@@ -761,7 +901,7 @@ static int ml_catalog(MlCtx *c) {
        game writes it, and is the twelfth label */
     {
         unsigned char *item[2];
-        char withItem[sizeof(kMlMain) + sizeof(kMlItem) + 1];
+        char withItem[1024];
         int haveItem = ml_item_pics(c, item);
 
         snprintf(withItem, sizeof(withItem), "%s|%s", kMain, kMlItem);
@@ -780,19 +920,18 @@ static int ml_catalog(MlCtx *c) {
         return 0;
     }
 
-    ML_ADD("main-heading", 449, 2, 23, 1, "Main Menu", 0, NULL, 512, -1);
+    ML_ADD("main-heading", 449, 2, 23, 1, 0, NULL, 512, -1);
     g->height = 64; g->hasFont = g->hasArt = g->hasOutline = 1;
     g->fontCap = 25; g->fontBaseline = 30; g->fontArt = 194; g->fontMargin = 9;
     g->outline[0] = 87; g->outline[1] = 22; g->outline[2] = 12;
-    ML_ADD("versus-heading", 448, 1, 24, 1, "Versus Menu", 0, NULL, 512, -1);
+    ML_ADD("versus-heading", 448, 1, 24, 1, 0, NULL, 512, -1);
     g->height = 64; g->hasFont = g->hasArt = g->hasOutline = 1;
     g->fontCap = 21; g->fontBaseline = 29; g->fontArt = 270; g->fontMargin = 7;
     g->outline[0] = 30; g->outline[1] = 8; g->outline[2] = 4;
     for (i = 0; i < (int)(sizeof(kHeadings) / sizeof(kHeadings[0])); i++) {
         const uint8_t outline[3] = {87, 22, 12};
         const MlHeading *heading = &kHeadings[i];
-        ML_ADD(heading->id, heading->file, heading->outer, heading->part, heading->index,
-               heading->text, heading->centered, NULL, heading->width, -1);
+        ML_ADD(heading->id, heading->file, heading->outer, heading->part, heading->index, heading->centered, NULL, heading->width, -1);
         g->height = 64;
         g->hasFont = g->hasArt = 1;
         g->fontCap = heading->cap; g->fontBaseline = heading->baseline;
@@ -800,14 +939,14 @@ static int ml_catalog(MlCtx *c) {
         g->hasOutline = 1;
         memcpy(g->outline, outline, sizeof(outline));
     }
-    ML_ADD("battle-class-heading", 461, 1, 8, 0, "Basic|Intermediate|Advanced", 0, NULL, 256, -1);
+    ML_ADD("battle-class-heading", 461, 1, 8, 0, 0, NULL, 256, -1);
     g->height = 64;
     g->hasOutline = 1;
     g->outline[0] = 87; g->outline[1] = 22; g->outline[2] = 12;
 
-    ML_ADD("title-normal", 449, 1, 8, 0, "New Game|Continue", 1, NULL, 512, -1);
-    ML_ADD("title-selected", 449, 1, 8, 1, "New Game|Continue", 1, "title-normal", 512, -1);
-    ML_ADD("title-press-start", 449, 1, 6, 0, "Press START button", 1, NULL, 512, -1);
+    ML_ADD("title-normal", 449, 1, 8, 0, 1, NULL, 512, -1);
+    ML_ADD("title-selected", 449, 1, 8, 1, 1, "title-normal", 512, -1);
+    ML_ADD("title-press-start", 449, 1, 6, 0, 1, NULL, 512, -1);
     /* measured on the inner letters, not on this prompt's bright outer border */
     g->hasFont = g->hasArt = 1;
     g->fontCap = 17;
@@ -817,138 +956,91 @@ static int ml_catalog(MlCtx *c) {
     g->outline[0] = 63, g->outline[1] = 21, g->outline[2] = 17;
     for (i = 0; i < 4; i++) {
         const char *family = i < 2 ? "versus" : "versus-type";
-        ML_ADD(ML_ID("%s-%s", family, kState[i % 2]), 448, 1, 8, i, i < 2 ? "1P VS COM|1P VS 2P|COM VS COM|Battle Settings" : "Single Battle|Team Battle|DP Battle",
+        ML_ADD(ML_ID("%s-%s", family, kState[i % 2]), 448, 1, 8, i,
                0, ML_FROM(i % 2, "%s-normal", family), 512, -1);
     }
     for (i = 0; i < 4; i++) {
         const char *family = i % 2 == 0 ? "options" : "options-sound";
         ML_ADD(ML_ID("%s-%s", family, kState[i / 2]), 453, 1, 16, i,
-               i % 2 == 0 ? "Save/Load|Screen|Sound|Controller|Camera Type|Screen Shake|Screen Adjust|Speaker" : "Volume|BGM Test|Change Voice|Control Type|Vibration",
                0, ML_FROM(i >= 2, "%s-normal", family), 512, -1);
     }
     for (i = 0; i < 2; i++) {
-        ML_ADD(ML_ID("options-actions-%s", kState[i]), 453, 1, 27, i, "EXIT|Default", 0, ML_FROM(i, "options-actions-normal"), 256, -1);
-        ML_ADD(ML_ID("save-confirm-%s", kState[i]), 453, 1, 3, i, "Yes|No", 1, ML_FROM(i, "save-confirm-normal"), 128, 35);
+        ML_ADD(ML_ID("options-actions-%s", kState[i]), 453, 1, 27, i, 0, ML_FROM(i, "options-actions-normal"), 256, -1);
+        ML_ADD(ML_ID("save-confirm-%s", kState[i]), 453, 1, 3, i, 1, ML_FROM(i, "save-confirm-normal"), 128, 35);
     }
     for (i = 0; i < 4; i++) {
         const char *family = i % 2 == 0 ? "options-values" : "options-controls";
-        ML_ADD(ML_ID("%s-%s", family, kState[i / 2]), 453, 1, 14, i, i % 2 == 0 ? "ON|OFF|Save|Load|Stereo|Mono|English|Japanese" : "1P|2P|Normal|Custom|Simple",
+        ML_ADD(ML_ID("%s-%s", family, kState[i / 2]), 453, 1, 14, i,
                1, ML_FROM(i >= 2, "%s-normal", family), 256, -1);
     }
     for (i = 0; i < 2; i++) {
-        ML_ADD(ML_ID("history-difficulty-%s", kState[i]), 460, 1, 9, 2 + i, "Easy|Normal|Hard", 1, ML_FROM(i, "history-difficulty-normal"), 512, -1);
+        ML_ADD(ML_ID("history-difficulty-%s", kState[i]), 460, 1, 9, 2 + i, 1, ML_FROM(i, "history-difficulty-normal"), 512, -1);
     }
     for (i = 0; i < 2; i++) {
-        ML_ADD(ML_ID("history-action-%s", kState[i]), 460, 1, 9, 4 + i, "Select Scenario|Select Difficulty", 0, ML_FROM(i, "history-action-normal"), 512, -1);
+        ML_ADD(ML_ID("history-action-%s", kState[i]), 460, 1, 9, 4 + i, 0, ML_FROM(i, "history-action-normal"), 512, -1);
     }
-    ML_ADD("ultimate-battle", 451, 1, 3, 7, kUltimate, 1, NULL, 512, -1);
-    ML_ADD("sim-dragon-actions", 451, 5, 2, 19, kSimDragon, 0, NULL, 512, -1);
+    ML_ADD("ultimate-battle", 451, 1, 3, 7, 1, NULL, 512, -1);
+    ML_ADD("sim-dragon-actions", 451, 5, 2, 19, 0, NULL, 512, -1);
     for (i = 0; i < 2; i++) {
-        ML_ADD(ML_ID("evolution-%s", kState[i]), 452, 1, 5, i, "Character Customize|Item Shop|Evolution Z Explanation", 0, ML_FROM(i, "evolution-normal"), 512, -1);
-        ML_ADD(ML_ID("customize-menu-%s", kState[i]), 452, 3, 4, i, "Equip Item|Password|Distribute Z Points", 0, ML_FROM(i, "customize-menu-normal"), 256, -1);
-        ML_ADD(ML_ID("customize-slots-%s", kState[i]), 452, 3, 4, i + 2, "|||Distribute Z Points", 1, ML_FROM(i, "customize-slots-normal"), 512, -1);
-        ML_ADD(ML_ID("item-shop-%s", kState[i]), 452, 2, 3, i, "Item Exchange|Item List", 0, ML_FROM(i, "item-shop-normal"), 512, -1);
-        ML_ADD(ML_ID("data-center-%s", kState[i]), 459, 1, 8, i, "Password Input Screen|Replay|Fighter Catalog", 0, ML_FROM(i, "data-center-normal"), 512, -1);
-        ML_ADD(ML_ID("character-reference-%s", kState[i]), 463, 1, 8, i, "Character Introduction|Voice Playback|Chi-Chi's Commentary|View Model", 0,
+        ML_ADD(ML_ID("evolution-%s", kState[i]), 452, 1, 5, i, 0, ML_FROM(i, "evolution-normal"), 512, -1);
+        ML_ADD(ML_ID("customize-menu-%s", kState[i]), 452, 3, 4, i, 0, ML_FROM(i, "customize-menu-normal"), 256, -1);
+        ML_ADD(ML_ID("customize-slots-%s", kState[i]), 452, 3, 4, i + 2, 1, ML_FROM(i, "customize-slots-normal"), 512, -1);
+        ML_ADD(ML_ID("item-shop-%s", kState[i]), 452, 2, 3, i, 0, ML_FROM(i, "item-shop-normal"), 512, -1);
+        ML_ADD(ML_ID("data-center-%s", kState[i]), 459, 1, 8, i, 0, ML_FROM(i, "data-center-normal"), 512, -1);
+        ML_ADD(ML_ID("character-reference-%s", kState[i]), 463, 1, 8, i, 0,
                ML_FROM(i, "character-reference-normal"), 256, -1);
     }
     for (i = 0; i < 2; i++) {
-        ML_ADD(ML_ID("training-%s", kState[i]), 461, 1, 9, i * 4, "Training|Battle Training", 0, ML_FROM(i, "training-normal"), 512, -1);
+        ML_ADD(ML_ID("training-%s", kState[i]), 461, 1, 9, i * 4, 0, ML_FROM(i, "training-normal"), 512, -1);
     }
     for (i = 0; i < 2; i++) {
-        ML_ADD(ML_ID("practice-%s", kState[i]), 461, 1, 9, 1 + i * 4, "Single Practice|Team Practice", 0, ML_FROM(i, "practice-normal"), 512, -1);
+        ML_ADD(ML_ID("practice-%s", kState[i]), 461, 1, 9, 1 + i * 4, 0, ML_FROM(i, "practice-normal"), 512, -1);
     }
     for (i = 0; i < 2; i++) {
-        ML_ADD(ML_ID("training-controller-%s", kState[i]), 461, 1, 9, 3 + i * 4, "Nunchuk Style|Classic Style|GC Controller", 0,
+        ML_ADD(ML_ID("training-controller-%s", kState[i]), 461, 1, 9, 3 + i * 4, 0,
                ML_FROM(i, "training-controller-normal"), 512, -1);
     }
-    ML_ADD("ultimate-battle-normal", 451, 1, 3, 6, kUltimate, 1, "ultimate-battle", 512, -1);
-    ML_ADD("sim-dragon-actions-normal", 451, 5, 2, 18, kSimDragon, 0, "sim-dragon-actions", 512, -1);
+    ML_ADD("ultimate-battle-normal", 451, 1, 3, 6, 1, "ultimate-battle", 512, -1);
+    ML_ADD("sim-dragon-actions-normal", 451, 5, 2, 18, 0, "sim-dragon-actions", 512, -1);
     for (i = 0; i < 2; i++) {
-        ML_ADD(ML_ID("world-tour-list-%s", kState[i]), 450, 1, 5, i,
-               "World Tour|Free|World Tournament|World Martial Arts Big Tournament|Cell Games|Otherworld Tournament|Yamcha Game", 0,
+        ML_ADD(ML_ID("world-tour-list-%s", kState[i]), 450, 1, 5, i, 0,
                ML_FROM(i, "world-tour-list-normal"), 512, -1);
-        ML_ADD(ML_ID("world-tour-custom-%s", kState[i]), 450, 2, 13, i, "Normal|Custom 1|Custom 2|Custom 3", 1, ML_FROM(i, "world-tour-custom-normal"), 256, -1);
-        ML_ADD(ML_ID("versus-settings-%s", kState[i]), 448, 1, 13, i, "Duel Time|COM Level|Referee|Transformations|Map Setting|Default", 0,
+        ML_ADD(ML_ID("world-tour-custom-%s", kState[i]), 450, 2, 13, i, 1, ML_FROM(i, "world-tour-custom-normal"), 256, -1);
+        ML_ADD(ML_ID("versus-settings-%s", kState[i]), 448, 1, 13, i, 0,
                ML_FROM(i, "versus-settings-normal"), 256, -1);
-        ML_ADD(ML_ID("versus-dp-%s", kState[i]), 448, 1, 12, i + 1, "10|15|20", 1, ML_FROM(i, "versus-dp-normal"), 256, -1);
+        ML_ADD(ML_ID("versus-dp-%s", kState[i]), 448, 1, 12, i + 1, 1, ML_FROM(i, "versus-dp-normal"), 256, -1);
         ml_outline(g, i); /* the narrow "10" has more fill than outline: the outline is this sheet's colour, not the commonest */
-        ML_ADD(ML_ID("versus-onoff-%s", kState[i]), 448, 1, 17, i, "ON|OFF", 1, ML_FROM(i, "versus-onoff-normal"), 256, -1);
+        ML_ADD(ML_ID("versus-onoff-%s", kState[i]), 448, 1, 17, i, 1, ML_FROM(i, "versus-onoff-normal"), 256, -1);
         for (k = 0; k < 3; k++) {
-            ML_ADD(ML_ID("%s-%s", kVersusLists[k].family, kState[i]), 448, 1, kVersusLists[k].part, i, kVersusLists[k].labels, 1,
+            ML_ADD(ML_ID("%s-%s", kVersusLists[k].family, kState[i]), 448, 1, kVersusLists[k].part, i, 1,
                    ML_FROM(i, "%s-normal", kVersusLists[k].family), 256, -1);
             ml_outline(g, i); /* (the infinity sign's fill outnumbers its outline too) */
         }
         for (k = 1; k <= 2; k++) {
-            snprintf(text, sizeof(text), "%dP:ON|%dP:OFF", k, k);
-            ML_ADD(ML_ID("versus-transform-%dp-%s", k, kState[i]), 448, 1, 17, k * 2 + i, text, 1, ML_FROM(i, "versus-transform-%dp-normal", k), 128, -1);
+            ML_ADD(ML_ID("versus-transform-%dp-%s", k, kState[i]), 448, 1, 17, k * 2 + i, 1, ML_FROM(i, "versus-transform-%dp-normal", k), 128, -1);
         }
-        ML_ADD(ML_ID("item-shop-confirm-%s", kState[i]), 452, 2, 28, i, "Yes|No|Explanation", 1, ML_FROM(i, "item-shop-confirm-normal"), 256, -1);
+        ML_ADD(ML_ID("item-shop-confirm-%s", kState[i]), 452, 2, 28, i, 1, ML_FROM(i, "item-shop-confirm-normal"), 256, -1);
     }
     for (i = 0; i < 2; i++) {
-        ML_ADD(ML_ID("battle-training-%s", kState[i]), 461, 1, 9, 2 + i * 4, "Basic|Intermediate|Advanced", 0, ML_FROM(i, "battle-training-normal"), 256, -1);
+        ML_ADD(ML_ID("battle-training-%s", kState[i]), 461, 1, 9, 2 + i * 4, 0, ML_FROM(i, "battle-training-normal"), 256, -1);
     }
     for (i = 0; i < 2; i++) {
-        ML_ADD(ML_ID("team-end-%s", kState[i]), 448, 2, 36, i, "END", 1, ML_FROM(i, "team-end-normal"), 256, -1);
-        ML_ADD(ML_ID("sound-digits-%s", kState[i]), 453, 1, 11, i, NULL, 0, NULL, 128, -1);
+        ML_ADD(ML_ID("team-end-%s", kState[i]), 448, 2, 36, i, 1, ML_FROM(i, "team-end-normal"), 256, -1);
+        ML_ADD(ML_ID("sound-digits-%s", kState[i]), 453, 1, 11, i, 0, NULL, 128, -1);
         ml_cells(g, 10, 4, 32, 0);
-        ML_ADD(ML_ID("character-color-%s", kState[i]), 448, 2, 29, i, NULL, 0, NULL, 128, -1);
+        ML_ADD(ML_ID("character-color-%s", kState[i]), 448, 2, 29, i, 0, NULL, 128, -1);
         ml_cells(g, 4, 2, 64, 1);
         ml_outline(g, i);
     }
-    ML_ADD("character-preview-color", 463, 1, 7, 0, NULL, 0, NULL, 128, -1);
+    ML_ADD("character-preview-color", 463, 1, 7, 0, 0, NULL, 128, -1);
     ml_cells(g, 10, 4, 32, 0);
-    ML_ADD("song-random", 448, 2, 4, 3, "Random", 0, NULL, 512, -1);
-    ML_ADD("song-random-highlighted", 448, 2, 3, 3, "Random", 0, "song-random", 512, -1);
+    ML_ADD("song-random", 448, 2, 4, 3, 0, NULL, 512, -1);
+    ML_ADD("song-random-highlighted", 448, 2, 3, 3, 0, "song-random", 512, -1);
     return 1;
 #undef ML_ID
 #undef ML_FROM
 #undef ML_ADD
 #undef ML_NOTICE
-}
-
-/* What a label is drawn in: by the state its group is the sheet of. */
-static int ml_color_style(const char *group) {
-    static const char *const kOrange[] = {"stage", "song-highlighted", "main-6", "ultimate-battle", "sim-dragon-actions",
-                                          "character-preview-color", "song-random-highlighted"};
-    size_t n = strlen(group), i;
-    if (strcmp(group, "notice-blue") == 0) { return ML_NOTICE_BLUE; }
-    if (strcmp(group, "notice-orange") == 0) { return ML_NOTICE_ORANGE; }
-    if (strcmp(group, "notice-red") == 0) { return ML_NOTICE_RED; }
-    if (strcmp(group, "notice-silver") == 0) { return ML_NOTICE_SILVER; }
-    if (strcmp(group, "notice-green") == 0) { return ML_NOTICE_GREEN; }
-    if (strcmp(group, "notice-gold") == 0) { return ML_NOTICE_GOLD; }
-    if (strcmp(group, "notice-purple") == 0) { return ML_NOTICE_PURPLE; }
-    if (strcmp(group, "combo-red-digits") == 0) { return ML_COMBO_RED_DIGITS; }
-    if (strcmp(group, "combo-hits") == 0) { return ML_COMBO_HITS; }
-    if (strcmp(group, "combo-orange-digits") == 0) { return ML_COMBO_ORANGE_DIGITS; }
-    if (strcmp(group, "combo-max-power") == 0) { return ML_COMBO_POWER; }
-    if (strncmp(group, "combo-", 6) == 0) { return ML_COMBO_MESSAGE; }
-    if (strcmp(group, "timer-white") == 0) { return ML_TIMER_WHITE; }
-    if (strcmp(group, "timer-yellow") == 0) { return ML_TIMER_YELLOW; }
-    if (strcmp(group, "timer-red") == 0) { return ML_TIMER_RED; }
-    if (strcmp(group, "win-counter") == 0) { return ML_WIN_COUNTER; }
-    if (strcmp(group, "blast-stock-counter") == 0) { return ML_BLAST_STOCK_COUNTER; }
-    if (strcmp(group, "main-5") == 0) {
-        return ML_MAIN_MENU;
-    }
-    if (strcmp(group, "main-heading") == 0 || strcmp(group, "versus-heading") == 0 ||
-        strcmp(group, "heading-battle-training") == 0 ||
-        (n >= 8 && strcmp(group + n - 8, "-heading") == 0)) {
-        return ML_MAIN_HEADING;
-    }
-    if (strcmp(group, "title-press-start") == 0) {
-        return ML_TITLE_PROMPT;
-    }
-    if (n >= 9 && strcmp(group + n - 9, "-selected") == 0) {
-        return ML_ORANGE;
-    }
-    for (i = 0; i < sizeof(kOrange) / sizeof(kOrange[0]); i++) {
-        if (strcmp(group, kOrange[i]) == 0) {
-            return ML_ORANGE;
-        }
-    }
-    return ML_PURPLE;
 }
 
 /* ---- measuring ------------------------------------------------------------------------------------------------- */
@@ -1361,7 +1453,16 @@ static int ml_rows(MlCtx *c) {
         if (strcmp(r->id, "replay-heading/0/0") == 0) {
             r->x = 9; r->w = 503;
         }
-        r->colors = ml_color_style(ml_family(r, family, sizeof(family)));
+        {
+            const char *translated = MenuTranslation_Text(r->id);
+            int style = ml_style_for_id(r->id);
+            if (translated == NULL) { return ml_fail(c, "translation label is missing for %s", r->id); }
+            if (style < 0) {
+                return ml_fail(c, "%s: label has no catalog style", r->id);
+            }
+            r->colors = style;
+            r->text = translated;
+        }
         r->italic = ml_starts(r->id, "title-press-start/") || ml_starts(r->id, "notice-") || ml_starts(r->id, "combo-") ||
                     ml_starts(r->id, "timer-");
     }
@@ -1422,7 +1523,7 @@ static const char *ml_hex(const uint8_t *rgb, char *out) {
 static int ml_row_ok(const MlRow *r) {
     return r->texW >= 8 && r->texW <= 512 && (r->texW & (r->texW - 1)) == 0 && r->x >= 0 && r->x < r->texW && r->w >= 1 && r->w <= r->texW - r->x &&
            r->texH >= 1 && r->texH <= 512 && r->height >= 1 && r->height <= 64 && r->y >= 0 && r->y <= r->texH - r->height && r->cap >= 1 &&
-           r->cap <= 64 && r->baseline >= 0 && (r->baseline <= r->height || (r->isRect && strcmp(r->text, "\xE2\x88\x9E") == 0 && r->baseline <= 64)) &&
+           r->cap <= 64 && r->baseline >= 0 && (r->baseline <= r->height || (r->isRect && strcmp(MenuTranslation_Original(r->id), "\xE2\x88\x9E") == 0 && r->baseline <= 64)) &&
            r->margin >= 0 && r->margin * 2 < r->w && r->art >= 0 && r->art <= r->w;
 }
 
@@ -1433,7 +1534,7 @@ static int ml_tsv(MlCtx *c, MlText *labels, MlText *styles, int *count) {
     int i;
 
     ml_put(labels, "# " MENU_LABELS_VERSION " hash width height y row_height cap_height baseline center margin width_milli x row_width art_width top bottom "
-                   "middle_rgb has_middle outline italic outline_milli outer_milli outer_rgb shadow outline_bottom bevel_milli bevel_light bevel_dark depth_milli mid_gradient font_face text\n");
+                   "middle_rgb has_middle outline italic outline_milli outer_milli outer_rgb shadow outline_bottom bevel_milli bevel_light bevel_dark depth_milli mid_gradient font_face label_id\n");
     /* the names of added songs and stages are drawn like the disc's (ui.cpp) */
     ml_put(styles, "# kind (0 song, 1 selected song, 2 stage) cap_height baseline margin width_milli top bottom outline\n");
     for (i = 0; i < 3; i++) {
@@ -1449,22 +1550,16 @@ static int ml_tsv(MlCtx *c, MlText *labels, MlText *styles, int *count) {
     }
     *count = 0;
     for (i = 0; i < c->nRows; i++) {
-        const MlRow *r = &c->rows[i], *from = r->textFrom[0] != '\0' ? ml_row(c, r->textFrom) : NULL;
+        const MlRow *r = &c->rows[i];
         const MlColors *col = &kMlColors[r->colors];
-        const char *text = from != NULL ? from->text : r->text;
+        const char *original = MenuTranslation_Original(r->id);
         if (!ml_row_ok(r)) {
             return ml_fail(c, "%s: the label was measured outside its texture", r->id);
         }
-        if (text[0] == '\0') {
-            continue;
-        }
-        if (strpbrk(text, "\t\r\n") != NULL || strlen(text) > 255 || text[strspn(text, " ")] == '\0') {
-            return ml_fail(c, "%s: the catalogue's text cannot be a label", r->id);
-        }
-        /* (the width of the artwork is aimed at only by the label that artwork shows) */
+        if (original == NULL || original[0] == '\0') return ml_fail(c, "%s: original label is missing", r->id);
         ml_put(labels, "%016llx\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%s\t%s\t%s\t%d\t%s\t%d\t%d\t%d\t%s\t%d\t%s\t%d\t%s\t%s\t%d\t%d\t%d\t%s\n", (unsigned long long)r->hash,
                r->texW, r->texH, r->y, r->height, r->cap, r->baseline, r->center, r->margin,
-               r->widthMilli ? r->widthMilli : 1000, r->x, r->w, strcmp(text, r->text) == 0 ? r->art : 0,
+               r->widthMilli ? r->widthMilli : 1000, r->x, r->w, r->art,
                ml_hex(col->top, top), ml_hex(col->bottom, bottom), ml_hex(col->middle, middle), col->hasMiddle,
                ml_hex(col->outline, outline), r->italic,
                col->outlineWidth < 0 ? -1 : (int)(col->outlineWidth * 1000.0f + 0.5f), col->outerWidth * 1000, ml_hex(col->outerColor, outer), col->shadow,
@@ -1473,7 +1568,7 @@ static int ml_tsv(MlCtx *c, MlText *labels, MlText *styles, int *count) {
                ml_hex(r->colors == ML_MAIN_HEADING ? kHeadingBevelLight : col->top, bevelLight),
                ml_hex(r->colors == ML_MAIN_HEADING ? kHeadingBevelDark : col->depth ? col->outerColor : col->outline, bevelDark),
                (int)(col->depth * 1000.0f + 0.5f), col->midGradient, ml_starts(r->id, "notice-") || ml_starts(r->id, "combo-") ||
-               ml_starts(r->id, "timer-") || ml_starts(r->id, "win-counter/") || ml_starts(r->id, "blast-stock-counter/"), text);
+               ml_starts(r->id, "timer-") || ml_starts(r->id, "win-counter/") || ml_starts(r->id, "blast-stock-counter/"), r->id);
         ++*count;
     }
     if (*count > ML_ROWS) {
@@ -1517,7 +1612,8 @@ static void ml_json_rgb(MlText *t, const char *key, const uint8_t *rgb, const ch
 static int ml_json(MlCtx *c, MlText *t) {
     int i;
 
-    ml_put(t, "{\n  \"color_styles\": {\n");
+    ml_put(t, "{\n");
+    ml_put(t, "  \"color_styles\": {\n");
     for (i = 0; i < (int)(sizeof(kMlColors) / sizeof(kMlColors[0])); i++) {
         const MlColors *col = &kMlColors[i];
         int more = col->outlineWidth >= 0 || col->outer || !col->shadow || col->bevelWidth || col->depth || col->midGradient || col->hasMiddle;
@@ -1555,9 +1651,7 @@ static int ml_json(MlCtx *c, MlText *t) {
             ml_put(t, "      \"texture_height\": %d,\n      \"y\": %d,\n", r->texH, r->y);
         }
         ml_put(t, "      \"original\": ");
-        ml_json_text(t, r->text);
-        ml_put(t, ",\n      \"text\": ");
-        ml_json_text(t, r->text);
+        ml_json_text(t, MenuTranslation_Original(r->id));
         ml_put(t, ",\n      \"enabled\": true,\n      \"height\": %d,\n      \"cap_height\": %d,\n      \"baseline\": %d,\n      \"align\": \"%s\",\n"
                   "      \"margin\": %d,\n      \"art_width\": %d,\n",
                r->height, r->cap, r->baseline, r->center ? "center" : "left", r->margin, r->art);
@@ -1566,9 +1660,6 @@ static int ml_json(MlCtx *c, MlText *t) {
         }
         if (!r->isRect && r->x == 0 && r->w == r->texW && r->texW != 512) {
             ml_put(t, "      \"texture_width\": %d,\n", r->texW);
-        }
-        if (r->textFrom[0] != '\0') {
-            ml_put(t, "      \"text_from\": \"%s\",\n", r->textFrom);
         }
         if (ml_starts(r->id, "notice-") || ml_starts(r->id, "combo-") || ml_starts(r->id, "timer-") ||
             ml_starts(r->id, "win-counter/") || ml_starts(r->id, "blast-stock-counter/")) {
@@ -1691,6 +1782,11 @@ int MenuLabels_Make(const char *dataDir, const char *outDir, int anyDisc, char *
         return MENU_LABELS_FAILED;
     }
     pthread_mutex_lock(&sMlCutter);
+    if (!MenuTranslation_Load(outDir, why, whyLen)) {
+        pthread_mutex_unlock(&sMlCutter);
+        free(c);
+        return MENU_LABELS_FAILED;
+    }
     result = ml_read_disc(c, dataDir, anyDisc);
     if (result == MENU_LABELS_MADE) {
         result = MENU_LABELS_FAILED;
@@ -1773,12 +1869,14 @@ static int ml_cutter_sheets(MlCtx *c, MlBuf screen, int part, int s, int want) {
 /* The label's two pictures (MenuLabels_MainItem), with sMlCutter held and archives 448 and 449 read into `c`. */
 static int ml_item_pics(MlCtx *c, unsigned char *out[2]) {
     const char *names[ML_LABELS];
-    char split[sizeof(kMlMain)], *p;
+    char split[1024], *p;
+    const char *kMlMain, *kMlItem;
     MlBuf select, main;
     int count = 0, k, w, h, ok = 0;
 
     out[0] = out[1] = NULL;
-    memcpy(split, kMlMain, sizeof(split));
+    if (!MenuTranslation_Ensure() || (kMlMain = MenuTranslation_MainOriginal()) == NULL || (kMlItem = MenuTranslation_ItemOriginal()) == NULL ||
+        snprintf(split, sizeof(split), "%s", kMlMain) >= (int)sizeof(split)) return 0;
     for (p = split; count < ML_LABELS; p++) { /* the main menu's texts, one by one */
         names[count++] = p;
         if ((p = strchr(p, '|')) == NULL) {
@@ -1790,7 +1888,7 @@ static int ml_item_pics(MlCtx *c, unsigned char *out[2]) {
     /* the stage select's names lend the letters the main menu's labels do not have (the k), as namefont.c does */
     if (ml_screen(c, 448, 2, &select) && ml_screen(c, 449, 2, &main) && ml_cutter_sheets(c, select, 6, NF_STAGE, 9) == 9 &&
         ml_cutter_sheets(c, main, 5, NF_SONG, 2) == 2 && ml_cutter_sheets(c, main, 6, NF_SONG_LIT, 2) == 2 &&
-        style_build(NF_STAGE, kStageNames, (int)(sizeof(kStageNames) / sizeof(kStageNames[0])), 64) &&
+        style_build(NF_STAGE, kStageNames, STAGE_NAMES, 64) &&
         style_build(NF_SONG, names, count, 32) && style_build(NF_SONG_LIT, names, count, 32)) {
         style_lend(&sStyle[NF_SONG], &sStyle[NF_STAGE]);
         style_lend(&sStyle[NF_SONG_LIT], &sStyle[NF_STAGE]);

@@ -50,6 +50,12 @@ extern void Font_SetShadowMode(s32 mode);
 extern void Font_SetShadowColor(u32 color);
 extern void Font_SetShadowOffset(s32 x, s32 y);
 extern void Font_SetColorRGBA(s32 r, s32 g, s32 b, s32 a);
+#ifdef PORT
+extern const u16 *UiText_TranslateLine(const u32 *table, int line, const u16 *original);
+#define DIALOG_TRANSLATE(tbl, i, str) ((u16 *)UiText_TranslateLine((const u32 *)(tbl), (i), (str)))
+#else
+#define DIALOG_TRANSLATE(tbl, i, str) (str)
+#endif
 
 #define DIALOG_TEXT(tbl, i) ((u16 *)((u8 *)(tbl) + ((tbl)[(i) + 1] / 4 * 4)))
 #define DIALOG_PART(file, i) ((DialogResHdr *)((u8 *)(file) + ((file)[i] / 4 * 4)))
@@ -84,7 +90,7 @@ void Dialog_DrawText(void) {
     }
     Flash_ClipGetPos(flash, &ref, &x, &y);
     alpha = Flash_ClipGetAlpha(flash, &ref);
-    str = DIALOG_TEXT(gDialog->msgTbl, gDialog->msgIdx);
+    str = DIALOG_TRANSLATE(gDialog->msgTbl, gDialog->msgIdx, DIALOG_TEXT(gDialog->msgTbl, gDialog->msgIdx));
     lines = Font_CountLines(str);
     switch (gDialog->size) {
     case 0:
@@ -154,7 +160,7 @@ void Dialog_DrawTitle(void) {
     }
     Flash_ClipGetPos(flash, &ref, &x, &y);
     alpha = Flash_ClipGetAlpha(flash, &ref);
-    str = DIALOG_TEXT(gDialog->titleTbl, gDialog->titleIdx);
+    str = DIALOG_TRANSLATE(gDialog->titleTbl, gDialog->titleIdx, DIALOG_TEXT(gDialog->titleTbl, gDialog->titleIdx));
     Font_PushStyle();
     Font_SetAlign(1);
     Font_SetScaleXY(1.0f, 1.0f);
@@ -189,7 +195,7 @@ void Dialog_DrawBody(void) {
     }
     Flash_ClipGetPos(flash, &ref, &x, &y);
     alpha = Flash_ClipGetAlpha(flash, &ref);
-    str = DIALOG_TEXT(gDialog->titleTbl, gDialog->msgIdx);
+    str = DIALOG_TRANSLATE(gDialog->titleTbl, gDialog->msgIdx, DIALOG_TEXT(gDialog->titleTbl, gDialog->msgIdx));
     switch (Font_CountLines(str)) {
     case 1:
         y += 0x28;

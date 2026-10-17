@@ -27,6 +27,7 @@ enum { MENU_TEXT_MENU = 0, MENU_TEXT_DIALOGUE = 1, MENU_TEXT_BATTLE = 2 };
 int MenuText_FontAvailable(int choice, int setting);
 const char *MenuText_FontName(int choice);
 int MenuText_FontId(int choice);
+int MenuText_FirstFontId(int setting); /* first listed font for a setting, even before labels.tsv exists */
 /* For drawing in a listed font elsewhere (the fight panels): its file once checked (0: not usable); the choice a
    saved id names (0: none). */
 int MenuText_FontFile(int choice, char *out, int size);
@@ -44,6 +45,8 @@ int MenuText_BattleFontIdToSave(void);
    frames: when the list has been made, the fonts for the menus are offered and the one asked for is taken into use.
    Costs one read of a variable otherwise. */
 void MenuText_Poll(void);
+/* Finish text catalog initialization after the first-run language choice, in this process. */
+void MenuText_BootLanguageChosen(void);
 /* Shared Font_Print glyphs have a separate choice; atlas replacements retain game metrics and styling. */
 int MenuText_GetSharedFont(void);
 void MenuText_SetSharedFont(int choice);

@@ -1348,6 +1348,40 @@ static void relaunch(int role, const char *join, int port) {
     exit(2);
 }
 
+/* Restart after changing the menu language, keeping the player's launch environment. */
+void Port_Restart(const char *language) {
+    const char *settings = getenv("BT3_SETTINGS");
+    /* With settings disabled, carry this run's choice through the restart. */
+    if (settings != NULL && settings[0] == '\0' && language != NULL) {
+#ifdef _WIN32
+        SetEnvironmentVariableA("BT3_MENU_LANG", language);
+        _putenv_s("BT3_MENU_LANG", language);
+#else
+        setenv("BT3_MENU_LANG", language, 1);
+#endif
+    }
+    fflush(NULL);
+#ifdef _WIN32
+    char exe[1024];
+    STARTUPINFOA si;
+    PROCESS_INFORMATION pi;
+    GetModuleFileNameA(NULL, exe, sizeof(exe) - 1);
+    memset(&si, 0, sizeof(si));
+    si.cb = sizeof(si);
+    if (CreateProcessA(exe, NULL, NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi)) ExitProcess(0);
+#elif defined(__APPLE__)
+    char exe[1024];
+    uint32_t cap = sizeof(exe) - 1;
+    extern int _NSGetExecutablePath(char *buf, uint32_t *size);
+    if (_NSGetExecutablePath(exe, &cap) == 0) { char *argv[2] = {exe, NULL}; execv(exe, argv); }
+#else
+    char *argv[2] = {(char *)"/proc/self/exe", NULL};
+    execv("/proc/self/exe", argv);
+#endif
+    fprintf(stderr, "bt3: language: could not restart the program\n");
+    exit(2);
+}
+
 /* 1 in a session started from Dragon Net Battle. */
 int Port_NetSession(void) {
     return Port_NetActive() && sSession;

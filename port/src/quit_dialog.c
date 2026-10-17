@@ -6,6 +6,7 @@
 #include "sys/heap.h"
 #include "sys/loading.h"
 #include "quit_dialog.h"
+#include "gs/menu_translation.h"
 #include <stdlib.h>
 
 extern s32 Snd_PlaySe(u32 mask, s32 id);
@@ -23,8 +24,40 @@ static int sQuitFrames;
 static int sQuitWaitFrames;
 static struct {
     u32 offsets[2];
-    u16 text[80];
+    u16 text[256];
 } sQuitMessage;
+
+/* The Dialog resource reads UTF-16 from its game-addressable message table. */
+static int quit_copy_text(const char *source) {
+    const unsigned char *p = (const unsigned char *)source;
+    size_t used = 0, cap = sizeof(sQuitMessage.text) / sizeof(sQuitMessage.text[0]);
+    while (*p) {
+        u32 c;
+        int extra, i;
+        u32 minimum;
+        if (*p < 0x80) c = *p++;
+        else {
+            if ((*p & 0xe0) == 0xc0) { c = *p++ & 0x1f; extra = 1; minimum = 0x80; }
+            else if ((*p & 0xf0) == 0xe0) { c = *p++ & 0x0f; extra = 2; minimum = 0x800; }
+            else if ((*p & 0xf8) == 0xf0) { c = *p++ & 7; extra = 3; minimum = 0x10000; }
+            else return 0;
+            for (i = 0; i < extra; i++) {
+                if (!*p || (*p & 0xc0) != 0x80) return 0;
+                c = (c << 6) | (*p++ & 0x3f);
+            }
+            if (c < minimum || c > 0x10ffff || (c >= 0xd800 && c <= 0xdfff)) return 0;
+        }
+        if (used + (c > 0xffff ? 2 : 1) >= cap) return 0;
+        if (c <= 0xffff) sQuitMessage.text[used++] = (u16)c;
+        else {
+            c -= 0x10000;
+            sQuitMessage.text[used++] = (u16)(0xd800 | (c >> 10));
+            sQuitMessage.text[used++] = (u16)(0xdc00 | (c & 0x3ff));
+        }
+    }
+    sQuitMessage.text[used] = 0;
+    return 1;
+}
 
 static void quit_select(Dialog **previous) {
     *previous = gDialog;
@@ -68,9 +101,9 @@ void PortQuit_Action(int action) {
 /* Archive 0, section 2 is the boot memory-card screen. Its unpacked part 1 is the Dialog resource.
    Returns 0 while the archive partition is still loading, -1 on failure, and 1 when ready. */
 static int quit_init(void) {
-    static const char message[] = "Close the game?\nUnsaved progress will be lost.";
+    static const char fallback[] = "Close the game?\nUnsaved progress will be lost.";
+    const char *message = MenuTranslation_PortText(PORT_TEXT_QUIT_CONFIRM);
     Dialog *previous;
-    unsigned i;
 
     /* The native object allocates from the game's heap; an online session must keep that heap deterministic. */
     if (Port_NetActive()) { return -1; }
@@ -81,9 +114,7 @@ static int quit_init(void) {
     if (sQuitResource == NULL) { return -1; }
     sQuitMessage.offsets[0] = 0;
     sQuitMessage.offsets[1] = sizeof(sQuitMessage.offsets);
-    for (i = 0; i < sizeof(message) && i < sizeof(sQuitMessage.text) / sizeof(sQuitMessage.text[0]); i++) {
-        sQuitMessage.text[i] = (u8)message[i];
-    }
+    if (message == NULL || !quit_copy_text(message)) quit_copy_text(fallback);
     quit_select(&previous);
     Dialog_Init((u32 *)QUIT_PACK_AT(sQuitResource, 1), sQuitMessage.offsets, 0);
     if (gDialog != NULL) {

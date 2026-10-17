@@ -41,4 +41,12 @@ enum { TBO_ART_LIST(TBO_ART_ENUM) TBO_ART_COUNT };
 #define TBO_TEXT_BASE 0x100
 #define TBO_TEXT_SLOTS 128
 
+/* Optional artwork for the first-run language selector, copied into game-text/assets/. */
+#define TBO_LANG_BG 0x200
+#define TBO_LANG_ARROW_LEFT 0x201
+#define TBO_LANG_ARROW_RIGHT 0x202
+#define TBO_LANG_BG_FILE "5c759e1f4a26d5c7-daf6036d928dd6c7-00002613.png"
+#define TBO_LANG_ARROW_LEFT_FILE "563a01a16b7a01fc-46b3733838fe48ce-00001553.png"
+#define TBO_LANG_ARROW_RIGHT_FILE "facc78c71c9e6bf4-46b3733838fe48ce-00001553.png"
+
 #endif

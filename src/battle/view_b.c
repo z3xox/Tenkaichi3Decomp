@@ -31,6 +31,9 @@ extern void Font_SetShadowOffset(s32 x, s32 y);
 extern void Font_SetColorRGBA(s32 r, s32 g, s32 b, s32 a);
 extern void Font_SetClip(s32 x0, s32 y0, s32 x1, s32 y1);
 extern void Font_SetSpacing(s32 x, s32 y);
+#ifdef PORT
+extern const u16 *UiText_TranslateLine(const u32 *table, int line, const u16 *original);
+#endif
 
 #define TB(box) ((TextBoxFull *)(box))
 
@@ -240,7 +243,12 @@ void TextBox_AttachLine(Flash *flash, FlashRef *ref, s32 x, s32 y, s32 line, Tex
         Flash_ClipSetCallbackC(flash, ref, NULL, NULL);
         return;
     }
+#ifdef PORT
+#define TB_ATTACH_STR(str, box) str = (u16 *)((u8 *)TB(box)->text + ((((u32 *)TB(box)->text)[line + 1] >> 2) << 2)); \
+    str = (u16 *)UiText_TranslateLine((const u32 *)TB(box)->text, line, str);
+#else
 #define TB_ATTACH_STR(str, box) str = (u16 *)((u8 *)TB(box)->text + ((((u32 *)TB(box)->text)[line + 1] >> 2) << 2));
+#endif
     TB_ATTACH(flash, ref, x, y, str, box);
 #undef TB_ATTACH_STR
 }

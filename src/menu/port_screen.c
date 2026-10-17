@@ -393,12 +393,13 @@ void Ps_Line(s32 id, f32 x, f32 base, f32 cap, f32 fit, u32 top, u32 bottom, u32
     }
 }
 
-/* A line of letters: filled from `top` to `bottom` (a gradient), outlined in `line`; squeezed to `width` if it is
-   wider (0: no limit). The alpha is the top colour's. */
-void Ps_TextEx(f32 x, f32 y, char *str, f32 scale, f32 width, u32 top, u32 bottom, u32 line) {
-    f32 cell = PS_CELL_UNITS * scale;
+/* A line of letters with independent horizontal and vertical size, and an optional outer border. */
+void Ps_TextExOuterXY(f32 x, f32 y, char *str, f32 scaleX, f32 scaleY, f32 width,
+                      u32 top, u32 bottom, u32 line, u32 outer, f32 outerWidth) {
+    f32 cell = PS_CELL_UNITS * scaleY;
     f32 cap = cell * PS_CAP_OF_CELL;
     f32 fit = 1.0f;
+    f32 lineFit;
     f32 w;
     s32 alpha = (s32)((top >> 24) & 0xFF);
     s32 id;
@@ -406,7 +407,7 @@ void Ps_TextEx(f32 x, f32 y, char *str, f32 scale, f32 width, u32 top, u32 botto
     if (str[0] == 0 || (id = PortTbo_TextId(str, 0)) < 0) {
         return;
     }
-    w = (f32)PortTbo_TextInfo(id, 0) / 1000.0f * cap * PS_UNIT_X;
+    w = (f32)PortTbo_TextInfo(id, 0) / 1000.0f * PS_CELL_UNITS * scaleX * PS_CAP_OF_CELL * PS_UNIT_X;
     if (width > 0.0f && w > width) {
         fit = width / w;
         if (fit < 0.6f) {
@@ -419,8 +420,33 @@ void Ps_TextEx(f32 x, f32 y, char *str, f32 scale, f32 width, u32 top, u32 botto
     } else if (sPsAlign == 2) {
         x -= w;
     }
-    Ps_Line(id, x, y + cell * PS_BASE_OF_CELL, cap, fit, top, bottom, line, 0, alpha); /* the outline under the fill */
-    Ps_Line(id, x, y + cell * PS_BASE_OF_CELL, cap, fit, top, bottom, line, 3, alpha);
+    lineFit = scaleX == scaleY ? fit : fit * scaleX / scaleY;
+    if (outerWidth > 0.0f) {
+        static const f32 offset[8][2] = {
+            {-1.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, -1.0f}, {0.0f, 1.0f},
+            {-0.707f, -0.707f}, {0.707f, -0.707f}, {-0.707f, 0.707f}, {0.707f, 0.707f}
+        };
+        s32 i;
+        for (i = 0; i < 8; i++) {
+            Ps_Line(id, x + offset[i][0] * outerWidth,
+                    y + cell * PS_BASE_OF_CELL + offset[i][1] * outerWidth,
+                    cap, lineFit, top, bottom, outer, 0, alpha);
+        }
+    }
+    Ps_Line(id, x, y + cell * PS_BASE_OF_CELL, cap, lineFit, top, bottom, line, 0, alpha); /* the outline under the fill */
+    Ps_Line(id, x, y + cell * PS_BASE_OF_CELL, cap, lineFit, top, bottom, line, 3, alpha);
+}
+
+/* A line of letters with an optional second border outside its dark outline. */
+void Ps_TextExOuter(f32 x, f32 y, char *str, f32 scale, f32 width, u32 top, u32 bottom,
+                    u32 line, u32 outer, f32 outerWidth) {
+    Ps_TextExOuterXY(x, y, str, scale, scale, width, top, bottom, line, outer, outerWidth);
+}
+
+/* A line of letters: filled from `top` to `bottom` (a gradient), outlined in `line`; squeezed to `width` if it is
+   wider (0: no limit). The alpha is the top colour's. */
+void Ps_TextEx(f32 x, f32 y, char *str, f32 scale, f32 width, u32 top, u32 bottom, u32 line) {
+    Ps_TextExOuter(x, y, str, scale, width, top, bottom, line, 0, 0.0f);
 }
 
 /* A heading in the main menu's heading style (gold to red, a brown bevelled outline, a light rim: one picture in

@@ -17,6 +17,7 @@ extern s32 gPortScreen; /* the screen the mode runs next (PORT_SCREEN_*) */
 /* Progress_Main's handler of the mode: runs gPortScreen's screen and chooses the next mode. Non-zero when a battle
    was set up (the menus are left), as the game's handlers return. */
 s32 PortScreen_Main(void);
+void PortLanguage_Run(void); /* first boot: native language choice before partition and memory-card loading */
 
 /* The kit a screen draws with (menu/port_screen.c): a page of the game's 512 x 448 units in the middle of the window
    (Ps_PageSet once a frame); pictures of tbo/ui by their TBO_ number (include/menu/tbo_art.h); lines of letters; the
@@ -59,6 +60,10 @@ u32 Ps_Tint(u32 c);
 u32 Ps_Mix(u32 a, u32 b, f32 t);
 void Ps_Line(s32 id, f32 x, f32 base, f32 cap, f32 fit, u32 top, u32 bottom, u32 line, s32 bands, s32 alpha);
 void Ps_TextEx(f32 x, f32 y, char *str, f32 scale, f32 width, u32 top, u32 bottom, u32 line);
+void Ps_TextExOuter(f32 x, f32 y, char *str, f32 scale, f32 width, u32 top, u32 bottom,
+                    u32 line, u32 outer, f32 outerWidth);
+void Ps_TextExOuterXY(f32 x, f32 y, char *str, f32 scaleX, f32 scaleY, f32 width,
+                      u32 top, u32 bottom, u32 line, u32 outer, f32 outerWidth);
 void Ps_Heading(f32 x, f32 y, char *str, f32 scale, f32 width, s32 alpha);
 f32 Ps_MsgWidth(char *str, f32 scale);
 void Ps_Msg(f32 x, f32 y, char *str, f32 scale, s32 alpha);

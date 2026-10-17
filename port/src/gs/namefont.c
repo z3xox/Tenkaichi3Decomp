@@ -5,8 +5,8 @@
    picture, so its name is put together here from the letters of the disc's names: when the stage select has loaded
    its resources the menu hands over its name sheets (Port_NameFontSheets), they are decoded, and each name picture is
    cut into its letters. Nothing of this is stored anywhere: the letters exist in memory only, made from the player's
-   own game data while the program runs. What this file carries of the disc is what the pictures SAY (kStageNames,
-   kSongNames), which is what tells the letters apart.
+   own game data while the program runs. The English names copied to game-text/translations/labels/en.json tell the cutter which
+   letters are in each picture.
 
    The pictures were drawn the way a paint program styles a text layer, and that is how a name is put together again:
      - the letters' fill (a top-to-bottom colour ramp) is what is cut out and kept, pixel for pixel;
@@ -25,6 +25,7 @@
 #include <string.h>
 #include "namefont.h"
 #include "../port_addr.h"
+#include "menu_translation.h"
 
 #define SHEET_W 512
 #define SHEET_H 256
@@ -35,25 +36,12 @@
 #define SHADOW_SIGMA 1.25f /* ... and blurred by this (Gaussian) */
 #define MAX_INST 1024
 
-/* What the disc's name pictures say, in the order of the sheets (stage id; music-list value). Read off the decoded
-   sheets one by one; a wrong entry shows as a letter count that does not match its picture, and then the whole
-   style is left to the plain text (see style_build). */
-static const char *const kStageNames[] = {
-    "Wasteland - Noon", "Rocky Area - Noon", "Planet Namek", "Dying Namek",
-    "World Tournament Stage - Noon", "Kami's Lookout", "Cell Games Arena - Evening", "Supreme Kai's World",
-    "Hyperbolic Time Chamber", "City Ruins - Noon", "Mountain Road - Noon", "Islands",
-    "Kame House", "Planet - Night", "Glacier", "Ruined Earth",
-    "Outer Space", "Penguin Village", "Hell", "Desert - Noon",
-    "King's Castle", "Muscle Tower", "Mount Paozu", "Wasteland - Evening",
-    "Wasteland - Night", "Rocky Area - Evening", "Rocky Area - Night", "World Tournament Stage - Evening",
-    "Cell Game - Noon", "City Ruins - Evening", "City Ruins - Night", "Desert - Evening",
-    "Desert - Night", "Mountain Road - Evening", "Planet - Evening", "Random",
-};
-static const char *const kSongNames[] = {
-    "The Meteor", "Vital Burner", "Innocent World", "After The Fire", "Sweet Vibration", "Survive", "Heat Capacity", "Overture",
-    "Shine", "Power Scale", "Edge of Spirit", "Caution !", "Menace", "Hot Soul", "High and Scream", "Shootout In Meteor",
-    "Dynamite Battle", "Burnin' Up", "Wild Rush", "Evolution", "********", "********", "********", "********",
-};
+/* The English names on the disc's name sheets are loaded from game-text/translations/labels/en.json.
+   A wrong name changes the letter count and leaves the style to plain text. */
+#define kStageNames MenuTranslation_StageNames()
+#define kSongNames MenuTranslation_SongNames()
+#define STAGE_NAMES 36
+#define SONG_NAMES 24
 
 typedef struct NfGlyph {
     uint8_t *px;    /* w * h * 4: red, green, blue, and how much of the pixel is fill (0 = not this letter's) */
@@ -832,9 +820,10 @@ static void style_lend(NfStyle *to, const NfStyle *from) {
 
 static void build_all(void) {
     int s, i;
-    style_build(NF_STAGE, kStageNames, (int)(sizeof(kStageNames) / sizeof(kStageNames[0])), 64);
-    style_build(NF_SONG, kSongNames, (int)(sizeof(kSongNames) / sizeof(kSongNames[0])), 32);
-    style_build(NF_SONG_LIT, kSongNames, (int)(sizeof(kSongNames) / sizeof(kSongNames[0])), 32);
+    if (!MenuTranslation_Ensure()) return;
+    style_build(NF_STAGE, kStageNames, STAGE_NAMES, 64);
+    style_build(NF_SONG, kSongNames, SONG_NAMES, 32);
+    style_build(NF_SONG_LIT, kSongNames, SONG_NAMES, 32);
     style_lend(&sStyle[NF_STAGE], &sStyle[NF_SONG]); /* (the plain song style: its fill is one colour, so the amount of fill reads cleanest) */
     style_lend(&sStyle[NF_SONG], &sStyle[NF_STAGE]);
     style_lend(&sStyle[NF_SONG_LIT], &sStyle[NF_STAGE]);

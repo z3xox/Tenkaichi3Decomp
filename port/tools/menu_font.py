@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Edited menu labels of the "Menu font" setting, put into the form the game reads. See docs/port/menu_font.md.
+"""Build the menu and battle texture/layout index from labels.json. See docs/port/menu_font.md.
 
 The game makes the list of labels itself, from the disc data, the first time it starts (port/src/gs/menu_labels.c):
-gamedata/game-text/labels.tsv and name-styles.tsv, which it reads, and labels.json, the same list for a person to
-edit. This tool turns an edited labels.json into labels.tsv and name-styles.tsv again:
+gamedata/game-text/labels.tsv and name-styles.tsv, which it reads, and labels.json, the editable layout list.
+This tool turns an edited labels.json into labels.tsv and name-styles.tsv again; translated wording stays in
+game-text/translations/labels/<locale>.json:
 
     python3 port/tools/menu_font.py                      gamedata/game-text of this checkout
     python3 port/tools/menu_font.py --out <folder>       another game-text folder (a release's gamedata/game-text)
@@ -25,9 +26,9 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 FONT_MENU, FONT_DIALOGUE, FONT_BATTLE = 1, 2, 3
 
 # The first lines of the two files, matching port/src/gs/menu_labels.c (ml_tsv).
-LABELS_HEAD = ('# BT3 menu text v10: hash width height y row_height cap_height baseline center margin width_milli x row_width '
+LABELS_HEAD = ('# BT3 menu text v12: hash width height y row_height cap_height baseline center margin width_milli x row_width '
                'art_width top bottom middle_rgb has_middle outline italic outline_milli outer_milli outer_rgb shadow '
-               'outline_bottom bevel_milli bevel_light bevel_dark depth_milli mid_gradient font_face text')
+               'outline_bottom bevel_milli bevel_light bevel_dark depth_milli mid_gradient font_face label_id')
 STYLES_HEAD = '# kind (0 song, 1 selected song, 2 stage) cap_height baseline margin width_milli top bottom outline'
 
 
@@ -141,13 +142,14 @@ def apply_labels(out, fonts):
             raise ValueError('depth must be from 0 to 8 pixels')
         if type(midpoint) != bool:
             raise ValueError('mid_gradient must be true or false')
-        return [widths[0], widths[1], rgb(colors.get('outer_outline', [0, 0, 0]), 'outer_outline'),
+        outer_color = colors.get('outer_outline', [0, 0, 0])
+        depth_color = outer_color if depth else colors['outline']
+        return [widths[0], widths[1], rgb(outer_color, 'outer_outline'),
                 3 if shadow == 'translucent-hard' else 2 if shadow == 'hard' else int(shadow),
-                rgb(colors.get('outline_bottom', colors['outline']), 'outline_bottom'), widths[2],
+                rgb(colors.get('outline_bottom', depth_color), 'outline_bottom'), widths[2],
                 rgb(colors.get('bevel_light', colors['top']), 'bevel_light'),
-                rgb(colors.get('bevel_dark', colors['outline']), 'bevel_dark'), round(depth * 1000), int(midpoint)]
+                rgb(colors.get('bevel_dark', depth_color), 'bevel_dark'), round(depth * 1000), int(midpoint)]
 
-    supported = supported_chars(fonts)
     lines = [LABELS_HEAD]
     # The overlay uses these same styles for names of external songs and stages.
     styles = [STYLES_HEAD]
@@ -157,7 +159,6 @@ def apply_labels(out, fonts):
             values = [selected, template['cap_height'], template['baseline'], template['margin'], round(template.get('width_scale', 1) * 1000), *palette(template)[1]]
             styles.append('\t'.join(map(str, values)))
     count = 0
-    by_id = {row['id']: row for row in config['labels']}
     for row in config['labels']:
         if not re.fullmatch(r'[0-9a-fA-F]{16}', row['hash']):
             raise ValueError(f"{row['id']}: invalid texture hash")
@@ -170,7 +171,7 @@ def apply_labels(out, fonts):
             raise ValueError(f"{row['id']}: invalid horizontal bounds")
         if not (1 <= row['texture_height'] <= 512 and 1 <= row['height'] <= 64 and
                 0 <= row['y'] <= row['texture_height'] - row['height'] and 1 <= row['cap_height'] <= 64 and
-                0 <= row['baseline'] <= (64 if row.get('text') == '∞' and row['id'].startswith('timer-') and
+                0 <= row['baseline'] <= (64 if row.get('original') == '∞' and row['id'].startswith('timer-') and
                                          row['height'] == 32 and row_width == 64 else row['height']) and
                 0 <= row['margin'] < row_width / 2 and row['align'] in ('left', 'center')):
             raise ValueError(f"{row['id']}: invalid label bounds or style")
@@ -180,40 +181,24 @@ def apply_labels(out, fonts):
         art_width = row.get('art_width', 0)
         if type(art_width) != int or not 0 <= art_width <= row_width:
             raise ValueError(f"{row['id']}: invalid art_width")
-        source = by_id.get(row.get('text_from'), row)
-        text = source['text']
-        if not row.get('enabled', True) or not source.get('enabled', True) or not text:
+        if not row.get('enabled', True) or not row.get('original'):
             continue
-        if '\t' in text or '\r' in text or text.count('\n') > 1 or len(text.encode('utf-8')) > 255:
-            raise ValueError(f"{row['id']}: use at most two lines and 255 UTF-8 bytes")
-        if supported is not None:
-            missing = sorted(set(text) - {chr(c) for c in supported} - {'\n'})
-            if missing:
-                print(f"{row['id']}: fonts will skip unsupported characters {''.join(missing)!r}")
         colors, fill = palette(row)
         italic = row.get('italic', False)
         if type(italic) != bool:
             raise ValueError(f"{row['id']}: italic must be true or false")
         # Only the unchanged original label has a measured artwork width.
-        target_width = art_width if text == row.get('original') else 0
-        parts = text.split('\n')
-        if any(not part.strip() for part in parts):
-            raise ValueError(f"{row['id']}: each line must contain visible text")
-        for i, part in enumerate(parts):
-            height = row['height'] // len(parts)
-            cap = min(row['cap_height'], height - 8) if len(parts) > 1 else row['cap_height']
-            baseline = (height + cap) // 2 if len(parts) > 1 else row['baseline']
-            font_face = row.get('font_face', 'selected')
-            if font_face not in ('selected', 'battle'):
-                raise ValueError(f"{row['id']}: font_face must be selected or battle")
-            middle = colors.get('middle')
-            middle_rgb = rgb(middle, f"color_styles.{row['color_style']}.middle") if middle is not None else '000000'
-            fields = [row['hash'], texture_width, row['texture_height'], row['y'] + i * height, height, cap, baseline,
-                      int(row['align'] == 'center'), row['margin'], round(width_scale * 1000), x, row_width,
-                      target_width if len(parts) == 1 else 0, fill[0], fill[1], middle_rgb, int(middle is not None), fill[2],
-                      int(italic), *decorations(colors), int(font_face == 'battle'), part]
-            lines.append('\t'.join(map(str, fields)))
-            count += 1
+        font_face = row.get('font_face', 'selected')
+        if font_face not in ('selected', 'battle'):
+            raise ValueError(f"{row['id']}: font_face must be selected or battle")
+        middle = colors.get('middle')
+        middle_rgb = rgb(middle, f"color_styles.{row['color_style']}.middle") if middle is not None else '000000'
+        fields = [row['hash'], texture_width, row['texture_height'], row['y'], row['height'], row['cap_height'], row['baseline'],
+                  int(row['align'] == 'center'), row['margin'], round(width_scale * 1000), x, row_width,
+                  art_width, fill[0], fill[1], middle_rgb, int(middle is not None), fill[2],
+                  int(italic), *decorations(colors), int(font_face == 'battle'), row['id']]
+        lines.append('\t'.join(map(str, fields)))
+        count += 1
     if count > 640:
         raise ValueError('The renderer supports at most 640 label rows')
     # each file whole or not at all; labels.tsv last, as the game writes them
@@ -409,12 +394,16 @@ def compare_styles(data_root, labels_dir, fonts_dir, font_arg=None, output=None)
         ]
     with tempfile.TemporaryDirectory() as temporary:
         library = pathlib.Path(temporary)/'menu_text.so'
-        subprocess.run(['cc', '-shared', '-fPIC', '-O2', str(ROOT/'port/src/gs/menu_text.c'),
-                        str(ROOT/'port/src/gs/menu_labels.c'), '-o', str(library), '-lm', '-lpthread'], check=True)
-        prior = {key: os.environ.get(key) for key in ('BT3_MENU_FONT', 'BT3_FONTS', 'BT3_DATA')}
+        subprocess.run(['cc', '-shared', '-fPIC', '-O2', '-DUI_TEXT_HOST_ALLOC', str(ROOT/'port/src/gs/menu_text.c'),
+                        str(ROOT/'port/src/gs/menu_labels.c'), str(ROOT/'port/src/gs/menu_translation.c'),
+                        str(ROOT/'port/src/gs/ui_text_extract.c'), str(ROOT/'port/src/plat_settings.c'),
+                        str(ROOT/'port/src/gs/ui_text_translate.c'),
+                        '-o', str(library), '-lm', '-lpthread'], check=True)
+        prior = {key: os.environ.get(key) for key in ('BT3_MENU_FONT', 'BT3_FONTS', 'BT3_DATA', 'BT3_MENU_LANG')}
         os.environ['BT3_MENU_FONT'] = str(labels_dir.resolve())
         os.environ['BT3_FONTS'] = str(fonts_dir.resolve())
         os.environ['BT3_DATA'] = str(data_root.resolve())
+        os.environ['BT3_MENU_LANG'] = config.get('locale', 'en')
         try:
             lib = ctypes.CDLL(str(library))
             lib.MenuText_SetFont.argtypes = [ctypes.c_int]

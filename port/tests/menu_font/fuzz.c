@@ -7,8 +7,10 @@
  * and, for the fonts that were accepted, every glyph the font has. Built with the address and undefined-behaviour
  * sanitizers, which stop the program at the first read or write outside a buffer.
  *
- *   gcc -g -O1 -fsanitize=address,undefined -fno-sanitize=shift -fno-sanitize-recover=all -Iport/src/gs \
- *       port/tests/menu_font/fuzz.c port/src/gs/menu_labels.c -lm -lpthread -o /tmp/menu_font_fuzz
+ *   gcc -g -O1 -DUI_TEXT_HOST_ALLOC -fsanitize=address,undefined -fno-sanitize=shift -fno-sanitize-recover=all -Iport/src/gs \
+ *       port/tests/menu_font/fuzz.c port/src/gs/menu_labels.c port/src/gs/menu_translation.c \
+ *       port/src/gs/ui_text_extract.c port/src/gs/ui_text_translate.c \
+ *       port/src/plat_settings.c -lm -lpthread -o /tmp/menu_font_fuzz
  *   (menu_labels.c: menu_text.c names it for the list of labels; this test brings its own list, so it never runs
  *   here. It has its own test, labels.c in this folder.)
  *   (-fno-sanitize=shift: stb_truetype builds a 32-bit number as p[0] << 24 in a signed int, in every font.)
@@ -50,6 +52,10 @@ static const char *const kTexts[] = {
     "Dragon History", "Press START button", "1P VS COM", "\xC3\x81rea \xC3\xA7\xC3\xB1\xC3\xBC \xC2\xBF?", "\xE2\x88\x9E 180 ???", "AVAWTo.,;'\"gjpqy",
     "\xD0\x9F\xD1\x80\xD0\xB8\xD0\xB2\xD0\xB5\xD1\x82 \xCE\xA9\xCE\xBC\xCE\xAD\xCE\xB3\xCE\xB1", "HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH",
 };
+static const char *const kLabelIds[] = {
+    "main-6/0/0", "main-6/0/1", "main-6/0/2", "main-6/0/3",
+    "main-6/0/4", "main-6/0/5", "main-6/0/6", "main-6/0/7"
+};
 
 static void setup(void) {
     char path[1100];
@@ -70,7 +76,7 @@ static void setup(void) {
     for (n = 0; n < 8; n++) { /* eight rows of 8 pixels: plain, centred, italic, measured width, outer outline, no shadow */
         fprintf(fp, "%016llx\t64\t64\t%d\t8\t%d\t%d\t%d\t%d\t%d\t0\t64\t%d\tf4ef89\td2684b\t000000\t0\t2c151b\t%d\t%d\t%d\td9c2c1\t%d\t2c151b\t0\tf4ef89\t2c151b\t0\t0\t%d\t%s\n",
                 (unsigned long long)hash, n * 8, 4 + n % 4, 6 + n % 3, n & 1, n % 5, 500 + n * 200, n == 3 ? 40 : 0,
-                n == 2 || n == 6, n == 4 ? 2000 : -1, n == 4 ? 2000 : 0, n != 5, n & 1, kTexts[n]);
+                n == 2 || n == 6, n == 4 ? 2000 : -1, n == 4 ? 2000 : 0, n != 5, n & 1, kLabelIds[n]);
     }
     fclose(fp);
     snprintf(path, sizeof(path), "%s/name-styles.tsv", sDir);
@@ -79,6 +85,7 @@ static void setup(void) {
     fclose(fp);
     setenv("BT3_FONTS", sDir, 1);
     setenv("BT3_MENU_FONT", sDir, 1);
+    setenv("BT3_MENU_LANG", "en", 1);
     snprintf(sFontPath, sizeof(sFontPath), "%s/f.ttf", sDir);
     /* the glyph table: cells of 12 x 16 in a 256 x 256 sheet, the characters 0x20..0x17F over the four planes */
     for (n = 0; n < 352; n++) {

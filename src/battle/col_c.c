@@ -102,6 +102,9 @@ extern void Heap_Free(void *ptr);
 extern void *memset(void *dst, s32 value, u32 size);
 extern void Tex_Upload(FontTex *tex, u32 tbp, s32 cbp); /* uploads a texture and its CLUT */
 extern void TexFile_UploadAll(void *res, void *tex, void *tex2);
+#ifdef PORT
+extern const u16 *UiText_TranslateString(const u16 *original);
+#endif
 
 /* 0x239BB0..0x239EA0, defined above with the first part's types. */
 #define Font_IsInClip ((s32 (*)(FontCmd *cmd, s32 x0, s32 y0, s32 x1, s32 y1))Font_IsInClip) /* 1 when the box touches the command's clip box */
@@ -363,6 +366,9 @@ s32 Font_MeasureWidthEx(void *str, s32 kind, f32 scale) {
     s32 gap = gFontGlyphGap + style->spacingX;
     u16 ch;
     FontGlyph *glyph;
+#ifdef PORT
+    if (kind == FONT_CMD_STR16) str = (void *)UiText_TranslateString((const u16 *)str);
+#endif
 
     while (1) {
         ch = Font_ReadChar(kind, str);
@@ -416,6 +422,9 @@ f32 Font_FitScale(u16 *str, s32 width) {
 s32 Font_CountLinesEx(void *str, s32 kind) {
     s32 lines = 1;
     u16 ch;
+#ifdef PORT
+    if (kind == FONT_CMD_STR16) str = (void *)UiText_TranslateString((const u16 *)str);
+#endif
 
     for (;;) {
         ch = Font_ReadChar(kind, str);
@@ -468,11 +477,17 @@ FontCmd *Font_AddCmdAt(s32 x, s32 y, s32 arg, s32 digits, s32 kind) {
 
 /* Prints a 16-bit string at the cursor. */
 void Font_Print(u16 *str) {
+#ifdef PORT
+    str = (u16 *)UiText_TranslateString(str);
+#endif
     Font_AddCmd((s32)str, 0, FONT_CMD_STR16);
 }
 
 /* Prints a 16-bit string at a position. */
 void Font_PrintAt(s32 x, s32 y, u16 *str) {
+#ifdef PORT
+    str = (u16 *)UiText_TranslateString(str);
+#endif
     Font_AddCmdAt(x, y, (s32)str, 0, FONT_CMD_STR16);
 }
 

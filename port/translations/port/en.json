@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "labels_version": 1,
+  "translation_version": 1,
+  "labels_count": 1,
+  "locale": "en",
+  "name": "English",
+  "order": 1,
+  "labels": {
+    "quit/confirm": {
+      "original": "Close the game?\nUnsaved progress will be lost.",
+      "text": "Close the game?\nUnsaved progress will be lost."
+    }
+  }
+}

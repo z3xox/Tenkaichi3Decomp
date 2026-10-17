@@ -25,6 +25,7 @@
 #include "ui.h"         /* PortVideo and the window helpers */
 #include "gs_texpack.h" /* texture packs (replacement textures) */
 #include "menu_text.h"  /* editable labels in the original menu texture slots */
+#include "menu_translation.h" /* optional language screen artwork */
 #include <math.h>
 
 /* Stage-name overlay: defined here (C) so both the renderer (gs_gpu.c) and the game's menu (menu_c_e.c) can
@@ -171,6 +172,8 @@ static const char *const kTboNames[TBO_ART_COUNT] = {TBO_ART_LIST(TBO_NAME)};
 #undef TBO_NAME
 static GsTex sTboTex[TBO_ART_COUNT];
 static unsigned char sTboMissing[TBO_ART_COUNT]; /* not found or not readable: not looked for again */
+static GsTex sLangTex[3];
+static unsigned char sLangMissing[3];
 
 /* Makes a texture of RGBA pixels (the GS's alpha) with its smaller copies, each half the one before, averaged by
    2 x 2: these pictures are mostly shown smaller than they are (letters, the crest), and one sample of the full
@@ -268,42 +271,52 @@ static GsTex tbo_text_texture(uint32_t id) {
 }
 
 static GsTex tbo_texture(uint32_t id) {
-    char path[1024];
+    char path[1024] = {0};
     SDL_Surface *png, *rgba;
     uint32_t *px, w, h, x, y;
     GsTex tex;
     const char *base;
+    GsTex *cached;
+    unsigned char *missing;
+    int languageArt = id >= TBO_LANG_BG && id <= TBO_LANG_ARROW_RIGHT;
 
     if (id >= TBO_TEXT_BASE && id < TBO_TEXT_BASE + TBO_TEXT_SLOTS) {
         return tbo_text_texture(id);
     }
-    if (id >= TBO_ART_COUNT || sTboMissing[id]) {
+    if (id >= TBO_ART_COUNT && !languageArt) {
         return gsWhite;
     }
-    if (sTboTex[id] != 0) {
-        return sTboTex[id];
+    cached = languageArt ? &sLangTex[id - TBO_LANG_BG] : &sTboTex[id];
+    missing = languageArt ? &sLangMissing[id - TBO_LANG_BG] : &sTboMissing[id];
+    if (*missing) return gsWhite;
+    if (*cached != 0) {
+        return *cached;
     }
     if (sBackend->texSlotsLeft() <= 0) {
         return gsWhite; /* (no room this frame: the next one tries again) */
     }
-    base = SDL_GetBasePath();
-    snprintf(path, sizeof(path), "%stbo/ui/%s.png", base != NULL ? base : "", kTboNames[id]);
-    png = SDL_LoadPNG(path);
-    if (png == NULL) {
-        snprintf(path, sizeof(path), "tbo/ui/%s.png", kTboNames[id]);
+    if (languageArt) {
+        png = MenuTranslation_ArtPath((int)id, path, sizeof(path)) ? SDL_LoadPNG(path) : NULL;
+    } else {
+        base = SDL_GetBasePath();
+        snprintf(path, sizeof(path), "%stbo/ui/%s.png", base != NULL ? base : "", kTboNames[id]);
         png = SDL_LoadPNG(path);
-    }
-    if (png == NULL) { /* a source checkout: the pictures where they are kept (port/tbo/ui) */
-        snprintf(path, sizeof(path), "port/tbo/ui/%s.png", kTboNames[id]);
-        png = SDL_LoadPNG(path);
+        if (png == NULL) {
+            snprintf(path, sizeof(path), "tbo/ui/%s.png", kTboNames[id]);
+            png = SDL_LoadPNG(path);
+        }
+        if (png == NULL) { /* a source checkout: the pictures where they are kept (port/tbo/ui) */
+            snprintf(path, sizeof(path), "port/tbo/ui/%s.png", kTboNames[id]);
+            png = SDL_LoadPNG(path);
+        }
     }
     rgba = png != NULL ? SDL_ConvertSurface(png, SDL_PIXELFORMAT_RGBA32) : NULL;
     if (png != NULL) {
         SDL_DestroySurface(png);
     }
     if (rgba == NULL) {
-        fprintf(stderr, "bt3: tbo: cannot read %s\n", path);
-        sTboMissing[id] = 1;
+        fprintf(stderr, "bt3: artwork: cannot read %s\n", path);
+        *missing = 1;
         return gsWhite;
     }
     w = (uint32_t)rgba->w;
@@ -313,7 +326,14 @@ static GsTex tbo_texture(uint32_t id) {
         const uint8_t *row = (const uint8_t *)rgba->pixels + (size_t)y * rgba->pitch;
         for (x = 0; x < w; x++) {
             const uint8_t *c = row + x * 4;
-            uint32_t a = ((uint32_t)c[3] * 128 + 127) / 255; /* the GS's alpha: 0x80 is opaque */
+            uint32_t imageAlpha = c[3];
+            uint32_t a;
+            /* These arrow PNGs use 127 for their solid pixels. Preserve the antialiased edge while
+               bringing the chevron itself up to full opacity over the green selection bar. */
+            if (languageArt && id != TBO_LANG_BG) {
+                imageAlpha = imageAlpha * 2 > 255 ? 255 : imageAlpha * 2;
+            }
+            a = (imageAlpha * 128 + 127) / 255; /* the GS's alpha: 0x80 is opaque */
             px[y * w + x] = (uint32_t)c[0] | ((uint32_t)c[1] << 8) | ((uint32_t)c[2] << 16) | (a << 24);
             /* the window: its inside is bands of two teals, which fall anywhere under the lines at the sizes it is
                drawn (src/menu/port_tbo.c, Tb_Panel). Every teal pixel is the darker one; the frame (grey, nearly
@@ -328,8 +348,8 @@ static GsTex tbo_texture(uint32_t id) {
     if (tex == 0) {
         return gsWhite;
     }
-    sTboTex[id] = tex;
-    fprintf(stderr, "bt3: tbo: %s (%ux%u)\n", kTboNames[id], (unsigned)w, (unsigned)h);
+    *cached = tex;
+    fprintf(stderr, "bt3: artwork: %s (%ux%u)\n", path, (unsigned)w, (unsigned)h);
     return tex;
 }
 
