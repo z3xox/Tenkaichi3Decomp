@@ -205,6 +205,26 @@ static uint8_t *ut_read(const char *path, size_t *size) {
 }
 /* What an extracted catalog says it is. Version 2 has the lines among other sections too (the pause menu). */
 #define UT_SOURCE "extracted USA game text, version 2"
+/* Wii extraction supplies 44 spoken lines and 66 menu/dialog messages.
+   Insert their stable IDs when a UI catalog is first generated. */
+static unsigned ut_append_wii_fragment(FILE *fp, const char *data, const char *locale) {
+    char path[1280], fragment[65536];
+    FILE *source;
+    size_t size;
+    unsigned count = 0;
+    const char *p;
+    if (snprintf(path, sizeof(path), "%s/dragon-net-battle/ui-fragment-%s.json", data, locale) >= (int)sizeof(path)) return 0;
+    source = fopen(path, "rb");
+    if (source == NULL) return 0;
+    size = fread(fragment, 1, sizeof(fragment) - 1, source);
+    if (!feof(source) || ferror(source)) { fclose(source); return 0; }
+    fclose(source);
+    fragment[size] = 0;
+    for (p = fragment; (p = strstr(p, "\"wii-dragon-net/")) != NULL; p++) count++;
+    if (count != 110 || fragment[0] != ',') return 0;
+    fwrite(fragment, 1, size, fp);
+    return count;
+}
 /* An English catalog this program extracted in an earlier version (never one a person wrote or edited: those name
    another source). */
 static int ut_stale(const char *path) {
@@ -237,6 +257,7 @@ static void *ut_worker(void *arg) {
         { char id[32]; snprintf(id, sizeof(id), "pzs3us1/%05d", w.file); ut_walk(&w, b, id, 0); }
         free(data);
     }
+    w.count += ut_append_wii_fragment(w.fp, job->data, "en");
     fprintf(w.fp, "\n  },\n  \"labels_count\": %u\n}\n", w.count);
     if (fclose(w.fp) == 0 && w.count > 0) {
 #ifdef _WIN32
@@ -410,6 +431,7 @@ int UiText_EuropeanOnStartup(const char *gameTextDir, char *why, size_t whyLen) 
             ut_json_string(fp, text);
             fputc('}', fp);
         }
+        written += ut_append_wii_fragment(fp, data, kUtEuLanguages[k].locale);
         fprintf(fp, "\n  },\n  \"labels_count\": %u\n}\n", written);
         if (fclose(fp) != 0) {
             remove(temp);

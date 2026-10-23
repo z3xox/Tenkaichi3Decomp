@@ -62,6 +62,8 @@ int MenuText_MapGlyph(int tbp, int cbp, int width, int height,
 uint8_t *MenuText_RenderSong(const char *text, int selected, int scale, int *outWidth, int *outHeight);
 /* Added stage name centered in the disc's 512x64 row, with ordinary RGBA alpha. */
 uint8_t *MenuText_RenderStage(const char *text, int scale, int *outWidth, int *outHeight);
+/* Wii Dragon Net rows and headers in Evolution Z's plate-caption styles. GS alpha. */
+uint8_t *MenuText_RenderWiiLabel(const char *text, int style, int scale, int *outWidth, int *outHeight);
 /* A line of UTF-8 text for the PC's own screens (gs/tbo_text.c): `kind` 0 in the Menu font, 1 in the Dialogue / UI
    font, each on "Original" the first font of fonts.tsv for that use. Capitals `cap` pixels high, `pad` pixels of
    room round it; the picture is *w x *h coverage bytes with the baseline *base rows down and the pen `pad` in.

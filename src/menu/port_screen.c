@@ -618,7 +618,7 @@ s32 PortScreen_Main(void) {
     }
     switch (screen) {
     case PORT_SCREEN_TBO:
-        Bgm_Play(0x10B16 + 2);
+        Bgm_Play(0x10B16 + 1);
         result = PortTbo_Run();
         Adx_StopAll();
         gProgress->mode = result ? 45 : 4; /* the Ultimate Training's fight, or back to the main menu */

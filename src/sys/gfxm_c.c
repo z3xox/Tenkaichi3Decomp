@@ -651,6 +651,9 @@ void FlashSlot_Draw(FlashSlot *slot, FlashProp *parent, Flash *flash) {
         if (clip->preDraw != NULL) {
             clip->preDraw(clip->preArg);
         }
+#ifdef PORT
+        if (!(clip->flags & 0x40000000))
+#endif
         FlashTl_Draw(&clip->tl, &prop);
         if (clip->drawOver != NULL) {
             clip->drawOver(clip->overArg, &prop);
@@ -1098,6 +1101,85 @@ void Flash_Draw(Flash *flash) {
     }
 }
 
+#ifdef PORT
+typedef struct PortFlashHiddenSlot {
+    FlashSlot *slot;
+    FlashSlot contents;
+} PortFlashHiddenSlot;
+
+static PortFlashHiddenSlot *sPortFlashHidden;
+static s32 sPortFlashHiddenCap;
+
+static s32 Port_FlashIsInputClip(char *name) {
+    return strncmp(name, "mc_input_code_", 14) == 0 || strcmp(name, "mc_text_keyboard") == 0;
+}
+
+/* Mask unrelated movie depths only for this draw. The password screen has
+   unnamed shapes, so hiding its named decoration clips leaves those shapes
+   (including the old title) visible. Restoring slots lets timelines advance. */
+static s32 Port_FlashMaskInput(FlashTl *tl, s32 *count, s32 root) {
+    s32 i, kept = 0;
+
+    for (i = 0; i < tl->depths; i++) {
+        FlashSlot *slot = &tl->slots[i];
+        FlashSlot before = *slot;
+
+        if (slot->clip != NULL) {
+            if (Port_FlashIsInputClip(slot->clip->name)) {
+                kept = 1;
+            } else if (Port_FlashMaskInput(&slot->clip->tl, count, 0)) {
+                kept = 1;
+            } else {
+                slot->clip = NULL;
+            }
+        }
+        /* Password Input root shapes 7 and 9 are the keyboard backing and
+           delete mark. Keep their original placement with the key clips. */
+        if (root && slot->shape != NULL && (slot->shape->id == 7 || slot->shape->id == 9))
+            kept = 1;
+        else
+            slot->shape = NULL;
+        if (before.clip != slot->clip || before.shape != slot->shape) {
+            if (*count < sPortFlashHiddenCap) {
+                sPortFlashHidden[*count].slot = slot;
+                sPortFlashHidden[*count].contents = before;
+                (*count)++;
+            } else {
+                *slot = before;
+            }
+        }
+    }
+    return kept;
+}
+
+s32 Port_FlashInputOnlyInit(Flash *flash) {
+    s32 i;
+    sPortFlashHiddenCap = flash->root->depths;
+    for (i = 0; i < flash->clips->count; i++)
+        sPortFlashHiddenCap += flash->clips->items[i].tl.depths;
+    if (sPortFlashHiddenCap == 0) return 0;
+    sPortFlashHidden = Heap_Alloc(sizeof(*sPortFlashHidden) * sPortFlashHiddenCap, 0x20, 0, 2);
+    return sPortFlashHidden != NULL;
+}
+
+void Port_FlashInputOnlyTerm(void) {
+    if (sPortFlashHidden != NULL) Heap_Free(sPortFlashHidden);
+    sPortFlashHidden = NULL;
+    sPortFlashHiddenCap = 0;
+}
+
+void Port_FlashInputOnlyDraw(Flash *flash) {
+    s32 count = 0;
+    if (sPortFlashHidden == NULL) return;
+    Port_FlashMaskInput(flash->root, &count, 1);
+    Flash_Draw(flash);
+    while (count > 0) {
+        count--;
+        *sPortFlashHidden[count].slot = sPortFlashHidden[count].contents;
+    }
+}
+#endif
+
 /* Back to the first frame, playing, every other flag cleared. Unless `keepClips`, every sprite instance and
    shape is cleared as well. */
 void Flash_Reset(Flash *flash, s32 keepClips) {
@@ -1302,6 +1384,48 @@ f32 Flash_ClipGetAlpha(Flash *flash, FlashRef *ref) {
     }
     return FlashClipList_GetAlpha(flash->clips, ref);
 }
+
+#ifdef PORT
+/* Fractional placement and scale of a named clip in its own timeline. */
+void Flash_ClipGetTransform(Flash *flash, FlashRef *ref, f32 *x, f32 *y, f32 *sx, f32 *sy) {
+    FlashProp *prop;
+
+    *x = *y = 0.0f;
+    *sx = *sy = 1.0f;
+    if (ref->index < 0) return;
+    prop = &flash->clips->items[ref->index].prop;
+    *x = prop->mtx.m[2];
+    *y = prop->mtx.m[5];
+    if (prop->flags & FLASH_OV_POS) {
+        *x += prop->x;
+        *y += prop->y;
+    }
+    *sx = prop->mtx.m[0];
+    *sy = prop->mtx.m[4];
+    if (prop->flags & FLASH_OV_SCALE) {
+        *sx *= prop->scaleX;
+        *sy *= prop->scaleY;
+    }
+}
+
+/* A placed shape in a clip's own timeline (the main header title is shape 2). */
+s32 Flash_ClipGetShapeTransform(Flash *flash, FlashRef *ref, s32 depth,
+                                f32 *x, f32 *y, f32 *sx, f32 *sy) {
+    FlashClip *clip;
+    FlashShape *shape;
+
+    if (ref->index < 0) return 0;
+    clip = &flash->clips->items[ref->index];
+    if (depth < 1 || depth > clip->tl.depths) return 0;
+    shape = clip->tl.slots[depth - 1].shape;
+    if (shape == NULL) return 0;
+    *x = shape->mtx.m[2];
+    *y = shape->mtx.m[5];
+    *sx = shape->mtx.m[0];
+    *sy = shape->mtx.m[4];
+    return 1;
+}
+#endif
 
 /* Allocates the pool of placed shapes. */
 void FlashShapePool_Init(FlashShapePool *pool, u32 count) {
@@ -1677,3 +1801,50 @@ void FlashClipList_Stop(FlashClipList *list, FlashRef *ref) {
         }
     }
 }
+
+#ifdef PORT
+#include "menu/port_screen.h"
+#include "menu/tbo_art.h"
+extern s32 gPortNetStagePicker;
+static void Flash_PortDrawStageBadge(void *arg, FlashProp *prop) {
+    FlashClip *clip = arg;
+    Flash *flash = clip->tl.owner;
+    s32 depth;
+    for (depth = 0; depth < clip->tl.depths; depth++) {
+        FlashShape *shape = clip->tl.slots[depth].shape;
+        if (shape != NULL) {
+            FlashShapeQuad rec;
+            FlashQuad q;
+            u8 *data = Flash_GetRecord(flash->data, 4, shape->id);
+            memset(&q, 0, sizeof(q));
+            memcpy(&rec, data + 10, sizeof(rec));
+            q.pt[0][0] = rec.x0; q.pt[0][1] = rec.y0;
+            q.pt[1][0] = rec.x1; q.pt[1][1] = rec.y0;
+            q.pt[2][0] = rec.x0; q.pt[2][1] = rec.y1;
+            q.pt[3][0] = rec.x1; q.pt[3][1] = rec.y1;
+            q.rgba[0] = q.rgba[1] = q.rgba[2] = 255; q.rgba[3] = 128;
+            FlashDraw_TransformQuad(&q, &shape->mtx, &shape->cx, prop, flash->ofs);
+            {
+                f32 cx = (q.pt[0][0] + q.pt[3][0]) * 0.5f;
+                f32 cy = (q.pt[0][1] + q.pt[3][1]) * 0.5f;
+                q.pt[0][0] = cx + (q.pt[0][0] - cx) * 0.75f;
+                q.pt[0][1] = cy + (q.pt[0][1] - cy) * 0.75f;
+                q.pt[3][0] = cx + (q.pt[3][0] - cx) * 0.75f;
+                q.pt[3][1] = cy + (q.pt[3][1] - cy) * 0.75f;
+            }
+            Ps_SpriteScreen(TBO_WII_VS_PLAYERS, q.pt[0][0], q.pt[0][1], q.pt[3][0], q.pt[3][1],
+                            0, gPortNetStagePicker * 0.5f, 1, (gPortNetStagePicker + 1) * 0.5f,
+                            PS_PLAIN, q.rgba[3]);
+            return;
+        }
+    }
+}
+void Flash_PortStageBadge(Flash *flash, FlashRef *ref) {
+    if (ref->index >= 0) {
+        FlashClip *clip = &flash->clips->items[ref->index];
+        clip->flags |= 0x40000000; /* draw only the replacement, retaining the native timeline */
+        clip->drawOver = Flash_PortDrawStageBadge;
+        clip->overArg = clip;
+    }
+}
+#endif

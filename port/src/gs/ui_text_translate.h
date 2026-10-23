@@ -7,5 +7,7 @@ int UiText_Load(const char *gameTextDir, const char *locale);
 /* Exact table and line lookup, with an unambiguous string lookup for other font calls. */
 const uint16_t *UiText_TranslateLine(const uint32_t *table, int line, const uint16_t *original);
 const uint16_t *UiText_TranslateString(const uint16_t *original);
+/* Copy an edited disc dialog line by its stable group and line ID. Returns 0 if unedited. */
+int UiText_TranslateIdUtf8(const char *group, int line, char *out, int capacity);
 
 #endif

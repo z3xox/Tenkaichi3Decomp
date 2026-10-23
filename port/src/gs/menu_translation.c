@@ -24,11 +24,46 @@
 #endif
 
 enum { TR_MAX_FILE = 1024 * 1024, TR_MAX_ROWS = 640, TR_MAX_GROUPS = 160 };
-enum { TR_PORT_TEXT_COUNT = 3, TR_PORT_TEXT_MAX = 1024, TR_PORT_MAX_FILE = 64 * 1024 };
+enum { TR_PORT_TEXT_COUNT = 38, TR_PORT_WII_TEXT_COUNT = 31, TR_PORT_TEXT_MAX = 1024, TR_PORT_MAX_FILE = 64 * 1024 };
 static const struct { const char *id, *original; } kPortText[TR_PORT_TEXT_COUNT] = {
     {PORT_TEXT_QUIT_CONFIRM, "Close the game?\nUnsaved progress will be lost."},
     {PORT_TEXT_NET_CONNECTING, "Connecting to your rival..."},
-    {PORT_TEXT_NET_RIVAL, "Your rival \"{name}\" is here! The match begins."}
+    {PORT_TEXT_NET_RIVAL, "Your rival \"{name}\" is here! The match begins."},
+    {"dragon-net/home/title", "Dragon Net Battle"},
+    {"dragon-net/home/battle", "Nintendo WFC Battle"},
+    {"dragon-net/home/friends", "Manage Friends"},
+    {"dragon-net/home/settings", "User Settings"},
+    {"dragon-net/battle/title", "Nintendo WFC Battle"},
+    {"dragon-net/battle/custom", "Custom Battle"},
+    {"dragon-net/battle/normal", "Normal Battle"},
+    {"dragon-net/battle/friend", "Friend Battle"},
+    {"dragon-net/battle/ranking", "Ranking Battle"},
+    {"dragon-net/battle/view-ranking", "View Ranking"},
+    {"dragon-net/battle/record", "Battle Record"},
+    {"dragon-net/normal/title", "Normal Battle"},
+    {"dragon-net/custom/one-v-one", "1 VS 1 Battle"},
+    {"dragon-net/custom/team", "Team Battle"},
+    {"dragon-net/custom/team-10-dp", "10 DP Team Battle"},
+    {"dragon-net/custom/team-15-dp", "15 DP Team Battle"},
+    {"dragon-net/custom/team-20-dp", "20 DP Team Battle"},
+    {"dragon-net/friends/title", "Manage Friends"},
+    {"dragon-net/friends/list", "Friend List"},
+    {"dragon-net/friends/add", "Add Friend"},
+    {"dragon-net/friends/code", "My Friend Code"},
+    {"dragon-net/settings/title", "User Settings"},
+    {"dragon-net/settings/name", "Create Player Name"},
+    {"dragon-net/settings/initialize", "Initialize Wi-Fi Data"},
+    {"dragon-net/ranking/title", "View Ranking"},
+    {"dragon-net/ranking/area", "My Area"},
+    {"dragon-net/ranking/top-10", "Top 10"},
+    {"dragon-net/name/title", "Create Player Name"},
+    {"dragon-net/custom/title", "Custom Battle"},
+    {"dragon-net/friend/host", "Host Battle"},
+    {"dragon-net/friend/join", "Join Battle"},
+    {"net/player_left", "The other player left the match."},
+    {"net/connection_lost", "Connection lost."},
+    {"dragon-net/results/rematch", "Rematch Request"},
+    {"dragon-net/results/end", "End Battle"}
 };
 typedef struct TrPortCatalog {
     char text[TR_PORT_TEXT_COUNT][TR_PORT_TEXT_MAX];
@@ -46,6 +81,7 @@ static TrGroup sGroups[TR_MAX_GROUPS];
 static const char *sStage[36], *sSong[24], *sItem, *sItemOriginal;
 static char sMain[1024], sMainOriginal[1024], sLocale[16];
 static char sPortText[TR_PORT_TEXT_COUNT][TR_PORT_TEXT_MAX];
+static unsigned char sPortLocalized[TR_PORT_TEXT_COUNT];
 static int sNRows, sNGroups, sReady;
 static int sBootChoiceMade;
 static pthread_mutex_t sLock = PTHREAD_MUTEX_INITIALIZER;
@@ -162,6 +198,7 @@ static void tr_clear(void) {
     __atomic_store_n(&sReady, 0, __ATOMIC_RELEASE);
     sItem = sItemOriginal = NULL; sMain[0] = sMainOriginal[0] = 0; sLocale[0] = 0;
     memset(sPortText, 0, sizeof(sPortText));
+    memset(sPortLocalized, 0, sizeof(sPortLocalized));
 }
 static TrRow *tr_find(const char *id) {
     int i;
@@ -312,8 +349,10 @@ static void tr_port_load(const char *outDir, const char *locale) {
             snprintf(sPortText[i], sizeof(sPortText[i]), "%s", catalog.text[i]);
     }
     if (strcmp(locale, "en") && tr_port_read(outDir, locale, &catalog)) {
-        for (i = 0; i < TR_PORT_TEXT_COUNT; i++) if (catalog.present[i])
+        for (i = 0; i < TR_PORT_TEXT_COUNT; i++) if (catalog.present[i]) {
             snprintf(sPortText[i], sizeof(sPortText[i]), "%s", catalog.text[i]);
+            sPortLocalized[i] = strcmp(catalog.text[i], kPortText[i].original) != 0;
+        }
     }
 }
 static const char *tr_resolve(TrRow *r, int depth) {
@@ -855,6 +894,28 @@ const char *MenuTranslation_PortText(const char *id) {
         return sPortText[i][0] ? sPortText[i] : NULL;
     return NULL;
 }
+/* Game-side Wii menu strings are copied into its own memory at screen entry. */
+int PortTbo_WiiTextCopy(int index, char *out, int capacity) {
+    const char *original, *resolved;
+    if (index < 0 || index >= TR_PORT_WII_TEXT_COUNT || !out || capacity < 1) return 0;
+    original = kPortText[index + 3].original;
+    resolved = MenuTranslation_PortText(kPortText[index + 3].id);
+    if (!resolved) resolved = original;
+    snprintf(out, (size_t)capacity, "%s", resolved);
+    /* 1: edited English fallback; 2: this menu language supplies the text. */
+    return strcmp(out, original) == 0 ? 0 : sPortLocalized[index + 3] ? 2 : 1;
+}
+
+/* Copy a translated session-end notice into the game's text buffer. */
+int PortTbo_DisconnectTextCopy(int reason, char *out, int capacity) {
+    const char *id, *fallback, *resolved;
+    if (!out || capacity < 1 || (reason != 1 && reason != 2)) return 0;
+    id = reason == 1 ? "net/player_left" : "net/connection_lost";
+    fallback = reason == 1 ? "The other player left the match." : "Connection lost.";
+    resolved = MenuTranslation_PortText(id);
+    snprintf(out, (size_t)capacity, "%s", resolved != NULL ? resolved : fallback);
+    return 1;
+}
 const char *MenuTranslation_Original(const char *id) { TrRow *r = __atomic_load_n(&sReady, __ATOMIC_ACQUIRE) ? tr_find(id) : NULL; return r != NULL ? r->original : NULL; }
 const char *MenuTranslation_Group(const char *id) { int i; if (!__atomic_load_n(&sReady, __ATOMIC_ACQUIRE)) return NULL; for (i = 0; i < sNGroups; i++) if (strcmp(sGroups[i].id, id) == 0) return sGroups[i].text; return NULL; }
 const char *const *MenuTranslation_StageNames(void) { return __atomic_load_n(&sReady, __ATOMIC_ACQUIRE) ? sStage : NULL; }
@@ -863,3 +924,23 @@ const char *MenuTranslation_Main(void) { return __atomic_load_n(&sReady, __ATOMI
 const char *MenuTranslation_Item(void) { return __atomic_load_n(&sReady, __ATOMIC_ACQUIRE) ? sItem : NULL; }
 const char *MenuTranslation_MainOriginal(void) { return __atomic_load_n(&sReady, __ATOMIC_ACQUIRE) ? sMainOriginal : NULL; }
 const char *MenuTranslation_ItemOriginal(void) { return __atomic_load_n(&sReady, __ATOMIC_ACQUIRE) ? sItemOriginal : NULL; }
+
+/* Result buttons share the editable port catalog and the Wii menu-label rasterizer. */
+int PortTbo_ResultTextCopy(int side, char *out, int capacity) {
+    static const char *const locales[] = {"en", "es", "de", "fr", "it", "pt"};
+    static const char *const labels[][2] = {
+        {"Rematch Request", "End Battle"}, {"Solicitar revancha", "Terminar combate"},
+        {"Revanche anfordern", "Kampf beenden"}, {"Demander une revanche", "Terminer le combat"},
+        {"Richiedi rivincita", "Termina battaglia"}, {"Pedir revanche", "Encerrar batalha"}
+    };
+    int i, language = 0;
+    const char *value, *locale;
+    if (side < 0 || side > 1 || !out || capacity < 1) return 0;
+    MenuTranslation_Ensure();
+    locale = MenuTranslation_Locale();
+    for (i = 1; i < 6; i++) if (locale && !strncmp(locale, locales[i], 2)) language = i;
+    value = MenuTranslation_PortText(kPortText[36 + side].id);
+    if (!value || !strcmp(value, kPortText[36 + side].original)) value = labels[language][side];
+    snprintf(out, (size_t)capacity, "%s", value);
+    return (language == 5 || strcmp(value, labels[language][side]) != 0);
+}

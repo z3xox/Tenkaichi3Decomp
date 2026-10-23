@@ -104,7 +104,13 @@ char DcPass_GetKey(DcKeyPos *pos) {
  * (0)`, a third and fourth dead wrap were tried). The order `lw / li / sw` of the row (the store of the page
  * after the row's constant) is not reproduced either.
  */
-#if 0
+#if defined(PORT)
+void DcPass_WrapPos(DcKeyPos *pos) {
+    pos->page = DcPass_Wrap(pos->page, 0, DCPASS_PAGES - 1);
+    pos->row = DcPass_Wrap(pos->row, 0, DCPASS_ROWS - 1);
+    pos->col = DcPass_Wrap(pos->col, 0, DCPASS_COLS - 1);
+}
+#elif 0
 void DcPass_WrapPos(DcKeyPos *pos) {
     pos->page = DcPass_Wrap(pos->page, 0, DCPASS_PAGES - 1);
     pos->row = DcPass_Wrap(pos->row, 0, DCPASS_ROWS - 1);
@@ -555,6 +561,152 @@ void DcPass_DrawTextLine(DcPass *pass) {
     DcPass_DrawText(flash, text->text);
     DcPass_DrawCursor(flash, text);
 }
+
+#ifdef PORT
+/* The PC player-name screen reuses the Data Center's password movie and its
+   keyboard helpers, without starting password decoding or replacing its menu windows. */
+static DcPass *sPortNamePass;
+static s32 sPortNameOwnArchive;
+extern s32 Port_FlashInputOnlyInit(void *flash);
+extern void Port_FlashInputOnlyTerm(void);
+extern void Port_FlashInputOnlyDraw(void *flash);
+extern void Flash_SetOffset(MFlash *flash, s32 x, s32 y);
+void Port_DcNameClose(void);
+
+s32 Port_DcNameOpen(void) {
+    DcPass *pass;
+    MTexRes *res;
+    s32 frame;
+
+    if (sPortNamePass != NULL) return 1;
+    if (gMenuArc8 == NULL) {
+        gMenuArc8 = File_LoadSync(gProgress->baseFile + 0xB, NULL, 0);
+        if (gMenuArc8 == NULL) return 0;
+        sPortNameOwnArchive = 1;
+    }
+    pass = Heap_Alloc(sizeof(*pass), 0x20, 0, 2);
+    if (pass == NULL) {
+        Port_DcNameClose();
+        return 0;
+    }
+    memset(pass, 0, sizeof(*pass));
+    pass->pack = MPACK_AT(gMenuArc8, 3);
+    pass->res = Sprite_Unpack(pass->pack, NULL, NULL);
+    if (pass->res == NULL) {
+        Heap_Free(pass);
+        Port_DcNameClose();
+        return 0;
+    }
+    res = (MTexRes *)MPACK_AT(pass->res, 15);
+    Res_RelocateOffsets(&res, res, res);
+    pass->view.tex0[0] = MTEX(res, 0);
+    pass->view.tex0[1] = MTEX(res, 1);
+    pass->view.tex0[2] = MTEX(res, 2);
+    pass->view.tex0[3] = MTEX(res, 3);
+    pass->view.tex0[4] = MTEX(res, 4);
+    pass->view.tex0[5] = MTEX(res, 5);
+    pass->view.tex0[6] = MTEX(res, 6);
+    res = (MTexRes *)MPACK_AT(pass->res, 16);
+    Res_RelocateOffsets(&res, res, res);
+    pass->view.tex0[24] = MTEX(res, 0);
+    pass->view.tex0[25] = MTEX(res, 1);
+    pass->view.tex0[26] = MTEX(res, 2);
+    res = (MTexRes *)MPACK_AT(pass->res, 11);
+    Res_RelocateOffsets(&res, res, res);
+    pass->view.tex0[27] = MTEX(res, 0);
+    pass->view.tex0[28] = MTEX(res, 1);
+    pass->view.tex0[29] = MTEX(res, 3);
+    res = (MTexRes *)MPACK_AT(pass->res, 1);
+    Res_RelocateOffsets(&res, res, res);
+    pass->view.tex0[7] = MTEX(res, 0);
+    pass->view.tex0[10] = MTEX(res, 1);
+    pass->view.tex0[12] = MTEX(res, 2);
+    pass->view.tex0[14] = MTEX(res, 3);
+    pass->view.tex0[15] = MTEX(res, 4);
+    pass->view.tex0[16] = MTEX(res, 5);
+    pass->view.tex0[18] = MTEX(res, 6);
+    pass->view.tex0[19] = MTEX(res, 7);
+    pass->view.tex0[20] = MTEX(res, 8);
+    pass->view.tex0[22] = MTEX(res, 9);
+    res = (MTexRes *)MPACK_AT(pass->res, 2);
+    Res_RelocateOffsets(&res, res, res);
+    pass->view.tex0[8] = MTEX(res, 0);
+    pass->view.tex0[9] = MTEX(res, 1);
+    pass->view.tex0[11] = MTEX(res, 2);
+    pass->view.tex0[13] = MTEX(res, 3);
+    pass->view.tex0[17] = MTEX(res, 4);
+    pass->view.tex0[21] = MTEX(res, 5);
+    pass->view.tex0[23] = MTEX(res, 6);
+    Flash_Create(&pass->view.flash[0], MPACK_AT(pass->res, 17), pass->view.tex0);
+    Flash_Play(&pass->view.flash[0], 1);
+    Flash_GotoLabel(&pass->view.flash[0], "fl_input_in", 1);
+    /* Settle the root entrance once. The name page moves the whole keyboard
+       as one unit; individual key timelines still animate normally. */
+    for (frame = 0; frame < 30; frame++) Flash_Advance(&pass->view.flash[0]);
+    DcPassText_Clear(&pass->text);
+    sPortNamePass = pass;
+    if (!Port_FlashInputOnlyInit(&pass->view.flash[0])) {
+        Port_DcNameClose();
+        return 0;
+    }
+    DcPass_LightKey(&pass->view.flash[0], &pass->keyPos, 1);
+    return 1;
+}
+
+void Port_DcNameClose(void) {
+    Port_FlashInputOnlyTerm();
+    if (sPortNamePass != NULL) {
+        Flash_Destroy(&sPortNamePass->view.flash[0]);
+        Heap_Free(sPortNamePass->res);
+        Heap_Free(sPortNamePass);
+        sPortNamePass = NULL;
+    }
+    if (sPortNameOwnArchive) {
+        Heap_Free(gMenuArc8);
+        gMenuArc8 = NULL;
+        sPortNameOwnArchive = 0;
+    }
+}
+
+s32 Port_DcNameKey(s32 page, s32 row, s32 col) {
+    DcKeyPos pos;
+    pos.page = page;
+    pos.row = row;
+    pos.col = col;
+    return DcPass_GetKey(&pos);
+}
+
+void Port_DcNamePress(s32 page, s32 row, s32 col) {
+    DcKeyPos pos;
+    if (sPortNamePass == NULL) return;
+    pos.page = page;
+    pos.row = row;
+    pos.col = col;
+    DcPass_FlashKey(&sPortNamePass->view.flash[0], &pos);
+}
+
+void Port_DcNameDraw(s32 page, s32 row, s32 col, s32 rise) {
+    DcPass *pass = sPortNamePass;
+    DcKeyPos next;
+    MFlash *flash;
+    if (pass == NULL) return;
+    flash = &pass->view.flash[0];
+    /* Run the original selection, release and confirmation timelines. */
+    Flash_Advance(flash);
+    next.page = page;
+    next.row = row;
+    next.col = col;
+    if (pass->keyPos.row != row || pass->keyPos.col != col) {
+        DcPass_LightKey(flash, &pass->keyPos, 0);
+        pass->keyPos = next;
+        DcPass_LightKey(flash, &pass->keyPos, 1);
+    } else pass->keyPos = next;
+    DcPass_DrawKeyboard(pass);
+    /* Password Input has the same layout, 30 pixels below the name page. */
+    Flash_SetOffset(flash, 0, rise - 30);
+    Port_FlashInputOnlyDraw(flash);
+}
+#endif
 
 /* Shows or hides a clip found by name (each use has its own MFlashRef on the stack). */
 static inline void DcPass_SetVisible(MFlash *flash, char *parent, char *name, s32 on) {

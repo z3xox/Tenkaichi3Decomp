@@ -1,4 +1,7 @@
 #include "common.h"
+#ifdef PORT
+s32 gPortNetStagePicker; /* first match: host; subsequent matches: previous winner */
+#endif
 #include "battle/battle.h"
 #include "sys/adx.h"
 #include "sys/dma.h"
@@ -362,10 +365,36 @@ void Battle_Loop(void) {
 
 /* Runs one whole battle scene; called by Game_Main after the menu overlay returns. */
 s32 Battle_Main(void) {
+#ifdef PORT
+    extern int Port_NetSession(void);
+    extern void Port_NetLeave(void);
+    extern void Port_NetEndBattle(void);
+    extern s32 PortTbo_ResultRun(s32 battles, s32 wins0, s32 wins1);
+    /* Game state: retained through character selection, restored when the session ends. */
+    static s32 battles, wins[2];
+    s32 selectAgain = 0;
+#endif
     Battle_GetWork()->running = 1;
     Battle_Init();
     Battle_Loop();
     Battle_Term();
     Battle_GetWork()->running = 0;
+#ifdef PORT
+    if (Port_NetSession()) {
+        BattleResult *result = Battle_GetResult();
+        if (!(result->winner & BTL_RESULT_ABORT)) {
+            battles++;
+            if (result->winner & 1) { wins[0]++; gPortNetStagePicker = 0; }
+            else if (result->winner & 2) { wins[1]++; gPortNetStagePicker = 1; }
+            selectAgain = PortTbo_ResultRun(battles, wins[0], wins[1]);
+            if (!selectAgain) Port_NetEndBattle();
+        }
+        if (!selectAgain) Port_NetLeave();
+        /* Result reason 0x10 makes Progress_Main reopen single/team character selection. */
+    } else {
+        battles = wins[0] = wins[1] = 0;
+        gPortNetStagePicker = 0;
+    }
+#endif
     return 1;
 }

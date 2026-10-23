@@ -369,6 +369,23 @@ def step_eu(args):
     s.ok("Spanish, German, French and Italian: the game makes them at its next start")
 
 
+def step_eu_wii(args):
+    """Extract the Wii Dragon Net Battle menu, motion, subtitles and voices."""
+    s = Step("Wii Dragon Net Battle")
+    iso = pathlib.Path(args.eu_wii_iso).expanduser()
+    if not iso.is_file():
+        s.fail(f"The European Wii disc image was not found: {iso}")
+    dolphin_tool = args.dolphin_tool or shutil.which("dolphin-tool")
+    if not dolphin_tool:
+        s.fail("The Wii extraction needs Dolphin's dolphin-tool. Install it or pass --dolphin-tool PATH.")
+    s.note = "extracting art, animations, subtitles and voices"
+    cmd = [sys.executable, ROOT / "port/tools/extract_wii_online.py", iso, "--dolphin-tool", dolphin_tool, "--require-eu"]
+    code, out = run(cmd)
+    if code != 0:
+        s.fail((out.strip().splitlines() or ["The Wii disc image could not be read (see install.log)."])[-1])
+    s.ok("Wii Dragon Net Battle assets in gamedata/dragon-net-battle/")
+
+
 # -------------------------------------------------------------------------------------------------- 6. self-test
 
 def step_test(args, exe):
@@ -410,6 +427,8 @@ def main():
     ap = argparse.ArgumentParser(description="Setup wizard of the Budokai Tenkaichi 3 PC port.", epilog="Run without arguments to be asked for the disc image.")
     ap.add_argument("--iso", help="your disc image of the USA release (SLUS-21678)")
     ap.add_argument("--eu-iso", help="optional: a disc image of the European release (SLES-54945), for Spanish, German, French and Italian")
+    ap.add_argument("--eu-wii-iso", help="optional: a European Wii ISO or RVZ, for Dragon Net Battle art, animation, voices and subtitles")
+    ap.add_argument("--dolphin-tool", help="path to Dolphin's dolphin-tool for --eu-wii-iso (otherwise found on PATH)")
     ap.add_argument("--32", dest="bits32", action="store_true", help="make the 32-bit build instead of the 64-bit one")
     ap.add_argument("--check", action="store_true", help="only check the requirements")
     ap.add_argument("--rebuild", action="store_true", help="build again even if the program is there")
@@ -428,8 +447,8 @@ def main():
         print(f"\n  {BOLD('Budokai Tenkaichi 3 PC port')}  {DIM('setup')}\n")
     if args.check:
         Step.total = 1
-    elif args.eu_iso:
-        Step.total += 1
+    else:
+        Step.total = 6 + bool(args.eu_iso) + bool(args.eu_wii_iso)
     t0 = time.time()
     try:
         step_requirements(args)
@@ -442,6 +461,8 @@ def main():
         exe = step_build(args)
         if args.eu_iso:
             step_eu(args)
+        if args.eu_wii_iso:
+            step_eu_wii(args)
         step_test(args, exe)
     except Failed as e:
         if MACHINE:

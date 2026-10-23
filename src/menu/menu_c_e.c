@@ -1,4 +1,9 @@
 #include "common.h"
+#ifdef PORT
+extern void Flash_PortStageBadge(void *flash, void *ref);
+extern s32 gPortNetStagePicker;
+extern int Port_NetSession(void);
+#endif
 #include "menu/menu_d.h"
 #include "sys/common.h"
 #include "sys/pad.h"
@@ -1183,6 +1188,19 @@ void CharSel_Draw(void) {
     }
 
     for (i = 0; i < CHARSEL_FLASH_NUM; i++) {
+#ifdef PORT
+        if (Port_NetSession()) {
+            s32 badge;
+            for (badge = 0; badge < 7; badge++) {
+                if (badge == 6) sprintf(name, "mc_player_1p_bgm");
+                else sprintf(name, "mc_player_1p_%02d", badge);
+                Flash_FindLabel(&gCharSel->flash[i], NULL, name, &ref);
+                if (ref.id >= 0) {
+                    Flash_PortStageBadge(&gCharSel->flash[i], &ref);
+                }
+            }
+        }
+#endif
         Flash_Draw(&gCharSel->flash[i]);
     }
     Font_FlushAll();
@@ -1887,6 +1905,11 @@ s32 CharSel_Run(s32 section) {
     s32 unk10;
     s32 cpuLevel;
     s32 i;
+#ifdef PORT
+    s32 botPicked = 0, botWait = 0;
+    extern int Port_NetBotSide(void);
+    extern int Port_NetBotLevel(void);
+#endif
 
     CharSel_Init(section);
     ColorFade_StartIn(0, 0, 0, 0x14);
@@ -1928,6 +1951,73 @@ s32 CharSel_Run(s32 section) {
                 CSPROG->bgm = gCharSel->bgmIds[gCharSel->stage->bgmPlaying];
             }
         } else {
+#ifdef PORT
+            if (Port_NetBotSide() >= 0 && gCharSel->players == 1 &&
+                !(gCharSel->flags & CHARSEL_STAGE_PHASE) &&
+                gCharSel->side[Port_NetBotSide()]->state != CHARSEL_ST_DONE) {
+                s32 side = Port_NetBotSide();
+                if (!botPicked && gCharSel->side[side]->state == CHARSEL_ST_GRID) {
+                    s32 start = Rand_Range(gCharSel->masterCount[side]);
+                    s32 k;
+                    for (k = 0; k < gCharSel->masterCount[side]; k++) {
+                        s32 cell = (start + k) % gCharSel->masterCount[side];
+                        if (gCharSel->cells[side][cell].id >= 0 && gCharSel->cells[side][cell].id < MCHR_RANDOM &&
+                            gCharSel->cells[side][cell].formCount == 0) {
+                            CharSel_ClipGoto(side + 1, side, CHARSEL_CLIP_CHIP, "fl_off_start");
+                            gCharSel->side[side]->col = cell % 7;
+                            gCharSel->side[side]->row = cell / 7;
+                            CharSel_SetRowChips(side);
+                            gCharSel->side[side]->chara = gCharSel->side[side]->chip[gCharSel->side[side]->col];
+                            CharSel_RequestFace(side);
+                            CharSel_ClipGoto(side + 1, side, CHARSEL_CLIP_CHIP, "fl_on_start");
+                            botPicked = 1;
+                            break;
+                        }
+                    }
+                }
+                if (botPicked && ++botWait >= 20) {
+                    gPad[side].gamePressed |= 0x200;
+                    botWait = 0;
+                }
+            } else if (Port_NetBotSide() == gPortNetStagePicker && (gCharSel->flags & CHARSEL_STAGE_PHASE) &&
+                       gCharSel->stage->state == CHARSEL_ST_STAGE && ++botWait >= 45) {
+                /* Use the game's Random stage cell so both peers draw the same unlocked stage. */
+                {
+                    s32 cell;
+                    for (cell = 0; cell < gCharSel->stageCount; cell++) {
+                        if (gCharSel->stageIds[cell] == CHARSEL_STAGE_RANDOM) {
+                            gCharSel->stage->col = cell % 6;
+                            gCharSel->stage->row = cell / 6;
+                            gCharSel->stage->stage = CHARSEL_STAGE_RANDOM;
+                            CharSel_SetStageChips();
+                            break;
+                        }
+                    }
+                }
+                {
+                    s32 song;
+                    for (song = 0; song < gCharSel->bgmCount; song++) {
+                        if (gCharSel->bgmIds[song] == CHARSEL_BGM_RANDOM) {
+                            gCharSel->stage->bgm = song;
+                            gCharSel->stage->bgmPlaying = song;
+                            break;
+                        }
+                    }
+                }
+                gPad[gPortNetStagePicker].gamePressed |= 0x200;
+                botWait = 0;
+            }
+#endif
+#ifdef PORT
+            if (Port_NetSession() && gPortNetStagePicker == 1 && (gCharSel->flags & CHARSEL_STAGE_PHASE)) {
+                /* The native stage/music screen reads pad 0. Route only that phase to the winner. */
+                Pad host = gPad[0];
+                gPad[0] = gPad[1];
+                CharSel_Input(&result);
+                gPad[1] = gPad[0];
+                gPad[0] = host;
+            } else
+#endif
             CharSel_Input(&result);
         }
     }
@@ -2007,8 +2097,13 @@ s32 CharSel_Run(s32 section) {
             BattleSetup_SetSide(1, 2, 1, 1, flag[1], 1, 0, NULL);
             break;
         case 1:
+#ifdef PORT
+            BattleSetup_SetSide(0, Port_NetBotSide() == 0 ? 2 : 0, 0, 1, 1, 1, 0, NULL);
+            BattleSetup_SetSide(1, Port_NetBotSide() == 1 ? 2 : 0, 1, 1, 1, 1, 0, NULL);
+#else
             BattleSetup_SetSide(0, 0, 0, 1, 1, 1, 0, NULL);
             BattleSetup_SetSide(1, 0, 1, 1, 1, 1, 0, NULL);
+#endif
             break;
         case 2:
             BattleSetup_SetSide(0, 2, 0, 1, flag[0], 1, 0, NULL);
@@ -2016,7 +2111,13 @@ s32 CharSel_Run(s32 section) {
             break;
         }
         for (i = 0; i < 2; i++) {
-            BattleSetup_SetMember(i, 0, gCharSel->side[i]->picked, gCharSel->side[i]->colorPlate, 0, cpuLevel, 100.0f,
+            BattleSetup_SetMember(i, 0, gCharSel->side[i]->picked, gCharSel->side[i]->colorPlate, 0,
+#ifdef PORT
+                                  i == Port_NetBotSide() ? Port_NetBotLevel() : cpuLevel,
+#else
+                                  cpuLevel,
+#endif
+                                  100.0f,
                                   gCharSel->side[i]->items.id);
         }
         BattleSetup_Finish();

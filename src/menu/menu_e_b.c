@@ -1,4 +1,9 @@
 #include "common.h"
+#ifdef PORT
+extern void Flash_PortStageBadge(void *flash, void *ref);
+extern s32 gPortNetStagePicker;
+extern int Port_NetSession(void);
+#endif
 #include "menu/menu_e.h"
 #include "menu/menu_f.h"
 #include "sys/pad.h"
@@ -1334,6 +1339,19 @@ void TeamSel_Draw(void) {
         }
     }
     for (i = 0; i < TEAMSEL_FLASH_NUM; i++) {
+#ifdef PORT
+        if (Port_NetSession()) {
+            s32 badge;
+            for (badge = 0; badge < 7; badge++) {
+                if (badge == 6) sprintf(name, "mc_player_1p_bgm");
+                else sprintf(name, "mc_player_1p_%02d", badge);
+                Flash_FindLabel(&gTeamSel->flash[i], NULL, name, &ref);
+                if (ref.id >= 0) {
+                    Flash_PortStageBadge(&gTeamSel->flash[i], &ref);
+                }
+            }
+        }
+#endif
         Flash_Draw(&gTeamSel->flash[i]);
     }
     Font_FlushAll();
@@ -2187,6 +2205,32 @@ f32 TeamSel_Input(s32 *result) {
     }
 }
 
+/* Pick any unused fighter that fits the remaining DP budget, if applicable. */
+#ifdef PORT
+static s32 TeamSel_BotNextCell(s32 side) {
+    s32 best = -1;
+    s32 choices = 0;
+    s32 used = 0;
+    s32 k;
+
+    if (gTeamSel->side[side]->memberCount >= TS_MEMBER_MAX) return -1;
+    if (gTeamSel->battleType == 2) {
+        for (k = 0; k < gTeamSel->side[side]->memberCount; k++)
+            used += ChrTbl_GetCost(gTeamSel->side[side]->member[k].chara);
+    }
+    for (k = 0; k < gTeamSel->masterCount[side]; k++) {
+        s32 chara = gTeamSel->cells[side][k].id;
+        s32 cost;
+        if (chara < 0 || chara >= TS_RANDOM || gTeamSel->cells[side][k].formCount != 0 ||
+            !TeamSel_IsCharaFree(side, chara)) continue;
+        cost = ChrTbl_GetCost(chara);
+        if (gTeamSel->battleType == 2 && used + cost > gTeamSel->dpMax) continue;
+        if (Rand_Range(++choices) == 0) best = k;
+    }
+    return best;
+}
+#endif
+
 /* The song a chosen "random" stands for: one of the nine battle songs. PC build, with songs added from outside
    the disc: any entry of the music list before "random", the disc's and the added ones alike. */
 #ifdef PORT
@@ -2207,6 +2251,11 @@ s32 TeamSel_Run(s32 section) {
     s32 bgm;
     s32 timeLimit;
     s32 cpuLevel;
+#ifdef PORT
+    s32 botPicked = 0, botWait = 0;
+    extern int Port_NetBotSide(void);
+    extern int Port_NetBotLevel(void);
+#endif
 
     TeamSel_Init(section);
     ColorFade_StartIn(0, 0, 0, 0x14);
@@ -2250,6 +2299,75 @@ s32 TeamSel_Run(s32 section) {
             }
             continue;
         }
+#ifdef PORT
+        if (Port_NetBotSide() >= 0 && gTeamSel->players == TEAMSEL_PLAYERS_TWO &&
+            !(gTeamSel->flags & TEAMSEL_STAGE) &&
+            gTeamSel->side[Port_NetBotSide()]->state != TEAMSEL_ST_DONE) {
+            s32 side = Port_NetBotSide();
+            if (!botPicked && gTeamSel->side[side]->state == TEAMSEL_ST_GRID) {
+                s32 cell = TeamSel_BotNextCell(side);
+                if (cell >= 0) {
+                    TsMember *member = &gTeamSel->side[side]->member[gTeamSel->side[side]->cur];
+                    TeamSel_ClipGoto(side + 3, side, TEAMSEL_CLIP_CHIP, "fl_off_start");
+                    member->col = cell % TS_COLS;
+                    member->row = cell / TS_COLS;
+                    TeamSel_SetChips(side);
+                    gTeamSel->side[side]->chara = gTeamSel->side[side]->chip[0][member->col];
+                    TeamSel_RequestFace(side);
+                    TeamSel_ClipGoto(side + 3, side, TEAMSEL_CLIP_CHIP, "fl_on_start");
+                    botPicked = 1;
+                }
+            }
+            if ((botPicked || gTeamSel->side[side]->state == TEAMSEL_ST_TEAM) && ++botWait >= 20) {
+                if (gTeamSel->side[side]->state == TEAMSEL_ST_TEAM) {
+                    botPicked = 0;
+                    if (TeamSel_BotNextCell(side) < 0 && gTeamSel->side[side]->cur != TS_CUR_MENU)
+                        gPad[side].gameRepeat |= 2;
+                    else
+                        gPad[side].gamePressed |= 0x200;
+                } else {
+                    gPad[side].gamePressed |= 0x200;
+                }
+                botWait = 0;
+            }
+        } else if (Port_NetBotSide() == gPortNetStagePicker && (gTeamSel->flags & TEAMSEL_STAGE) &&
+                   gTeamSel->stage->state == TEAMSEL_STAGE_GRID && ++botWait >= 45) {
+            /* Use the game's Random stage cell so both peers draw the same unlocked stage. */
+            {
+                s32 cell;
+                for (cell = 0; cell < gTeamSel->stageCount; cell++) {
+                    if (gTeamSel->stageIds[cell] == TS_STAGE_RANDOM) {
+                        gTeamSel->stage->col = cell % TS_STAGE_COLS;
+                        gTeamSel->stage->row = cell / TS_STAGE_COLS;
+                        gTeamSel->stage->stage = TS_STAGE_RANDOM;
+                        TeamSel_SetStageChips();
+                        break;
+                    }
+                }
+            }
+            {
+                s32 song;
+                for (song = 0; song < gTeamSel->bgmCount; song++) {
+                    if (gTeamSel->bgmIds[song] == TS_BGM_RANDOM) {
+                        gTeamSel->stage->bgm = song;
+                        break;
+                    }
+                }
+            }
+            gPad[gPortNetStagePicker].gamePressed |= 0x200;
+            botWait = 0;
+        }
+#endif
+#ifdef PORT
+        if (Port_NetSession() && gPortNetStagePicker == 1 && (gTeamSel->flags & TEAMSEL_STAGE)) {
+            /* The native stage/music screen reads pad 0. Route only that phase to the winner. */
+            Pad host = gPad[0];
+            gPad[0] = gPad[1];
+            TeamSel_Input(&result);
+            gPad[1] = gPad[0];
+            gPad[0] = host;
+        } else
+#endif
         TeamSel_Input(&result);
     }
 
@@ -2305,8 +2423,13 @@ s32 TeamSel_Run(s32 section) {
             BattleSetup_SetSide(1, 2, 1, gTeamSel->side[1]->memberCount, handicap[1], 1, 0, NULL);
             break;
         case TEAMSEL_PLAYERS_TWO:
+#ifdef PORT
+            BattleSetup_SetSide(0, Port_NetBotSide() == 0 ? 2 : 0, 0, gTeamSel->side[0]->memberCount, 1, 1, 0, NULL);
+            BattleSetup_SetSide(1, Port_NetBotSide() == 1 ? 2 : 0, 1, gTeamSel->side[1]->memberCount, 1, 1, 0, NULL);
+#else
             BattleSetup_SetSide(0, 0, 0, gTeamSel->side[0]->memberCount, 1, 1, 0, NULL);
             BattleSetup_SetSide(1, 0, 1, gTeamSel->side[1]->memberCount, 1, 1, 0, NULL);
+#endif
             break;
         case TEAMSEL_PLAYERS_CPU_CPU:
             BattleSetup_SetSide(0, 2, 0, gTeamSel->side[0]->memberCount, handicap[0], 1, 0, NULL);
@@ -2316,7 +2439,13 @@ s32 TeamSel_Run(s32 section) {
         for (i = 0; i < TEAMSEL_SIDES; i++) {
             for (j = 0; j < gTeamSel->side[i]->memberCount; j++) {
                 BattleSetup_SetMember(i, j, gTeamSel->side[i]->member[j].chara, gTeamSel->side[i]->member[j].color,
-                                      0, cpuLevel, 100.0f, gTeamSel->side[i]->member[j].items.id);
+                                      0,
+#ifdef PORT
+                                      i == Port_NetBotSide() ? Port_NetBotLevel() : cpuLevel,
+#else
+                                      cpuLevel,
+#endif
+                                      100.0f, gTeamSel->side[i]->member[j].items.id);
             }
         }
         BattleSetup_Finish();

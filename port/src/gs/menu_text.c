@@ -2325,3 +2325,51 @@ uint8_t *MenuText_HeadingRender(const char *text, int *w, int *h) {
     pthread_mutex_unlock(&sLock);
     return px;
 }
+
+/* The Wii screens keep their own 512-pixel label sheets, but use Evolution Z's
+   measured plate-caption styles when a Menu font is selected. style: idle,
+   selected, heading. */
+uint8_t *MenuText_RenderWiiLabel(const char *text, int style, int scale, int *outWidth, int *outHeight) {
+    MenuLabel label;
+    Row row;
+    Face *face;
+    uint8_t *result = NULL;
+    int width, height;
+    size_t length = text != NULL ? strlen(text) : 0;
+    if (style < 0 || style > 2 || scale < 1 || scale > 4 || length == 0 ||
+        length >= sizeof(label.text) || !outWidth || !outHeight) return NULL;
+    pthread_mutex_lock(&sLock);
+    face = sFontChoice == 0 ? line_face(0) : &sFont;
+    if (face == NULL) goto done;
+    if (style == 2) {
+        if (!heading_label(text, &label)) goto done;
+        label.cap = 21; label.baseline = 29; label.margin = 9;
+        label.rowHeight = label.height = 64;
+    } else {
+        memset(&label, 0, sizeof(label));
+        memcpy(label.text, text, length + 1);
+        /* Evolution Z's three plate captions use the same 19-pixel face
+           in both states; only their purple/orange style changes. */
+        label.cap = 19;
+        label.baseline = 24;
+        label.margin = 5;
+        label.rowHeight = label.height = 32;
+        label.widthMilli = 1000;
+        label.outlineMilli = -1;
+        label.shadow = 1;
+        label.top = label.bottom = style ? 0xF4EF89 : 0xCBCBCB;
+        if (style) label.bottom = 0xD2684B;
+        label.outline = label.outlineBottom = style ? 0x2C151B : 0x460059;
+    }
+    label.width = label.rowWidth = 512;
+    width = 512 * scale; height = label.rowHeight * scale;
+    result = calloc((size_t)width * height, 4);
+    if (!result) goto done;
+    if (!menu_text_row(face, &label, scale, &row)) { free(result); result = NULL; goto done; }
+    row_paste(result, width, 0, 0, width, height, &row);
+    free(row.px);
+    *outWidth = width; *outHeight = height;
+done:
+    pthread_mutex_unlock(&sLock);
+    return result;
+}

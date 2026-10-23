@@ -14,6 +14,7 @@
  * Nothing here is game state: the screens are a menu of the PC's, before and outside an online match.
  */
 #include "menu_text.h"
+#include "menu_translation.h"
 #include "../../../include/menu/tbo_art.h"
 #include <SDL3/SDL.h>
 #include <pthread.h>
@@ -37,6 +38,16 @@ static TboLine sLines[TBO_TEXT_SLOTS];
 static uint32_t sVersion;
 static pthread_mutex_t sLock = PTHREAD_MUTEX_INITIALIZER;
 
+/* Whether the selected Menu font is active for text that actually has wording
+   in the selected language. Port catalog flag 2 means a locale-specific row. */
+int PortTbo_WiiUseFont(void) { return MenuText_GetFont() != 0; }
+int PortTbo_WiiUseFontForArtwork(int textKind) {
+    const char *locale = MenuTranslation_Locale();
+    if (locale != NULL && strncmp(locale, "en", 2) != 0)
+        return textKind == 2;
+    return MenuText_GetFont() != 0 || textKind != 0;
+}
+
 /* The size the letters are drawn at, by kind (capitals, in pixels: the screens show them smaller, from smaller
    copies), and the outline's thickness: as the letter sheet had it, about a 16th of the capitals. */
 static int line_cap(int kind) { return kind == 0 ? 80 : 48; }
@@ -47,6 +58,16 @@ static int line_measure(TboLine *l, uint32_t generation) {
     l->version = ++sVersion;
     if (sVersion == 0) {
         l->version = sVersion = 1;
+    }
+    if (l->kind >= 3) {
+        int mw, mh, mb;
+        l->cap = l->kind == 5 ? 21 : 16;
+        l->pad = l->kind == 5 ? 8 : 4;
+        l->outline = 0;
+        l->w = 1024; l->h = l->kind == 5 ? 128 : 64;
+        l->base = l->kind == 5 ? 44 : 22;
+        l->advance = MenuText_LineMeasure(0, l->text, l->cap, l->pad, &mw, &mh, &mb);
+        return l->advance > 0;
     }
     if (l->kind == 2) {
         l->outline = 0;
@@ -66,7 +87,7 @@ int PortTbo_TextId(const char *text, int kind) {
     uint64_t now = SDL_GetTicks();
     int i, spare = -1, id = -1;
 
-    if (text == NULL || text[0] == '\0' || kind < 0 || kind > 2) {
+    if (text == NULL || text[0] == '\0' || kind < 0 || kind > 5) {
         return -1;
     }
     pthread_mutex_lock(&sLock);
@@ -153,6 +174,13 @@ uint32_t *TboText_Pixels(uint32_t id, uint32_t *version, uint32_t *w, uint32_t *
     *version = l.version;
     if (l.version == 0 || l.advance <= 0) {
         return NULL;
+    }
+    if (l.kind >= 3) {
+        px = (uint32_t *)(void *)MenuText_RenderWiiLabel(l.text, l.kind - 3, 2, &lw, &lh);
+        if (px == NULL) return NULL;
+        if (lw != l.w || lh != l.h) { free(px); return NULL; }
+        *w = (uint32_t)lw; *h = (uint32_t)lh;
+        return px;
     }
     if (l.kind == 2) {
         px = (uint32_t *)(void *)MenuText_HeadingRender(l.text, &lw, &lh);

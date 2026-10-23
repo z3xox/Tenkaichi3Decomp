@@ -793,13 +793,8 @@ static void build_net(void) {
         ImGui::TextWrapped("Fight a player on another computer. One of you hosts, the other joins with the host's address.");
         ImGui::Spacing();
         ImGui::SetNextItemWidth(U(260.0f));
-        {
-            static bool read;
-            if (!read) { // the name used last time
-                read = true;
-                Port_SettingText("net_name", "Player", name, sizeof(name));
-            }
-        }
+        if (ImGui::IsWindowAppearing())
+            Port_SettingText("net_name", "Player", name, sizeof(name));
         ImGui::InputText("Player name", name, sizeof(name));
         if (ImGui::IsItemDeactivatedAfterEdit()) {
             Port_SettingTextSave("net_name", name);

@@ -1,4 +1,7 @@
 #include "common.h"
+#ifdef PORT
+extern int Port_NetSession(void);
+#endif
 #include "battle/btl_seq.h"
 #include "battle/battle_setup.h"
 #include "battle/battle_work.h"
@@ -1453,6 +1456,13 @@ s32 BtlSeqEnd_Enter(BtlSeqWaitCtx *ctx) {
         Fade_Start(0, 0, 1.0f);
         Ramp_Start(&ctx->timer, 1.2f, 0.0f, 1.0f);
         ctx->step = 1;
+#ifdef PORT
+    } else if (Port_NetSession()) {
+        /* Online results belong to the Dragon Net menu after battle teardown. */
+        Fade_Start(0, 0, 1.0f);
+        Ramp_Start(&ctx->timer, 1.2f, 0.0f, 1.0f);
+        ctx->step = 1;
+#endif
     } else if (BtlSeq_IsModeZero()) {
         ctx->step = 0;
         BtlSeq_SetResultPad();

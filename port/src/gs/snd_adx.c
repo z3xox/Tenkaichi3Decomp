@@ -662,6 +662,40 @@ void ADXT_StartFname(void *adxt, char *fname) {
     }
 }
 
+/* The Wii's two Dragon Net Battle voice sets (Japanese and English). The
+   game's options choose the set; fall back to the other if an old extraction
+   has only one. Return 1 for English, 2 for Japanese, or 0 if absent. */
+int Port_WiiVoicePlay(int line, int japanese) {
+    char path[512];
+    const char *base;
+    const char *language;
+    FILE *file;
+    int attempt;
+
+    if (line < 0 || line >= 44 || gPortAdxCount <= 4) return 0;
+    base = SDL_GetBasePath();
+    for (attempt = 0; attempt < 2; attempt++) {
+        language = (attempt == 0 ? japanese : !japanese) ? "ja" : "en";
+        snprintf(path, sizeof(path), "%sgamedata/dragon-net-battle/voices/%s/%03d.adx", base != NULL ? base : "", language, line);
+        file = fopen(path, "rb");
+        if (file == NULL && base != NULL) {
+            snprintf(path, sizeof(path), "%s../../gamedata/dragon-net-battle/voices/%s/%03d.adx", base, language, line);
+            file = fopen(path, "rb");
+        }
+        if (file == NULL) {
+            snprintf(path, sizeof(path), "gamedata/dragon-net-battle/voices/%s/%03d.adx", language, line);
+            file = fopen(path, "rb");
+        }
+        if (file != NULL) {
+            fclose(file);
+            start(&sPlayers[4], path);
+            view_start(&sPlayers[4], path, 1);
+            return language[0] == 'j' ? 2 : 1;
+        }
+    }
+    return 0;
+}
+
 void ADXT_Stop(void *adxt) {
     if (adxt != NULL) {
         stop(adxt);

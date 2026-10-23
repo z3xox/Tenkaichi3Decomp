@@ -58,7 +58,7 @@ extern const u16 *UiText_TranslateLine(const u32 *table, int line, const u16 *or
 #endif
 
 #define DIALOG_TEXT(tbl, i) ((u16 *)((u8 *)(tbl) + ((tbl)[(i) + 1] / 4 * 4)))
-#define DIALOG_PART(file, i) ((DialogResHdr *)((u8 *)(file) + ((file)[i] / 4 * 4)))
+#define DIALOG_PART(file, i) ((DialogResHdr *)((u8 *)(file) + (((u32 *)(file))[i] / 4 * 4)))
 
 /* Layout 0: prints text msgIdx of the caller's table, centred on the anchor clip and shifted down by its line count. */
 void Dialog_DrawText(void) {
@@ -240,7 +240,7 @@ void Dialog_PlayCursorPlate(s32 flash, const char *label) {
 }
 
 /* Allocates the window and builds its animation from the resource file; msgTbl is the caller's text table. */
-void Dialog_Init(u32 *file, u32 *msgTbl, s32 size) {
+void Dialog_Init(void *file, void *msgTbl, s32 size) {
     DialogResHdr *hdr = NULL;
 
     gDialog = Heap_Alloc(sizeof(Dialog), 0x20, 0, 2);
@@ -454,7 +454,7 @@ void Dialog_SetLayout(s32 layout) {
 }
 
 /* Replaces the caller's message table. */
-void Dialog_SetMsgTable(u32 *tbl) {
+void Dialog_SetMsgTable(void *tbl) {
     gDialog->msgTbl = tbl;
 }
 

@@ -26,7 +26,9 @@
 #include "ui.h"         /* PortVideo and the window helpers */
 #include "gs_texpack.h" /* texture packs (replacement textures) */
 #include "menu_text.h"  /* editable labels in the original menu texture slots */
-#include "menu_labels.h"      /* European menu art and native language selector pictures */
+#include "menu_translation.h" /* optional language screen artwork */
+#include "ui_text_translate.h" /* editable Wii dialog lines in the UI catalog */
+#include "menu_labels.h"      /* the chosen language's menu art from the European disc */
 #include <math.h>
 
 /* Stage-name overlay: defined here (C) so both the renderer (gs_gpu.c) and the game's menu (menu_c_e.c) can
@@ -208,6 +210,328 @@ static unsigned char sTboMissing[TBO_ART_COUNT]; /* not found or not readable: n
 static GsTex sLangTex[3];
 static unsigned char sLangMissing[3];
 
+int Port_WiiArtAvailable(void) {
+    static int available = -1;
+    char path[1024];
+    const char *base;
+    SDL_Surface *png;
+
+    if (available >= 0) return available;
+    base = SDL_GetBasePath();
+    snprintf(path, sizeof(path), "%sgamedata/dragon-net-battle/section-00/resource-001-textures/texture-000.png", base != NULL ? base : "");
+    png = SDL_LoadPNG(path);
+    if (png == NULL && base != NULL) {
+        snprintf(path, sizeof(path), "%s../../gamedata/dragon-net-battle/section-00/resource-001-textures/texture-000.png", base);
+        png = SDL_LoadPNG(path);
+    }
+    if (png == NULL) png = SDL_LoadPNG("gamedata/dragon-net-battle/section-00/resource-001-textures/texture-000.png");
+    available = png != NULL && png->w == 128 && png->h == 256;
+    if (png != NULL) SDL_DestroySurface(png);
+    return available;
+}
+
+/* The small WMO2 file is written by extract_wii_online.py from the BIG FOD
+   keyframes. The supported PC targets store float32 in little-endian order. */
+static int tbo_read_wii_motion(const char *path, float values[8][500], const int counts[8]) {
+    unsigned char header[20];
+    FILE *file = fopen(path, "rb");
+    int i;
+
+    if (file == NULL) return 0;
+    if (fread(header, 1, sizeof(header), file) != sizeof(header) || memcmp(header, "WMO2", 4) != 0) {
+        fclose(file);
+        return 0;
+    }
+    for (i = 0; i < 8; i++) {
+        if ((int)header[4 + i * 2] + ((int)header[5 + i * 2] << 8) != counts[i] ||
+            fread(values[i], sizeof(float), (size_t)counts[i], file) != (size_t)counts[i]) {
+            fclose(file);
+            return 0;
+        }
+    }
+    fclose(file);
+    return 1;
+}
+
+static float tbo_wii_motion_fallback(int track, int frame) {
+    float t;
+
+    if (frame < 0) frame = 0;
+    if (track == TBO_WII_MOTION_BARS_X || track == TBO_WII_MOTION_PAN_ENTRY_X) {
+        t = (float)(frame > 17 ? 17 : frame) / 17.0f;
+        return track == TBO_WII_MOTION_BARS_X ? 531.0f - 360.0f * t : -271.95f + 260.0f * t;
+    }
+    if (track == TBO_WII_MOTION_GIRU_X || track == TBO_WII_MOTION_GIRU_Y) {
+        t = (float)(frame > 29 ? 29 : frame) / 29.0f;
+        return track == TBO_WII_MOTION_GIRU_X ? 371.55f - 187.5f * t : 23.65f + 48.2f * t;
+    }
+    if (track == TBO_WII_MOTION_PAN_BOB_Y)
+        return 261.0f - 5.0f * cosf((float)frame * 0.06283185f);
+    if (track == TBO_WII_MOTION_RADAR_SCALE)
+        return 1.1f - 0.1f * cosf((float)frame * 0.12566371f);
+    return 0.0f;
+}
+
+/* Game objects use the PS2 soft-float ABI, while this host renderer uses the
+   platform float ABI. Return a scaled integer so both sides agree on the
+   register carrying the value. */
+int Port_WiiHomeMotionQuarterMilli(int track, int quarterFrame) {
+    static float values[8][500];
+    static const int counts[8] = {18, 18, 500, 50, 30, 30, 60, 60};
+    static int available = -1;
+    char path[1024];
+    const char *base;
+    int loop, frame, next, fraction;
+    float a, b;
+
+    if (track < 0 || track >= 8) return 0;
+    if (available < 0) {
+        base = SDL_GetBasePath();
+        snprintf(path, sizeof(path), "%sgamedata/dragon-net-battle/home-motion.bin", base != NULL ? base : "");
+        available = tbo_read_wii_motion(path, values, counts);
+        if (!available && base != NULL) {
+            snprintf(path, sizeof(path), "%s../../gamedata/dragon-net-battle/home-motion.bin", base);
+            available = tbo_read_wii_motion(path, values, counts);
+        }
+        if (!available) available = tbo_read_wii_motion("gamedata/dragon-net-battle/home-motion.bin", values, counts);
+        fprintf(stderr, "bt3: Wii home motion: %s\n", available ? "FOD keyframes loaded" : "using built-in motion; re-extract Wii art for FOD keyframes");
+    }
+    loop = track == TBO_WII_MOTION_PAN_BOB_Y || track == TBO_WII_MOTION_RADAR_SCALE ||
+           track == TBO_WII_MOTION_SPARKLE_0 || track == TBO_WII_MOTION_SPARKLE_1;
+    if (quarterFrame < 0) quarterFrame = 0;
+    if (loop) quarterFrame %= counts[track] * 4;
+    else if (quarterFrame >= (counts[track] - 1) * 4) quarterFrame = (counts[track] - 1) * 4;
+    frame = quarterFrame / 4;
+    fraction = quarterFrame % 4;
+    next = frame + 1 < counts[track] ? frame + 1 : loop ? 0 : frame;
+    a = available ? values[track][frame] : tbo_wii_motion_fallback(track, frame);
+    b = available ? values[track][next] : tbo_wii_motion_fallback(track, next);
+    return (int)lroundf((a + (b - a) * (float)fraction * 0.25f) * 1000.0f);
+}
+
+typedef struct TboWiiLipEvent {
+    uint16_t frame, state;
+} TboWiiLipEvent;
+typedef struct TboWiiLipTrack {
+    int count, duration;
+    TboWiiLipEvent event[32];
+} TboWiiLipTrack;
+typedef struct TboWiiDialog {
+    char text[256];
+    TboWiiLipTrack lip[2]; /* Japanese, English: the Wii pack's order */
+} TboWiiDialog;
+static TboWiiDialog sWiiDialog[44];
+static int sWiiDialogLoaded = -1;
+static char sWiiSubtitle[44][256];
+static char sWiiSubtitleLocale[3];
+static int sWiiSubtitleLoaded;
+static char sWiiMenuText[66][512];
+static char sWiiMenuTextLocale[3];
+static int sWiiMenuTextLoaded;
+
+static int tbo_wii_dialog_read(const char *path) {
+    unsigned char header[8], item[12], event[4];
+    FILE *file = fopen(path, "rb");
+    int i, j, language, modern;
+
+    if (file == NULL) return 0;
+    if (fread(header, 1, 8, file) != 8 ||
+        (memcmp(header, "WDL2", 4) != 0 && memcmp(header, "WDL1", 4) != 0) ||
+        (header[4] | header[5] << 8) != 44) goto bad;
+    modern = header[3] == '2';
+    if (modern && (header[6] | header[7] << 8) != 2) goto bad;
+    memset(sWiiDialog, 0, sizeof(sWiiDialog));
+    for (i = 0; i < 44; i++) {
+        int length, count[2];
+        if (fread(item, 1, modern ? 12 : 8, file) != (size_t)(modern ? 12 : 8)) goto bad;
+        length = item[0] | item[1] << 8;
+        count[0] = modern ? item[2] | item[3] << 8 : 0;
+        count[1] = modern ? item[4] | item[5] << 8 : item[2] | item[3] << 8;
+        if (length < 1 || length >= 256 || (modern && (count[0] < 1 || count[0] > 32)) ||
+            count[1] < 1 || count[1] > 32 ||
+            fread(sWiiDialog[i].text, 1, (size_t)length, file) != (size_t)length) goto bad;
+        sWiiDialog[i].text[length] = 0;
+        for (j = 0; j < length; j++)
+            if (sWiiDialog[i].text[j] == '\n') sWiiDialog[i].text[j] = ' ';
+        sWiiDialog[i].lip[0].duration = modern ? item[6] | item[7] << 8 : 0;
+        sWiiDialog[i].lip[1].duration = modern ? item[8] | item[9] << 8 : item[4] | item[5] << 8;
+        for (language = 0; language < 2; language++) {
+            sWiiDialog[i].lip[language].count = count[language];
+            for (j = 0; j < count[language]; j++) {
+                if (fread(event, 1, 4, file) != 4) goto bad;
+                sWiiDialog[i].lip[language].event[j].frame = event[0] | event[1] << 8;
+                sWiiDialog[i].lip[language].event[j].state = event[2] | event[3] << 8;
+            }
+        }
+    }
+    fclose(file);
+    return 1;
+bad:
+    fclose(file);
+    return 0;
+}
+
+static int tbo_wii_dialog_available(void) {
+    char path[1024];
+    const char *base;
+
+    if (sWiiDialogLoaded >= 0) return sWiiDialogLoaded;
+    base = SDL_GetBasePath();
+    snprintf(path, sizeof(path), "%sgamedata/dragon-net-battle/home-dialog.bin", base != NULL ? base : "");
+    sWiiDialogLoaded = tbo_wii_dialog_read(path);
+    if (!sWiiDialogLoaded && base != NULL) {
+        snprintf(path, sizeof(path), "%s../../gamedata/dragon-net-battle/home-dialog.bin", base);
+        sWiiDialogLoaded = tbo_wii_dialog_read(path);
+    }
+    if (!sWiiDialogLoaded) sWiiDialogLoaded = tbo_wii_dialog_read("gamedata/dragon-net-battle/home-dialog.bin");
+    fprintf(stderr, "bt3: Wii dialogue: %s\n", sWiiDialogLoaded ? "44 dialogue lines and Wii lip tracks loaded" : "not extracted");
+    return sWiiDialogLoaded;
+}
+
+static int tbo_wii_subtitle_read(const char *path) {
+    unsigned char header[8], size[2];
+    FILE *file = fopen(path, "rb");
+    int line, i, length;
+
+    if (file == NULL) return 0;
+    if (fread(header, 1, 8, file) != 8 || memcmp(header, "WST1", 4) != 0 ||
+        (header[4] | header[5] << 8) != 44) goto bad;
+    for (line = 0; line < 44; line++) {
+        if (fread(size, 1, 2, file) != 2) goto bad;
+        length = size[0] | size[1] << 8;
+        if (length < 1 || length >= (int)sizeof(sWiiSubtitle[line]) ||
+            fread(sWiiSubtitle[line], 1, (size_t)length, file) != (size_t)length) goto bad;
+        sWiiSubtitle[line][length] = 0;
+        for (i = 0; i < length; i++)
+            if (sWiiSubtitle[line][i] == '\n') sWiiSubtitle[line][i] = ' ';
+    }
+    fclose(file);
+    return 1;
+bad:
+    fclose(file);
+    return 0;
+}
+
+static int tbo_wii_subtitle_available(void) {
+    const char *selected = MenuTranslation_Locale();
+    const char *locale = "en", *base;
+    char path[1024];
+
+    if (selected != NULL && (strncmp(selected, "es", 2) == 0 || strncmp(selected, "de", 2) == 0 ||
+                             strncmp(selected, "fr", 2) == 0 || strncmp(selected, "it", 2) == 0))
+        locale = selected;
+    if (sWiiSubtitleLocale[0] == locale[0] && sWiiSubtitleLocale[1] == locale[1])
+        return sWiiSubtitleLoaded;
+    sWiiSubtitleLocale[0] = locale[0];
+    sWiiSubtitleLocale[1] = locale[1];
+    sWiiSubtitleLocale[2] = 0;
+    base = SDL_GetBasePath();
+    snprintf(path, sizeof(path), "%sgamedata/dragon-net-battle/home-subtitles-%s.bin", base != NULL ? base : "", sWiiSubtitleLocale);
+    sWiiSubtitleLoaded = tbo_wii_subtitle_read(path);
+    if (!sWiiSubtitleLoaded && base != NULL) {
+        snprintf(path, sizeof(path), "%s../../gamedata/dragon-net-battle/home-subtitles-%s.bin", base, sWiiSubtitleLocale);
+        sWiiSubtitleLoaded = tbo_wii_subtitle_read(path);
+    }
+    if (!sWiiSubtitleLoaded) {
+        snprintf(path, sizeof(path), "gamedata/dragon-net-battle/home-subtitles-%s.bin", sWiiSubtitleLocale);
+        sWiiSubtitleLoaded = tbo_wii_subtitle_read(path);
+    }
+    fprintf(stderr, "bt3: Wii subtitles: %s %s\n", sWiiSubtitleLocale,
+            sWiiSubtitleLoaded ? "loaded" : "missing; using dialogue pack text");
+    return sWiiSubtitleLoaded;
+}
+
+int Port_WiiDialogText(int line, char *out, int capacity) {
+    const char *text;
+    size_t n;
+    if (out == NULL || capacity < 1 || line < 0 || line >= 44 || !tbo_wii_dialog_available()) return 0;
+    text = tbo_wii_subtitle_available() ? sWiiSubtitle[line] : sWiiDialog[line].text;
+    n = strlen(text);
+    if (n >= (size_t)capacity) n = (size_t)capacity - 1;
+    memcpy(out, text, n);
+    out[n] = 0;
+    UiText_TranslateIdUtf8("wii-dragon-net/dialog", line, out, capacity);
+    return 1;
+}
+
+static int tbo_wii_menu_text_read(const char *path) {
+    unsigned char header[8], size[2];
+    FILE *file = fopen(path, "rb");
+    int line, length;
+
+    if (file == NULL) return 0;
+    if (fread(header, 1, 8, file) != 8 || memcmp(header, "WMT1", 4) != 0 ||
+        (header[4] | header[5] << 8) != 66) goto bad;
+    for (line = 0; line < 66; line++) {
+        if (fread(size, 1, 2, file) != 2) goto bad;
+        length = size[0] | size[1] << 8;
+        if (length < 1 || length >= (int)sizeof(sWiiMenuText[line]) ||
+            fread(sWiiMenuText[line], 1, (size_t)length, file) != (size_t)length) goto bad;
+        sWiiMenuText[line][length] = 0;
+    }
+    fclose(file);
+    return 1;
+bad:
+    fclose(file);
+    return 0;
+}
+
+int Port_WiiMenuText(int line, char *out, int capacity) {
+    const char *selected = MenuTranslation_Locale();
+    const char *locale = "en", *base;
+    char path[1024];
+    size_t length;
+
+    if (out == NULL || capacity < 1 || line < 0 || line >= 66) return 0;
+    if (selected != NULL && (strncmp(selected, "es", 2) == 0 || strncmp(selected, "de", 2) == 0 ||
+                             strncmp(selected, "fr", 2) == 0 || strncmp(selected, "it", 2) == 0))
+        locale = selected;
+    if (sWiiMenuTextLocale[0] != locale[0] || sWiiMenuTextLocale[1] != locale[1]) {
+        sWiiMenuTextLocale[0] = locale[0];
+        sWiiMenuTextLocale[1] = locale[1];
+        sWiiMenuTextLocale[2] = 0;
+        base = SDL_GetBasePath();
+        snprintf(path, sizeof(path), "%sgamedata/dragon-net-battle/menu-text-%s.bin",
+                 base != NULL ? base : "", sWiiMenuTextLocale);
+        sWiiMenuTextLoaded = tbo_wii_menu_text_read(path);
+        if (!sWiiMenuTextLoaded && base != NULL) {
+            snprintf(path, sizeof(path), "%s../../gamedata/dragon-net-battle/menu-text-%s.bin",
+                     base, sWiiMenuTextLocale);
+            sWiiMenuTextLoaded = tbo_wii_menu_text_read(path);
+        }
+        if (!sWiiMenuTextLoaded) {
+            snprintf(path, sizeof(path), "gamedata/dragon-net-battle/menu-text-%s.bin", sWiiMenuTextLocale);
+            sWiiMenuTextLoaded = tbo_wii_menu_text_read(path);
+        }
+        fprintf(stderr, "bt3: Wii menu text: %s %s\n", sWiiMenuTextLocale,
+                sWiiMenuTextLoaded ? "loaded" : "missing; using English fallback text");
+    }
+    if (sWiiMenuTextLoaded) {
+        length = strlen(sWiiMenuText[line]);
+        if (length >= (size_t)capacity) length = (size_t)capacity - 1;
+        memcpy(out, sWiiMenuText[line], length);
+        out[length] = 0;
+    }
+    return UiText_TranslateIdUtf8("wii-dragon-net/menu-text", line, out, capacity) || sWiiMenuTextLoaded;
+}
+
+int Port_WiiDialogDuration(int line, int japanese) {
+    int language = japanese ? 0 : 1;
+    if (line < 0 || line >= 44 || !tbo_wii_dialog_available()) return 0;
+    if (!sWiiDialog[line].lip[language].count) language = 1;
+    return sWiiDialog[line].lip[language].duration;
+}
+
+int Port_WiiDialogMouth(int line, int frame, int japanese) {
+    int i, state = 0;
+    TboWiiLipTrack *lip;
+    if (line < 0 || line >= 44 || frame < 0 || !tbo_wii_dialog_available()) return 0;
+    lip = &sWiiDialog[line].lip[japanese && sWiiDialog[line].lip[0].count ? 0 : 1];
+    for (i = 0; i < lip->count && lip->event[i].frame <= frame; i++)
+        state = lip->event[i].state;
+    return state;
+}
+
 /* Makes a texture of RGBA pixels (the GS's alpha) with its smaller copies, each half the one before, averaged by
    2 x 2: these pictures are mostly shown smaller than they are (letters, the crest), and one sample of the full
    picture per pixel shimmers. Takes `px`; 0 if no texture could be had. */
@@ -314,6 +638,8 @@ static GsTex tbo_texture(uint32_t id) {
     GsTex *cached;
     unsigned char *missing;
     int languageArt = id >= TBO_LANG_BG && id <= TBO_LANG_ARROW_RIGHT;
+    int wiiArt = id >= TBO_WII_BG_0 && id <= TBO_WII_DISCONNECT_GIRU_EYE;
+    int wiiSection = 0, wiiResource = 0, wiiTexture = 0, wiiPart = -1;
 
     if (id >= TBO_TEXT_BASE && id < TBO_TEXT_BASE + TBO_TEXT_SLOTS) {
         return tbo_text_texture(id);
@@ -335,6 +661,141 @@ static GsTex tbo_texture(uint32_t id) {
             w = (uint32_t)nativeW;
             h = (uint32_t)nativeH;
             snprintf(path, sizeof(path), "EU disc PZS3EU0.AFS selector texture %u", (unsigned)id);
+        }
+    } else if (wiiArt) {
+        if (id <= TBO_WII_BG_7) { wiiResource = 1; wiiTexture = id - TBO_WII_BG_0; }
+        else if (id == TBO_WII_PAN) { wiiResource = 2; wiiTexture = 0; }
+        else if (id == TBO_WII_PAN_EYES_OPEN) { wiiResource = 2; wiiTexture = 1; }
+        else if (id == TBO_WII_PAN_EYES_CLOSED) { wiiResource = 2; wiiTexture = 2; }
+        else if (id == TBO_WII_PAN_MOUTH_OPEN) { wiiResource = 2; wiiTexture = 3; }
+        else if (id == TBO_WII_PAN_MOUTH_CLOSED) { wiiResource = 2; wiiTexture = 4; }
+        else if (id == TBO_WII_PAN_POINT) { wiiResource = 2; wiiTexture = 5; }
+        else if (id == TBO_WII_PAN_POINT_EYES_CLOSED) { wiiResource = 2; wiiTexture = 7; }
+        else if (id == TBO_WII_PAN_POINT_MOUTH_OPEN) { wiiResource = 2; wiiTexture = 8; }
+        else if (id == TBO_WII_PAN_POINT_MOUTH_CLOSED) { wiiResource = 2; wiiTexture = 9; }
+        else if (id == TBO_WII_GIRU) { wiiResource = 2; wiiTexture = 10; }
+        else if (id == TBO_WII_GIRU_EYE_BRIGHT) { wiiResource = 2; wiiTexture = 11; }
+        else if (id == TBO_WII_GIRU_EYE_DIM) { wiiResource = 2; wiiTexture = 12; }
+        else if (id == TBO_WII_CLOUDS) { wiiResource = 3; wiiTexture = 0; }
+        else if (id == TBO_WII_SPARKLE_0) { wiiResource = 3; wiiTexture = 1; }
+        else if (id == TBO_WII_SPARKLE_1) { wiiResource = 3; wiiTexture = 2; }
+        else if (id == TBO_WII_RADAR) { wiiResource = 3; wiiTexture = 5; }
+        else if (id == TBO_WII_BAR_BLUE) { wiiResource = 3; wiiTexture = 6; }
+        else if (id == TBO_WII_BAR_GOLD) { wiiResource = 3; wiiTexture = 7; }
+        else if (id == TBO_WII_CREST) { wiiResource = 4; wiiTexture = 0; }
+        else if (id == TBO_WII_TITLE) { wiiResource = 4; wiiTexture = 1; }
+        else if (id == TBO_WII_LABEL_SELECTED) { wiiResource = 5; wiiTexture = 0; }
+        else if (id == TBO_WII_SETTINGS_LABEL_SELECTED) { wiiResource = 5; wiiTexture = 2; }
+        else if (id == TBO_WII_SETTINGS_LABEL_IDLE) { wiiResource = 5; wiiTexture = 5; }
+        else if (id == TBO_WII_NAME_TITLE) { wiiResource = 13; wiiPart = 2; wiiTexture = 4; }
+        else if (id == TBO_WII_NAME_BUTTON_LABELS) { wiiResource = 13; wiiPart = 2; wiiTexture = 1; }
+        else if (id == TBO_WII_NAME_KEYBOARD) { wiiResource = 13; wiiPart = 1; wiiTexture = 0; }
+        else if (id == TBO_WII_NAME_GLYPHS) { wiiResource = 13; wiiPart = 2; wiiTexture = 0; }
+        else if (id == TBO_WII_NAME_KEY_HIGHLIGHT) { wiiResource = 13; wiiPart = 1; wiiTexture = 7; }
+        else if (id == TBO_WII_NAME_KEY_WIDE_HIGHLIGHT) { wiiResource = 13; wiiPart = 1; wiiTexture = 6; }
+        else if (id == TBO_WII_NAME_DELETE_X) { wiiResource = 13; wiiPart = 1; wiiTexture = 1; }
+        else if (id == TBO_WII_NAME_CURSOR) { wiiResource = 13; wiiPart = 1; wiiTexture = 10; }
+        else if (id == TBO_WII_NAME_INPUT_FRAME) { wiiResource = 13; wiiPart = 1; wiiTexture = 9; }
+        else if (id == TBO_WII_SETTINGS_TITLE) { wiiResource = 4; wiiTexture = 3; }
+        else if (id == TBO_WII_BATTLE_TITLE) { wiiSection = 1; wiiResource = 4; wiiTexture = 1; }
+        else if (id == TBO_WII_BATTLE_BAR_BLUE) { wiiSection = 1; wiiResource = 3; wiiTexture = 26; }
+        else if (id == TBO_WII_BATTLE_BAR_GOLD) { wiiSection = 1; wiiResource = 3; wiiTexture = 27; }
+        else if (id == TBO_WII_BATTLE_LABEL_IDLE) { wiiSection = 1; wiiResource = 3; wiiTexture = 29; }
+        else if (id == TBO_WII_BATTLE_LABEL_SELECTED) { wiiSection = 1; wiiResource = 3; wiiTexture = 30; }
+        else if (id >= TBO_WII_BATTLE_BG_0 && id <= TBO_WII_BATTLE_BG_7) {
+            wiiSection = 1; wiiResource = 1; wiiTexture = id - TBO_WII_BATTLE_BG_0;
+        }
+        else if (id == TBO_WII_BATTLE_NEBULA) { wiiSection = 1; wiiResource = 3; wiiTexture = 2; }
+        else if (id >= TBO_WII_BATTLE_STARS_0 && id <= TBO_WII_BATTLE_STARS_1) {
+            wiiSection = 1; wiiResource = 3; wiiTexture = id - TBO_WII_BATTLE_STARS_0;
+        }
+        else if (id >= TBO_WII_BATTLE_GIRU && id <= TBO_WII_BATTLE_GIRU_EYE_DIM) {
+            wiiSection = 1; wiiResource = 2; wiiTexture = id - TBO_WII_BATTLE_GIRU;
+        }
+        else if (id == TBO_WII_BATTLE_POINT_PANEL) { wiiSection = 1; wiiResource = 3; wiiTexture = 6; }
+        else if (id == TBO_WII_BATTLE_POINT_LABEL) { wiiSection = 1; wiiResource = 3; wiiTexture = 41; }
+        else if (id == TBO_WII_BATTLE_POINT_DIGITS) { wiiSection = 1; wiiResource = 3; wiiTexture = 5; }
+        else if (id == TBO_WII_CUSTOM_TITLE) { wiiSection = 1; wiiResource = 4; wiiTexture = 2; }
+        else if (id == TBO_WII_NORMAL_TITLE) { wiiSection = 1; wiiResource = 4; wiiTexture = 3; }
+        else if (id == TBO_WII_VS_PANELS) { wiiSection = 1; wiiResource = 3; wiiTexture = 20; }
+        else if (id == TBO_WII_VS_MARK) { wiiSection = 1; wiiResource = 3; wiiTexture = 40; }
+        else if (id == TBO_WII_VS_LINES) { wiiSection = 1; wiiResource = 3; wiiTexture = 21; }
+        else if (id == TBO_WII_VS_PLAYERS) { wiiSection = 1; wiiResource = 3; wiiTexture = 22; }
+        else if (id == TBO_WII_VS_DIGITS) { wiiSection = 1; wiiResource = 3; wiiTexture = 38; }
+        else if (id == TBO_WII_VS_WINS_DIGITS) { wiiSection = 1; wiiResource = 3; wiiTexture = 38; }
+        else if (id == TBO_WII_VS_RECORD_LABELS) { wiiSection = 1; wiiResource = 3; wiiTexture = 42; }
+        else if (id == TBO_WII_RESULT_WIN) { wiiSection = 1; wiiResource = 3; wiiTexture = 23; }
+        else if (id == TBO_WII_RESULT_BADGE) { wiiSection = 1; wiiResource = 3; wiiTexture = 25; }
+        else if (id == TBO_WII_RESULT_LABEL_IDLE) { wiiSection = 1; wiiResource = 3; wiiTexture = 3; }
+        else if (id == TBO_WII_RESULT_LABEL_SELECTED) { wiiSection = 1; wiiResource = 3; wiiTexture = 4; }
+        else if (id == TBO_WII_RESULT_BAR_BLUE) { wiiSection = 1; wiiResource = 3; wiiTexture = 17; }
+        else if (id == TBO_WII_RESULT_BAR_GOLD) { wiiSection = 1; wiiResource = 3; wiiTexture = 18; }
+        else if (id == TBO_WII_DISCONNECT_GIRU) { wiiResource = 10; wiiPart = 0; wiiTexture = 1; }
+        else if (id == TBO_WII_DISCONNECT_GIRU_EYE) { wiiResource = 10; wiiPart = 0; wiiTexture = 2; }
+        else { wiiResource = 5; wiiTexture = 3; }
+        base = SDL_GetBasePath();
+        png = NULL;
+        if (id == TBO_WII_TITLE || id == TBO_WII_SETTINGS_TITLE ||
+            id == TBO_WII_LABEL_SELECTED || id == TBO_WII_LABEL_IDLE ||
+            id == TBO_WII_SETTINGS_LABEL_SELECTED || id == TBO_WII_SETTINGS_LABEL_IDLE ||
+            id == TBO_WII_NAME_TITLE || id == TBO_WII_NAME_BUTTON_LABELS ||
+            id == TBO_WII_BATTLE_TITLE || id == TBO_WII_CUSTOM_TITLE || id == TBO_WII_NORMAL_TITLE ||
+            id == TBO_WII_BATTLE_LABEL_IDLE || id == TBO_WII_BATTLE_LABEL_SELECTED ||
+            id == TBO_WII_BATTLE_POINT_LABEL || id == TBO_WII_VS_RECORD_LABELS ||
+            id == TBO_WII_RESULT_LABEL_IDLE || id == TBO_WII_RESULT_LABEL_SELECTED) {
+            MenuTranslation_Ensure();
+            const char *selected = MenuTranslation_Locale();
+            const char *locale = "en";
+            const char *roots[3] = {base, NULL, ""};
+            int rootIndex;
+            if (selected != NULL &&
+                (strncmp(selected, "es", 2) == 0 || strncmp(selected, "de", 2) == 0 ||
+                 strncmp(selected, "fr", 2) == 0 || strncmp(selected, "it", 2) == 0))
+                locale = selected;
+            if (base != NULL) {
+                static char relativeRoot[1024];
+                snprintf(relativeRoot, sizeof(relativeRoot), "%s../../", base);
+                roots[1] = relativeRoot;
+            }
+            for (rootIndex = 0; rootIndex < 3 && png == NULL; rootIndex++) {
+                if (roots[rootIndex] == NULL) continue;
+                if (wiiPart >= 0)
+                    snprintf(path, sizeof(path), "%sgamedata/dragon-net-battle/languages/%.2s/resource-%03d-part-%02d-textures/texture-%03d.png",
+                             roots[rootIndex], locale, wiiResource, wiiPart, wiiTexture);
+                else if (wiiSection == 1)
+                    snprintf(path, sizeof(path), "%sgamedata/dragon-net-battle/languages/%.2s/section-01/resource-%03d-textures/texture-%03d.png",
+                             roots[rootIndex], locale, wiiResource, wiiTexture);
+                else
+                    snprintf(path, sizeof(path), "%sgamedata/dragon-net-battle/languages/%.2s/resource-%03d-textures/texture-%03d.png",
+                             roots[rootIndex], locale, wiiResource, wiiTexture);
+                png = SDL_LoadPNG(path);
+            }
+        }
+        if (png == NULL) {
+            if (wiiPart >= 0)
+                snprintf(path, sizeof(path), "%sgamedata/dragon-net-battle/section-%02d/resource-%03d-part-%02d-textures/texture-%03d.png",
+                         base != NULL ? base : "", wiiSection, wiiResource, wiiPart, wiiTexture);
+            else
+                snprintf(path, sizeof(path), "%sgamedata/dragon-net-battle/section-%02d/resource-%03d-textures/texture-%03d.png",
+                         base != NULL ? base : "", wiiSection, wiiResource, wiiTexture);
+            png = SDL_LoadPNG(path);
+            if (png == NULL && base != NULL) {
+                if (wiiPart >= 0)
+                    snprintf(path, sizeof(path), "%s../../gamedata/dragon-net-battle/section-%02d/resource-%03d-part-%02d-textures/texture-%03d.png",
+                             base, wiiSection, wiiResource, wiiPart, wiiTexture);
+                else
+                    snprintf(path, sizeof(path), "%s../../gamedata/dragon-net-battle/section-%02d/resource-%03d-textures/texture-%03d.png",
+                             base, wiiSection, wiiResource, wiiTexture);
+                png = SDL_LoadPNG(path);
+            }
+        }
+        if (png == NULL) {
+            if (wiiPart >= 0)
+                snprintf(path, sizeof(path), "gamedata/dragon-net-battle/section-%02d/resource-%03d-part-%02d-textures/texture-%03d.png",
+                         wiiSection, wiiResource, wiiPart, wiiTexture);
+            else
+                snprintf(path, sizeof(path), "gamedata/dragon-net-battle/section-%02d/resource-%03d-textures/texture-%03d.png", wiiSection, wiiResource, wiiTexture);
+            png = SDL_LoadPNG(path);
         }
     } else {
         base = SDL_GetBasePath();
@@ -369,13 +830,24 @@ static GsTex tbo_texture(uint32_t id) {
             const uint8_t *c = row + x * 4;
             uint32_t imageAlpha = c[3];
             uint32_t a;
-            /* The original arrow textures use 127 for their solid pixels. Preserve the antialiased edge while
+            uint32_t r = c[0], g = c[1], b = c[2];
+            /* Share the record glyph shapes, but remove their baked cyan before the Wins tint. */
+            if (id == TBO_WII_VS_WINS_DIGITS) {
+                uint32_t gray = (r * 77 + g * 150 + b * 29 + 128) >> 8;
+                uint32_t row = y % 32;
+                if (row > 26) row = 26;
+                /* Resource 3 / texture 42's Wins fill: pale coral to deep salmon. */
+                r = gray * (254 - 37 * row / 26) / 255;
+                g = gray * (207 - 98 * row / 26) / 255;
+                b = gray * (202 - 107 * row / 26) / 255;
+            }
+            /* These arrow PNGs use 127 for their solid pixels. Preserve the antialiased edge while
                bringing the chevron itself up to full opacity over the green selection bar. */
             if (languageArt && id != TBO_LANG_BG) {
                 imageAlpha = imageAlpha * 2 > 255 ? 255 : imageAlpha * 2;
             }
             a = (imageAlpha * 128 + 127) / 255; /* the GS's alpha: 0x80 is opaque */
-            px[y * w + x] = (uint32_t)c[0] | ((uint32_t)c[1] << 8) | ((uint32_t)c[2] << 16) | (a << 24);
+            px[y * w + x] = r | (g << 8) | (b << 16) | (a << 24);
             /* the window: its inside is bands of two teals, which fall anywhere under the lines at the sizes it is
                drawn (src/menu/port_tbo.c, Tb_Panel). Every teal pixel is the darker one; the frame (grey, nearly
                black) is not teal and stays, its round corners with it. */

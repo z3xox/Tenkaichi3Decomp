@@ -657,11 +657,13 @@ again:
         (void)you;
         SDL_memset(&st, 0, sizeof(st));
         if (!json_peer(answer, &st)) {
+            char notFound[96];
+            SDL_snprintf(notFound, sizeof(notFound), "Room with code %s not found.", sM.code);
             set_state(-1, SDL_strstr(answer, "\"old\"") != NULL ? "Update available. Online servers are unreachable until you update." :
                           KEY_REFUSED(answer) ? key_refused(answer, "Room codes need an official release of the game. Playing by address still works.") :
                           SDL_strstr(answer, "version") != NULL ? "The host's game is a different version: both players need the same release." :
                           SDL_strstr(answer, "full") != NULL ? "Someone has already joined that room." :
-                          SDL_strstr(answer, "no room") != NULL ? "No room with that code (codes last ten minutes)." :
+                          SDL_strstr(answer, "no room") != NULL ? notFound :
                           SDL_strstr(answer, "busy") != NULL ? "Too many wrong codes from this address; try again in an hour." : "The matchmaking service gave no answer.");
             return 0;
         }

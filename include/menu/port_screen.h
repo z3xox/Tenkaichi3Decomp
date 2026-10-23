@@ -13,6 +13,7 @@ enum {
 };
 
 extern s32 gPortScreen; /* the screen the mode runs next (PORT_SCREEN_*) */
+extern s32 gPortTboStartWii; /* Dragon Net Battle starts at the Wii menu hierarchy */
 
 /* Progress_Main's handler of the mode: runs gPortScreen's screen and chooses the next mode. Non-zero when a battle
    was set up (the menus are left), as the game's handlers return. */

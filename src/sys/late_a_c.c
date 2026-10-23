@@ -23,7 +23,7 @@ extern void ColorFade_StartOut(s32 r, s32 g, s32 b, s32 frames);
 extern void ColorFade_Update(void);
 extern void ColorFade_Draw(void);
 extern s32 ColorFade_IsInDone(void);
-extern void Dialog_Init(u32 *file, u32 *msgTbl, s32 size);
+extern void Dialog_Init(void *file, void *msgTbl, s32 size);
 extern void Dialog_Term(void);
 /* sys/mcflow_a.c. McFlow_Init takes no argument; this caller passes 1. */
 extern void McFlow_Init(s32 unused);

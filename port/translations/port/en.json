@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "labels_version": 1,
+  "labels_version": 2,
   "translation_version": 1,
-  "labels_count": 3,
+  "labels_count": 38,
   "locale": "en",
   "name": "English",
   "order": 1,
@@ -18,6 +18,146 @@
     "net/rival_here": {
       "original": "Your rival \"{name}\" is here! The match begins.",
       "text": "Your rival \"{name}\" is here! The match begins."
+    },
+    "net/player_left": {
+      "original": "The other player left the match.",
+      "text": "The other player left the match."
+    },
+    "net/connection_lost": {
+      "original": "Connection lost.",
+      "text": "Connection lost."
+    },
+    "dragon-net/home/title": {
+      "original": "Dragon Net Battle",
+      "text": "Dragon Net Battle"
+    },
+    "dragon-net/home/battle": {
+      "original": "Nintendo WFC Battle",
+      "text": "Nintendo WFC Battle"
+    },
+    "dragon-net/home/friends": {
+      "original": "Manage Friends",
+      "text": "Manage Friends"
+    },
+    "dragon-net/home/settings": {
+      "original": "User Settings",
+      "text": "User Settings"
+    },
+    "dragon-net/battle/title": {
+      "original": "Nintendo WFC Battle",
+      "text": "Nintendo WFC Battle"
+    },
+    "dragon-net/battle/custom": {
+      "original": "Custom Battle",
+      "text": "Custom Battle"
+    },
+    "dragon-net/battle/normal": {
+      "original": "Normal Battle",
+      "text": "Normal Battle"
+    },
+    "dragon-net/battle/friend": {
+      "original": "Friend Battle",
+      "text": "Friend Battle"
+    },
+    "dragon-net/battle/ranking": {
+      "original": "Ranking Battle",
+      "text": "Ranking Battle"
+    },
+    "dragon-net/battle/view-ranking": {
+      "original": "View Ranking",
+      "text": "View Ranking"
+    },
+    "dragon-net/battle/record": {
+      "original": "Battle Record",
+      "text": "Battle Record"
+    },
+    "dragon-net/normal/title": {
+      "original": "Normal Battle",
+      "text": "Normal Battle"
+    },
+    "dragon-net/custom/title": {
+      "original": "Custom Battle",
+      "text": "Custom Battle"
+    },
+    "dragon-net/custom/one-v-one": {
+      "original": "1 VS 1 Battle",
+      "text": "1 VS 1 Battle"
+    },
+    "dragon-net/custom/team": {
+      "original": "Team Battle",
+      "text": "Team Battle"
+    },
+    "dragon-net/custom/team-10-dp": {
+      "original": "10 DP Team Battle",
+      "text": "10 DP Team Battle"
+    },
+    "dragon-net/custom/team-15-dp": {
+      "original": "15 DP Team Battle",
+      "text": "15 DP Team Battle"
+    },
+    "dragon-net/custom/team-20-dp": {
+      "original": "20 DP Team Battle",
+      "text": "20 DP Team Battle"
+    },
+    "dragon-net/friend/host": {
+      "original": "Host Battle",
+      "text": "Host Battle"
+    },
+    "dragon-net/friend/join": {
+      "original": "Join Battle",
+      "text": "Join Battle"
+    },
+    "dragon-net/friends/title": {
+      "original": "Manage Friends",
+      "text": "Manage Friends"
+    },
+    "dragon-net/friends/list": {
+      "original": "Friend List",
+      "text": "Friend List"
+    },
+    "dragon-net/friends/add": {
+      "original": "Add Friend",
+      "text": "Add Friend"
+    },
+    "dragon-net/friends/code": {
+      "original": "My Friend Code",
+      "text": "My Friend Code"
+    },
+    "dragon-net/settings/title": {
+      "original": "User Settings",
+      "text": "User Settings"
+    },
+    "dragon-net/settings/name": {
+      "original": "Create Player Name",
+      "text": "Create Player Name"
+    },
+    "dragon-net/settings/initialize": {
+      "original": "Initialize Wi-Fi Data",
+      "text": "Initialize Wi-Fi Data"
+    },
+    "dragon-net/ranking/title": {
+      "original": "View Ranking",
+      "text": "View Ranking"
+    },
+    "dragon-net/ranking/area": {
+      "original": "My Area",
+      "text": "My Area"
+    },
+    "dragon-net/ranking/top-10": {
+      "original": "Top 10",
+      "text": "Top 10"
+    },
+    "dragon-net/name/title": {
+      "original": "Create Player Name",
+      "text": "Create Player Name"
+    },
+    "dragon-net/results/rematch": {
+      "original": "Rematch Request",
+      "text": "Rematch Request"
+    },
+    "dragon-net/results/end": {
+      "original": "End Battle",
+      "text": "End Battle"
     }
   }
 }

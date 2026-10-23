@@ -37,6 +37,9 @@ int32_t __fixdfsi(uint64_t a) { return (int32_t)d(a); }
 uint32_t __fixunsdfsi(uint64_t a) { return (uint32_t)d(a); }
 uint64_t __floatsidf(int32_t v) { return q((double)v); }
 uint64_t __floatunsidf(uint32_t v) { return q((double)v); }
+/* Clang can widen a bounded row index before converting it to float. Keep
+   that software-float conversion on the host side, like the double helpers. */
+uint32_t __floatundisf(uint64_t v) { return u((float)v); }
 static int dcmp(uint64_t a, uint64_t b) { return d(a) < d(b) ? -1 : d(a) > d(b) ? 1 : 0; }
 int __eqdf2(uint64_t a, uint64_t b) { return dcmp(a, b); }
 int __nedf2(uint64_t a, uint64_t b) { return dcmp(a, b); }

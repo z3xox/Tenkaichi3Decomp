@@ -58,7 +58,7 @@ extern void ShenScene_Update(void);      /* draws it */
 extern void ShenScene_Init(s32 dragon);
 extern void ShenScene_Term(void);
 extern void MsgWin_Init4(u32 *pack, void *text, s32 side, void *unused) __asm__("MsgWin_Init");
-extern void Dialog_Init(u32 *file, u32 *msgTbl, s32 size);
+extern void Dialog_Init(void *file, void *msgTbl, s32 size);
 extern void Dialog_Term(void);
 extern void Dialog_Draw(s32 visible);
 

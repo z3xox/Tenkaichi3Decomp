@@ -84,7 +84,8 @@ void Dialog_DrawText(void);
 void Dialog_DrawTitle(void);
 void Dialog_DrawBody(void);
 void Dialog_PlayCursorPlate(s32 flash, const char *label);
-void Dialog_Init(u32 *file, u32 *msgTbl, s32 size);
+/* Packed resources are passed as byte-addressed data by the menu callers. */
+void Dialog_Init(void *file, void *msgTbl, s32 size);
 void Dialog_Term(void);
 void Dialog_Draw(s32 visible);
 void Dialog_Start(s32 cmd);
@@ -92,7 +93,7 @@ s32 Dialog_Input(s32 allowCancel);
 void Dialog_SetChoices(s32 on);
 void Dialog_SetPort(s32 port);
 void Dialog_SetLayout(s32 layout);
-void Dialog_SetMsgTable(u32 *tbl);
+void Dialog_SetMsgTable(void *tbl);
 void Dialog_SetMsg(s32 idx);
 void Dialog_SetTitle(s32 idx);
 void Dialog_SetCursor(s32 choice);

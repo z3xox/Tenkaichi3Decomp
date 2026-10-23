@@ -380,6 +380,47 @@ const uint16_t *UiText_TranslateString(const uint16_t *original) {
     w = &sWords[slot];
     return w->original && !w->ambiguous && w->translated ? w->translated : original;
 }
+int UiText_TranslateIdUtf8(const char *group, int line, char *out, int capacity) {
+    const uint16_t *p, *check;
+    int i, used = 0, needed = 0;
+    if (!__atomic_load_n(&sReady, __ATOMIC_ACQUIRE) || !group || !out || capacity < 1 || line < 0) return 0;
+    for (i = 0; i < sGroupCount; i++) {
+        UiGroup *g = &sGroups[i];
+        if (strcmp(g->id, group) != 0 || line >= g->count || !g->rows[line] || !g->rows[line]->translated)
+            continue;
+        p = g->rows[line]->translated + 1; /* Skip the catalog's UTF-16 BOM. */
+        check = p;
+        while (*check) {
+            uint32_t c = *check++;
+            if (c >= 0xd800 && c <= 0xdbff) {
+                if (*check < 0xdc00 || *check > 0xdfff) return 0;
+                c = 0x10000 + ((c - 0xd800) << 10) + (*check++ - 0xdc00);
+            }
+            needed += c < 0x80 ? 1 : c < 0x800 ? 2 : c < 0x10000 ? 3 : 4;
+            if (needed >= capacity) return 0;
+        }
+        while (*p) {
+            uint32_t c = *p++;
+            int bytes;
+            if (c >= 0xd800 && c <= 0xdbff) {
+                if (*p < 0xdc00 || *p > 0xdfff) return 0;
+                c = 0x10000 + ((c - 0xd800) << 10) + (*p++ - 0xdc00);
+            }
+            if (c == '\n') c = ' ';
+            bytes = c < 0x80 ? 1 : c < 0x800 ? 2 : c < 0x10000 ? 3 : 4;
+            if (bytes == 1) out[used++] = (char)c;
+            else {
+                int shift;
+                out[used++] = (char)((bytes == 2 ? 0xc0 : bytes == 3 ? 0xe0 : 0xf0) | (c >> (6 * (bytes - 1))));
+                for (shift = 6 * (bytes - 2); shift >= 0; shift -= 6)
+                    out[used++] = (char)(0x80 | ((c >> shift) & 0x3f));
+            }
+        }
+        out[used] = 0;
+        return 1;
+    }
+    return 0;
+}
 const uint16_t *UiText_TranslateLine(const uint32_t *table, int line, const uint16_t *original) {
     uint32_t count, i;
     uint64_t h;

@@ -178,3 +178,6 @@ character select is the versus mode's own, not the screen's mode, so it never op
 | Online | a session runs the stock game | mods' entries and screens off in a session, as all mods |
 
 A first step for mods: a "PC settings" entry opening a screen of rows, which needs only what is described here.
+
+The Wii Dragon Net Battle menu, its extraction and its runtime behavior are documented in
+[Wii Dragon Net Battle](dragon-net-battle.md).

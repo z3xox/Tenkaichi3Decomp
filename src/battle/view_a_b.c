@@ -109,6 +109,7 @@ void MsgWin_SetSide(s32 side) {
 
 extern void Flash_ClipSetCallbackC(Flash *flash, FlashRef *ref, void *fn, void *arg);
 extern void TextBox_AttachString(Flash *flash, FlashRef *ref, s32 x, s32 y, u16 *str, TextBox *box);
+extern s32 Font_GetGlyphHeight(void);
 
 static f32 sMsgWinTextX = -1.0f; /* where the line was last drawn (the screen's 512 x 448), -1 before */
 
@@ -136,6 +137,41 @@ void MsgWin_PortDrawString(u16 *str) {
     }
     Flash_Draw(flash);
     Font_FlushAll();
+}
+
+/* Results do not draw the message box, but its native text style still needs the
+   movie's opening animation and text-clip attachment before names can use it. */
+void MsgWin_PortPrepareNativeNames(void) {
+    static u16 blank[] = {0xFEFF, ' ', 0};
+    FlashRef ref;
+    Flash_Advance(gMsgWin->flash);
+    Flash_FindLabel(gMsgWin->flash, NULL, "mc_message_text", &ref);
+    TextBox_AttachString(gMsgWin->flash, &ref, 0, 0, blank, &gMsgWin->box);
+}
+
+/* Draw a short player name elsewhere on the screen with the message window's
+   native font, colors, shadow and scale. The window itself remains unchanged. */
+void MsgWin_PortDrawNativeName(const char *name, s32 x0, s32 y0, s32 x1, s32 y1) {
+    TextBoxDraw draw;
+    u16 text[34];
+    s32 i, height;
+
+    if (name == NULL || name[0] == 0) return;
+    draw = ((TextBoxFull *)&gMsgWin->box)->draw;
+    text[0] = 0xFEFF;
+    for (i = 0; i < 32 && name[i] != 0; i++) text[i + 1] = (u8)name[i];
+    text[i + 1] = 0;
+    draw.str = text;
+    draw.align = 1;
+    height = (s32)((f32)Font_GetGlyphHeight() * draw.scaleY);
+    draw.x = (x0 + x1) / 2;
+    draw.y = y0 + ((y1 - y0) - height) / 2;
+    draw.clip[0] = 0;
+    draw.clip[1] = 0;
+    draw.clip[2] = 512;
+    draw.clip[3] = 448;
+    draw.noFlush = 0;
+    TextBox_DrawClip(&draw, NULL);
 }
 
 /* How wide a line may be, in the font's pixels: from where the line starts up to `right` (the screen's 512). */
