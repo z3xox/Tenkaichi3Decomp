@@ -173,6 +173,17 @@ int __wrap_Progress_Main(int arg) {
                             time == 0 ? "60" : time == 1 ? "90" : time == 2 ? "180" : time == 3 ? "240" : "none");
                 }
             }
+            /* BT3_TEST_MENU=<mode>: a test opens on that menu screen the way an online session does (39: the versus
+               character select, 1P vs 2P, everything unlocked), so that a screen can be looked at without a window
+               and without a recording of the way there. */
+            if (getenv("BT3_TEST_MENU") != NULL && !Port_NetSession() && !sNetEntered && gProgress != NULL && gSaveData != NULL) {
+                sNetEntered = 1;
+                gProgress->mode = atoi(getenv("BT3_TEST_MENU"));
+                *(int *)((char *)gProgress + 0x620) = 1;
+                *(int *)((char *)gProgress + 0x624) = 0;
+                *(int *)((char *)gProgress + 0x630) = 0;
+                Save_UnlockAll(gSaveData);
+            }
             gPortMenuMode = 1; /* the renderer treats all 2D as one centred 4:3 page while the menus run */
             r = __real_Progress_Main(arg);
             gPortMenuMode = 0;
@@ -496,4 +507,11 @@ void Port_SongDebug(int state, int idx, int px, int py, int cx, int cy) {
         fprintf(stderr, "song name: menu state %d, added song %d, parent at %d,%d, clip offset %d,%d -> drawn at %d,%d\n", state, idx, px, py, cx, cy,
                 px + cx, py + cy);
     }
+}
+
+/* BT3_TEST_PREVIEW=<n>: the character select's models (src/menu/menu_c_e.c, CsModel_*) without a pad: bit 0 side 0,
+   bit 1 side 1, bits 4 and up an animation number to play instead of the usual pose. -1 without the variable. */
+int Port_TestPreview(void) {
+    const char *e = getenv("BT3_TEST_PREVIEW");
+    return e != NULL ? (int)strtol(e, NULL, 0) : -1;
 }
