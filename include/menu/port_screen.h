@@ -14,6 +14,13 @@ enum {
 
 extern s32 gPortScreen; /* the screen the mode runs next (PORT_SCREEN_*) */
 
+/* The title of the screen that runs now ("" when none), for the things that show where the player is (Discord's
+   presence). PortScreen_Main sets it from the screen's case and clears it when the screen ends; a new screen gives
+   its own title there. */
+extern char gPortScreenTitle[64];
+/* The page of that screen ("" when it has no pages), set by the screen as it changes page and cleared with the title. */
+extern char gPortScreenDetail[64];
+
 /* Progress_Main's handler of the mode: runs gPortScreen's screen and chooses the next mode. Non-zero when a battle
    was set up (the menus are left), as the game's handlers return. */
 s32 PortScreen_Main(void);

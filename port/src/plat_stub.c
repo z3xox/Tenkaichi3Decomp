@@ -15,6 +15,7 @@
 #include <time.h>
 #include <time.h>
 #include "port_addr.h"
+#include "gs/plat_discord.h" /* Discord integration */
 extern void Port_StateTouch(void *p, unsigned long n); /* gs/state.c */
 
 /* ---- second processor (IOP): heap and remote calls ---- */
@@ -435,6 +436,11 @@ void Port_VBlank(void) {
     Port_Trace(gPortVBlanks);
     if (sVsyncHandler != NULL) {
         sVsyncHandler(0);
+    }
+    /* Update Discord Rich Presence state and process callbacks */
+    {
+        extern void PortDiscord_Tick(void);
+        PortDiscord_Tick();
     }
 }
 int sceGsSyncV() { Port_VBlank(); return 0; }
