@@ -8,7 +8,7 @@
  *   0x1CE630..0x1CF220  health, ki, blast stock and the +0x1C gauge of the active member; abilities
  *   0x1CF220            per-frame queued damage and drain
  *   (0x1CF578..0x1D00D8, the one-frame effect request bits and the effects / sounds they spawn, is the first part
- *   of src/battle/btl_char_fx.c: BtlFx_UpdateGroundFx needs the request-bit helpers in its translation unit)
+ *   of src/battle/btl_char_fx_1.c: BtlFx_UpdateGroundFx needs the request-bit helpers in its translation unit)
  *
  * Units: health 10000 per bar; ki 0..100000; blast stock 100000 per stock; the +0x1C gauge 0..30000.
  * Nothing here regenerates a gauge over time: this module only offers the add / spend calls. The per-frame
@@ -45,7 +45,7 @@ extern s32 BtlChar_TestFlag(BtlMemberChr *chr, s32 bit);
 extern void BtlChar_ClearFlag(BtlMemberChr *chr, s32 bit);
 extern void BtlEvent_Raise(s32 side, s32 ev);
 extern s32 Battle_GetMode(void);
-extern f32 BtlCharApi_GetChargedUnkC78(s32 objId);
+extern f32 BtlCharApi_GetRushSequenceFrame(s32 objId);
 extern f32 Mathf_Sin(f32 angle);
 extern f32 Mathf_Cos(f32 angle);
 extern s32 BtlAnim_GetId(BtlMemberChr *chr);
@@ -54,7 +54,7 @@ extern f32 BtlAnim_GetFrame(BtlMemberChr *chr);
 extern s32 BtlAnim_TestAttr(BtlMemberChr *chr, u64 mask);
 extern f32 BtlStat_GetScale7(BtlMemberChr *chr);
 extern s32 BtlOpp_GetPlayer(BtlMemberChr *chr);
-extern s32 BtlOpp_HasAbility(BtlMemberChr *chr, s32 n);
+extern s32 BtlOpp_HasAbility(BtlMemberChr *chr, s32 ability);
 extern f32 BtlParam_GetDamageTakenScale(BtlMemberChr *chr);
 extern s32 BtlCharApi_IsInTechnique(s32 objId);
 extern s32 BtlCharApi_IsInRushSequence(s32 objId);
@@ -81,7 +81,7 @@ extern void BtlOpp_GetTargetPos(BtlMemberChr *chr, Vec4 *out);
 extern f32 BtlOpp_GetRadius(BtlMemberChr *chr);
 extern void EftImpact_SpawnHit(BtlMemberHitFxReq *req);
 extern f32 BtlCharApi_GetHeight(s32 objId);
-extern u32 BtlObjAnim_QueryEvent(BtlMemberObj *obj, u64 a, s32 b, s32 c);
+extern u32 BtlObjAnim_QueryEvent(BtlMemberObj *obj, u64 mask, s32 layer, s32 what);
 extern s32 BtlObjAnim_MaskToNode(u32 mask);
 extern void BtlCharApi_GetNodePos(s32 objId, s32 node, Vec4 *out);
 extern void BtlCharSnd_PlayCommon(BtlMemberChr *chr, s32 line);
@@ -102,7 +102,7 @@ extern BtlMemberPool *Battle_GetWork5A8(void);
 
 /* Mode 3: brings in the next opponent of the pool for side 1. 0x1CDCA8, in front of the member code proper: it is
  * the first function of this file because BtlMember_Damage only compiles to the original bytes with it defined
- * above (the functions before it are src/battle/btl_char_coll_b.c). */
+ * above (the functions before it are src/battle/btl_hit_reaction.c). */
 void BtlColl_NextPoolMember(BtlMemberChr *chr) {
     BtlMemberPool *pool;
     s32 next;
@@ -128,7 +128,7 @@ void BtlMember_LoadParams(BtlMemberChr *chr, s32 member, s32 init, f32 healthPct
     BtlMemberGauge *g = &m->gauge;
 
     if (init) {
-        g->unk30 = 0;
+        g->bodyChanged = 0;
         g->fused = 0;
     }
     if (g->fused == 0) {
@@ -175,9 +175,9 @@ void BtlMember_LoadParams(BtlMemberChr *chr, s32 member, s32 init, f32 healthPct
     }
 }
 
-/* Returns member entry n. */
-BtlMember *BtlMember_Get(BtlMemberChr *chr, s32 n) {
-    return &chr->members[n];
+/* Returns the entry of a member. */
+BtlMember *BtlMember_Get(BtlMemberChr *chr, s32 member) {
+    return &chr->members[member];
 }
 
 /* Returns the entry of the member that is fighting. */
@@ -209,9 +209,9 @@ s32 BtlMember_FindPresentIndex(BtlMemberChr *chr, s32 chara) {
     return -1;
 }
 
-/* Returns the gauge block of member n. */
-BtlMemberGauge *BtlMember_GetGauge(BtlMemberChr *chr, s32 n) {
-    return &BtlMember_Get(chr, n)->gauge;
+/* Returns the gauge block of a member. */
+BtlMemberGauge *BtlMember_GetGauge(BtlMemberChr *chr, s32 member) {
+    return &BtlMember_Get(chr, member)->gauge;
 }
 
 /* Returns the gauge block of the member that is fighting. */
@@ -270,8 +270,8 @@ s32 BtlMember_FindIndex(BtlMemberChr *chr, s32 chara) {
 }
 
 /* Sets which member is fighting. */
-void BtlMember_SetActiveIndex(BtlMemberChr *chr, s32 n) {
-    chr->active = n;
+void BtlMember_SetActiveIndex(BtlMemberChr *chr, s32 member) {
+    chr->active = member;
 }
 
 /* Counts the present members that still have health. */
@@ -306,20 +306,20 @@ s32 BtlMember_GetSwitchTarget(BtlMemberChr *chr) {
 }
 
 /* Sets the switch candidate; returns 1 if it was acceptable as given. */
-s32 BtlMember_SetSwitchTarget(BtlMemberChr *chr, s32 n) {
-    chr->switchTarget = n;
-    return n == BtlMember_GetSwitchTarget(chr);
+s32 BtlMember_SetSwitchTarget(BtlMemberChr *chr, s32 member) {
+    chr->switchTarget = member;
+    return member == BtlMember_GetSwitchTarget(chr);
 }
 
 /* Moves the switch candidate to the next living member that is not fighting. */
 void BtlMember_NextSwitchTarget(BtlMemberChr *chr) {
     s32 i;
-    s32 n;
+    s32 member;
 
     for (i = 0; i < chr->memberCount; i++) {
-        n = (chr->switchTarget + i + 1) % chr->memberCount;
-        if (n != chr->active && BtlMember_GetGauge(chr, n)->health > 0) {
-            chr->switchTarget = n;
+        member = (chr->switchTarget + i + 1) % chr->memberCount;
+        if (member != chr->active && BtlMember_GetGauge(chr, member)->health > 0) {
+            chr->switchTarget = member;
             return;
         }
     }
@@ -328,12 +328,12 @@ void BtlMember_NextSwitchTarget(BtlMemberChr *chr) {
 /* Moves the switch candidate to the previous living member that is not fighting. */
 void BtlMember_PrevSwitchTarget(BtlMemberChr *chr) {
     s32 i;
-    s32 n;
+    s32 member;
 
     for (i = chr->memberCount - 1; i >= 0; i--) {
-        n = (chr->switchTarget + i) % chr->memberCount;
-        if (n != chr->active && BtlMember_GetGauge(chr, n)->health > 0) {
-            chr->switchTarget = n;
+        member = (chr->switchTarget + i) % chr->memberCount;
+        if (member != chr->active && BtlMember_GetGauge(chr, member)->health > 0) {
+            chr->switchTarget = member;
             return;
         }
     }
@@ -362,35 +362,35 @@ s32 BtlMember_Damage(BtlMemberChr *chr, s32 amount, s32 flags) {
         }
     }
     if (!(flags & BTL_DMG_NO_SCALING)) {
-        s32 n = combo->hits - 4;
+        s32 extraHits = combo->hits - 4;
 
-        if (n > 0) {
-            s32 pct = BtlUtil_Max(100 - n * 3, 50);
+        if (extraHits > 0) {
+            s32 pct = BtlUtil_Max(100 - extraHits * 3, 50);
 
             if (BtlOpp_HasAbility(chr, 0x5D)) {
-                pct = BtlUtil_Max(100 - n * 2, 70);
+                pct = BtlUtil_Max(100 - extraHits * 2, 70);
             }
             amount = amount * pct / 100;
         }
     }
     if (!(flags & BTL_DMG_NO_DEFENSE)) {
         s32 second = 1;
-        s32 v = amount * BtlParam_GetDamageTakenScale(chr);
+        s32 scaled = amount * BtlParam_GetDamageTakenScale(chr);
 
-        if (v <= 0 && amount > 0) {
+        if (scaled <= 0 && amount > 0) {
             amount = 1;
         } else {
-            amount = v;
+            amount = scaled;
         }
         if (flags & BTL_DMG_GUARD_MASK) {
             second = BtlOpp_HasAbility(chr, 0x4C) == 0;
         }
         if (second) {
-            v = amount * BtlStat_GetScale7(chr);
-            if (v <= 0 && amount > 0) {
+            scaled = amount * BtlStat_GetScale7(chr);
+            if (scaled <= 0 && amount > 0) {
                 amount = 1;
             } else {
-                amount = v;
+                amount = scaled;
             }
         }
     }
@@ -415,10 +415,10 @@ s32 BtlMember_Damage(BtlMemberChr *chr, s32 amount, s32 flags) {
         return 0;
     }
     if (!(flags & BTL_DMG_EXACT) && amount >= 10) {
-        s32 r = amount % 10;
+        s32 rem = amount % 10;
 
-        if (r != 0) {
-            amount = amount - r + 10;
+        if (rem != 0) {
+            amount = amount - rem + 10;
         }
     }
     if (Battle_GetMode() == 5 || Battle_GetMode() == 6) {
@@ -501,7 +501,7 @@ s32 BtlMember_Damage(BtlMemberChr *chr, s32 amount, s32 flags) {
         g->ki = 0;
         g->blast = 0;
         g->maxPower = 0;
-        chr->unkFE0 = 0;
+        chr->stunTimer = 0;
         BtlChar_ClearFlag(chr, 0xBE);
         if (Battle_GetMode() == 3) {
             if (BtlMember_CountAlive(chr) <= 0) {
@@ -726,17 +726,17 @@ s32 BtlMember_IsMaxPowerEmpty(BtlMemberChr *chr) {
     return BtlMember_GetActiveGauge(chr)->maxPower <= 0;
 }
 
-/* Whether the active member has ability bit n. */
-s32 BtlMember_HasAbility(BtlMemberChr *chr, s32 n) {
-    return BtlMember_HasAbilityOf(chr, BtlMember_GetActiveIndex(chr), n);
+/* Whether the active member has the ability (a bit index). */
+s32 BtlMember_HasAbility(BtlMemberChr *chr, s32 ability) {
+    return BtlMember_HasAbilityOf(chr, BtlMember_GetActiveIndex(chr), ability);
 }
 
-/* Whether the given member has ability bit n. */
-s32 BtlMember_HasAbilityOf(BtlMemberChr *chr, s32 member, s32 n) {
+/* Whether the given member has the ability (a bit index). */
+s32 BtlMember_HasAbilityOf(BtlMemberChr *chr, s32 member, s32 ability) {
     BtlMember *m = BtlMember_Get(chr, member);
-    u32 mask = 1 << (n & 0x1F);
+    u32 mask = 1 << (ability & 0x1F);
 
-    return (m->ability[n >> 5] & mask) != 0;
+    return (m->ability[ability >> 5] & mask) != 0;
 }
 
 /* Whether the active member has any of eleven listed abilities. */
@@ -792,7 +792,7 @@ void BtlMembers_UpdateQueuedDamage(void) {
         }
         if (BtlCharApi_IsInTechnique(chr->objId) && BtlCharApi_IsInRushSequence(chr->objId)) {
             active = 1;
-            frame = BtlCharApi_GetChargedUnkC78(chr->objId);
+            frame = BtlCharApi_GetRushSequenceFrame(chr->objId);
         }
         if (active && chr->queue.drainFrom < frame) {
             if (chr->queue.drainHealth > 0) {
@@ -841,15 +841,15 @@ void BtlMembers_UpdateQueuedDamage(void) {
             if (chr->queue.total > 0) {
                 BtlMember_Damage(other, chr->queue.total, chr->queue.flags);
             }
-            chr->queue.unk0 = 0;
+            chr->queue.totalStart = 0;
             chr->queue.total = 0;
             chr->queue.hits = 0;
             chr->queue.perHit = 0;
             chr->queue.flags = 0;
-            chr->queue.unk14 = 0;
+            chr->queue.drainHealthStart = 0;
             chr->queue.drainHealth = 0;
             chr->queue.drainHealthStep = 0;
-            chr->queue.unk20 = 0;
+            chr->queue.drainKiStart = 0;
             chr->queue.drainKi = 0;
             chr->queue.drainKiStep = 0;
             chr->queue.drainFrom = 0;

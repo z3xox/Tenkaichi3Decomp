@@ -8,11 +8,12 @@ import pathlib, re
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 GEN = ROOT / "port/build/gen/src"
 # Replaced as a whole by PC code under port/src (hand-written VU0 assembly inside): see docs/port/README.md.
-REPLACED = {"src/sys/vu0_a_c.c", "src/sys/vu0_a_c_b.c", "src/sys/vu0_a_c_c.c", "src/sys/vu0_b_c.c"}
+REPLACED = {"src/sys/int_vec.c", "src/sys/matrix_screen.c", "src/sys/matrix_build.c", "src/sys/vu0_math.c"}
 
 def sources():
     # the main executable (engine, battle) and the menu overlay (DBZP.BIN on the PS2; one program here)
     fs = [ROOT / "src/main.c"] + sorted((ROOT / "src/sys").glob("*.c")) + sorted((ROOT / "src/battle").glob("*.c")) + \
+         sorted((ROOT / "src/ui").glob("*.c")) + \
          sorted((ROOT / "src/menu").glob("*.c"))
     return [f for f in fs if str(f.relative_to(ROOT)) not in REPLACED]
 

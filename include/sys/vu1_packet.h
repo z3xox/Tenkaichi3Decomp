@@ -38,12 +38,12 @@ typedef struct Vu1Node {
     /* 0x0C */ s32 hasMesh;    /* non-zero when a VIF stream follows at +0xF0 */
     /* 0x10 */ f32 pos[4];
     /* 0x20 */ f32 rot[4];
-    /* 0x30 */ f32 unk30[4];
-    /* 0x40 */ f32 unk40[4];
+    /* 0x30 */ f32 pivot[4];
+    /* 0x40 */ f32 parentPivot[4];
     /* 0x50 */ f32 parent[16]; /* matrix on entry */
     /* 0x90 */ f32 world[16];  /* matrix after pos/rot */
-    /* 0xD0 */ f32 unkD0[4];   /* copies of unk30 / unk40 */
-    /* 0xE0 */ f32 unkE0[4];
+    /* 0xD0 */ f32 pivotOut[4];   /* copies of pivot / parentPivot */
+    /* 0xE0 */ f32 parentPivotOut[4];
     /* 0xF0 */ u32 vif[1];     /* ends with a 0x70000000 word */
 } Vu1Node;
 
@@ -63,8 +63,8 @@ typedef struct Vu1Track {
 } Vu1Track;
 
 /* VU1 microprograms (in the .vutext/.vudata area right after .text). */
-extern u8 D_002BF6B0[], D_002BFAB0[], D_002BFEA0[], D_002C01C0[], D_002C04F0[], D_002C1180[], D_002C1F00[], D_002C2D30[],
-    D_002C3080[], D_002C3380[];
+extern u8 gVu1Prog0[], gVu1Prog1[], gVu1Prog2a[], gVu1Prog2b[], gVu1Prog4[], gVu1Prog5[], gVu1Prog6[], gVu1Prog7[],
+    gVu1Prog8[], gVu1ProgEnd[];
 
 u32 *Vu1Pkt_CallProg7(u32 chain, f32 w);
 u32 *Vu1Pkt_LoadProg7(void);

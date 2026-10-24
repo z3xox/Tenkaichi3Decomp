@@ -1,5 +1,5 @@
 #include "common.h"
-#include "menu/menu_e.h"
+#include "menu/team_select.h"
 #include "sys/pad.h"
 #include "sys/save.h"
 
@@ -30,15 +30,15 @@ extern int PortTbo_TextRead(void);
 extern void PortTbo_Copy(const char *text); /* onto the clipboard ("Copy Code") */
 extern void PortTbo_Paste(void);            /* the clipboard's room code, typed (Join Room's PASTE) */
 
-/* The game's windows of every menu (battle/view_a_b.c, view_a_c.c), made from the Duel menu's data as
+/* The game's windows of every menu (ui/message_window.c, view_a_c.c), made from the Duel menu's data as
    DuelMenu_Init makes them: the heading's window (IconWin: the cloud swirls in the corners and the line under the
    heading) and the message window (MsgWin: the teal box with the meander corners). */
-extern void MsgWin_SetText(void *text); /* (the rest: menu/menu_a.h) */
+extern void MsgWin_SetText(void *text); /* (the rest: menu/overlay_common.h) */
 extern void IconWin_PortHideWords(void);
-extern void MsgWin_PortDrawString(u16 *str); /* (battle/view_a_b.c) the box with a line of ours, in the game's font */
+extern void MsgWin_PortDrawString(u16 *str); /* (ui/message_window.c) the box with a line of ours, in the game's font */
 extern s32 MsgWin_PortLineRoom(s32 right);
 extern void MsgWin_PortSameTop(void);
-extern s32 Font_GetWidth(u16 *str); /* (battle/col_c.c) a line's width in the game's font */
+extern s32 Font_GetWidth(u16 *str); /* (sys/font.c) a line's width in the game's font */
 #define Port_TextMode PortTbo_TextMode
 #define Port_TextRead PortTbo_TextRead
 static void Port_EscQuit(s32 on) {
@@ -2056,7 +2056,7 @@ s32 PortTbo_Run(void) {
     Dma_ResetBuffers();
     return train;
 }
-/* The sign over the sparring fight (battle/hud_a.c, Hud_Draw, every frame): how long it has searched, what for, and
+/* The sign over the sparring fight (battle/hud.c, Hud_Draw, every frame): how long it has searched, what for, and
    how to go back. Nothing when the fight is not Train While Waiting's or the search is over. */
 static s32 sTbSignFrames;
 

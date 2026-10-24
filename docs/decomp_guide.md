@@ -863,3 +863,218 @@ has the arithmetic argument why no statement order can work with four references
   stored to itself or reloaded (cse); a `register ... asm("$2")` variable.
 - `do { } while (0)` inside a block is a scheduling barrier; a dead conditional splits the
   block.
+
+## Lessons from the night of 2026-10-08 (the functions left in assembly)
+
+Reported by the agents that matched them; each was seen to fix a function, the explanations are theirs.
+
+Source forms:
+- **A loop's own counter.** A counter reused by a later loop carries that loop's register preferences into the
+  earlier one (`.greg`: `;; N preferences: 3 4`). Inner-loop pointers in t-registers where the original has v1 /
+  a0: give each loop its own counter. (ObjShadow_BuildPacket, ChrGrid_Build)
+- **The shared statement in every leaf.** Identical blocks kept apart although each jumps to the same place: the
+  statement behind the if / else or switch (`(*count)++`, a common tail) was written in every arm. The compiler
+  merges equal tails only after register allocation, and each copy counts its references: "same instructions,
+  two or three saved registers rotated" can be `if (k == 2) {A} else if (k == 6) {A}` against `if (k == 2 || k ==
+  6) {A}`. Two switch cases share a tail only when both end the same way: write the whole tail in each case and
+  drop `default: return`. (ChrGrid_Build, EftEmit_Spawn, EftEmit_SpawnType0)
+- **A clamp as a macro over the whole expression** (`((x) < (lo) ? (lo) : ((x) > (hi) ? (hi) : (x)))`, or MAX(0,
+  MIN(x, 255))) gives `move` where an inline u8 helper gives `andi`. (TextBox_DrawClip)
+- **A wrap helper that takes the count**, with `count - 1` written at each use, not a `hi` bound passed in. Probe:
+  if `-fno-sched-spec` gives the original, look for this. (DcPass_WrapPos)
+- **If / else assigning in both arms** (`if (c) x = a; else x = b;`) is not `x = b; if (c) x = a;`: the source value
+  dies at the copy, one more block-local quantity. (HudPrompt_UpdateCue)
+- **The cheap case as its own arm**: `if (paused) n = i; else { loop }`, not `n = i; if (!paused) { loop }`.
+  (HudGauge_UpdateAura)
+- **`for (;;) { ...; if (a || b || c || d) break; }`** is not rotated; a do-while with an `&&` chain is rotated in
+  the middle. (HudGauge_UpdateAura)
+- **A function-level local for an address used in some calls, the expression written out in the others**: a
+  prologue that saves one sN out of order means that register is set in the entry block. (DcPass_DrawStatus)
+- **A constant through a block-local variable** (`{ s32 w = 0x80; f(.., w, ..); }`) stops the second CSE pass
+  from sharing it with the same constant behind a loop that always runs once. (DcPass_DrawStatus; a stand-in)
+- **A dead float compare** (`if (a < K1 && f() > K2) { }`) keeps the call, emits no compare, and counts as an
+  instruction for allocation: look at the sibling function for the full condition. (EftRibbon_DrawKind1)
+- **Declaration order is spill-slot order**; floats declared in front of a vector, an unused parameter kept.
+  (EftRibbon_DrawStrip, EftEmit_SpawnType0)
+- **Prototypes across files**: a caller's local `extern` with pointers before floats changes the argument set-up
+  of the other calls in the same switch too. (EftEmit_Spawn)
+- **A 4-aligned view of a table** (`f32 color[3][4]`) for y, z, w while x shares an address computed for a call.
+  (EftRibbon_UpdateKeys)
+- **A local struct initialiser**: flat members, an array, and a struct holding an array give three different
+  schedules of the stores behind the leading memset. (EftEmit_SpawnType0)
+- **Copy the matched twin**: the statement forms and declaration order of a sibling function that already
+  matches. (EftZap_DrawQuad from EftLink_DrawQuad; DrawKind1 from DrawKind2)
+
+About the compiler (inferred from its source and dumps by the agents):
+- The loop pass hoists a constant while `threshold >= loop insn count`; the threshold is about 126 to 128 without
+  a call and drops by 3 per constant moved. Empty `__asm__("")` statements are a precise probe for how many
+  instructions a loop is short of. A dead counter is removed before the pass and cannot explain a longer loop.
+- Local-alloc priority is `floor_log2(refs) * refs / (death - birth)` in instruction positions inside the block;
+  the `.lreg` "used N times across M insns" figure is another number. Registers tied by an operation form one
+  quantity and their references add up. With exactly three block-local quantities the hand-written sort
+  compares the wrong indices.
+- `p->f = p->f;` is one store that lives until reload and emits nothing: a probe for "one more instruction at the
+  block start" (the first scheduling pass issues two per cycle).
+- `la rD,sym+K(rS)` assembles to `lui / addiu / addu` when rD != rS: not evidence of a separate address constant.
+- Float tie probe: `__asm__("" : "=f"(v) : "0"(v));` (`"=r"` forces mfc1 / mtc1).
+
+Fake matches made tonight (byte-identical, the real source form not found): ObjShadow_BuildPacket (ten empty asm
+statements), DemoCam_Update (`gDemoCam->fixed = gDemoCam->fixed;`), and the width variable in DcPass_DrawStatus.
+
+More of the same night (the geyser functions):
+- **A vector in an aggregate initialiser is a union with a 128-bit word** (`union { struct { f32 x, y, z, w; } v;
+  u128 q; }`) when each nested vector's first component is stored out of place. The whole argument is ONE
+  initialiser with every member given, not assignments. (EftGeyser_StartSteam / StartSmoke; probably also the
+  stand-ins in FxLineArg and EftEmitRayArg, not tried)
+- **A member left out of an initialiser clears the whole block first**: if the original has no such memset, the
+  struct's tail is padding, not members.
+- **A packet builder as an inline function called with constants** keeps a variable unfolded (a run-time `dsll 6
+  / or` on a constant 1): inside, `s64 abe = 1; if (layer < 0) { layer = 0; abe = 0; }`. The quad twin of
+  EftMesh_QueueTri. (EftGeyser_DrawColumn)
+- **A segment loop walks a pointer with its own counter** (`p = pt; for (n = 0; n < 3; n++) { next = p + 1; ...; p
+  = next; }`); `s32 i;` without an initialiser and `for (i = 0; ...)`: an `i = 0` far above its loop was moved
+  there by the scheduler, and `s32 i = 0;` adds a hidden marker behind the call in front of the loop.
+- **Check the argument order of a helper only this function uses** (`Vec3_ScaleAdd(dst, dir, f32 s, base)`).
+- **Copy chains in front of stores** (`addu v1,a2,v0 / move a3,v1 / move a2,a3`): adjacent ONE-element array
+  members indexed by the same variable (`p->a[i]`, `p->b[i]`, `p->c[i]`), not one array with constant offsets.
+  (Ot_Reset; worth trying on StgPanBlur_UpdateView and the other copy-chain cases)
+- **Ten blocks**: inter-block moves by the first scheduling pass (an argument load above a branch it belongs
+  behind) mean the function had at most 10 basic blocks and 100 instructions there; an `else` arm that makes an
+  eleventh cannot be the original form.
+- **Delay slots (reorg.c)**: a slot emptied as redundant in the first relax round is refilled in the second
+  (`beqzl` + the first epilogue load); one emptied in the last round stays `nop`. `beqz / nop` where we get `beqzl
+  / ld` means the redundancy only appeared in round two. Cross-jumping starts only from an unconditional jump;
+  a block that falls into the common label without a jump of its own is never merged away. (PadWatch_GetMissing
+  and BtlScene_IsEffectHidden are open on exactly these points: 2 and about 12 instructions.)
+- **A flag for a call's result** (`ok = f() != 0; if (ok) {`) fills the branch's delay slot from the target (the
+  epilogue's first `ld`) where `if (f()) {` fills it from the fall-through. A natural replacement for the
+  volatile `gOtCurRead` alias; not yet tried on EftChain_DrawStrand, EftPtcl_DrawAxisQuads, EftSurf_DrawTriOt,
+  EftWater_DrawBillboard. (EftLine_DrawSprite)
+- **`v = &arr[i]; ... &v[-1]`** is one add from a shared value and is left alone; `&arr[i - 1]` gets its own
+  temporary and becomes a walking pointer (one more saved register). Two such uses in different blocks need a
+  variable each. An inline function's argument is expanded index first (`addu a0,s2,sp`).
+- **Which hoisted constant is reloaded inside a loop** is the global allocator's priority
+  (`floor(log2(refs) * refs * 10000 / live_length)`, ties to the lower pseudo); one RTL instruction in the loop
+  changes each live length by 2. (EftWater_DrawClippedFan is open on exactly this: about 20 instructions.)
+- Fake matches of this batch: EftStreak_DrawScreen (`slot++; slot--;`), EftStreak_Draw (`register s32 zero
+  __asm__("$0"); memset(&d, zero, ...)` for `Vec4 d = { 0 };`: PS2 compiler only; a port writes the initialiser).
+- **A pure helper that only this file calls was `static`**, and this compiler treats a static pure function as
+  `const`: calls to it do not invalidate memory, so values read from the stack stay in saved registers across
+  the call. `__attribute__((const))` on the prototype gives the same code with the linkage unchanged.
+  (Col_NearEq in ColObb_Contact; the sign: reloads after every call that the original does not have)
+- **Indexed vector access through a component array** (`obb->axis[code].v[0]`) leaves the member offset in the
+  load; `.x` on a struct adds it first.
+- **Two differently typed locals at one stack slot** are one function-level union; block-scope locals of sibling
+  blocks do not share slots. **A value in a caller-saved register in one switch case and a saved one in its
+  siblings** is a block-local variable declared in every case.
+- For a very large function fdiff's positional diff is useless after the first shift: use an aligned diff
+  (difflib over the two instruction columns). (ColObb_Contact, 4,257 instructions)
+- **A callee's return type** (`void` for a function that returns `s32`) changes the scheduler's order in front
+  of the call when it ties on dependent count. (ScrXfade_StoreHalf: sceGsSetDefStoreImage returns s32)
+- **A store in a common tail, not in each arm**: `b L+4` with the first tail instruction in its delay slot does
+  not show the store is inside the arm. `&p->member` written out at every use, no variable. (Shen_BuildList)
+- **A load in a call's delay slot** means the statement stands before the call in the source. (Shen_DrawList)
+- **`xor reg,reg` against `xori` in front of a `movz`**: the register form means the `if` was converted after the
+  loop pass hoisted the constant, i.e. the skipped block was two instructions at first (a re-read of a field).
+- **Loop pass, single use**: in a loop with calls an invariant temporary used once in its block is substituted
+  back; used twice it becomes a movable and merges with an earlier one. A use deleted later still counts (the
+  argument of a `const` call whose result is unused; a dead store to a hard-register variable).
+- Fake match: Shen_DrawList (`register FlashRef *probe __asm__("$5") = &ref;`). Open: Train_BuildLists, 11
+  instructions (the entry test `found = 0; i = found; cmp found < n` with the copy alive; no C form found).
+- **Parameter orders travel in pairs**: when an argument register is loaded for a call depends on when the entry
+  block copied the matching incoming parameter, so a swapped pair of argument moves can need the caller's own
+  parameter order and the callee's changed together. (EftGndDust_DrawPiece with EftGndDust_DrawQuad)
+- **`x = e; x *= k;`** against `x = e * k;`: the same instructions, another local-allocation tie.
+  (EftGndDust_SpawnBodyDust; found by the permuter)
+- **cse substitutes the longer-lived variable**: `tail = (tail + 1) & M` compiled as `(head + 1)` with an extra
+  hoisted `head + 1` means the final stores of the two variables are in the other order. Declaration order
+  (`p4, p3, p2, p1`) is spill-slot order; the text order of the computations is statement order.
+- Fake match: EftBlade_AddPoint (three empty asm statements; a duplicated `t->wasOut = ...` in both arms of the
+  first `if` gets to 2 instructions, which suggests a merged duplicate there).
+- **`x++; x--;` on a loop's bound** (a variable used only in the loop condition) is the cleanest probe for "one
+  more instruction in the loop at allocation time": it disturbs nothing else. (EftWater_DrawClippedFan: fake)
+- **A zero kept in a saved register across a call and copied afterwards**, the register reused later for a
+  pointer: the zero is that later variable (`tint = NULL; ... medium = (s32)tint; ... tint = &tbl[medium]`).
+  (StgDepthTint_Draw: with an empty tied asm in front of the call, a fake; without it 2 instructions off)
+- **A zero-initialised local as a union** (`union { Vec v; f32 f[4]; } c = { { 0, 0, 0, 0 } };`) allocates
+  differently from a struct with the same initialiser, with identical code: two float registers swapped in the
+  block just in front of a `= {0}` memset while the sibling blocks match. (EftZap_InitLine: the natural form
+  after 200 variants and a first agent's 7-instruction miss)
+- **`movn` / `movz` on a value that is stored**: the value went through a local (`k = c ? a : b; p->f = k;`).
+  `p->f = c ? a : b;` makes a real branch, which also stops `n + K` folding into `slot + (K - 2)` behind it. A
+  function-scope index assigned in each branch (`n = slot;` / `n = slot - 2;`) gives the `move` copy.
+  (EftShot_BuildParam)
+- On a function full of address arithmetic, compare structure, not fdiff's count: the right form looked worse
+  (488 of 489) than the wrong one (424 of 499) until the last piece was in.
+- **A dead initialiser outside an inner loop** (`s32 ctx = 0;`, assigned inside the loop) is a second set that
+  stops the loop pass moving a hoisted chain out of the enclosing loop; flow deletes it later without a trace.
+  (EftSprAnim_DrawQuad / DrawQuadSubdiv: the blocker of all earlier rounds)
+- **`s32 scr[4][4]`, not an array of a 4-aligned struct**: with the 2-D array all member addresses share one
+  base, and the loop pass combines them into pointers (`addiu s2,v0,8` as a pointer's start value is the sign).
+  372 differing instructions to 15 in EftBolt_Draw.
+- **The packet header in the canonical order** (prim, tag, vif0, vif1, gif0, gif1, next): with prim not first
+  the 64-bit constants shift from a0..a3 to a1..t0. Where two functions share an inline builder, score a header
+  order on both.
+- **An if / else with identical arms**: a float compare whose branch is gone marks where the arms started; a
+  constant that is not hoisted shows its statement stood outside the arms. Variables that live across a call
+  and ones that do not are separate variables (sharing one cost a twelfth saved float register).
+  (EftBolt_Shape; its `base = &p0;` between two calls is a possible fake, found by the permuter)
+- **An inline function's pointer parameter order** decides which address temporary is born first.
+- **A wrapping `if`, not an early return**: `if (good) { ...; return 1; } return 0;` against `if (bad) return 0;
+  ...; return 1;` differ in where the `return 0` block sits, which changes delay slots far from it (`beqz X,
+  <epilogue> / nop` where we got `beqzl X / ld sN`). (PadWatch_GetMissing: the 2-instruction miss)
+- **`case 3: A; break; case 6: A; break;`** is not `case 3: case 6: A; break;`. Sign: an unlabelled copy of `A`
+  in each of the other cases and both dispatch branches going straight to the switch's end. The matched twin
+  above it was written that way. (BtlScene_IsEffectHidden)
+- **Use the real GS macro, zero terms included**: `GS_SET_CLAMP(2, 2, x0, x1, 0, srcH)` with a variable operand
+  gives another or-chain and schedule than any hand-written equivalent (a 40-instruction header and the reload
+  registers of a third of GfxWater_DrawView).
+- **A macro expanded twice in a row is a plain `{ }` block, not `do { } while (0)`**: the loop notes between the
+  expansions are a scheduling barrier. **"Variables" that are constants**: two adjacent spill slots written
+  `lui; sw` early and `lw; ori; sw` later are literal constants used in a loop, not variables with `|= 7`.
+  **Reload registers off by one everywhere** can come from one instruction needing a scratch register where v0,
+  v1, a0, a1 are all live: find `Using reg N` in the `.greg` dump. (EftStorm_DrawBolts)
+- **A validity test as an else-if chain with the flag assigned in every arm**, not `ok = 0` at the top.
+- **A variable that does not exist**: when a builtin's result (`sqrtf`) lands in a saved register a "variable"
+  also uses, write the expression (`d * 0.2f`) at each use. **A coordinate variable set in front of each
+  vertex** (`sy = ...; p[1] = sx | sy << 16;`). (GfxWater_DrawView)
+- **Raw input and result are two variables** (`time` / `t`) when the original loads the raw value into `$f12` or
+  a temporary first; a second span in two statements (`t = time - mid; t = t / (end - mid);`).
+  (EftChain_BlendKeys)
+- A packet's seven header stores: an exhaustive search of the 5040 orders takes about four minutes.
+- **A hand-written routine wrongly declared `void`** (`Mtx_ProjectPointStq` returns s32) changes allocation behind
+  the call as well as the moves in front of it: the first temporary born after a value-returning call avoids v0.
+- **A literal argument whose load comes first with another argument's load in the delay slot was a foldable
+  float conversion** (`(u32)(hi * 64.0f)` with `hi = 1.0f` assigned just before): it collapses to `li t0,64` but
+  keeps its place in the schedule. (ShenScene_StepSeq's blur call)
+- **Probe**: `extern T alias __asm__("RealName");` is another symbol to cse / gcse and the same assembly: it
+  tells whether a shared `%hi()` register causes a difference (in -G0 code such a register has no known base
+  address and a store through it conflicts with every later struct load in the block).
+- **A table declared `const`** (as its definition is): a load from a const object conflicts with no store, so a
+  store the scheduler kept glued to the table load floats to its place. Check a table's definition and section
+  against the header's `extern`; a cast to const does not do it. (SimEv34: the 15-instruction miss; menu_u.h)
+- **`(u32)(v * 0.0f)` with `v` assigned a constant just before** keeps the whole >= 2^31 arm of the conversion
+  (`mtc1 zero,$fN` then `sub.s / lui / trunc / mfc1 / or`); a variable holding 0.0 has it folded. Look for a
+  sibling call with the same argument shape and a run-time factor: the constant call is the same expression with
+  the factor set to 1. (ShenScene_StepSeq)
+- **The union lesson applies behind a memset too**: `union { Vec v; f32 f[4]; } light = { { 0, 0, 0, 1 } };` for a
+  mostly-zero vector changed the first scheduling pass's order in the block BEHIND the memset (the two halves
+  of a 16-byte constant copy loaded through different base registers are reload inheritance, not a source-level
+  pointer copy). (EftBurst_DrawModel: the 16-instruction miss, the last function of the main executable)
+- **A counter initialised twice** (`u32 i = 0;` and again `for (i = 0; ...)`): the sign is a zero copied from
+  another zero variable with the entry compare `0 < n` left unfolded (`move t0,zero / sltu v0,t0,t2 / beqz /
+  move t1,t0`). Found by the permuter. (Train_BuildLists: the last INCLUDE_ASM of the game)
+- **The permuter does not permute an inline helper** (`scripts/permute.py` wraps kept callee bodies in
+  PERM_IGNORE): hand-inline the helper into the target first.
+
+## A name can change the code (found 2026-10-08, renaming fields)
+
+Renaming a structure field is expected to change nothing, and of some 1,600 field renames three did: in
+`include/battle/btl_act_2.h`, `BtlActCPose.move` -> `moved`, `BtlActEPose.facing` -> `yaw` and `BtlActEPose.vel` ->
+`dir` each made `BtlAct_RecoverHandler` (src/battle/btl_act_2.c) compile six instructions differently: the
+dispatch of its `switch` loads the jump table's address with `lui / addiu / addu / lw` where the original has
+`sll / lw $3,$L1396($2)`. Only the spelling changed (the offsets are the same). Nothing else in the tree reacted.
+Inferred, not confirmed in the compiler's source: a hash in the optimiser that depends on where identifiers are
+allocated, which the length of a name moves. The three stay under their old names
+(docs/names/fields/changes_code.tsv). So: a rename is checked by the build like any other change, and a function
+that suddenly differs after a rename nearby may be this.

@@ -51,54 +51,54 @@ typedef struct SaveSlot {
     /* 0x04 */ s32 val[3]; /* 0xFFFF each after Save_UnlockAll; slot 0 gets val[0] |= 1 and val[2] |= 1 by default */
 } SaveSlot;
 
-/* 0x38 bytes; per-character customisation (menu functions 0x398A60..0x3991D8, main ChrTbl_GetLevel / ChrTbl_GetExp). */
+/* 0x38 bytes; per-character customisation (menu functions 0x398A60..0x3991D8, main ChrTbl_GetItemSlots / ChrTbl_GetExp). */
 typedef struct SaveCustom {
     /* 0x00 */ u16 item[SAVE_CUSTOM_SETS][SAVE_CUSTOM_ITEMS]; /* equipped item ids (1-based, 0 = empty) of each of the 3 sets */
-    /* 0x30 */ s32 unk30;  /* running total compared with the table value picked by `level` (EvoZ_RefreshStatus): experience, guess */
-    /* 0x34 */ u16 level;  /* added to the character table's u16 at +0xE by ChrTbl_GetLevel; indexes its s32 table at +0x10 in ChrTbl_GetExp */
+    /* 0x30 */ s32 exp;  /* running total compared with the table value picked by `level` (EvoZ_RefreshStatus): experience, guess */
+    /* 0x34 */ u16 level;  /* added to the character table's u16 at +0xE by ChrTbl_GetItemSlots; indexes its s32 table at +0x10 in ChrTbl_GetExp */
     /* 0x36 */ u16 unk36;
 } SaveCustom;
 
 /* 0x1C bytes; fourteen of them at 0x2D40. */
 typedef struct SaveRec {
-    /* 0x00 */ u8 unk0[0x14];
-    /* 0x14 */ u16 level;  /* used instead of SaveCustom.level when ChrTbl_GetLevel is asked for one of these */
+    /* 0x00 */ u8 item[0x14];  /* u16 item[8] (item ids, 1-based, 0 = empty) and a word at +0x10: ZSaveRec in menu/dc.h */
+    /* 0x14 */ u16 level;  /* used instead of SaveCustom.level when ChrTbl_GetItemSlots is asked for one of these */
     /* 0x16 */ u16 unk16;
     /* 0x18 */ s32 chara;  /* character id, -1 = empty (defaults; ChrGrid_Build appends the non-empty ones to the character list) */
 } SaveRec;
 
 typedef struct SaveData {
-    /* 0x0000 */ s32 unk0;
-    /* 0x0004 */ s32 unk4;
+    /* 0x0000 */ s32 sumHigh;
+    /* 0x0004 */ s32 sumLow;
     /* 0x0008 */ s32 unlockFlags;   /* bits 0-6 set by Save_UnlockAll; BattleSetup_FinishEx tests `1 << n` for n < 7; the menu also uses bit 9 */
-    /* 0x000C */ s32 unkC;          /* 1 by default; picked from a list by menu HistSel_Input */
+    /* 0x000C */ s32 level;          /* 1 by default; picked from a list by menu HistSel_Input */
     /* 0x0010 */ SaveSlot slot[SAVE_SLOT_COUNT];
     /* 0x00A0 */ u8 unkA0[0x208 - 0xA0];
-    /* 0x0208 */ s32 unk208;        /* bit 0 set by Save_UnlockAll */
-    /* 0x020C */ s32 unk20C;        /* 5 by default, 20 after Save_UnlockAll: a capacity, guess */
+    /* 0x0208 */ s32 ubFlags;        /* bit 0 set by Save_UnlockAll */
+    /* 0x020C */ s32 missionPages;        /* 5 by default (Save_SetDefaults), 20 after Save_UnlockAll */
     /* 0x0210 */ u8 unk210[0x77C - 0x210]; /* menu 0x37F5F8 / 0x385268 / 0x387F90 use 0x210-0x28D */
-    /* 0x077C */ s32 unk77C;        /* 99 by default */
+    /* 0x077C */ s32 rank;        /* 99 by default */
     /* 0x0780 */ u8 unk780[0xA08 - 0x780]; /* byte records at 0x780.. (menu 0x372E98 / 0x3760C8) */
-    /* 0x0A08 */ s32 unkA08;        /* flag bits (0x20, 0x40, 1 << n), menu 0x362160..0x364B18 */
-    /* 0x0A0C */ s32 unkA0C;        /* counter kept in 0..23 by menu Tour_Main */
-    /* 0x0A10 */ s32 unkA10;
+    /* 0x0A08 */ s32 tourFlags;        /* flag bits (0x20, 0x40, 1 << n), menu 0x362160..0x364B18 */
+    /* 0x0A0C */ s32 tourHour;        /* counter kept in 0..23 by menu Tour_Main */
+    /* 0x0A10 */ s32 tourLevel;
     /* 0x0A14 */ u8 unkA14[0xC10 - 0xA14];
     /* 0x0C10 */ u64 charaBits[SAVE_CHARA_WORDS]; /* bit id: character unlocked (ChrGrid_Build, BattleSetup_InitCharaBits) */
     /* 0x0C28 */ u64 stageBits;     /* bit id: stage unlocked (StgGrid_ApplyUnlocks turns locked ids into 0x24) */
     /* 0x0C30 */ u32 bgmBits;       /* bit id: entry of a 25-entry list unlocked (BgmList_ApplyUnlocks turns locked ids into 0x19); BGM is a guess */
     /* 0x0C34 */ s32 rule[SAVE_RULE_COUNT]; /* 3, 2, 2, 0, 0, 0 by default (Save_ResetRules); read by menu 0x348710 / 0x351508 / 0x353518 */
     /* 0x0C4C */ u8 unkC4C[0x1008 - 0xC4C]; /* menu 0x359358 / 0x35BB88 index an s32 array at 0xE0C */
-    /* 0x1008 */ s32 unk1008;       /* flag bits, menu HistOutro_Init / Shop_CheckStockLevel */
-    /* 0x100C */ s32 unk100C;       /* counter, same functions */
+    /* 0x1008 */ s32 shopFlags;       /* flag bits, menu HistOutro_Init / Shop_CheckStockLevel */
+    /* 0x100C */ s32 stockLevel;       /* counter, same functions */
     /* 0x1010 */ u8 unk1010[0x1208 - 0x1010];
-    /* 0x1208 */ s32 unk1208;       /* menu DcMenu_Start */
+    /* 0x1208 */ s32 dcFlags;       /* menu DcMenu_Start */
     /* 0x120C */ u8 unk120C[0x1608 - 0x120C];
     /* 0x1608 */ s32 flags;         /* SAVE_FLAG_* */
     /* 0x160C */ s32 key[SAVE_PAD_COUNT][SAVE_KEY_COUNT];     /* button assignment used in battle: BtlInput_GetKeyMask looks an action up in key[player] */
     /* 0x164C */ s32 keyEdit[SAVE_PAD_COUNT][SAVE_KEY_COUNT]; /* the copy the controller page edits and resets (menu Option_Input / Option_UpdateReset) */
     /* 0x168C */ s32 unk168C[2];
-    /* 0x1694 */ s32 unk1694;       /* option copied to both players' battle setup (+0x30, +0x34) by BattleSetup_DefaultOptions / BattleSetup_SetOption14; reset with the screen page */
-    /* 0x1698 */ s32 unk1698;       /* same, to +0x38 and +0x3C */
+    /* 0x1694 */ s32 camDistMode;       /* option copied to both players' battle setup (+0x30, +0x34) by BattleSetup_DefaultOptions / BattleSetup_SetOption14; reset with the screen page */
+    /* 0x1698 */ s32 camShakeOff;       /* same, to +0x38 and +0x3C */
     /* 0x169C */ s32 screenX;       /* display offset, Gfx_SetDisplayRegs */
     /* 0x16A0 */ s32 screenY;
     /* 0x16A4 */ s32 soundMode;     /* 0 stereo, 1 mono: SndOpt_Apply calls Snd_SetStereo(soundMode ^ 1), which ends in Adx_SetMono(soundMode) */
@@ -116,7 +116,7 @@ typedef struct SaveData {
 /* Header of common file 4 (gCommonRes->data[2]): byte offsets of its tables, rounded down to 4. */
 typedef struct ItemFile {
     /* 0x00 */ s32 unk0;
-    /* 0x04 */ u32 charaOffset; /* table of 0x3C-byte character entries (ChrTbl_GetLevel) */
+    /* 0x04 */ u32 charaOffset; /* table of 0x3C-byte character entries (ChrTbl_GetItemSlots) */
     /* 0x08 */ u32 itemOffset;  /* table of SAVE_ITEM_COUNT ItemInfo */
 } ItemFile;
 
@@ -132,9 +132,9 @@ extern SaveData *gSaveData;
 #define SAVE_CHARA_WORD(opt, id) (*((opt)->charaBits + (id) / 64))
 #define SAVE_CHARA_MASK(id) (1LL << ((id) % 64))
 
-void Save_UnlockAll(SaveData *opt);
-void Save_SetDefaults(SaveData *opt);
-void Save_Stub266600(SaveData *opt);
+void Save_UnlockAll(SaveData *save);
+void Save_SetDefaults(SaveData *save);
+void Save_Stub266600(SaveData *save);
 void Save_Init(void);
 void Save_AddItem(s32 idx);
 void Save_AddMoney(s32 amount);

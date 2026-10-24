@@ -195,7 +195,7 @@ void PortSongs_Init(void) {
     }
 }
 
-/* Kept for the game's select screens (src/menu/menu_c_e.c, menu_e_b.c), which took in the songs a background
+/* Kept for the game's select screens (src/menu/char_select.c, team_select.c), which took in the songs a background
    conversion had finished. Nothing is converted any more: the folder is read once, at start, and a song in it is
    played as it is (gs/snd_ma.c), so the list does not change while the program runs. */
 void PortSongs_Refresh(void) {

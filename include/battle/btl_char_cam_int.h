@@ -27,7 +27,7 @@ extern f32 Mathf_Cos(f32 a);
 extern f32 Mathf_Tan(f32 a);
 extern f32 Mathf_Asin(f32 a); /* argument clamped to -1..1 */
 extern f32 Mathf_Atan(f32 a);
-extern Vec4 D_002EC2A0[2];    /* shared constants: (0, 0, 0, 0) and (1, 1, 1, 1) */
+extern Vec4 gVu0ZeroVec[2];    /* shared constants: (0, 0, 0, 0) and (1, 1, 1, 1) */
 
 /* Small float helpers of the fighter code. */
 extern f32 BtlUtil_WrapAngle(f32 a);                       /* wrap to -pi..pi (one turn at most) */
@@ -63,11 +63,11 @@ extern void BtlOpp_GetNodePos(ChrCamChr *chr, s32 node, Vec4 *out); /* world pos
 extern s32 BtlInput_IsPressed(ChrCamChr *chr, u32 mask);
 extern s32 BtlInput_IsHeld(ChrCamChr *chr, u32 mask);
 extern f32 BtlInput_GetStickX(ChrCamChr *chr);                       /* smoothed stick x (BtlCharInput.stick[0]) */
-extern s32 BtlInput_TestAction(ChrCamChr *chr, s32 action, s32 arg);  /* action input test, built on BtlInput_* */
+extern s32 BtlInput_TestAction(ChrCamChr *chr, s32 action, s32 want);  /* action input test, built on BtlInput_* */
 
 /* Model objects and stage. */
 extern f32 BtlCharApi_GetHeight(s32 objId);                            /* body scale, obj + 0xFF4 (10 when no object) */
-extern f32 BtlCharApi_GetBodyUnk1000(s32 objId);                            /* obj + 0x1000 (5 when no object) */
+extern f32 BtlCharApi_GetCamSideSlope(s32 objId);                            /* obj + 0x1000 (5 when no object) */
 extern void BtlCharApi_GetNodePos(s32 objId, s32 node, Vec4 *out);      /* world position of a model node (obj + 0x970 when the node is missing) */
 extern f32 BtlStage_GetRadius(void);                                 /* stage: first float of the stage's limit block (horizontal radius, inferred) */
 extern f32 BtlStage_GetBottom(void);                                 /* stage: third float of the same block (a height, inferred) */

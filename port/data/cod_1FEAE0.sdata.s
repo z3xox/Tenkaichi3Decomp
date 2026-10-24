@@ -19,11 +19,11 @@ gBtlTaskCur:
 .globl gEftVram
 gEftVram:
     .space 4
-.globl D_002FEAF8
-D_002FEAF8:
+.globl gEftDetFltMax
+gEftDetFltMax:
     .space 4
-.globl D_002FEAFC
-D_002FEAFC:
+.globl gStgGroundFltMax
+gStgGroundFltMax:
     .space 4
 .globl gStgColZoneMisses
 gStgColZoneMisses:

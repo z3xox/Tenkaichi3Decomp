@@ -570,7 +570,7 @@ uint32_t sceSifSetDma(SifDmaData *d, int count) {
    arm64 the arguments after the `...` travel on the stack, not in registers: read them as such. */
 #include <stdarg.h>
 static int sd_remote(int block, int cmd, int core, int mode, void *iopAddr, uint32_t spuAddr, uint32_t size);
-int func_002967C0(int block, int cmd, ...) {
+int sceSdRemote(int block, int cmd, ...) {
     va_list ap;
     int core, mode;
     void *iopAddr = NULL;
@@ -589,7 +589,7 @@ int func_002967C0(int block, int cmd, ...) {
 }
 static int sd_remote(int block, int cmd, int core, int mode, void *iopAddr, uint32_t spuAddr, uint32_t size) {
 #else
-int func_002967C0(int block, int cmd, int core, int mode, void *iopAddr, uint32_t spuAddr, uint32_t size) {
+int sceSdRemote(int block, int cmd, int core, int mode, void *iopAddr, uint32_t spuAddr, uint32_t size) {
 #endif
     (void)block; (void)core; (void)mode;
     if (cmd == 0x80D0) {

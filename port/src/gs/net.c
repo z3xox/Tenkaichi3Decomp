@@ -1723,7 +1723,7 @@ int Port_NetSession(void) {
     return Port_NetActive() && sSession;
 }
 
-/* For the game's start-up (src/menu/menu_i_c.c, menu_a_c.c): 1 when it has to be the game's own whatever the
+/* For the game's start-up (src/menu/logo.c, menu_a_c.c): 1 when it has to be the game's own whatever the
    player's settings say, which is in every session. BT3_TEST_OWN_START=1 (testing the check above): this copy
    follows its settings in a session too, as 0.1.32 and 0.1.33 did. */
 int Port_NetFixedStart(void) {

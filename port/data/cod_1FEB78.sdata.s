@@ -37,6 +37,6 @@ gColWalkBox:
 .globl gColWalkCb
 gColWalkCb:
     .space 4
-.globl D_002FEBA8
-D_002FEBA8:
+.globl gColObbFltMax
+gColObbFltMax:
     .space 4

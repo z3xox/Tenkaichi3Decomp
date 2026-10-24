@@ -1826,7 +1826,7 @@ int MenuLabels_Make(const char *dataDir, const char *outDir, int anyDisc, char *
     return result;
 }
 
-/* ---- the PC's item of the main menu (src/menu/menu_a.c) ---------------------------------------------------------- */
+/* ---- the PC's item of the main menu (src/menu/main_menu.c) ---------------------------------------------------------- */
 
 /* The cutter's sheets and letters, all three styles, given back. (with sMlCutter held) */
 static void ml_cutter_clear(void) {
@@ -1978,7 +1978,7 @@ static int ml_table(MlBuf d, uint32_t index, uint8_t table[256 * 4]) {
 }
 
 /* The second sheet of the main menu's labels (state `lit`) as the game holds it: with the PC's item written into its
-   free fourth row (src/menu/menu_a.c, Port_MainItemLabel), each pixel the colour of the value written; and the hash
+   free fourth row (src/menu/main_menu.c, Port_MainItemLabel), each pixel the colour of the value written; and the hash
    menu_text.c finds the sheet by, again. 0: not the sheet expected (nothing changed). */
 static int ml_item_into(MlCtx *c, MlBuf screen, int part, MlTex *sheet, const unsigned char *pic) {
     static uint8_t table[256 * 4], index[SHEET_W * 32];

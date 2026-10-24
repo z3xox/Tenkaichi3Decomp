@@ -35,7 +35,7 @@ enum { MENU_LABELS_MADE = 0, MENU_LABELS_OTHER_DISC = 1, MENU_LABELS_FAILED = -1
    nothing of the game's memory, and may run in a thread of its own; not twice at a time. */
 int MenuLabels_Make(const char *dataDir, const char *outDir, int anyDisc, char *why, size_t whyLen);
 
-/* The label of the PC's own item of the main menu (src/menu/menu_a.c), in the lettering of the game's:
+/* The label of the PC's own item of the main menu (src/menu/main_menu.c), in the lettering of the game's:
    "Tenkaichi Budokai Online" put together from the letters of the main menu's labels in `dataDir` (and of the
    stage select's names, for the ones they lack), as two straight RGBA pictures of 512 x 32 (8-bit alpha, as
    NameFont_Compose's), the item as it is

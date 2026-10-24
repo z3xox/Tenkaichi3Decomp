@@ -9,7 +9,7 @@
  *
  * The library is asynchronous: a call only starts a request and returns 0; sceMcSync reports the request's number
  * and its result. Here every request is carried out at once and sceMcSync hands the stored result over.
- * Results follow libmc (what src/battle/stgm_a_b.c and src/sys/mcflow_a.c test):
+ * Results follow libmc (what src/sys/memcard.c and src/sys/memcard_flow.c test):
  *     sceMcGetInfo   0 = the card seen last time, -1 = a formatted card seen for the first time, -10 = no card;
  *                    type 2 = a PS2 card, free = free clusters of 1 KB, format 1 = formatted
  *     sceMcOpen      a file handle >= 0, or -4 = no such file      (mode: 1 read, 2 write, 0x200 create)
@@ -82,10 +82,10 @@ static int host_path(int port, const char *name, char *out, size_t size) {
     return 1;
 }
 
-int func_002A1A48(void) { return 0; } /* sceMcInit */
+int sceMcInit(void) { return 0; } /* sceMcInit */
 
 /* sceMcGetInfo: the outputs are filled when the request completes. */
-int func_002A25B8(int port, int slot, int *type, int *freeClusters, int *format) {
+int sceMcGetInfo(int port, int slot, int *type, int *freeClusters, int *format) {
     char path[600];
     int card = slot == 0 && host_path(port, "", path, sizeof(path));
 
@@ -103,7 +103,7 @@ int func_002A25B8(int port, int slot, int *type, int *freeClusters, int *format)
 }
 
 /* sceMcOpen */
-int func_002A1E58(int port, int slot, char *name, int mode) {
+int sceMcOpen(int port, int slot, char *name, int mode) {
     char path[600];
     FILE *f;
     int fd;
@@ -136,7 +136,7 @@ int func_002A1E58(int port, int slot, char *name, int mode) {
 }
 
 /* sceMcMkdir */
-int func_002A1F80(int port, int slot, char *name) {
+int sceMcMkdir(int port, int slot, char *name) {
     char path[600];
 
     if (slot != 0 || !host_path(port, name, path, sizeof(path))) {
@@ -146,7 +146,7 @@ int func_002A1F80(int port, int slot, char *name) {
 }
 
 /* sceMcClose */
-int func_002A1FB8(int fd) {
+int sceMcClose(int fd) {
     if (fd < 0 || fd >= MC_FILES || !sMc[fd].open) {
         return request(3, -4);
     }
@@ -159,7 +159,7 @@ int func_002A1FB8(int fd) {
 }
 
 /* sceMcSeek: origin 0 = start, 1 = current, 2 = end */
-int func_002A2078(int fd, int offset, int origin) {
+int sceMcSeek(int fd, int offset, int origin) {
     FILE *f;
     if (fd < 0 || fd >= MC_FILES || !sMc[fd].open || (f = host_file(fd)) == NULL) {
         return request(4, -4);
@@ -171,7 +171,7 @@ int func_002A2078(int fd, int offset, int origin) {
 }
 
 /* sceMcRead */
-int func_002A2208(int fd, void *buf, int size) {
+int sceMcRead(int fd, void *buf, int size) {
     FILE *f;
     int n;
     if (fd < 0 || fd >= MC_FILES || !sMc[fd].open || (f = host_file(fd)) == NULL) {
@@ -185,7 +185,7 @@ int func_002A2208(int fd, void *buf, int size) {
 }
 
 /* sceMcWrite */
-int func_002A2320(int fd, void *buf, int size) {
+int sceMcWrite(int fd, void *buf, int size) {
     int n;
 
     FILE *f;
@@ -201,7 +201,7 @@ int func_002A2320(int fd, void *buf, int size) {
 
 /* sceMcGetDir: the number of entries matching `name` ("*" = everything in the root, otherwise one name). The
    table is not filled: nothing in the game reads it. */
-int func_002A27A8(int port, int slot, char *name, int mode, int maxent, void *table) {
+int sceMcGetDir(int port, int slot, char *name, int mode, int maxent, void *table) {
     char path[600];
     struct stat st;
     int n = 0;
@@ -228,13 +228,13 @@ int func_002A27A8(int port, int slot, char *name, int mode, int maxent, void *ta
 }
 
 /* sceMcFormat: the folder is always "formatted"; nothing is erased. */
-int func_002A2AC8(int port, int slot) {
+int sceMcFormat(int port, int slot) {
     (void)slot;
     return request(16, port == 0 ? 0 : -10);
 }
 
 /* sceMcSync: 1 = the request has finished (its number and result are returned), -1 = nothing was pending. */
-int func_002A2498(int mode, int *cmd, int *result) {
+int sceMcSync(int mode, int *cmd, int *result) {
     (void)mode;
     if (sLastCmd == 0) {
         return -1;

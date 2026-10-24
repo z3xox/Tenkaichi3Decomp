@@ -20,12 +20,12 @@ extern void Mtx_RotateY(Mtx44 *dst, Mtx44 *src, f32 angle); /* rotate about Y */
 extern void Vu0View_LoadMtx(Mtx44 *m);
 
 extern void *BtlObj_Get(s32 id);
-extern void *BtlCharApi_GetPlayer(void *arg);
-extern s32 BtlCharApi_HasMemberUnk70(void *arg);
-extern void BtlCharApi_GetCamUnk460(void *arg, Vec4 *out);
+extern void *BtlCharApi_GetPlayer(void *objId);
+extern s32 BtlCharApi_IsMemberBodyChanged(void *objId);
+extern void BtlCharApi_GetCamBodyPos(void *objId, Vec4 *out);
 extern s32 BtlStage_IsReady(void);
 extern DemoCamAnim *BtlStage_GetFileMember(s32 idx);          /* the stage's camera animation idx (0..2) */
-extern u8 *BtlObj_GetNode(void *obj, s32 arg);
+extern u8 *BtlObj_GetNode(void *obj, s32 node);
 
 /* Turns the file offsets of a camera animation into pointers (once). */
 void DemoCam_FixupAnim(DemoCamAnim *anim) {
@@ -134,15 +134,17 @@ void DemoCam_SetAnim(DemoCamAnim *anim) {
 }
 
 /* Per frame: advances and evaluates the animation (or the fixed pose), adds shake, builds and applies the view. */
-#if 0
-/* 11 of 384 instructions differ, all in the fixed-pose branch: the registers holding &pos and &rot are swapped
- * ($s0 / $s1). The animation branch, the frame layout and every call match. (Routing the tail through a shared
- * `Vec4 *eye` fixes that swap but swaps the registers of from/to/hit in the collision part instead.) */
-/* Second cleanup pass (allocator dump): both addresses live in one basic block and tie exactly in the local
- * allocator's priority (&pos 5 references over 120 instructions, &rot 4 over 96: 2 * 5 / 120 = 2 * 4 / 96); the
- * original has &pos first, so one instruction more or less at that stage decides it. Tried without effect: the
- * offset additions of rot in front of those of pos (29 differences), `rot.w` / `pos.w` set behind the next
- * call (15, 16). */
+/* FAKE MATCH: `gDemoCam->fixed = gDemoCam->fixed;` at the top of the fixed-pose branch. The value was just read
+ * for the test, so the statement is one store instruction until reload's cse deletes it as a no-op; no code is
+ * emitted and the behaviour is unchanged. Its only effect is in the first scheduling pass: it takes one of the two
+ * issue slots of the block's first cycle, so the load of 1.0 is scheduled behind the first memset instead of in
+ * front of it. That shifts every later pair by one: &rot is computed one instruction earlier relative to its
+ * neighbours (its local-alloc priority 8 / 96 then ties with &pos' 10 / 120 and &pos, born first, takes $s0), and
+ * the fourth memset loads $a2 before $a1. Without it 11 instructions differ ($s0 / $s1 swapped, and that
+ * $a1 / $a2 order). What the original had there is unknown: some statement that is one RTL instruction (or
+ * three in front of `pos.w = 1.0f`) at that stage and no machine code. Tried without effect: initialisers
+ * `= { 0, 0, 0, 1 }` (same code as memset + store), an inline reset helper, `do { } while (0)` around each
+ * reset, a doubled `w` store, a single `return 0` behind the if / else, function-scope declarations. */
 s32 DemoCam_Update(void) {
     if (gDemoCam->fixed != 0) {
         Vec4 posOfs;
@@ -150,6 +152,7 @@ s32 DemoCam_Update(void) {
         Vec4 pos;
         Vec4 rot;
 
+        gDemoCam->fixed = gDemoCam->fixed; /* FAKE MATCH, see above */
         memset(&posOfs, 0, sizeof(Vec4));
         posOfs.w = 1.0f;
         memset(&rotOfs, 0, sizeof(Vec4));
@@ -249,7 +252,7 @@ s32 DemoCam_Update(void) {
         } else {
             owner = gDemoCam->chr;
         }
-        if (owner != NULL && BtlCharApi_HasMemberUnk70(BtlCharApi_GetPlayer(*(void **)((u8 *)owner + 0x10))) != 0 &&
+        if (owner != NULL && BtlCharApi_IsMemberBodyChanged(BtlCharApi_GetPlayer(*(void **)((u8 *)owner + 0x10))) != 0 &&
             gDemoCam->scaleHeight != 0) {
             f32 scale = (*(f32 **)((u8 *)owner + 0x91C))[1] / 1.1f;
 
@@ -269,9 +272,9 @@ s32 DemoCam_Update(void) {
             if (BtlStage_IsReady() != 0) {
                 Vec4_Copy(&from, (Vec4 *)inv.m[3]);
                 if (gDemoCam->obj != NULL) {
-                    BtlCharApi_GetCamUnk460(*(void **)((u8 *)gDemoCam->obj + 0x10), &to);
+                    BtlCharApi_GetCamBodyPos(*(void **)((u8 *)gDemoCam->obj + 0x10), &to);
                 } else {
-                    BtlCharApi_GetCamUnk460(*(void **)((u8 *)gDemoCam->chr + 0x10), &to);
+                    BtlCharApi_GetCamBodyPos(*(void **)((u8 *)gDemoCam->chr + 0x10), &to);
                 }
                 if (BtlCam_TraceStage(&hit, &from, &to, &frac, NULL) != 0) {
                     Vec4_Copy((Vec4 *)inv.m[3], &hit);
@@ -285,9 +288,6 @@ s32 DemoCam_Update(void) {
         return 0;
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/battle/btl_demo_cam", DemoCam_Update);
-#endif
 
 /* Sets the matrix the animation is relative to (ignored while no animation is selected). */
 void DemoCam_SetBase(Mtx44 *base) {

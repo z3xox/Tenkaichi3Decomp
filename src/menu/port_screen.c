@@ -1,6 +1,6 @@
 #include "common.h"
-#include "menu/menu_a.h"
-#include "menu/menu_e.h"
+#include "menu/overlay_common.h"
+#include "menu/team_select.h"
 #include "sys/pad.h"
 #include "menu/port_screen.h"
 

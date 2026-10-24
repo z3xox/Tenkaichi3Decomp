@@ -39,7 +39,7 @@ enum {
     SND_RPC_CMD_C = 0xC,       /* size 4: s32 */
     SND_RPC_QUEUE = 0xD,       /* size 0x184: SndQueue */
     SND_RPC_CMD_E = 0xE,       /* size 4, no arguments */
-    SND_RPC_FIGHTERS = 0xF     /* size 0x18: s16 count, s16 id[count] (both sides' fighters) */
+    SND_RPC_FIGHTERS = 0xF     /* size 0x18: s16 count, s16 handle[count] (both sides' live looping sounds) */
 };
 
 /* SndCmd.type */
@@ -129,7 +129,7 @@ typedef struct SndMgr {
     /* 0x000 */ SndBank bank[SND_BANK_COUNT];
     /* 0x260 */ void *iopBuf;     /* 0xA4800-byte IOP staging buffer for SPU uploads */
     /* 0x264 */ s32 spuMarkCount;
-    /* 0x268 */ s32 spuMark[16];  /* stack of SPU-heap usage figures (debug, no callers) */
+    /* 0x268 */ s32 spuMark[16];  /* stack of SPU-heap free sizes (debug, no callers) */
 } SndMgr;
 
 /* Sony HD "Vagi" chunk (vag info) and its entries. */
@@ -176,7 +176,7 @@ void Snd_SpuTransfer(void *iopAddr, s32 spuAddr, s32 size);
 s32 Snd_SpuTransferWait(void);
 s32 Snd_SpuTransferCheck(void);
 void Snd_RpcCmdE(void);
-void Snd_RpcSetFighters(s32 count, s32 *ids);
+void Snd_RpcSetLoopSounds(s32 count, s32 *handles);
 s32 Snd_BankIndex(u32 mask);
 s32 Snd_ScaleVolume(s32 bank, s32 volume);
 s32 Snd_ScalePan(s32 pan);
@@ -210,7 +210,7 @@ s32 Snd_IsLoopSe(u32 mask, s32 id);
 s32 Snd_GetVagMax(u32 mask);
 s32 Snd_IsBankLoaded(u32 mask);
 void Snd_CmdE(void);
-void Snd_SendFighters(void);
+void Snd_SendLoopSounds(void);
 SndVagInfoChunk *SndHd_GetVagInfo(u32 *head);
 s32 SndHd_GetVagMax(SndBankFile *file);
 void SndHd_GetLoopFlags(SndBankFile *file, u8 *flags);

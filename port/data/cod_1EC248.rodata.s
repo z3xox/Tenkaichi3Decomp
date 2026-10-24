@@ -11,17 +11,17 @@ D_002EC248:
 .globl gVu0SinCoef
 gVu0SinCoef:
     .space 16
-.globl D_002EC260
-D_002EC260:
+.globl gMtxIdentity
+gMtxIdentity:
     .space 64
-.globl D_002EC2A0
-D_002EC2A0:
+.globl gVu0ZeroVec
+gVu0ZeroVec:
     .space 32
-.globl D_002EC2C0
-D_002EC2C0:
+.globl gVu0ZeroVecW1
+gVu0ZeroVecW1:
     .space 32
-.globl D_002EC2E0
-D_002EC2E0:
+.globl gStgDownDir
+gStgDownDir:
     .space 16
 .globl gVu0AxisZW
 gVu0AxisZW:

@@ -904,7 +904,7 @@ void Port_PadVibrate(int socket, int small, int large) {
     rumble_send(player, pad_of(player), (Uint16)low, (Uint16)high, why);
 }
 
-/* 1 with BT3_RUMBLE_TEST set: the game's rule "no vibration in a replay" is lifted (src/battle/btl_char_get.c). */
+/* 1 with BT3_RUMBLE_TEST set: the game's rule "no vibration in a replay" is lifted (src/battle/btl_char_util.c). */
 int Port_RumbleTest(void) {
     static int on = -1;
     if (on < 0) {

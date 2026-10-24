@@ -79,21 +79,21 @@ extern void sceSifInitRpc(s32 mode);
 extern s32 sceSifBindRpc(SndSifClient *client, s32 id, s32 mode);
 extern s32 sceSifCallRpc(SndSifClient *client, s32 fno, s32 mode, void *send, s32 sendSize, void *recv, s32 recvSize,
                          void *endFunc, void *endParam);
-extern s32 func_002B4AF0(SndSifClient *client); /* sceSifCheckStatRpc */
+extern s32 sceSifCheckStatRpc(SndSifClient *client); /* sceSifCheckStatRpc */
 extern s32 sceSdRemoteInit(void);
-extern s32 func_00296B48(s32 priority);          /* sceSdRemoteCallbackInit */
-extern s32 func_002967C0(s32 block, s32 cmd, ...); /* sceSdRemote */
+extern s32 sceSdRemoteCallbackInit(s32 priority);          /* sceSdRemoteCallbackInit */
+extern s32 sceSdRemote(s32 block, s32 cmd, ...); /* sceSdRemote */
 
 extern void *IopHeap_Alloc(s32 size);  /* sceSifAllocIopHeap wrapper */
 extern void IopHeap_Free(void *addr); /* sceSifFreeIopHeap wrapper */
 extern void SpuHeap_Init(void);       /* SPU RAM heap: init (0x5010..0x1F0FD0 + 0x5010) */
 extern s32 SpuHeap_Alloc(s32 size);    /* SPU RAM heap: alloc, returns the SPU address */
 extern void SpuHeap_Free(s32 addr);   /* SPU RAM heap: free */
-extern s32 SpuHeap_GetFreeSize(void);        /* SPU RAM heap: bytes in use */
+extern s32 SpuHeap_GetFreeSize(void);        /* SPU RAM heap: total bytes free */
 
 extern s32 BtlScript_IsSlotBusy(s32 side, s32 idx);
 extern s32 BtlCharApi_GetSoundCount(s32 side);
-extern void BtlCharApi_GetSound(s32 side, s32 idx, s32 *id, s32 *a3, s32 *a4);
+extern void BtlCharApi_GetSound(s32 side, s32 n, s32 *handle, s32 *bankMask, s32 *id);
 
 /* Sends one command to SOUNDS.IRX and waits for the answer; returns the first reply word. */
 s32 Snd_RpcCall(s32 cmd, void *data, s32 size) {
@@ -104,7 +104,7 @@ s32 Snd_RpcCall(s32 cmd, void *data, s32 size) {
 
 /* True while an RPC call on the sound client is still in flight (sceSifCheckStatRpc). */
 s32 Snd_RpcIsBusy(void) {
-    return func_002B4AF0(&gSndRpc->client);
+    return sceSifCheckStatRpc(&gSndRpc->client);
 }
 
 /* Allocates the RPC block, binds to SOUNDS.IRX (retrying until it answers) and sends INIT. */
@@ -272,17 +272,17 @@ void Snd_RpcCmd8(s32 a) {
 
 /* Starts a DMA upload of IOP memory to SPU RAM: sceSdRemote(1, rSdVoiceTrans, core 1, write, iopAddr, spuAddr, size). */
 void Snd_SpuTransfer(void *iopAddr, s32 spuAddr, s32 size) {
-    func_002967C0(1, 0x80D0, 1, 0, iopAddr, spuAddr, size);
+    sceSdRemote(1, 0x80D0, 1, 0, iopAddr, spuAddr, size);
 }
 
 /* Blocks until the SPU upload is over: sceSdRemote(1, rSdVoiceTransStatus, core 1, wait). */
 s32 Snd_SpuTransferWait(void) {
-    return func_002967C0(1, 0x80F0, 1, 1);
+    return sceSdRemote(1, 0x80F0, 1, 1);
 }
 
 /* Polls the SPU upload: sceSdRemote(1, rSdVoiceTransStatus, core 1, check); 1 = finished. */
 s32 Snd_SpuTransferCheck(void) {
-    return func_002967C0(1, 0x80F0, 1, 0);
+    return sceSdRemote(1, 0x80F0, 1, 0);
 }
 
 /* RPC 0xE (no arguments). No callers reach it. */
@@ -290,13 +290,14 @@ void Snd_RpcCmdE(void) {
     Snd_RpcCall(SND_RPC_CMD_E, &gSndRpcBuf, 4);
 }
 
-/* RPC 0xF: a count and that many 16-bit ids (the fighters on the field). */
-void Snd_RpcSetFighters(s32 count, s32 *ids) {
+/* RPC 0xF: a count and that many 16-bit values. The one caller (Snd_SendLoopSounds) passes the handles of the looping
+   sounds the two sides have running, not fighter ids. */
+void Snd_RpcSetLoopSounds(s32 count, s32 *handles) {
     s32 i;
 
     gSndRpcBuf.h[0] = count;
     for (i = 0; i < count; i++) {
-        gSndRpcBuf.h[i + 1] = ids[i];
+        gSndRpcBuf.h[i + 1] = handles[i];
     }
     Snd_RpcCall(SND_RPC_FIGHTERS, &gSndRpcBuf, 0x18);
 }
@@ -430,7 +431,7 @@ void Snd_Init(void) {
     gSndMgr->iopBuf = IopHeap_Alloc(0xA4800);
     SpuHeap_Init();
     sceSdRemoteInit();
-    func_00296B48(5);
+    sceSdRemoteCallbackInit(5);
     Snd_RpcInit();
     Snd_SetMasterVolume(0x7F);
 }
@@ -592,13 +593,13 @@ s32 Snd_IsUploadDone(void) {
     return done;
 }
 
-/* Pushes the SPU heap's current usage on a small stack. No callers. */
+/* Pushes the SPU heap's current free size on a small stack. No callers. */
 void Snd_PushSpuMark(void) {
     gSndMgr->spuMark[gSndMgr->spuMarkCount] = SpuHeap_GetFreeSize();
     gSndMgr->spuMarkCount++;
 }
 
-/* Pops that stack and returns the current usage. No callers. */
+/* Pops that stack and returns the current free size. No callers. */
 s32 Snd_PopSpuMark(void) {
     gSndMgr->spuMarkCount--;
     return SpuHeap_GetFreeSize();
@@ -744,21 +745,22 @@ void Snd_CmdE(void) {
     Snd_RpcCmdE();
 }
 
-/* Battle, per frame: sends the ids of both sides' fighters to the driver (RPC 0xF). */
-void Snd_SendFighters(void) {
-    s32 ids[12];
+/* Battle, per frame: sends the handles of the live looping sounds of both sides (BtlCharApi_GetSound; up to four
+   per side) to the driver (RPC 0xF). */
+void Snd_SendLoopSounds(void) {
+    s32 handles[12];
     s32 count = 0;
     s32 i;
 
     for (i = 0; i < BtlCharApi_GetSoundCount(0); i++) {
-        BtlCharApi_GetSound(0, i, &ids[count], NULL, NULL);
+        BtlCharApi_GetSound(0, i, &handles[count], NULL, NULL);
         count++;
     }
     for (i = 0; i < BtlCharApi_GetSoundCount(1); i++) {
-        BtlCharApi_GetSound(1, i, &ids[count], NULL, NULL);
+        BtlCharApi_GetSound(1, i, &handles[count], NULL, NULL);
         count++;
     }
-    Snd_RpcSetFighters(count, ids);
+    Snd_RpcSetLoopSounds(count, handles);
 }
 
 /* Sony HD header chunk -> its vag-info chunk (offset at +0x30 of the header section, word aligned). */

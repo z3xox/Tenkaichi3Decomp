@@ -21,7 +21,7 @@ def plugin():
 
 # GNU ld's --wrap and --defsym of link.py's `common` flags, applied by the pass (ld64 has neither)
 WRAP = ["Progress_Main"]
-ABS = {"D_3BE71C": 0x3BE71C}
+ABS = {"gProgramImageEnd": 0x3BE71C}
 
 SIGS = ROOT / "port/build/mac_sigs.txt"  # every function the program defines, with its kinds (the top of macwin.cpp)
 

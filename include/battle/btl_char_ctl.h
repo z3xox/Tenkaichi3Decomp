@@ -9,9 +9,9 @@
  * Fighter control helpers, 0x1D4F30..0x1D8330, in the tail of btl_input.c and three C files:
  *   src/battle/btl_input.c       0x1D4F30..0x1D60A0  action input queries, stick readers (the tail of that file:
  *                                                    BtlInput_TestAction needs its readers defined above it)
- *   src/battle/btl_char_ctl_b.c  0x1D60A0..0x1D6438  character change request queue, the "time stopped" word
- *   src/battle/btl_char_ctl_c.c  0x1D6438..0x1D70E8  head tracking
- *   src/battle/btl_char_ctl_d.c  0x1D70E8..0x1D8330  pose <-> object, placement, hold attachment, snapshots
+ *   src/battle/btl_change.c  0x1D60A0..0x1D6438  character change request queue, the "time stopped" word
+ *   src/battle/btl_head_tracking.c  0x1D6438..0x1D70E8  head tracking
+ *   src/battle/btl_char_pose.c  0x1D70E8..0x1D8330  pose <-> object, placement, hold attachment, snapshots
  * The structures are partial views local to this module (BtlCtl*); the fighter is 0x1600 bytes.
  */
 
@@ -45,7 +45,7 @@ typedef struct BtlChangeReq {
     /* 0x0C */ s32 costume;
     /* 0x10 */ s32 variant;
     /* 0x14 */ s32 animChara;  /* -1 for kind 1 */
-    /* 0x18 */ s32 unk18;      /* -1 for kind 1 */
+    /* 0x18 */ s32 animChara2;      /* -1 for kind 1 */
     /* 0x1C */ s32 voiceChara; /* -1 for kind 1 */
     /* 0x20 */ s32 slot;       /* kind 1 only; 0 for kind 0 */
 } BtlChangeReq; /* 0x24 */
@@ -65,7 +65,7 @@ typedef struct BtlChangeQueue {
 /* Partial view of the roster (0x280 bytes). */
 typedef struct BtlCtlRoster {
     /* 0x000 */ u8 unk0[0x7C];
-    /* 0x07C */ s32 unk7C[4];   /* [2] (+0x84): path id for BtlStage_GetPath; [3] (+0x88): point counter (BtlChar_PlaceOnPath) */
+    /* 0x07C */ s32 clashC[4];   /* [2] (+0x84): path id for BtlStage_GetPath; [3] (+0x88): point counter (BtlChar_PlaceOnPath) */
     /* 0x08C */ u8 unk8C[0x138 - 0x8C];
     /* 0x138 */ BtlChangeQueue change;
     /* 0x278 */ u8 unk278[8];
@@ -75,7 +75,7 @@ BtlChangeReq *BtlChange_Alloc(void);
 BtlChangeReq *BtlChange_Pop(void);
 void BtlChange_Reset(void);
 void BtlChange_Update(void);
-void BtlChange_RequestChara(s32 player, s32 chara, s32 costume, s32 variant, s32 animChara, s32 unk18, s32 voiceChara);
+void BtlChange_RequestChara(s32 player, s32 chara, s32 costume, s32 variant, s32 animChara, s32 animChara2, s32 voiceChara);
 void BtlChange_RequestObject(s32 player, s32 id, s32 costume, s32 variant, s32 slot);
 void BtlChange_SetTaken(void);
 void BtlChange_SetLoaded(void);
@@ -93,16 +93,16 @@ typedef struct BtlCtlPose {
     /* 0x00 [0x10] */ Vec4 pos;     /* world position */
     /* 0x10 [0x20] */ Vec4 rot;     /* euler angles; y is the yaw */
     /* 0x20 [0x30] */ Vec4 move;    /* added to pos when the pose goes to the object, subtracted on the way back */
-    /* 0x30 [0x40] */ Vec4 unk30;   /* zeroed by a placement */
-    /* 0x40 [0x50] */ Vec4 unk40;   /* zeroed by a placement */
+    /* 0x30 [0x40] */ Vec4 vel;   /* zeroed by a placement */
+    /* 0x40 [0x50] */ Vec4 moved;   /* zeroed by a placement */
     /* 0x50 [0x60] */ Vec4 rootPos; /* translation of model node 0 (animation root motion) */
     /* 0x60 [0x70] */ Vec4 rootRot; /* rotation of model node 0 as euler angles */
-    /* 0x70 [0x80] */ Vec4 unk70;
+    /* 0x70 [0x80] */ Vec4 impulse;
     /* 0x80 [0x90] */ Vec4 dir;     /* (sin yaw, 0, cos yaw, 0) at placement */
-    /* 0x90 [0xA0] */ f32 speed;    /* 0 at placement; scaled by cos(rootRot.y) in BtlChar_ApplyRootYaw */
+    /* 0x90 [0xA0] */ f32 pitch;    /* 0 at placement; scaled by cos(rootRot.y) in BtlChar_ApplyRootYaw */
     /* 0x94 [0xA4] */ f32 heading;  /* yaw; rot.y at placement */
-    /* 0x98 [0xA8] */ f32 unk98;    /* 0 at placement */
-    /* 0x9C [0xAC] */ f32 unk9C;    /* 0 at placement */
+    /* 0x98 [0xA8] */ f32 speed;    /* 0 at placement */
+    /* 0x9C [0xAC] */ f32 fallSpeed;    /* 0 at placement */
     /* 0xA0 [0xB0] */ f32 leanX;    /* negated into the x angle of the object's quaternion at +0xD20 */
     /* 0xA4 [0xB4] */ f32 leanZ;    /* z angle of the same */
     /* 0xA8 [0xB8] */ u8 unkA8[0xF0 - 0xA8];
@@ -110,12 +110,12 @@ typedef struct BtlCtlPose {
 
 /* A model node as returned by BtlObj_GetNode(obj, index). */
 typedef struct BtlCtlNode {
-    /* 0x00 */ s32 unk0;
+    /* 0x00 */ s32 link;
     /* 0x04 */ u32 flags;   /* bit 0 cleared by the head tracking */
     /* 0x08 */ u8 unk8[0x40 - 0x8];
-    /* 0x40 */ Vec4 unk40;
-    /* 0x50 */ Mtx44 mtx;
-    /* 0x90 */ Vec4 pos;
+    /* 0x40 */ Vec4 worldPos;
+    /* 0x50 */ Mtx44 parentMtx;   /* the parent's world matrix (the node's own is at +0x10) */
+    /* 0x90 */ Vec4 localPos;    /* local translation */
     /* 0xA0 */ Quat rot;
 } BtlCtlNode;
 
@@ -141,7 +141,7 @@ typedef struct BtlCtlObj {
     /* 0xA20 */ f32 scale;     /* copy of fighter + 0x988 */
     /* 0xA24 */ s32 area;      /* what BtlStage_FindZoneNear(-1, pos) returns for the position */
     /* 0xA28 */ u8 unkA28[0xC84 - 0xA28];
-    /* 0xC84 */ f32 unkC84;
+    /* 0xC84 */ f32 blend;
     /* 0xC88 */ u8 unkC88[0xCB4 - 0xC88];
     /* 0xCB4 */ s32 holdNode;  /* node of this object that is attached to the holder */
     /* 0xCB8 */ u8 unkCB8[0xD20 - 0xCB8];
@@ -151,7 +151,7 @@ typedef struct BtlCtlObj {
     /* 0xD50 */ f32 headBlend; /* 0..1 weight of headRot */
     /* 0xD54 */ f32 neckBlend;
     /* 0xD58 */ u8 unkD58[0xFA0 - 0xD58];
-    /* 0xFA0 */ Vec4 *unkFA0;
+    /* 0xFA0 */ Vec4 *bodyPos;
 } BtlCtlObj;
 
 #define BTL_SNAP_COUNT 6
@@ -194,7 +194,7 @@ typedef struct BtlCtlChr {
     /* 0x12C4 */ s32 savedFlagF; /* fighter flag 0xF at the time of the save */
     /* 0x12C8 */ s32 savedFlagE; /* fighter flag 0xE */
     /* 0x12CC */ u8 unk12CC[0x1310 - 0x12CC];
-    /* 0x1310 */ Vec4 unk1310;  /* copy of *obj->unkFA0 */
+    /* 0x1310 */ Vec4 bodyWarpPos;  /* copy of *obj->bodyPos */
     /* 0x1320 */ u8 unk1320[0x1560 - 0x1320];
     /* 0x1560 */ Vec4 warpPos;  /* taken by flag 0xFC */
     /* 0x1570 */ Vec4 warpRot;  /* taken by flag 0xFD */
@@ -238,10 +238,10 @@ void BtlChar_PlaceWarp(BtlCtlChr *chr);
 f32 BtlChar_GetSpacing(BtlCtlChr *chr, s32 mode);
 void BtlChars_UpdateHold(void);
 void BtlChar_SavePlacement(BtlCtlChr *chr);
-void BtlChar_SetSavedPlacement(BtlCtlChr *chr, Vec4 *pos, Vec4 *rot, Vec4 *unk1310, s32 flagF, s32 flagE);
-void BtlChar_SetUnk1310(BtlCtlChr *chr, Vec4 *v);
-void BtlChar_ResetUnk1310(BtlCtlChr *chr);
-void BtlChar_RequestPlaceRelative(BtlCtlChr *chr, s32 arg1, s32 arg2, s32 self);
+void BtlChar_SetSavedPlacement(BtlCtlChr *chr, Vec4 *pos, Vec4 *rot, Vec4 *bodyWarpPos, s32 flagF, s32 flagE);
+void BtlChar_RequestBodyWarp(BtlCtlChr *chr, Vec4 *pos);
+void BtlChar_ResetBodyWarp(BtlCtlChr *chr);
+void BtlChar_RequestPlaceRelative(BtlCtlChr *chr, s32 slot, s32 n, s32 self);
 void BtlChar_RequestPlaceOnPath(BtlCtlChr *chr);
 void BtlChar_ClearSnapshots(BtlCtlChr *chr);
 void BtlChar_Snapshot(BtlCtlChr *chr, Vec4 *pos, Vec4 *rot, s32 n);

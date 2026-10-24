@@ -2,6 +2,6 @@
 .section .data
 .p2align 4
     .zero 8
-.globl D_002EDDD8
-D_002EDDD8:
+.globl gBtlAiRateColsC
+gBtlAiRateColsC:
     .space 56

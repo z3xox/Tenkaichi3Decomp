@@ -35,7 +35,7 @@ static int sFromMenu;
 #endif
 
 /* Linked with --wrap=Progress_Main: the game's call in Game_Main comes here. BT3_REPLAY or BT3_DEMO: the battle is
-   set up without menus (below); otherwise the real menus run (the overlay's Progress_Main, src/menu/menu_a_b.c). */
+   set up without menus (below); otherwise the real menus run (the overlay's Progress_Main, src/menu/progress.c). */
 extern int __real_Progress_Main(int arg);
 int gPortMenuMode;
 /* A menu screen that is a 3D scene (the character reference's model viewer) asks, every frame, to be shown as a
@@ -56,7 +56,7 @@ extern void Save_UnlockAll(void *opt);
 extern int Port_NetSession(void); /* gs/net.c */
 extern int Port_NetWarp(void);
 extern void Port_NetArrived(void);
-extern struct { int unk0[2]; int loadPack, loadRes, loadSprites; int flags; int mode; } GAME_PTR gProgress; /* include/menu/menu_a.h */
+extern struct { int unk0[2]; int loadPack, loadRes, loadSprites; int flags; int mode; } GAME_PTR gProgress; /* include/menu/overlay_common.h */
 static int sNetEntered;
 /* The vertical blank at which the session's start-up was over (0: not yet). Part of the game's state like the rest
    of this file's variables, so it goes back with a rollback: it is always what the blanks as they were last run
@@ -131,7 +131,7 @@ int __wrap_Progress_Main(int arg) {
             if (Port_NetSession() && !sNetEntered && gProgress != NULL && gSaveData != NULL) {
                 sNetEntered = 1;
                 /* Mode 39 is the versus mode's character select. The versus menu in front of it (mode 38) only
-                   leaves three choices behind, in this same record (DuelProgress, include/menu/menu_g.h): who
+                   leaves three choices behind, in this same record (DuelProgress, include/menu/duel.h): who
                    plays (+0x620: 1 = 1P vs 2P), the battle type (+0x624: 0 = single) and the DP limit (+0x630).
                    They are set here, so the session opens on the character select itself. Going back from it
                    leads to the versus menu, where the host can change the battle type; back from there ends the
@@ -235,7 +235,7 @@ extern void BtlCharApi_GetPos(int objId, float *out);
 
 
 
-/* Main-menu item 4, Dragon Net Battle, was confirmed (src/menu/menu_a.c): the settings code opens the online
+/* Main-menu item 4, Dragon Net Battle, was confirmed (src/menu/main_menu.c): the settings code opens the online
    screen when it sees the request (port/src/gs/ui.cpp). Without a window nothing does. */
 volatile int gPortNetMenuRequest;
 void Port_NetMenuOpen(void) {

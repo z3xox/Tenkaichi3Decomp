@@ -1,5 +1,5 @@
 /*
- * PC versions of the five functions of src/sys/mathf.c and src/sys/randf.c that are PS2 assembly (COP1 or VU0).
+ * PC versions of the five functions of src/sys/mathf.c and src/sys/rand_util.c that are PS2 assembly (COP1 or VU0).
  * Each performs the original's float operations one by one, in the original order, through the PS2 float model of
  * the vector-library reference (RefVu0_xxxBits, src/port/vu0_a.c), so the results do not depend on the host's
  * float unit. The originals are quoted in the game sources next to their `#ifndef PORT`.

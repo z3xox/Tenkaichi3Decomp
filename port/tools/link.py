@@ -50,7 +50,7 @@ def link_mac(objs, extra):
 def link(objs, extra):
     if MAC:
         return link_mac(objs, extra)
-    common = ["-Wl,--defsym=D_3BE71C=0x3BE71C", "-Wl,--wrap=Progress_Main", f"-Wl,-Map={EXE}.map"]
+    common = ["-Wl,--defsym=gProgramImageEnd=0x3BE71C", "-Wl,--wrap=Progress_Main", f"-Wl,-Map={EXE}.map"]
     if WIN:
         # Windows: the program at a fixed address below 4 GB (no relocation: the game's 4-byte pointers and the
         # 32-bit addresses in its data tables depend on it), the game's main() wrapped for a low stack (plat_mem.c),

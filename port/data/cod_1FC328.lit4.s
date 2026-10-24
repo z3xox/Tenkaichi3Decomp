@@ -5,6 +5,6 @@
 .globl gVu0HalfPi
 gVu0HalfPi:
     .space 4
-.globl D_002FC32C
-D_002FC32C:
+.globl gVu0RandSeed
+gVu0RandSeed:
     .space 4
