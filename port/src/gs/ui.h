@@ -47,6 +47,9 @@ const char *PortInput_ActionLabel(int action);
 int *PortInput_Keys(int player);       /* [PORT_ACTIONS] SDL scancodes, 0 = none */
 int *PortInput_PadButtons(int player); /* [PORT_PAD_BUTTONS] controller source, -1 = none */
 int *PortInput_PadSlot(int player);    /* which connected controller: -1 none, 0 = first, ... */
+int *PortInput_ControlMode(int player); /* 0 PS2, 1 Wii */
+int *PortInput_ControlSplit(int player); /* independent Wii camera, teammate and burst actions */
+int PortInput_UiButton(SDL_Gamepad *gamepad, int button); /* menu navigation; bindings stay physical */
 int *PortInput_OverlayKey(void);       /* the key that opens and closes the settings window (scancode, 0 = none) */
 int *PortInput_OverlayPad(void);       /* the controller button that does (-1 = none; START + SELECT always do) */
 int PortInput_Hotkey(const SDL_Event *ev); /* 1 = the event opens or closes the settings window */
@@ -54,6 +57,7 @@ void PortInput_Swallow(void);           /* the controller buttons held now are n
 void PortInput_SwallowKeys(void);       /* the same for the bound keys held now */
 int *PortInput_ChatKey(void);           /* the key that opens the online chat's line (scancode, 0 = none) */
 void PortInput_ResetDefaults(int player);
+void PortInput_ResetWii(int player, int device); /* resets only the selected Wii device profile */
 #define PORT_DEADZONE_MAX 90   /* percent */
 #define PORT_TRIGGER_AT 12000  /* of 32767: from here a trigger counts as pressed */
 int *PortInput_Deadzone(int player);  /* [2] left, right stick: -1 = the game's own (per axis), 0..PORT_DEADZONE_MAX = a round one, percent */

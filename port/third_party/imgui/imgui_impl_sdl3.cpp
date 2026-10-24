@@ -749,11 +749,13 @@ void ImGui_ImplSDL3_SetGamepadMode(ImGui_ImplSDL3_GamepadMode mode, SDL_Gamepad*
     bd->GamepadMode = mode;
 }
 
+// Port menu bindings; physical button events still reach binding capture unchanged.
+extern "C" int PortInput_UiButton(SDL_Gamepad* gamepad, int button);
 static void ImGui_ImplSDL3_UpdateGamepadButton(ImGui_ImplSDL3_Data* bd, ImGuiIO& io, ImGuiKey key, SDL_GamepadButton button_no)
 {
     bool merged_value = false;
     for (SDL_Gamepad* gamepad : bd->Gamepads)
-        merged_value |= SDL_GetGamepadButton(gamepad, button_no) != 0;
+        merged_value |= SDL_GetGamepadButton(gamepad, (SDL_GamepadButton)PortInput_UiButton(gamepad, button_no)) != 0;
     io.AddKeyEvent(key, merged_value);
 }
 

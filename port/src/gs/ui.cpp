@@ -12,6 +12,7 @@
 #include "imgui_impl_sdlgpu3.h"
 #include "imgui_impl_opengl3.h"
 #include "ui.h"
+#include "control_bindings.h"
 #include "namefont.h"
 #include "../port_release.h"
 #include "menu_text.h"
@@ -93,6 +94,7 @@ static int sLanguageCount, sLanguageChoice;
 static bool sLanguageRestartPending;
 static bool sNet;                              // the open window is the online screen (Dragon Net Battle), not the settings
 static int sForceTab = -1;                     // BT3_UI_OPEN=<tab>: open at start on that tab (testing)
+static int sControlPlayer, sWiiDevice[2] = {-1, -1};
 static int sCapKind, sCapPlayer, sCapAction;   // waiting for a key (1) or a controller button (2) to bind
 static Uint64 sCapUntil;                       // ... until then: a controller has no button that is not a binding, so the wait ends by itself
 static bool sQuit;                             // the question before the game closes is up
@@ -594,6 +596,7 @@ static void set_open(bool open) {
     if (open && sChat) {
         chat_close();
     }
+    PortWii_Cancel();
     sOpen = open;
     sNet = false;
     sCapKind = 0;
@@ -608,8 +611,12 @@ static void capture(int kind, int player, int action) {
 }
 
 // A controller button pressed in the window (not while it waits for a binding, a list is open or a field is edited).
+static bool wii_controls(void) {
+    return sOpen && !sNet && (sTab == 4 || sForceTab == 4) && *PortInput_ControlMode(sControlPlayer);
+}
+
 static bool pad_pressed(ImGuiKey key) {
-    return sCapKind == 0 && !sPadHold && !sQuit && !ImGui::IsAnyItemActive() &&
+    return !wii_controls() && sCapKind == 0 && !sPadHold && !sQuit && !ImGui::IsAnyItemActive() &&
            !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel) && ImGui::IsKeyPressed(key, false);
 }
 
@@ -1129,6 +1136,7 @@ static int chat_event(const SDL_Event *ev) {
 }
 
 int Ui_Event(const SDL_Event *ev) {
+    PortWii_MouseEvent(ev);
     if (!sReady) {
         return 0;
     }
@@ -1151,7 +1159,10 @@ int Ui_Event(const SDL_Event *ev) {
                 PortQuit_Action(PORT_QUIT_MOVE);
             }
         } else if (ev->type == SDL_EVENT_GAMEPAD_BUTTON_DOWN) {
+            SDL_Gamepad *pad = SDL_GetGamepadFromID(ev->gbutton.which);
             SDL_GamepadButton button = (SDL_GamepadButton)ev->gbutton.button;
+            if (button == PortInput_UiButton(pad, SDL_GAMEPAD_BUTTON_SOUTH)) { button = SDL_GAMEPAD_BUTTON_SOUTH; }
+            else if (button == PortInput_UiButton(pad, SDL_GAMEPAD_BUTTON_EAST)) { button = SDL_GAMEPAD_BUTTON_EAST; }
             if (button == SDL_GAMEPAD_BUTTON_SOUTH) { PortQuit_Action(PORT_QUIT_CONFIRM); }
             else if (button == SDL_GAMEPAD_BUTTON_EAST) { PortQuit_Action(PORT_QUIT_CANCEL); }
             else if (button == SDL_GAMEPAD_BUTTON_DPAD_LEFT || button == SDL_GAMEPAD_BUTTON_DPAD_RIGHT ||
@@ -1182,6 +1193,9 @@ int Ui_Event(const SDL_Event *ev) {
     if (!sOpen) {
         return 0;
     }
+    if (wii_controls()) {
+        if (PortWii_Event(ev)) { return 1; }
+    } else { PortWii_Cancel(); }
     if (sCapKind != 0) { // the next key or button is the binding; Esc leaves it as it was, Delete clears it
         bool done = false;
         if (ev->type == SDL_EVENT_KEY_DOWN) {
@@ -1838,14 +1852,183 @@ static void sticks_panel(int player) {
     }
 }
 
+// Wii bindings and live input tests. This page is operated with the keyboard and mouse.
+static void wii_row(int player, int split, int device, int action, const float *values, const char *name = NULL) {
+    ImGui::TableNextRow(); ImGui::TableNextColumn();
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted(name ? name : PortWii_ActionLabel(split, action));
+    ImGui::TableNextColumn();
+    PortWii_BindingButton(player, split, device, action, values[action]);
+}
+static bool wii_rows(const char *id) {
+    if (!ImGui::BeginTable(id, 2, ImGuiTableFlags_SizingStretchProp)) { return false; }
+    ImGui::TableSetupColumn("action", ImGuiTableColumnFlags_WidthFixed, U(115));
+    ImGui::TableSetupColumn("binding", ImGuiTableColumnFlags_WidthStretch);
+    return true;
+}
+static void wii_stick(int player, int stick, const float *values) {
+    float x = values[stick ? 23 : 19] - values[stick ? 22 : 18];
+    float y = values[stick ? 21 : 17] - values[stick ? 20 : 16];
+    float size = U(90), radius = U(39);
+    ImVec2 at = ImGui::GetCursorScreenPos();
+    at.x += (ImGui::GetContentRegionAvail().x - size) * 0.5f;
+    ImVec2 center(at.x + size / 2, at.y + size / 2);
+    ImDrawList *dl = ImGui::GetWindowDrawList();
+    dl->AddCircleFilled(center, radius, ImGui::GetColorU32(ImGuiCol_FrameBg), 32);
+    dl->AddCircle(center, radius, ImGui::GetColorU32(ImGuiCol_Border), 32);
+    dl->AddLine(ImVec2(center.x - radius, center.y), ImVec2(center.x + radius, center.y), ImGui::GetColorU32(ImGuiCol_Border));
+    dl->AddLine(ImVec2(center.x, center.y - radius), ImVec2(center.x, center.y + radius), ImGui::GetColorU32(ImGuiCol_Border));
+    PortStickView view; PortInput_StickView(player, &view);
+    dl->AddCircleFilled(ImVec2(center.x + view.raw[stick][0] * radius, center.y + view.raw[stick][1] * radius), U(3),
+                       ImGui::GetColorU32(ImGuiCol_Text), 12);
+    dl->AddCircleFilled(ImVec2(center.x + x * radius, center.y + y * radius), U(5),
+                       ImGui::GetColorU32(ImVec4(0.35f, 0.95f, 0.55f, 1)), 12);
+    ImGui::Dummy(ImVec2(size, size));
+    ImGui::SetItemTooltip("White: physical stick. Green: the selected device profile.");
+}
+static void wii_deadzone(int player, int stick) {
+    int *dead = PortInput_Deadzone(player);
+    ImGui::PushID(stick);
+    ImGui::SetNextItemWidth(-U(60));
+    ImGui::SliderInt("Deadzone", &dead[stick], -1, PORT_DEADZONE_MAX, dead[stick] < 0 ? "Original" : "%d%%", ImGuiSliderFlags_AlwaysClamp);
+    if (ImGui::IsItemDeactivatedAfterEdit()) { PortInput_Save(); }
+    ImGui::SetItemTooltip("Original: a square deadzone of about 39%% per axis. 0%% to 90%%: a round deadzone.");
+    ImGui::PopID();
+}
+static void wii_panel(int player, int split, int device) {
+    float values[PORT_WII_ACTIONS];
+    PortWii_PreviewBindings(player, split, device, values);
+    ImGui::TextWrapped("Left-click: bind. Middle-click: clear. Green: active (>50%%). Use keyboard/mouse for this page.");
+    float width = ImGui::GetContentRegionAvail().x;
+    int columns = width >= U(1050) ? 4 : width >= U(650) ? 2 : 1;
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(U(6), U(2)));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(U(8), U(4)));
+    if (ImGui::BeginTable("wii_groups", columns, ImGuiTableFlags_SizingStretchSame)) {
+        for (int group = 0; group < 4; group++) {
+            ImGui::TableNextColumn(); ImGui::PushID(group);
+            ImGui::BeginChild("group", ImVec2(0, 0), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY,
+                              ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+            if (group == 0) {
+                ImGui::SeparatorText("Buttons");
+                if (wii_rows("buttons")) {
+                    const int actions[] = {6, 4, 5, 7, 13, 14, 15};
+                    for (int a : actions) { wii_row(player, split, device, a, values); }
+                    if (split) {
+                        wii_row(player, split, device, 26, values);
+                        wii_row(player, split, device, 24, values);
+                        wii_row(player, split, device, 25, values);
+                    }
+                    ImGui::EndTable();
+                }
+                ImGui::TextWrapped("Menus: Attack confirms, Flight goes back. Burst still requires a double-tap.");
+            } else if (group == 1 || group == 2) {
+                int stick = group - 1;
+                ImGui::SeparatorText(stick ? "Character / camera" : "Movement");
+                wii_stick(player, stick, values);
+                if (wii_rows("stick")) {
+                    const char *directions[] = {"Up", "Down", "Left", "Right"};
+                    for (int i = 0; i < 4; i++) { wii_row(player, split, device, 16 + stick * 4 + i, values, stick ?
+                        (i == 0 ? "Tag" : i == 1 ? "Transform" : i == 2 ? "Camera left" : "Camera right") : directions[i]); }
+                    ImGui::EndTable();
+                }
+                if (device) { wii_deadzone(player, stick); }
+                if (!stick) {
+                    ImGui::SeparatorText("D-pad");
+                    if (wii_rows("dpad")) {
+                        const char *names[] = {"Up", "Down", "Left", "Right"};
+                        for (int a = 0; a < 4; a++) { wii_row(player, split, device, a, values, names[a]); }
+                        ImGui::EndTable();
+                    }
+                } else if (!split) { ImGui::TextWrapped("Left/right also select teammates; double-tap for Burst. Enable Separate actions to bind these independently."); }
+            } else {
+                ImGui::SeparatorText("Flight / triggers");
+                PortStickView view; PortInput_StickView(player, &view);
+                ImGui::ProgressBar(view.trigger[0], ImVec2(-1, 0), "Left trigger");
+                ImGui::ProgressBar(view.trigger[1], ImVec2(-1, 0), "Right trigger");
+                if (wii_rows("triggers")) {
+                    const int actions[] = {10, 11, 8, 9};
+                    for (int a : actions) { wii_row(player, split, device, a, values); }
+                    ImGui::EndTable();
+                }
+                ImGui::SeparatorText("Vibration");
+                int *vib = PortInput_Vibration(player);
+                bool enabled = vib[0] != 0;
+                if (ImGui::Checkbox("Enabled", &enabled)) { vib[0] = enabled; PortInput_Save(); }
+                ImGui::BeginDisabled(!enabled);
+                ImGui::SetNextItemWidth(-U(60));
+                ImGui::SliderInt("Strength", &vib[1], 0, 100, "%d%%", ImGuiSliderFlags_AlwaysClamp);
+                if (ImGui::IsItemDeactivatedAfterEdit()) { PortInput_Save(); }
+                if (ImGui::Button("Test vibration")) { PortInput_VibrationTest(player); }
+                ImGui::EndDisabled();
+            }
+            ImGui::EndChild(); ImGui::PopID();
+        }
+        ImGui::EndTable();
+    }
+    ImGui::PopStyleVar(2);
+    if (ImGui::CollapsingHeader("Program shortcuts")) {
+        char label[128];
+        snprintf(label, sizeof(label), "%s##overlay_key", sCapKind == 1 && sCapAction == PORT_ACTIONS ? "Press a key..." :
+                 SDL_GetScancodeName((SDL_Scancode)*PortInput_OverlayKey()));
+        if (ImGui::Button(label)) { capture(1, player, PORT_ACTIONS); }
+        ImGui::SameLine(); ImGui::TextUnformatted("Open settings");
+        snprintf(label, sizeof(label), "%s##overlay_pad", sCapKind == 2 && sCapAction == PORT_ACTIONS ? "Press a button..." :
+                 *PortInput_OverlayPad() < 0 ? "START + SELECT" : pad_source_name(*PortInput_OverlayPad()));
+        if (ImGui::Button(label)) { capture(2, player, PORT_ACTIONS); }
+        ImGui::SameLine(); ImGui::TextUnformatted("Controller shortcut");
+        snprintf(label, sizeof(label), "%s##chat_key", sCapKind == 1 && sCapAction == PORT_ACTIONS + 1 ? "Press a key..." :
+                 SDL_GetScancodeName((SDL_Scancode)*PortInput_ChatKey()));
+        if (ImGui::Button(label)) { capture(1, player, PORT_ACTIONS + 1); }
+        ImGui::SameLine(); ImGui::TextUnformatted("Open online chat");
+    }
+}
+
 static void controls_tab(void) {
-    static int player;
+    int &player = sControlPlayer;
+    int previousPlayer = player;
     char label[96];
     int count = 0;
 
+    for (int p = 0; p < 2; p++) if (sWiiDevice[p] < 0) {
+        char setting[32];
+        snprintf(setting, sizeof(setting), "wii_device_p%d", p + 1);
+        sWiiDevice[p] = Port_Setting(setting, 1) == 1;
+    }
+    if (*PortInput_ControlMode(player)) {
+        const char *devices[] = {"Keyboard / mouse settings", "Controller settings"};
+        ImGui::SetNextItemWidth(U(240));
+        if (ImGui::Combo("##wii_device", &sWiiDevice[player], devices, 2)) {
+            char setting[32];
+            snprintf(setting, sizeof(setting), "wii_device_p%d", player + 1);
+            Port_SettingSave(setting, sWiiDevice[player]);
+            PortWii_Cancel();
+            PortInput_Save();
+        }
+        ImGui::SetItemTooltip("These profiles are saved separately. Both can be used while playing.");
+    }
     ImGui::RadioButton("Player 1", &player, 0);
     ImGui::SameLine();
     ImGui::RadioButton("Player 2", &player, 1);
+    if (player != previousPlayer) { PortWii_Cancel(); sCapKind = 0; }
+    ImGui::SameLine(0.0f, U(24.0f));
+    int *mode = PortInput_ControlMode(player);
+    if (ImGui::Button(*mode ? "Control mode: Wii" : "Control mode: PS2")) {
+        *mode = !*mode;
+        PortWii_Cancel(); sCapKind = 0; PortInput_Save();
+    }
+    ImGui::SetItemTooltip("Wii actions can be rebound independently for keyboard/mouse and controller.\n"
+                          "In game menus: Attack confirms, Flight goes back.");
+    bool wii = *mode != 0;
+    int *split = PortInput_ControlSplit(player);
+    if (wii) {
+        ImGui::SameLine();
+        bool separate = *split != 0;
+        if (ImGui::Checkbox("Separate actions", &separate)) {
+            *split = separate; PortWii_Cancel(); PortInput_Save();
+        }
+        ImGui::SetItemTooltip("Bind camera, teammate selection and Burst independently. Burst still requires a double-tap.\n"
+                              "New teammate and Burst bindings start unbound.");
+    }
     int *slot = PortInput_PadSlot(player), *keys = PortInput_Keys(player), *pads = PortInput_PadButtons(player);
     SDL_JoystickID *ids = SDL_GetGamepads(&count);
     if (*slot < 0) {
@@ -1871,9 +2054,12 @@ static void controls_tab(void) {
     SDL_free(ids);
     ImGui::SameLine();
     if (ImGui::Button("Reset to defaults")) {
-        PortInput_ResetDefaults(player);
+        PortWii_Cancel();
+        if (wii) { PortInput_ResetWii(player, sWiiDevice[player]); }
+        else { PortInput_ResetDefaults(player); }
         PortInput_Save();
     }
+    if (wii) { wii_panel(player, *split, sWiiDevice[player]); return; }
     if (ImGui::CollapsingHeader("Sticks, triggers and vibration", ImGuiTreeNodeFlags_DefaultOpen)) {
         sticks_panel(player);
     }
@@ -1969,11 +2155,16 @@ static void build(void) {
     }
     ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.5f), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
     // (760 high where the picture has the room: the Controls tab's sticks and its list of bindings together)
+    bool wide = (sTab == 4 || sForceTab == 4) && *PortInput_ControlMode(sControlPlayer);
+    static bool wasWide;
     { // (a large "Menu size" in a small window: no larger than the window)
-        float sw = U(640.0f), sh = io.DisplaySize.y >= U(800.0f) ? U(760.0f) : U(600.0f);
+        float sw = U(wide ? 1200.0f : 640.0f);
+        float sh = wide ? U(900.0f) : io.DisplaySize.y >= U(800.0f) ? U(760.0f) : U(600.0f);
         ImGui::SetNextWindowSize(ImVec2(sw < io.DisplaySize.x * 0.96f ? sw : io.DisplaySize.x * 0.96f,
-                                        sh < io.DisplaySize.y * 0.94f ? sh : io.DisplaySize.y * 0.94f), ImGuiCond_Appearing);
+                                        sh < io.DisplaySize.y * 0.94f ? sh : io.DisplaySize.y * 0.94f),
+                                 wide != wasWide ? ImGuiCond_Always : ImGuiCond_Appearing);
     }
+    wasWide = wide;
     if (ImGui::Begin("Settings", &open, ImGuiWindowFlags_NoCollapse)) {
         {
             int latest = update_latest();
@@ -2045,7 +2236,8 @@ static void build(void) {
         }
         if ((io.BackendFlags & ImGuiBackendFlags_HasGamepad) != 0) {
             ImGui::SameLine();
-            ImGui::TextDisabled("D-pad: move   Cross / A: choose   Circle / B: back   L1 / R1: tab");
+            ImGui::TextDisabled(wii_controls() ? "Use keyboard/mouse here; controller inputs test bindings." :
+                                "D-pad: move   PS2: A / B   Wii: X / A   LB / RB: tab");
         }
     }
     ImGui::End();
@@ -2474,6 +2666,7 @@ static void chat_draw(void) {
 // Builds this frame's picture of the overlay (the settings or the online window, the line over the picture).
 // false: there is nothing to draw. The same for both back ends; each then draws ImGui's data its own way.
 static bool frame_build(void) {
+    PortWii_MouseFrame();
     PortInput_TboClipboard();
     { // a keypad of Tenkaichi Budokai Online takes text: the system's text input is on for it (letters as typed)
         static SDL_Window *on = NULL;
@@ -2548,7 +2741,7 @@ static bool frame_build(void) {
     }
     // (the button that becomes the binding would also press the row it is bound in; while a chat line is typed the
     // controller is the game's)
-    if (sPadHold || (sChat && !sOpen)) {
+    if (sPadHold || (sChat && !sOpen) || wii_controls()) {
         ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_NavEnableGamepad;
     } else {
         ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
