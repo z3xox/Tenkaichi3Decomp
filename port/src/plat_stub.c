@@ -435,6 +435,10 @@ void Port_VBlank(void) {
         Port_SyncTest(gPortVBlanks);
     }
     Port_Trace(gPortVBlanks);
+    {
+        extern void PortRa_Tick(void);
+        PortRa_Tick();
+    }
     if (sVsyncHandler != NULL) {
         sVsyncHandler(0);
     }

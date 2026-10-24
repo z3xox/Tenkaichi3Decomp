@@ -235,12 +235,27 @@ def main():
     for f in sorted((ROOT / "port/src/gs").glob("*.c")):
         o = OBJ / ("gs_" + f.stem + ".o")
         r = run(["gcc", "-m32", "-std=gnu99", "-c", "-O2", "-g", "-fno-pic", "-msse2", "-mfpmath=sse", "-fno-strict-aliasing",
-                            "-Wall", "-Wno-unused", "-Wno-misleading-indentation", f"-I{gen}"] + (key if f.name == "net_sign.c" else []) + [str(f), "-o", str(o)], cwd=ROOT,
+                            "-Wall", "-Wno-unused", "-Wno-misleading-indentation", f"-I{gen}",
+                            "-Iport/third_party/rcheevos/include"] + (key if f.name == "net_sign.c" else []) + [str(f), "-o", str(o)], cwd=ROOT,
                            capture_output=True, text=True)
         if r.returncode:
             print("FAILED", f.name, "\n".join(l for l in r.stderr.splitlines() if "error" in l)[:400])
         else:
             objs.append(str(o))
+    # RetroAchievements' runtime uses the host ABI, not PS2 pointers/software float.
+    # gs_ keeps its HTTP/client state out of rollback snapshots (make_state.py).
+    ra = ROOT / "port/third_party/rcheevos"
+    ra_sources = [ra / "src" / (n + ".c") for n in ("rc_client", "rc_compat", "rc_util", "rc_version")]
+    ra_sources += sorted((ra / "src/rapi").glob("*.c")) + sorted((ra / "src/rcheevos").glob("*.c"))
+    ra_sources += [ra / "src/rhash/md5.c"]
+    for f in ra_sources:
+        o = OBJ / ("gs_ra_lib_" + f.stem + ".o")
+        r = run(["gcc", "-m32", "-std=c99", "-c", "-O2", "-g", "-fno-pic", "-DRC_DISABLE_LUA",
+                 f"-I{ra / 'include'}", str(f), "-o", str(o)], cwd=ROOT, capture_output=True, text=True)
+        if r.returncode:
+            print("FAILED", f.name, r.stderr[:400])
+            raise SystemExit(1)
+        objs.append(str(o))
     # C++: the settings window (port/src/gs/ui.cpp) and Dear ImGui. The library is only compiled when it changed.
     imgui = ROOT / "port/third_party/imgui"
     for f in sorted(imgui.glob("*.cpp")) + sorted((ROOT / "port/src/gs").glob("*.cpp")):

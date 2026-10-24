@@ -1,0 +1,73 @@
+name: RetroAchievements validation
+
+on:
+  push:
+    branches-ignore: [main]
+    paths:
+      - '.github/workflows/retroachievements.yml'
+      - 'port/src/**'
+      - 'port/tests/ra_*'
+      - 'port/tests/run_ra_*.py'
+      - 'port/tools/**'
+      - 'port/third_party/rcheevos/**'
+      - 'src/battle/btl_char_mgr.c'
+      - 'src/menu/menu_q_b.c'
+  pull_request:
+    paths:
+      - '.github/workflows/retroachievements.yml'
+      - 'port/src/**'
+      - 'port/tests/ra_*'
+      - 'port/tests/run_ra_*.py'
+      - 'port/tools/**'
+      - 'port/third_party/rcheevos/**'
+      - 'src/battle/btl_char_mgr.c'
+      - 'src/menu/menu_q_b.c'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: retroachievements-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: port/release
+          tags: bt3-port-release:jammy
+          load: true
+          cache-from: type=gha,scope=ra-release
+          cache-to: type=gha,mode=max,scope=ra-release
+      - name: Offline memory and real-runtime tests
+        run: |
+          mkdir -p port/build
+          curl --fail --silent --show-error --retry 3 \
+            https://api.github.com/repos/z3xox/BT3-Recomp/git/blobs/961b9d1ab48119943407c1dc7ee95f985d37b917 \
+            -o port/build/ra-reference-blob.json
+          python3 -c 'import base64,hashlib,json,pathlib; p=pathlib.Path("port/build"); b=base64.b64decode(json.loads((p/"ra-reference-blob.json").read_text())["content"]); assert hashlib.sha1(b"blob "+str(len(b)).encode()+b"\0"+b).hexdigest()=="961b9d1ab48119943407c1dc7ee95f985d37b917"; (p/"ra-reference.json").write_bytes(b)'
+          docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD":/src -w /src bt3-port-release:jammy sh -ec '
+            mkdir -p port/build
+            cc -std=c99 -Wall -Wextra -Werror port/src/ra_memory.c port/tests/ra_memory.c -o port/build/ra_memory_test
+            port/build/ra_memory_test
+            python3 port/tests/run_ra_client.py
+            python3 port/tests/run_ra_game.py
+            python3 port/tests/run_ra_client.py port/build/ra-reference.json
+          '
+      - name: Build complete Linux and Windows archives
+        run: |
+          docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD":/src -w /src \
+            bt3-port-release:jammy sh port/release/inside.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RetroAchievements-validation
+          path: |
+            port/build/Tenkaichi3Decomp-linux-x64.zip
+            port/build/Tenkaichi3Decomp-windows-x64.zip
+          if-no-files-found: error

@@ -628,6 +628,10 @@ __attribute__((constructor)) static void Port_MapMemory(void) {
     map(0x12000000u, 0x2000, "the GS registers");
     map(0x70000000u, 0x4000, "the scratchpad");
     gPortStage = "memory ready, before the program's main";
+    {
+        extern void PortRa_Init(void);
+        PortRa_Init();
+    }
 }
 
 /* The game's malloc (include/port_compat.h renames it): a bump allocator over the heap region, 16-byte aligned. */

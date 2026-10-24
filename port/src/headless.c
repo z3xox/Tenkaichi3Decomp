@@ -331,10 +331,16 @@ void Port_Trace(unsigned vblanks) {
     if (gPortUnlockAll) {
         gPortUnlockAll = 0;
         if (gSaveData != NULL) {
-            Save_UnlockAll(gSaveData);
-            gPortUnlockDone = 1;
-            printf("bt3: everything unlocked (Save_UnlockAll)\n");
-            fflush(stdout);
+            extern int PortRa_BeforeUnlockAll(void);
+            if (!PortRa_BeforeUnlockAll()) {
+                extern void Port_UiNotice(const char *text);
+                Port_UiNotice("Unlock Everything canceled: sign out of RetroAchievements and ensure the save folder is writable.");
+            } else {
+                Save_UnlockAll(gSaveData);
+                gPortUnlockDone = 1;
+                printf("bt3: everything unlocked (Save_UnlockAll)\n");
+                fflush(stdout);
+            }
         }
     }
     if (every < 0) {

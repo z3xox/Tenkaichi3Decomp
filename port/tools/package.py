@@ -216,6 +216,8 @@ def main_win():
     shutil.copy2(ROOT / "port/third_party/imgui/LICENSE.txt", lic / "dear-imgui.txt")
     shutil.copy2(ROOT / "port/third_party/newlib_libm/COPYING.NEWLIB", lic / "newlib.txt")
     shutil.copy2(ROOT / "port/third_party/xxhash/LICENSE", lic / "xxhash.txt")
+    shutil.copy2(ROOT / "port/third_party/rcheevos/LICENSE", lic / "rcheevos.txt")
+    shutil.copy2(ROOT / "port/third_party/rcheevos/src/rhash/md5.h", lic / "rcheevos-md5.txt")
     shutil.copy2(ROOT / "port/third_party/miniaudio/LICENSE", lic / "miniaudio.txt")
 
     take_fonts(out, lic)
@@ -262,6 +264,8 @@ def main():
     shutil.copy2(ROOT / "LICENSE", lic / "tenkaichi3decomp-agpl.txt")
     shutil.copy2(ROOT / "LICENSE-MIT", lic / "tenkaichi3decomp-mit.txt")
     shutil.copy2(ROOT / "port/third_party/imgui/LICENSE.txt", lic / "dear-imgui.txt")
+    shutil.copy2(ROOT / "port/third_party/rcheevos/LICENSE", lic / "rcheevos.txt")
+    shutil.copy2(ROOT / "port/third_party/rcheevos/src/rhash/md5.h", lic / "rcheevos-md5.txt")
     shutil.copy2(ROOT / "port/third_party/newlib_libm/COPYING.NEWLIB", lic / "newlib.txt")
     shutil.copy2(ROOT / "port/third_party/xxhash/LICENSE", lic / "xxhash.txt")
     shutil.copy2(ROOT / "port/third_party/miniaudio/LICENSE", lic / "miniaudio.txt")

@@ -1,6 +1,9 @@
 #include "common.h"
 #include "menu/menu_q.h"
 #include "sys/pad.h"
+#ifdef PORT
+extern void PortRa_TransientReset(void);
+#endif
 
 /* The screen's work area (.data, 0x3B7384). */
 SimDay *gSimDay = NULL;
@@ -883,6 +886,9 @@ void SimDay_Init(s32 section) {
         Heap_Free(gMenuArc3);
         gMenuArc3 = NULL;
     }
+#ifdef PORT
+    PortRa_TransientReset();
+#endif
     gSimDay = Heap_Alloc(sizeof(SimDay), 0x20, 0, 2);
     memset(gSimDay, 0, sizeof(SimDay));
     for (i = 0; i < SIMDAY_TRAIN_KINDS; i++) {
@@ -1157,6 +1163,9 @@ void SimDay_Term(void) {
         gSimDay->pack = NULL;
     }
     if (gSimDay != NULL) {
+#ifdef PORT
+        PortRa_TransientReset();
+#endif
         Heap_Free(gSimDay);
         gSimDay = NULL;
     }

@@ -2,6 +2,9 @@
 #include "battle/battle.h"
 #include "battle/battle_setup.h"
 #include "battle/btl_char_mgr.h"
+#ifdef PORT
+extern void PortRa_TransientReset(void);
+#endif
 #include "battle/btl_scene.h"
 #include "battle/btl_seq.h"
 #include "sys/common.h"
@@ -1280,6 +1283,9 @@ void BtlChar_EndFrame(BtlMgrChr *chr) {
 
 /* Allocates the roster for `count` fighters and resets it. */
 void BtlChar_AllocAll(s32 count) {
+#ifdef PORT
+    PortRa_TransientReset();
+#endif
     gBtlChars = Heap_Alloc(sizeof(BtlCharMgr), 0x20, 0, HEAP_ANY);
     memset(gBtlChars, 0, sizeof(BtlCharMgr));
     gBtlChars->chars = Heap_Alloc(count * 0x1600, 0x20, 0, HEAP_ANY);
@@ -1301,6 +1307,9 @@ void BtlChar_AllocAll(s32 count) {
 
 /* Frees the roster. */
 void BtlChar_FreeAll(void) {
+#ifdef PORT
+    PortRa_TransientReset();
+#endif
     Heap_Free(gBtlChars->unkC);
     Heap_Free(gBtlChars->unk8);
     Heap_Free(gBtlChars->chars);

@@ -78,6 +78,12 @@ See [docs/port/README.md](docs/port/README.md) for the running log of what is do
 
 ## Requirements
 
+RetroAchievements integration is experimental: F1 > Achievements signs into an
+account and tracks softcore unlocks for mapped save, menu, loading-screen,
+battle and simulation dialogue conditions. Temporary objects suspend dependent
+achievements until they exist. Hardcore and leaderboards are disabled. See
+[the integration notes](docs/port/retroachievements.md) for scope and validation status.
+
 - A 64-bit x86 processor and a graphics card with Vulkan support. Most of the work is on the processor (the
   game's arithmetic is reproduced exactly as on the PS2); a recent mid-range CPU is recommended.
 - Linux (glibc 2.35 or newer) or Windows 10 / 11.
