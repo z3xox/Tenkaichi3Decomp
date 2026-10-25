@@ -23,6 +23,12 @@ extern volatile int gUiNameX, gUiNameY, gUiNameW, gUiNameH;
 extern volatile int gUiNameIdx, gUiNameReady;
 extern volatile int gUiSongX, gUiSongY, gUiSongW, gUiSongH;
 extern volatile int gUiSongIdx, gUiSongReady, gUiSongLit;
+/* the characters' models in place of the portraits (CsModel_*, in front of CharSel_Run) */
+static s32 CsModel_Busy(void);
+static s32 CsModel_Shown(s32 side);
+static void CsModel_Term(void);
+static void CsModel_Update(void);
+static void CsModel_DrawHint(void);
 #endif
 
 /*
@@ -244,6 +250,11 @@ void CharSel_UpdateFaceLoad(void) {
         if (gCharSel->stageState != CHARSEL_LOAD_IDLE) {
             break;
         }
+#ifdef PORT
+        if (CsModel_Busy()) {
+            break; /* a character model is being read */
+        }
+#endif
         if (gCharSel->side[0]->flags & CHARSEL_SIDE_FACE_CHANGE) {
             gCharSel->tex[23] = NULL;
             gCharSel->faceSide = 0;
@@ -304,6 +315,11 @@ void CharSel_UpdateStageLoad(void) {
         if (gCharSel->faceState != CHARSEL_LOAD_IDLE) {
             break;
         }
+#ifdef PORT
+        if (CsModel_Busy()) {
+            break;
+        }
+#endif
         if (gCharSel->flags & CHARSEL_STAGE_CHANGE) {
             gCharSel->stageState = CHARSEL_LOAD_RESTART;
         }
@@ -762,6 +778,7 @@ void CharSel_Term(void) {
 #ifdef PORT
     gUiNameIdx = -1; /* drop the port's name overlays */
     gUiSongIdx = -1;
+    CsModel_Term();
 #endif
     IconWin_Term();
     ItemHelp_Term();
@@ -848,6 +865,10 @@ void CharSel_Draw(void) {
         }
         Sprite_DrawPicture(gCharSel->bg[i], 0, 0, gCharSel->bgAlpha[i]);
     }
+#ifdef PORT
+    CsModel_Update(); /* the models: over the stage picture, under the rest of the screen */
+    CsModel_DrawHint();
+#endif
 
     f = &gCharSel->flash[0];
     for (i = 0; i < CHARSEL_SIDES; i++) {
@@ -866,7 +887,11 @@ void CharSel_Draw(void) {
             gCharSel->faceAlpha[i] = 0.0f;
         }
         Flash_FindLabel(f, NULL, i ? "mc_single_chara_r" : "mc_single_chara_l", &ref);
+#ifdef PORT
+        Flash_ClipSetAlpha(f, &ref, CsModel_Shown(i) ? 0.0f : gCharSel->faceAlpha[i]); /* the model is there instead */
+#else
         Flash_ClipSetAlpha(f, &ref, gCharSel->faceAlpha[i]);
+#endif
         Flash_ClipSetFlags(f, &ref, 0x80, (u8)gCharSel->faceMask);
         Flash_FindLabel(f, NULL, i ? "mc_name_text_r" : "mc_name_text_l", &ref);
         TextBox_AttachLine(f, &ref, 0, 0, gCharSel->side[i]->chara, &gCharSel->nameBox[i]);
@@ -1874,6 +1899,375 @@ extern s32 CpuLevel_FromSetting(u32 setting);
 #define CHARSEL_RANDOM_BGM() (sPortSongsAdded ? gCharSel->bgmIds[Rand_Range(gCharSel->bgmCount - 1)] : Rand_Range(9) + 8)
 #else
 #define CHARSEL_RANDOM_BGM() (Rand_Range(9) + 8)
+#endif
+
+#ifdef PORT
+/* PC build: the model of each side's character in place of its portrait (Square turns it on and off; the costume
+   under the cursor is the one shown). It is the character viewer of the Character Reference screen (ChrView,
+   src/battle/view_a_d.c: the battle's object, stage and scene modules without a battle), set up the first time a
+   side asks for it, with two models at once: one per side, both seen by one fixed camera, each turning slowly in
+   front of its half of the screen. The backdrop is loaded (the models' light comes from it) but not drawn.
+   Off in an online session: loading a model takes as long as the disc takes, and the menus there run in step on
+   both sides. A model is read only while the portrait and stage-picture loaders are idle (they cancel every other
+   request), and they wait for it in turn. */
+typedef struct CsModelSlot {
+    struct {
+        void *buf;
+        s32 size;
+        s32 id;
+        void *orig;
+    } file[3];
+    u32 flags;
+    s32 number;
+} CsModelSlot; /* BtlResSlot (include/battle/btl_obj.h) */
+
+typedef struct CsModelInfo {
+    u8 unk0[0x30];
+    f32 targetY; /* height the Character Reference camera looks at */
+    f32 dist;    /* its distance: the character's size */
+    u8 unk38[4];
+} CsModelInfo; /* ChrViewInfo */
+
+#define CSM_FILE_FIRST 0x590 /* model of character c, costume n */
+#define CSM_FILE_STAGE 0x197 /* the viewer's backdrop */
+#define CSM_MODEL_SIZE 0xCE000
+#define CSM_ANIM 7           /* the Character Reference pose */
+#define CSM_OBJ_XF 0x950     /* BtlObj: pos (Vec4), rot (Vec4, radians) */
+#define CSM_DEPTH 1.25f      /* distance from the camera, in Character Reference distances */
+#define CSM_SIDE_X 0.37f     /* how far to the side, per unit of distance */
+#define CSM_UP (-0.08f) /* upwards (y points down), per unit of distance */
+#define CSM_OBJ_FLAGS 0xA40
+#define CSM_HINT_X0 0x98   /* where the hint starts on each side: it ends by the left name's end, starts at the right one's start */
+#define CSM_HINT_X1 0x10C
+#define CSM_HINT_Y 0x10C
+
+enum { CSM_IDLE, CSM_READ, CSM_SETTLE };
+
+static struct {
+    s32 ready;        /* the 3D modules are set up */
+    s32 want[2];      /* Square: the side shows its model */
+    s32 chara[2];     /* the model each side has (or is reading), -1 = none */
+    s32 costume[2];
+    s32 obj[2];       /* its BtlObj, -1 = none */
+    s32 shown[2];     /* the model is drawn and the portrait hidden */
+    s32 state;        /* CSM_*: the one read in progress */
+    s32 side;         /* whose */
+    s32 count;
+    f32 yaw;
+    CsModelSlot slot[2];
+} sCsm;
+
+extern int Port_NetSession(void);              /* port/src/gs/net.c */
+extern int Port_TestPreview(void);             /* port/src/headless.c: BT3_TEST_PREVIEW, for tests without a pad */
+extern u8 *CsModel_BattleWork(void) __asm__("Battle_GetWork"); /* + 0x19F0: u64 flags, 0x100 = paused */
+extern u8 *gBtlStage; /* + 8: flags, bit 0 = not ready (not updated nor drawn) */
+extern void BtlRes_LoadSingle(s32 fromHeap, CsModelSlot *slot, s32 model);
+extern s32 BtlObj_Create(s32 type, CsModelSlot *res, s32 active);
+extern u8 *BtlObj_Get(s32 id);
+extern s32 BtlObj_Destroy(s32 id);
+extern void BtlObjAnim_PlayModel(u8 *obj, s32 anim, s32 mode);
+extern void BtlObj_SetPartVisible(u8 *obj, u32 part, s32 on);
+extern void BtlObjXf_Update(u8 *obj); /* the object's matrix from its pos / rot */
+extern void BtlObj_Init(s32 prealloc);
+extern void BtlObj_Term(void);
+extern void BtlObj_SetUnk44FC4(f32 value);
+extern void BtlObj_UpdateAll(void);
+extern void BtlObj_UpdateVisibility(s32 view);
+extern void BtlObj_FinishVisibility(s32 split);
+extern void BtlStage_Update(void);
+extern void BtlStage_Term(void);
+extern void BtlScene_Init(s32 layerMask);
+extern void BtlScene_Term(void);
+extern void BtlScene_Update(void);
+extern void BtlScene_Draw(s32 first);
+extern void BtlScene_SetSingleView(s32 singleView);
+extern void StgAmb_Term(void);
+extern void StgModel_InitStage(void);
+extern void StgFx_Init(void);
+extern void StgFx_Term(void);
+extern void StgFx_DrawPreNoCheck(void);
+extern void Gfx_MarkPass(s32 pass);
+extern void Gfx_AddDefaultEnv(void);
+extern void Ot_Init(void);
+extern void Ot_Term(void);
+extern s32 Ot_Draw(void);
+extern void BtlObjDraw_Draw(void);
+extern void OrbitCam_Init(void);
+extern void OrbitCam_Term(void);
+extern void OrbitCam_Reset(void);
+extern void OrbitCam_Update(s32 usePad);
+extern void OrbitCam_SetTarget(f32 x, f32 y, f32 z);
+extern void OrbitCam_SetAngles(f32 pitch, f32 yaw, f32 roll);
+extern void OrbitCam_SetDist(f32 dist);
+extern void OrbitCam_SetDistRange(f32 min, f32 max);
+extern void *File_LoadAlloc(s32 id, void *buf, s32 unused) __asm__("File_Request");
+
+/* The backdrop file's place in the common resources (ChrViewCommon in view_a_d.c: gCommonRes->unk20 + 4). */
+#define CSM_STAGE_FILE (*(void **)((u8 *)gCommonRes + 0x24))
+
+static CsModelInfo *CsModel_Info(s32 chara) {
+    u8 *pack = (u8 *)gCommonRes->data[2];
+    if (chara < 0 || chara >= 0xA1) {
+        return NULL;
+    }
+    return (CsModelInfo *)(pack + ((((u32 *)pack)[1] >> 2) << 2)) + chara;
+}
+
+/* Sets up the battle modules the way ChrView_Init does, without its blocking job queue and fade. */
+static void CsModel_Init(void) {
+    s32 i;
+
+    for (i = 0; i < 2; i++) {
+        memset(&sCsm.slot[i], 0, sizeof(CsModelSlot));
+        sCsm.slot[i].file[0].buf = Heap_Alloc(CSM_MODEL_SIZE, 0x40, 0, 2);
+        sCsm.slot[i].file[0].id = -1;
+        *(s32 *)sCsm.slot[i].file[0].buf = 0;
+        sCsm.chara[i] = -1;
+        sCsm.obj[i] = -1;
+        sCsm.shown[i] = 0;
+    }
+    *(u64 *)(CsModel_BattleWork() + 0x19F0) &= ~0x100;
+    BtlObj_Init(0);
+    BtlObj_SetUnk44FC4(1.0f);
+    OrbitCam_Init();
+    File_CancelRequests();
+    CSM_STAGE_FILE = File_LoadAlloc(CSM_FILE_STAGE, NULL, 0);
+    while (!File_UpdateRequests()) {
+    }
+    StgModel_InitStage();
+    StgAmb_Term();
+    StgFx_Init();
+    Ot_Init();
+    BtlScene_Init(8);
+    BtlScene_SetSingleView(1);
+    OrbitCam_Reset();
+    OrbitCam_SetTarget(0.0f, 0.0f, 0.0f);
+    OrbitCam_SetAngles(0.0f, 3.14159265f, 0.0f);
+    OrbitCam_SetDistRange(1.0f, 1.0f);
+    OrbitCam_SetDist(1.0f);
+    sCsm.state = CSM_IDLE;
+    sCsm.ready = 1;
+}
+
+static void CsModel_Term(void) {
+    s32 i;
+
+    if (!sCsm.ready) {
+        return;
+    }
+    if (sCsm.state == CSM_READ) {
+        File_CancelRequests();
+    }
+    for (i = 0; i < 2; i++) {
+        if (sCsm.obj[i] >= 0) {
+            BtlObj_Destroy(sCsm.obj[i]);
+        }
+    }
+    for (i = 1; i >= 0; i--) {
+        Heap_Free(sCsm.slot[i].file[0].buf);
+    }
+    BtlObj_Term();
+    OrbitCam_Term();
+    StgFx_Term();
+    BtlStage_Term();
+    BtlScene_Term();
+    Ot_Term();
+    Heap_Free(CSM_STAGE_FILE);
+    CSM_STAGE_FILE = NULL;
+    memset(&sCsm, 0, sizeof(sCsm));
+}
+
+static s32 CsModel_Shown(s32 side) {
+    return sCsm.ready && sCsm.shown[side];
+}
+
+/* A model is being read: the portrait and stage-picture loaders wait. */
+static s32 CsModel_Busy(void) {
+    return sCsm.ready && sCsm.state != CSM_IDLE;
+}
+
+static void CsModel_Drop(s32 side) {
+    if (sCsm.obj[side] >= 0) {
+        BtlObj_Destroy(sCsm.obj[side]);
+        sCsm.obj[side] = -1;
+    }
+    sCsm.chara[side] = -1;
+    sCsm.shown[side] = 0;
+}
+
+/* Where a side's model stands: in front of its half of the screen, at twice the distance the Character Reference
+   camera keeps from this character (so every character is about half the screen tall, as its portrait), its
+   middle at the middle of the portrait. The camera is at z = 1 looking down -z. */
+static void CsModel_Place(s32 side) {
+    u8 *obj = BtlObj_Get(sCsm.obj[side]);
+    CsModelInfo *info = CsModel_Info(sCsm.chara[side]);
+    f32 *xf = (f32 *)(obj + CSM_OBJ_XF);
+    f32 dist = info != NULL && info->dist > 0.1f ? info->dist : 4.0f;
+    f32 target = info != NULL ? info->targetY : 1.0f;
+    f32 depth = dist * CSM_DEPTH;
+
+    xf[0] = (side == 0 ? CSM_SIDE_X : -CSM_SIDE_X) * depth; /* (+x is the left of the screen) */
+    xf[1] = -target + CSM_UP * depth;
+    xf[2] = 1.0f - depth;
+    xf[4] = 0.0f;
+    xf[5] = side == 0 ? sCsm.yaw : -sCsm.yaw;
+    xf[6] = 0.0f;
+    BtlObjXf_Update(obj);
+}
+
+/* What each side should show now: its character under the cursor and the costume chosen, when it asked. */
+static void CsModel_Want(s32 side, s32 *chara, s32 *costume) {
+    CharSelSide *s = gCharSel->side[side];
+
+    *chara = sCsm.want[side] && s->chara >= 0 && s->chara < 0xA1 ? s->chara : -1;
+    *costume = s->state == CHARSEL_ST_COLOR || s->state == CHARSEL_ST_DONE ? s->colorPlate : 0;
+}
+
+/* One frame: Square, the read in progress, then the scene. */
+static void CsModel_Update(void) {
+    s32 i;
+    s32 pad;
+    s32 chara;
+    s32 costume;
+    s32 test = Port_TestPreview();
+    u8 *obj;
+
+    if (Port_NetSession()) {
+        return;
+    }
+    for (i = 0; i < 2; i++) {
+        if (gCharSel->players == 1) {
+            pad = i;
+        } else if (gCharSel->turn == i) {
+            pad = 0;
+        } else {
+            continue;
+        }
+        if ((gCharSel->flash[0].flags & MFLASH_PAD) && !(gCharSel->flags & CHARSEL_STAGE_PHASE) &&
+            (gPad[pad].gamePressed & PADG_SQUARE)) {
+            sCsm.want[i] ^= 1;
+            Snd_PlaySe(1, 0);
+        }
+    }
+    if (test >= 0) {
+        sCsm.want[0] = test & 1;
+        sCsm.want[1] = (test >> 1) & 1;
+    }
+    if (!sCsm.ready) {
+        if (!sCsm.want[0] && !sCsm.want[1]) {
+            return;
+        }
+        if (gCharSel->faceState != CHARSEL_LOAD_IDLE || gCharSel->stageState != CHARSEL_LOAD_IDLE) {
+            return;
+        }
+        CsModel_Init();
+    }
+
+    switch (sCsm.state) {
+    case CSM_IDLE:
+        for (i = 0; i < 2; i++) {
+            CsModel_Want(i, &chara, &costume);
+            if (chara < 0) {
+                if (sCsm.chara[i] >= 0) {
+                    CsModel_Drop(i);
+                }
+                continue;
+            }
+            if (chara == sCsm.chara[i] && costume == sCsm.costume[i]) {
+                continue;
+            }
+            if (gCharSel->faceState != CHARSEL_LOAD_IDLE || gCharSel->stageState != CHARSEL_LOAD_IDLE) {
+                break;
+            }
+            CsModel_Drop(i);
+            sCsm.chara[i] = chara;
+            sCsm.costume[i] = costume;
+            sCsm.side = i;
+            File_CancelRequests();
+            BtlRes_LoadSingle(0, &sCsm.slot[i], chara * 10 + costume + CSM_FILE_FIRST);
+            sCsm.state = CSM_READ;
+            break;
+        }
+        break;
+    case CSM_READ:
+        if (!File_UpdateRequests()) {
+            break;
+        }
+        i = sCsm.side;
+        sCsm.obj[i] = BtlObj_Create(3, &sCsm.slot[i], 1);
+        obj = BtlObj_Get(sCsm.obj[i]);
+        BtlObjAnim_PlayModel(obj, test >= 0 && (test >> 4) != 0 ? test >> 4 : CSM_ANIM, 2);
+        *(u32 *)(obj + CSM_OBJ_FLAGS) &= ~0x02000000;
+        BtlObj_SetPartVisible(obj, 0, 0);
+        fprintf(stderr, "bt3: character select: model of %d, costume %d\n", sCsm.chara[i], sCsm.costume[i]);
+        sCsm.count = 0;
+        sCsm.state = CSM_SETTLE;
+        break;
+    case CSM_SETTLE:
+        if (sCsm.count++ >= 3) {
+            BtlObj_SetPartVisible(BtlObj_Get(sCsm.obj[sCsm.side]), 0, 1);
+            sCsm.shown[sCsm.side] = 1;
+            sCsm.state = CSM_IDLE;
+        }
+        break;
+    }
+
+    sCsm.yaw += 0.015f;
+    if (sCsm.yaw > 3.14159265f) {
+        sCsm.yaw -= 6.2831853f;
+    }
+    for (i = 0; i < 2; i++) {
+        if (sCsm.obj[i] >= 0) {
+            CsModel_Place(i);
+        }
+    }
+    OrbitCam_Update(0);
+    *(s32 *)(gBtlStage + 8) |= 1; /* the backdrop is not drawn */
+    BtlObj_UpdateAll();
+    if (sCsm.obj[0] >= 0 || sCsm.obj[1] >= 0) {
+        BtlObj_UpdateVisibility(0);
+        BtlObj_FinishVisibility(0);
+        BtlStage_Update();
+        BtlScene_Update();
+        Gfx_MarkPass(2);
+        BtlObjDraw_Draw();
+        Gfx_MarkPass(0);
+        Gfx_MarkPass(4);
+        Gfx_AddDefaultEnv();
+        BtlScene_Draw(1);
+        Ot_Draw();
+        Gfx_MarkPass(0);
+    }
+}
+
+/* "[Square] Preview" over each side's name plate that Square works for, in the game's font with its own button
+   icon (the printer's <PAD=> tag; U+25A1 is the square's name in the icon table). */
+static void CsModel_DrawHint(void) {
+    extern FontStyle gFontStyle;
+    extern void Font_PrintAt(s32 x, s32 y, u16 *str);
+    static u16 text[] = { '<', 'P', 'A', 'D', '=', 0x25A1, '>', ' ', 'P', 'r', 'e', 'v', 'i', 'e', 'w', 0 };
+    FontStyle saved;
+    s32 i;
+
+    if (Port_NetSession() || (gCharSel->flags & CHARSEL_STAGE_PHASE) || !(gCharSel->flash[0].flags & MFLASH_PAD)) {
+        return;
+    }
+    saved = gFontStyle;
+    gFontStyle.scale = 0.8f;
+    gFontStyle.color = 0x80FFFFFF;
+    gFontStyle.shadowMode = FONT_SHADOW_DROP;
+    gFontStyle.shadowColor = 0x80000000;
+    gFontStyle.shadowDx = 1;
+    gFontStyle.shadowDy = 1;
+    gFontStyle.align = FONT_ALIGN_LEFT;
+    for (i = 0; i < 2; i++) {
+        if (gCharSel->players != 1 && gCharSel->turn != i) {
+            continue;
+        }
+        Font_PrintAt(i == 0 ? CSM_HINT_X0 : CSM_HINT_X1, CSM_HINT_Y, text);
+    }
+    gFontStyle = saved;
+}
 #endif
 
 /* Runs the screen. Returns 0 when it was cancelled, otherwise non-zero with the battle set up. */
