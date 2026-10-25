@@ -410,7 +410,46 @@ static void Tb_Note(char *line) {
     sTb->note = 150;
 }
 
+/* The page's name for the things that show where the player is (gPortScreenDetail: Discord's presence). One literal
+   per page, not a table of them: in the 64-bit build a pointer in a table is 4 bytes, and a table read through a
+   conditional (a literal on the other side) was loaded 8 bytes wide, so the first page crashed the Windows build. */
+static void Tb_PageDetail(s32 mode) {
+    switch (mode) {
+    case TB_HUB:
+        Ps_Copy(gPortScreenDetail, "Hub", sizeof(gPortScreenDetail));
+        break;
+    case TB_CREATE:
+        Ps_Copy(gPortScreenDetail, "Creating a Room", sizeof(gPortScreenDetail));
+        break;
+    case TB_JOIN:
+        Ps_Copy(gPortScreenDetail, "Joining a Room", sizeof(gPortScreenDetail));
+        break;
+    case TB_WAIT:
+        Ps_Copy(gPortScreenDetail, "Waiting for an Opponent", sizeof(gPortScreenDetail));
+        break;
+    case TB_PROFILE:
+        Ps_Copy(gPortScreenDetail, "Profile", sizeof(gPortScreenDetail));
+        break;
+    case TB_NAME:
+        Ps_Copy(gPortScreenDetail, "Editing Profile Name", sizeof(gPortScreenDetail));
+        break;
+    case TB_QUICK:
+        Ps_Copy(gPortScreenDetail, "Quick Match", sizeof(gPortScreenDetail));
+        break;
+    case TB_SPAR:
+        Ps_Copy(gPortScreenDetail, "Training While Waiting", sizeof(gPortScreenDetail));
+        break;
+    case TB_BLOCK:
+        Ps_Copy(gPortScreenDetail, "Cannot Go Online", sizeof(gPortScreenDetail));
+        break;
+    default:
+        gPortScreenDetail[0] = 0;
+        break;
+    }
+}
+
 static void Tb_SetMode(s32 mode) {
+    Tb_PageDetail(mode);
     sTb->typing = mode == TB_JOIN || mode == TB_NAME; /* the keyboard types on a keypad (elsewhere I is triangle ...) */
     Port_TextMode(sTb->typing);
     if (sTb->mode != mode) { /* (the page that is up again, as when the rival comes on the search: it does not come in anew) */
@@ -1947,6 +1986,7 @@ s32 PortTbo_Run(void) {
 
     sTb = Heap_Alloc(sizeof(TboScreen), 0x20, 0, 2);
     memset(sTb, 0, sizeof(TboScreen));
+    Tb_PageDetail(TB_HUB);
     sTb->hubCur = HUB_CREATE;
     sTb->hubY = Tb_HubRowY(HUB_CREATE);
     Tb_LoadChoices();
