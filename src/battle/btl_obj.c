@@ -45,7 +45,7 @@ extern void Res_RelocateOffsets(void *out, void *base, void *hdr);
 extern s32 BtlStage_IsReady(void);
 
 /* Uploads texture `index` of a texture file to texture block tbp, its CLUT to cbp (-1: none). Returns nothing
-   (src/sys/gfxm_b_b.c); the older reading of this as a table lookup was wrong. */
+   (src/sys/tex_file.c); the older reading of this as a table lookup was wrong. */
 extern void TexFile_UploadOne(void *file, s32 index, s32 tbp, s32 cbp);
 /* Model object setup / teardown (0x113598 binds the resource, 0x1135F0 clears the object). */
 extern void BtlObjMdl_Destroy(BtlObj *obj);
@@ -81,8 +81,8 @@ extern void BtlObjFade_Step(BtlObj *obj);
 extern void BtlObjFade_Get(BtlObj *obj, Vec4 *out);
 extern void BtlObj_UpdateFace(BtlObj *obj);
 extern BtlObjPart *BtlObj_GetNode(BtlObj *obj, s32 node);
-extern s32 BtlObj_IsNodeShown(BtlObj *obj, s32 arg);
-extern void BtlObj_SaveNodePositions(BtlObj *obj, s32 arg);
+extern s32 BtlObj_IsNodeShown(BtlObj *obj, s32 node);
+extern void BtlObj_SaveNodePositions(BtlObj *obj, s32 relative);
 extern void BtlObj_InitChains(BtlObj *obj);
 extern void BtlObj_UpdateChains(BtlObj *obj);
 /* Drawing modules. */
@@ -285,8 +285,8 @@ BtlObjPoolE0 *BtlObjPoolE0_Alloc(void) {
         return NULL;
     }
     memset(node, 0, sizeof(BtlObjPoolE0));
-    Vec4_Set(&node->unk90, 0.0f, 0.0f, 0.0f, 1.0f);
-    Vec4_Set(&node->unkA0, 0.0f, 0.0f, 0.0f, 1.0f);
+    Vec4_Set(&node->pos, 0.0f, 0.0f, 0.0f, 1.0f);
+    Vec4_Set(&node->rot, 0.0f, 0.0f, 0.0f, 1.0f);
     return node;
 }
 
@@ -377,7 +377,7 @@ void BtlObj_InitTable(void) {
     s32 i;
 
     memset(tbl, 0, sizeof(BtlObjTable));
-    tbl->unk44FC4 = 2.0f;
+    tbl->defaultAnimStep = 2.0f;
     List_Init(&tbl->freeObjs);
     List_Init(&tbl->usedObjs);
     node = tbl->objs;
@@ -388,14 +388,14 @@ void BtlObj_InitTable(void) {
     }
 }
 
-/* Returns the float at table + 0x44FC4. */
-f32 BtlObj_GetUnk44FC4(void) {
-    return BtlObj_GetTable()->unk44FC4;
+/* Returns the animation step new animation players start with (table + 0x44FC4; 2.0 at init). */
+f32 BtlObj_GetDefaultAnimStep(void) {
+    return BtlObj_GetTable()->defaultAnimStep;
 }
 
-/* Sets the float at table + 0x44FC4. */
-void BtlObj_SetUnk44FC4(f32 value) {
-    BtlObj_GetTable()->unk44FC4 = value;
+/* Sets the default animation step (table + 0x44FC4); the character viewer sets 1.0. */
+void BtlObj_SetDefaultAnimStep(f32 value) {
+    BtlObj_GetTable()->defaultAnimStep = value;
 }
 
 /* Number of objects in use. */
@@ -566,9 +566,9 @@ void BtlObj_UpdateBounds(BtlObj *obj, BtlObjState *state) {
     Vec4 rel;
     Vec4 center;
     Mtx44 mtx;
-    Vec4 unk60;
+    Vec4 unused60; /* never used: only keeps the stack layout */
     Vec4 ext;
-    Vec4 unk80[7];
+    Vec4 unused80[7]; /* never used */
     Vec4 corner[8];
     Vec4 out[8];
     BtlObjBound *bound = obj->mdl.bounds;
@@ -578,9 +578,9 @@ void BtlObj_UpdateBounds(BtlObj *obj, BtlObjState *state) {
     while (1) {
         if (bound->enabled != 0) {
             part = BtlObj_GetNode(obj, bound->node);
-            if (BtlObj_IsNodeShown(obj, part->unk08) == 1) {
+            if (BtlObj_IsNodeShown(obj, part->id) == 1) {
                 part->active = 1;
-                Vec3_Sub(&rel, &bound->center, &bound->unk10);
+                Vec3_Sub(&rel, &bound->center, &bound->origin);
                 Mtx_MulVec4(&center, &part->mtx, &rel);
                 Mtx_Copy(&mtx, &part->mtx);
                 Vec4_Copy((Vec4 *)mtx.m[3], &center);
@@ -851,7 +851,7 @@ void BtlObj_BuildDrawList(BtlObjDrawList *list, s32 view) {
              node = (BtlObjNode *)List_GetNext(&node->link)) {
             obj = &node->obj;
             state = &node->obj.state;
-            if (obj->unk04 != 0 && obj->active != 0) {
+            if (obj->ready != 0 && obj->active != 0) {
                 rec = state->view;
                 if (rec->flags & BTL_OBJ_FLAG_VISIBLE) {
                     if (pass == 0) {
@@ -903,7 +903,7 @@ void BtlObj_UpdateAll(void) {
     for (node = (BtlObjNode *)List_GetHead(BtlObj_GetUsedList()); node != NULL;
          node = (BtlObjNode *)List_GetNext(&node->link)) {
         obj = &node->obj;
-        if (obj->unk04 != 0 && obj->active != 0) {
+        if (obj->ready != 0 && obj->active != 0) {
             state = &node->obj.state;
             state->viewFlags = 0;
             if (obj->noAnim == 0) {
@@ -941,7 +941,7 @@ void BtlObj_UpdateVisibility(s32 view) {
     for (node = (BtlObjNode *)List_GetHead(BtlObj_GetUsedList()); node != NULL;
          node = (BtlObjNode *)List_GetNext(&node->link)) {
         obj = &node->obj;
-        if (obj->unk04 != 0 && obj->active != 0) {
+        if (obj->ready != 0 && obj->active != 0) {
             state = &node->obj.state;
             state->view = &state->views[idx];
             BtlObj_UpdateView(obj);
@@ -968,7 +968,7 @@ void BtlObj_FinishVisibility(s32 split) {
         for (node = (BtlObjNode *)List_GetHead(BtlObj_GetUsedList()); node != NULL;
              node = (BtlObjNode *)List_GetNext(&node->link)) {
             obj = &node->obj;
-            if (obj->unk04 != 0 && obj->active != 0) {
+            if (obj->ready != 0 && obj->active != 0) {
                 state = &node->obj.state;
                 rec = &state->views[i];
                 state->viewFlags |= rec->flags;
@@ -999,7 +999,7 @@ void BtlObj_FillAlphaRow(u8 *table, BtlObj *obj) {
             table[row + i] = alpha;
         }
     } else if (obj->state.flags & BTL_OBJ_FLAG_COLOR_C) {
-        u8 alpha = (u32)obj->state.unkDC;
+        u8 alpha = (u32)obj->state.presetAlpha;
 
         for (i = 0; i < 15; i++) {
             table[row + i] = alpha;
@@ -1044,7 +1044,7 @@ void BtlObj_UploadAlphaTable(void) {
     for (node = (BtlObjNode *)List_GetHead(BtlObj_GetUsedList()); node != NULL;
          node = (BtlObjNode *)List_GetNext(&node->link)) {
         obj = &node->obj;
-        if (obj->unk04 != 0 && obj->active != 0) {
+        if (obj->ready != 0 && obj->active != 0) {
             BtlObj_FillAlphaRow(table, obj);
         }
     }

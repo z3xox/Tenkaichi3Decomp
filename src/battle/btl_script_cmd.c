@@ -41,9 +41,9 @@ extern void BtlFacade_StartCharMoveF(s32 side, s32 type, f32 value, s32 mode) __
 /* the text module's default window (0x23AC50, not decompiled) */
 extern BtlScriptCmdWindow *Font_GetStyle(void);
 /* start position and direction of a side (0x2427A0, stage code, not decompiled) */
-extern void BtlStage_GetStartPlace(s32 side, Vec4 *pos, Vec4 *rot, s32 arg);
-/* called with a second argument (0) that BtlFacade_SetCpuParam8 does not take */
-extern void BtlFacade_SetCpuParam8Ex(s32 value, s32 unused) __asm__("BtlFacade_SetCpuParam8");
+extern void BtlStage_GetStartPlace(s32 side, Vec4 *pos, Vec4 *rot, s32 alt);
+/* called with a second argument (0) that BtlFacade_SetCpuLevel does not take */
+extern void BtlFacade_SetCpuParam8Ex(s32 value, s32 unused) __asm__("BtlFacade_SetCpuLevel");
 
 extern BtlScriptCmdProgress *gProgress;
 extern BtlScriptWork gBtlScript;
@@ -460,7 +460,7 @@ s32 BtlScriptCmd_LoadText(u32 phase, void *taskWork) {
         s32 base;
 
         base = -1;
-        switch (gProgress->unk0) {
+        switch (gProgress->language) {
         case 0:
             base = 0x231;
             break;
@@ -510,7 +510,7 @@ s32 BtlScriptCmd_SetWindow(u32 phase, void *taskWork) {
             win->scaleX = Gsc_GetFloatOr(1.0f);
             win->scaleY = Gsc_GetFloatOr(1.0f);
             Gsc_FindOption('s');
-            win->unk8 = Gsc_GetFloatOr(1.0f);
+            win->scale = Gsc_GetFloatOr(1.0f);
             Gsc_FindOption('c');
             r = Gsc_GetIntOr(0xFF);
             g = Gsc_GetIntOr(0xFF);
@@ -518,21 +518,21 @@ s32 BtlScriptCmd_SetWindow(u32 phase, void *taskWork) {
             a = Gsc_GetIntOr(0x80);
             win->color = r | (a << 24) | ((b << 16) | (g << 8));
             Gsc_FindOption('p');
-            win->unk14 = Gsc_GetIntOr(2);
-            win->unk18 = Gsc_GetIntOr(5);
+            win->spacingX = Gsc_GetIntOr(2);
+            win->spacingY = Gsc_GetIntOr(5);
             Gsc_FindOption('w');
-            win->unk1C = Gsc_GetIntOr(0);
+            win->align = Gsc_GetIntOr(0);
             Gsc_FindOption('T');
-            win->unk24 = Gsc_GetIntOr(2);
+            win->shadowMode = Gsc_GetIntOr(2);
             Gsc_FindOption('O');
-            win->unk2C = Gsc_GetIntOr(1);
-            win->unk2E = Gsc_GetIntOr(2);
+            win->shadowDx = Gsc_GetIntOr(1);
+            win->shadowDy = Gsc_GetIntOr(2);
             Gsc_FindOption('C');
             r = Gsc_GetIntOr(0xFF);
             g = Gsc_GetIntOr(0xFF);
             b = Gsc_GetIntOr(0xFF);
             a = Gsc_GetIntOr(0x80);
-            win->color28 = r | (a << 24) | ((b << 16) | (g << 8));
+            win->shadowColor = r | (a << 24) | ((b << 16) | (g << 8));
         }
     }
     return 1;
@@ -652,7 +652,7 @@ s32 BtlScriptCmd_Talk(u32 phase, void *taskWork) {
         break;
     case GSC_PHASE_UPDATE:
         if (work->lip != NULL && work->lipStarted == 0 && Adx_GetStat(work->channel + 4) == 3) {
-            BtlFacade_SetObjSubState14(work->side, (s32)work->lip);
+            BtlFacade_PlayLipTrack(work->side, (s32)work->lip);
             work->lipStarted = 1;
         }
         if (Voice_IsStopped(work->channel)) {
@@ -966,7 +966,7 @@ s32 BtlScriptCmd_SetTriggers(u32 phase, void *taskWork) {
     return 1;
 }
 
-/* Command 10 "rule": stage bgm timeLimit announcer unk. Clears the battle work and sets the rule of a story
+/* Command 10 "rule": stage bgm timeLimit announcer stageChange. Clears the battle work and sets the rule of a story
    battle (mode 1). Setup action only. */
 s32 BtlScriptCmd_SetRule(u32 phase, void *taskWork) {
     if (phase == GSC_PHASE_BEGIN || phase == GSC_PHASE_BEGIN_ABORT) {
@@ -974,10 +974,10 @@ s32 BtlScriptCmd_SetRule(u32 phase, void *taskWork) {
         s32 bgm = Gsc_GetInt();
         s32 timeLimit = Gsc_GetInt();
         s32 announcer = Gsc_GetInt();
-        s32 unk10 = Gsc_GetInt();
+        s32 stageChange = Gsc_GetInt();
 
         Battle_ClearWork();
-        BattleSetup_SetRule(0, 1, bgm, timeLimit, announcer, stage, unk10);
+        BattleSetup_SetRule(0, 1, bgm, timeLimit, announcer, stage, stageChange);
     }
     return 1;
 }
@@ -1217,21 +1217,21 @@ s32 BtlScriptCmd_SetRewards(u32 phase, void *taskWork) {
     BtlScriptCmdReward *reward = &gProgress->reward;
 
     if (phase == GSC_PHASE_BEGIN || phase == GSC_PHASE_BEGIN_ABORT) {
-        reward->unk0[0] = Gsc_GetInt();
-        reward->unk0[1] = Gsc_GetInt();
-        reward->unk0[2] = Gsc_GetInt();
-        reward->unkC[0] = Gsc_GetInt();
-        reward->unkC[1] = Gsc_GetInt();
-        reward->unkC[2] = Gsc_GetInt();
-        reward->unk24[0] = Gsc_GetInt();
-        reward->unk24[1] = Gsc_GetInt();
-        reward->unk24[2] = Gsc_GetInt();
-        reward->unk18[0] = Gsc_GetInt();
-        reward->unk18[1] = Gsc_GetInt();
-        reward->unk18[2] = Gsc_GetInt();
-        reward->unk30[0] = Gsc_GetInt();
-        reward->unk30[1] = Gsc_GetInt();
-        reward->unk30[2] = Gsc_GetInt();
+        reward->points[0] = Gsc_GetInt();
+        reward->points[1] = Gsc_GetInt();
+        reward->points[2] = Gsc_GetInt();
+        reward->item[0] = Gsc_GetInt();
+        reward->item[1] = Gsc_GetInt();
+        reward->item[2] = Gsc_GetInt();
+        reward->stage[0] = Gsc_GetInt();
+        reward->stage[1] = Gsc_GetInt();
+        reward->stage[2] = Gsc_GetInt();
+        reward->chara[0] = Gsc_GetInt();
+        reward->chara[1] = Gsc_GetInt();
+        reward->chara[2] = Gsc_GetInt();
+        reward->episode[0] = Gsc_GetInt();
+        reward->episode[1] = Gsc_GetInt();
+        reward->episode[2] = Gsc_GetInt();
     }
     return 1;
 }

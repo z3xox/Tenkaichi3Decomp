@@ -3571,3 +3571,32 @@ A copy whose MP3 is gone stays a song, and an ADX without the mark (made by hand
 left out. The files are not touched. Counted at start, four folders: MP3 + its copy + WAV + FLAC gave 3 songs
 (4 before); the copy alone 1; a hand-made ADX beside an MP3 of the same name 2; the list naming the copy 3. Heard
 (Linux): WAV and FLAC songs in a fight, and the MP3 beside its old ADX copy.
+
+## The game's code brought up to BT3-Decompiled of 2026-10-08 (2026-10-18)
+
+The port had the decompilation as of 2026-10-06 (commit 697d9e0); this merges BT3-Decompiled's main up to its last
+commit (2026-10-08). What that brings: the last 44 functions the port still compiled from their `#if 0` attempts
+are now the matching C (no INCLUDE_ASM is left in src/), and the decompilation's renaming: about 300 files moved or
+folded together (src/ui/ is new, from battle/view_* and sys/late_*), 48 headers renamed, about 1,500 structure fields
+and 170 functions and globals named.
+
+What was changed on the PC side to follow it:
+- the 31 merge conflicts: every `#ifdef PORT` block kept (272 before and after), with the new field, parameter and
+  file names; the two that sat in files the decompilation folded into others (btl_act_e.c, view_b.c) moved with
+  their functions (btl_act_2.c, ui/menu_util_1.c);
+- port/tools/portsrc.py lists src/ui/, and the four vector-library files it leaves out have their new names;
+- includes of renamed headers, old file names in comments, and the function and data names of
+  docs/names/renamed_2026_10_08.tsv and names_from_locals.tsv applied in port/ (port/data's labels included:
+  only labels changed there, so index.txt and the values fetched from the disc are the same);
+  `D_3BE71C` is `gProgramImageEnd` in link.py and macwin.py;
+- PORT guards for two fake matches that name PS2 registers (EftStreak_Draw, the one in shen_wish.c), and casts in
+  Flash_ClipSetCallbackA / B / C, which share a file with the setters they call now (s32 parameters: the 64-bit
+  build's pointer pass rejects a pointer there).
+
+Checked (Linux, without a disc: BT3_SKELETON=1): the 32-bit gcc build and the 64-bit clang build compile every
+file, and the 64-bit program links (same 103 stubs, same 69 tables and 210773 bytes to fetch as before the merge).
+Function by function against the build before the merge (objects of the 64-bit build): 9221 of 9796 functions
+identical, 346 the same code with renamed call targets, 228 different: 28 of them the newly matched functions,
+the others files the decompilation folded together (callees inlined, globals reached another way, 4-byte
+pointer results zero-extended where a declaration now says what they are). NOT checked: the game itself (no disc
+here); the replay comparison and a session online should be run before a release.

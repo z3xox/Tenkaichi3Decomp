@@ -1281,7 +1281,7 @@ static uint64_t sWallTex0; /* TEX0 of the wall's texture: the triangles drawn wi
 static float sWallUs = 1.0f, sWallVs = 1.0f;
 extern int gsInterp;
 
-/* From the game (src/battle/eft_g.c, EftBound_DrawMesh / EftBound_DrawMeshCulled), each time it draws a wall mesh:
+/* From the game (src/battle/eft_shot.c, EftBound_DrawMesh / EftBound_DrawMeshCulled), each time it draws a wall mesh:
    the 24 points before anything is cut off, the quads, the view's matrix. */
 void Port_WallMesh(const void *key, int second, int culled, const float *screen, const float *cam, const float *vtx, int quadCount,
                    const void *quads, unsigned long long tex0) {
@@ -2086,7 +2086,7 @@ void GsDraw_FullscreenToggle(void) {
    are the window's. */
 /* For the game's code: whether an effect of the settings window is switched off (the bits of fx_off). Asked by the
    one effect that is left out where the game draws it and not here: the blur while the view turns (32,
-   src/sys/gfxm_a.c StgPanBlur_Draw), which is several passes through work buffers. */
+   src/sys/gfx_post.c StgPanBlur_Draw), which is several passes through work buffers. */
 int Port_FxOff(int bit) {
     return (gsFxOff & (unsigned)bit) != 0;
 }

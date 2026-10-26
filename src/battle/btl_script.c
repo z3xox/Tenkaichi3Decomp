@@ -49,7 +49,7 @@ extern void Font_Flush(s32 state);
 extern s32 BtlCtrl_IsActiveDead(s32 side);
 extern void HudPrompt_ShowCue(void);
 extern void HudPrompt_HideCue(void);
-extern void HudPrompt_SetCueDim(s32 arg);
+extern void HudPrompt_SetCueDim(s32 canAct);
 extern s32 BtlCtrl_GetActiveMember(s32 side);
 
 extern List gGscTaskList;
@@ -221,7 +221,7 @@ void BtlScript_UpdateView(void) {
         Font_PushStyle();
         Font_SetStyle(window);
         text = BtlScript_GetText(work->textId);
-        Font_PrintAt(window->unk48, window->unk4C - Font_GetHeight(text), text);
+        Font_PrintAt(window->x, window->y - Font_GetHeight(text), text);
         Font_PopStyle();
         Font_Flush(state);
     }
@@ -496,9 +496,9 @@ void BtlScript_StartWaitEvents(void) {
         if (req->kind == BTL_SCRIPT_REQ_EVENT && req->trigger == BTL_SCRIPT_TRIGGER_WAIT_OFF) {
             cur = &work->cur;
             *cur = req->u.start;
-            Gsc_KillTask(ev->unk4);
+            Gsc_KillTask(ev->mainAction);
             BtlScript_ResetView();
-            ev->unk4 = Gsc_StartAction(ev->script, cur->action);
+            ev->mainAction = Gsc_StartAction(ev->script, cur->action);
         }
     }
 }
@@ -632,9 +632,9 @@ void BtlScript_StartPending(void) {
         cur = &work->cur;
         if (ok) {
             *cur = work->pending->u.start;
-            Gsc_KillTask(ev->unk4);
+            Gsc_KillTask(ev->mainAction);
             BtlScript_ResetView();
-            ev->unk4 = Gsc_StartAction(ev->script, cur->action);
+            ev->mainAction = Gsc_StartAction(ev->script, cur->action);
         }
     }
 }

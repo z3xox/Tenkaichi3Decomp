@@ -53,13 +53,13 @@ extern s32 BtlInput_IsHeld(BtlMoveChr *chr, u32 mask);
 
 extern s32 BtlAnim_TestAttr(BtlMoveChr *chr, u64 mask);
 extern void BtlCharSnd_PlayStream(BtlMoveChr *chr, s32 id);
-extern void BtlAnim_SetUnkC8C(BtlMoveChr *chr, f32 v);
-extern void BtlAnim_SetStep(BtlMoveChr *chr, f32 v);
+extern void BtlAnim_SetSubMix(BtlMoveChr *chr, f32 mix);
+extern void BtlAnim_SetStep(BtlMoveChr *chr, f32 step);
 extern void BtlAnim_ApplyBlend(BtlMoveChr *chr);
 extern void BtlAct_Update(BtlMoveChr *chr);
 extern BtlMoveBlastList *EftHit_GetList(void);
-extern s32 BtlParam_GetCount80(BtlMoveChr *chr);
-extern s32 BtlParam_GetUnk82(BtlMoveChr *chr);
+extern s32 BtlParam_GetBlastLimitA(BtlMoveChr *chr);
+extern s32 BtlParam_GetBlastLimitB(BtlMoveChr *chr);
 extern f32 BtlInput_GetStickX(BtlMoveChr *chr);
 extern f32 BtlInput_GetStickY(BtlMoveChr *chr);
 extern f32 BtlOpp_GetYaw(BtlMoveChr *chr);
@@ -73,7 +73,7 @@ extern void BtlOpp_GetTargetPos(BtlMoveChr *chr, Vec4 *out);
 extern void BtlOpp_GetVelocity(BtlMoveChr *chr, Vec4 *out);
 extern void BtlOpp_GetObjVecFA0(BtlMoveChr *chr, Vec4 *out);
 extern void BtlCharApi_GetBodyPos(s32 objId, Vec4 *out);
-extern void BtlChar_SetUnk1310(BtlMoveChr *chr, Vec4 *v);
+extern void BtlChar_RequestBodyWarp(BtlMoveChr *chr, Vec4 *pos);
 extern f32 BtlStage_GetInnerRadius(void);
 extern f32 BtlStage_GetTop(void);
 extern f32 BtlStage_GetBottom(void);
@@ -81,9 +81,9 @@ extern f32 BtlCharApi_GetHeight(s32 objId);
 extern f32 BtlOpp_GetHeight(BtlMoveChr *chr);
 extern void BtlChar_GetSnapPos(BtlMoveChr *chr, Vec4 *out, s32 slot);
 extern void BtlOpp_GetSnapPos(BtlMoveChr *chr, Vec4 *out, s32 slot);
-extern void BtlChar_GetSnapDelta(BtlMoveChr *chr, Vec4 *out, s32 a, s32 b);
+extern void BtlChar_GetSnapDelta(BtlMoveChr *chr, Vec4 *out, s32 from, s32 to);
 extern s32 BtlChars_IsTimeStopped(void);
-extern s32 BtlInput_TestAction(BtlMoveChr *chr, s32 id, s32 arg);
+extern s32 BtlInput_TestAction(BtlMoveChr *chr, s32 id, s32 want);
 extern f32 BtlMember_GetHealthRatio(BtlMoveChr *chr);
 extern s32 BtlMember_HasAbility(BtlMoveChr *chr, s32 ability);
 extern s32 BtlParam_GetFlags2(BtlMoveChr *chr);
@@ -143,7 +143,7 @@ void BtlMove_UpdateAnimVoice(BtlMoveChr *chr) {
 
 /* Resets the object's animation rates before the action handlers run: obj+0xC8C = 0, step (obj+0xC80) = 2. */
 void BtlMove_ResetAnimStep(BtlMoveChr *chr) {
-    BtlAnim_SetUnkC8C(chr, 0.0f);
+    BtlAnim_SetSubMix(chr, 0.0f);
     BtlAnim_SetStep(chr, 2.0f);
 }
 
@@ -174,7 +174,7 @@ s32 BtlMove_TestContact(BtlMoveChr *chr, s32 floor, f32 angle) {
         case 0:
             if (BtlChar_TestFlag(chr, 0xF)) {
                 found = 1;
-                Vec4_Copy(&n, &BtlChar_GetPos(chr)->unkC0);
+                Vec4_Copy(&n, &BtlChar_GetPos(chr)->groundNrm);
             }
             break;
         case 1:
@@ -217,7 +217,7 @@ s32 BtlMove_IsHeadingIntoWall(BtlMoveChr *chr, f32 angle) {
 }
 
 /* Counts the fighter's live blasts of one class (0: definition kinds 0, 4, 8; 1: the others), stores the count and
-   returns 1 while it is below the character's limit for the class (BtlParam_GetCount80 / BtlParam_GetUnk82). */
+   returns 1 while it is below the character's limit for the class (BtlParam_GetBlastLimitA / BtlParam_GetBlastLimitB). */
 s32 BtlMove_CanFireBlast(BtlMoveChr *chr, s32 mode, s32 *outCount) {
     s32 n = 0;
     BtlMoveBlastList *list = EftHit_GetList();
@@ -230,7 +230,7 @@ s32 BtlMove_CanFireBlast(BtlMoveChr *chr, s32 mode, s32 *outCount) {
         if (rec->type != 0) {
             continue;
         }
-        def = rec->def;
+        def = rec->atk;
         if (def == NULL) {
             continue;
         }
@@ -260,12 +260,12 @@ s32 BtlMove_CanFireBlast(BtlMoveChr *chr, s32 mode, s32 *outCount) {
     }
     switch (mode) {
     case 0:
-        if (n < BtlParam_GetCount80(chr)) {
+        if (n < BtlParam_GetBlastLimitA(chr)) {
             return 1;
         }
         break;
     case 1:
-        if (n < BtlParam_GetUnk82(chr)) {
+        if (n < BtlParam_GetBlastLimitB(chr)) {
             return 1;
         }
         break;
@@ -273,9 +273,9 @@ s32 BtlMove_CanFireBlast(BtlMoveChr *chr, s32 mode, s32 *outCount) {
     return 0;
 }
 
-/* Returns 1 when a live blast record of an enabled class (a: kinds 0/4/8, b: other kinds, c: type-1 records) is
+/* Returns 1 when a live blast record of an enabled class (uncharged: definition kinds 0/4/8, otherBlasts: the other kinds, techniques: type-1 records) is
    moving towards the fighter and would reach it within `limit` frames at its current speed. */
-s32 BtlMove_IsBlastIncoming(BtlMoveChr *chr, s32 a, s32 b, s32 c, f32 limit) {
+s32 BtlMove_IsBlastIncoming(BtlMoveChr *chr, s32 uncharged, s32 otherBlasts, s32 techniques, f32 limit) {
     Vec4 step;
     Vec4 d;
     BtlMoveBlastList *list = EftHit_GetList();
@@ -290,19 +290,19 @@ s32 BtlMove_IsBlastIncoming(BtlMoveChr *chr, s32 a, s32 b, s32 c, f32 limit) {
             continue;
         }
         if (rec->type == 0) {
-            if (rec->def == NULL) {
+            if (rec->atk == NULL) {
                 continue;
             }
-            switch (rec->def->kind) {
+            switch (rec->atk->kind) {
             case 0:
             case 4:
             case 8:
-                if (!a) {
+                if (!uncharged) {
                     continue;
                 }
                 break;
             default:
-                if (!b) {
+                if (!otherBlasts) {
                     continue;
                 }
                 break;
@@ -311,12 +311,12 @@ s32 BtlMove_IsBlastIncoming(BtlMoveChr *chr, s32 a, s32 b, s32 c, f32 limit) {
             if (rec->src == NULL) {
                 continue;
             }
-            switch (rec->src->unk4) {
+            switch (rec->src->slot) {
             case 0:
             case 1:
                 continue;
             default:
-                if (!c) {
+                if (!techniques) {
                     continue;
                 }
                 break;
@@ -443,7 +443,7 @@ void BtlMove_TurnYaw(BtlMoveChr *chr, s32 mode, f32 maxStep) {
         d = maxStep;
     }
     pose->yaw = BtlUtil_WrapAngle(pose->yaw + d);
-    pose->unkD4 = 0.0f;
+    pose->steerYaw = 0.0f;
 }
 
 /* Turns the heading pitch towards a target by at most maxStep. Modes: 0 stick y as a rate (clamped to +-(pi/2 - 0.01)),
@@ -489,7 +489,7 @@ void BtlMove_TurnPitch(BtlMoveChr *chr, s32 mode, f32 maxStep) {
                 to.y += to.y;
             }
             eps = 0.01f;
-            Vec4_Copy(&vel, &BtlChar_GetPos(chr)->unk30);
+            Vec4_Copy(&vel, &BtlChar_GetPos(chr)->vel);
             BtlOpp_GetPoseVec30(chr, &oppVel);
             speed = Vec3_Length(&vel);
             oppSpeed = Vec3_Length(&oppVel);
@@ -544,7 +544,7 @@ void BtlMove_TurnPitch(BtlMoveChr *chr, s32 mode, f32 maxStep) {
         d = maxStep;
     }
     pose->pitch = BtlUtil_WrapAngle(pose->pitch + d);
-    pose->unkD8 = 0.0f;
+    pose->steerPitch = 0.0f;
 }
 
 /* Homing dash: heads for the opponent with a stick-controlled offset. The offset goal is (pi/2 * stick), scaled down
@@ -561,8 +561,8 @@ void BtlMove_SteerAtOpponent(BtlMoveChr *chr, f32 closeSpeed, f32 yawAccel, f32 
     f32 oppSpeed;
     f32 t;
     f32 k;
-    f32 k2;
-    f32 goal2;
+    f32 pitchGain;
+    f32 pitchGoal;
     f32 cur;
     f32 diff;
     f32 goal;
@@ -582,7 +582,7 @@ void BtlMove_SteerAtOpponent(BtlMoveChr *chr, f32 closeSpeed, f32 yawAccel, f32 
     if (dist < 0.0f) {
         dist = 0.0f;
     }
-    Vec4_Copy(&vel, &pose->unk30);
+    Vec4_Copy(&vel, &pose->vel);
     BtlOpp_GetPoseVec30(chr, &oppVel);
     speed = Vec3_Length(&vel);
     oppSpeed = Vec3_Length(&oppVel);
@@ -599,29 +599,29 @@ void BtlMove_SteerAtOpponent(BtlMoveChr *chr, f32 closeSpeed, f32 yawAccel, f32 
         k = t * 0.5f;
     }
     goal = BtlUtil_ClampF(k * 1.5707963f * BtlInput_GetStickX(chr), -yawMax, yawMax);
-    diff = goal - pose->unkD4;
-    pose->unkD4 = BtlUtil_ApproachF(pose->unkD4, goal, BtlUtil_MinF(__builtin_fabsf(diff), yawAccel));
-    goal = BtlUtil_WrapAngle(atan2f(to.x, to.z) + pose->unkD4);
+    diff = goal - pose->steerYaw;
+    pose->steerYaw = BtlUtil_ApproachF(pose->steerYaw, goal, BtlUtil_MinF(__builtin_fabsf(diff), yawAccel));
+    goal = BtlUtil_WrapAngle(atan2f(to.x, to.z) + pose->steerYaw);
     pose->yaw = BtlUtil_WrapAngle(pose->yaw + BtlUtil_ClampF(BtlUtil_WrapAngle(goal - pose->yaw), -maxStep, maxStep));
     if (2.0f < t) {
-        k2 = 1.0f;
+        pitchGain = 1.0f;
     } else {
-        k2 = t * 0.5f;
+        pitchGain = t * 0.5f;
     }
     Vec4_Copy(&n, &to);
     Vec3_Normalize(&n, &n);
     n.y = BtlUtil_ClampF(n.y, -1.0f, 1.0f);
     base = -Mathf_Asin(n.y);
-    goal2 = BtlUtil_ClampF(-k2 * 1.5707963f * BtlInput_GetStickY(chr), -pitchMax, pitchMax);
-    cur = pose->unkD8;
-    diff = goal2 - cur;
+    pitchGoal = BtlUtil_ClampF(-pitchGain * 1.5707963f * BtlInput_GetStickY(chr), -pitchMax, pitchMax);
+    cur = pose->steerPitch;
+    diff = pitchGoal - cur;
     step = __builtin_fabsf(diff);
     if (pitchAccel < step) {
         step = pitchAccel;
     }
-    pose->unkD8 = BtlUtil_ApproachF(cur, goal2, step);
-    goal2 = BtlUtil_WrapAngle(base + pose->unkD8);
-    pose->pitch = BtlUtil_WrapAngle(pose->pitch + BtlUtil_ClampF(BtlUtil_WrapAngle(goal2 - pose->pitch), -maxStep, maxStep));
+    pose->steerPitch = BtlUtil_ApproachF(cur, pitchGoal, step);
+    pitchGoal = BtlUtil_WrapAngle(base + pose->steerPitch);
+    pose->pitch = BtlUtil_WrapAngle(pose->pitch + BtlUtil_ClampF(BtlUtil_WrapAngle(pitchGoal - pose->pitch), -maxStep, maxStep));
     if (t < 1.0f) {
         pose->pitch = pose->pitch * t;
     }
@@ -683,8 +683,8 @@ void BtlMove_TurnToPoint(BtlMoveChr *chr, Vec4 *target, f32 yawStep, f32 pitchSt
     }
     pitch = -Mathf_Asin(d.y);
     pose->pitch = BtlUtil_WrapAngle(pose->pitch + BtlUtil_ClampF(BtlUtil_WrapAngle(pitch - pose->pitch), -pitchStep, pitchStep));
-    pose->unkD4 = 0.0f;
-    pose->unkD8 = 0.0f;
+    pose->steerYaw = 0.0f;
+    pose->steerPitch = 0.0f;
 }
 
 /* Builds the unit direction of travel. Modes: 0 stick rotated by the camera yaw (horizontal), 1 the same tilted by
@@ -834,7 +834,7 @@ void BtlMove_WarpAheadOfOpponent(BtlMoveChr *chr, f32 lead) {
             ofs.z *= len;
         }
         Vec4_Add(&pose->pos, &opp, &ofs);
-        rad = BtlChar_GetObj(chr)->unkFA0->radius;
+        rad = BtlChar_GetObj(chr)->bodySphere->radius;
         rad = BtlStage_GetInnerRadius() - rad;
         lim = BtlUtil_LengthXZ(&pose->pos);
         if (rad < lim) {
@@ -905,8 +905,8 @@ void BtlMove_SnapToOpponent(BtlMoveChr *chr) {
     Vec4_Add(&pose->pos, &pose->pos, &d);
     pose->speed = 0.0f;
     pose->fallSpeed = 0.0f;
-    Vec4_SetZero(&pose->unk70);
-    BtlChar_SetUnk1310(chr, &opp);
+    Vec4_SetZero(&pose->impulse);
+    BtlChar_RequestBodyWarp(chr, &opp);
     BtlChar_SetFlag(chr, 0x3F);
     BtlChar_SetFlag(chr, 0x24);
 }
@@ -1127,21 +1127,21 @@ void BtlMove_ApplyGravity(BtlMoveChr *chr) {
 }
 
 /* Sets the model's forward lean, clamped to +-(pi/2 - 0.01). */
-void BtlMove_SetLeanX(BtlMoveChr *chr, f32 v) {
+void BtlMove_SetLeanX(BtlMoveChr *chr, f32 angle) {
     BtlMovePose *pose = BtlChar_GetPos(chr);
 
-    if (v < -BTL_PITCH_MAX) {
-        v = -BTL_PITCH_MAX;
+    if (angle < -BTL_PITCH_MAX) {
+        angle = -BTL_PITCH_MAX;
     }
-    if (BTL_PITCH_MAX < v) {
-        v = BTL_PITCH_MAX;
+    if (BTL_PITCH_MAX < angle) {
+        angle = BTL_PITCH_MAX;
     }
-    pose->unkA0 = v;
+    pose->leanX = angle;
 }
 
 /* Sets the model's sideways lean. */
-void BtlMove_SetLeanZ(BtlMoveChr *chr, f32 v) {
-    BtlChar_GetPos(chr)->unkA4 = v;
+void BtlMove_SetLeanZ(BtlMoveChr *chr, f32 angle) {
+    BtlChar_GetPos(chr)->leanZ = angle;
 }
 
 /* 1 when the push-out moved the fighter this frame (flag 0x5E) and the two overlap in height (or flag 0x5F). */
@@ -1171,7 +1171,7 @@ s32 BtlMove_IsBlockedByOpponent(BtlMoveChr *chr) {
 void BtlMove_ClampToStage(BtlMoveChr *chr) {
     BtlMovePose *pose = BtlChar_GetPos(chr);
     f32 r = BtlUtil_LengthXZ(&pose->pos);
-    f32 rad = BtlChar_GetObj(chr)->unkFA0->radius;
+    f32 rad = BtlChar_GetObj(chr)->bodySphere->radius;
     f32 lim = BtlStage_GetInnerRadius() - rad;
 
     if (lim < r) {
@@ -1486,7 +1486,7 @@ f32 BtlMove_CalcJumpSpeed(f32 height) {
 
 /* Sets the impulse velocity (knock-back) unless the current one is larger. */
 void BtlMove_SetImpulse(BtlMoveChr *chr, Vec4 *vel) {
-    Vec4 *cur = &BtlChar_GetPos(chr)->unk70;
+    Vec4 *cur = &BtlChar_GetPos(chr)->impulse;
 
     if (Vec3_Length(cur) < Vec3_Length(vel)) {
         Vec4_Copy(cur, vel);
@@ -1519,7 +1519,7 @@ void BtlMove_DeflectAtStageLimit(BtlMoveChr *chr, s32 back) {
     if (BtlChar_TestFlag(chr, 0x14) && 0.0f < BtlUtil_LengthXZ(&pose->pos)) {
         f32 a;
 
-        if (0.0f < pose->pos.x * pose->unk30.z - pose->pos.z * pose->unk30.x) {
+        if (0.0f < pose->pos.x * pose->vel.z - pose->pos.z * pose->vel.x) {
             a = atan2f(pose->pos.z, -pose->pos.x);
         } else {
             a = atan2f(-pose->pos.z, pose->pos.x);
@@ -1559,7 +1559,7 @@ s32 BtlMove_ApplyImpulse(BtlMoveChr *chr) {
     BtlMovePose *pose = BtlChar_GetPos(chr);
 
     if (!BtlChars_IsTimeStopped()) {
-        Vec4 *vel = &pose->unk70;
+        Vec4 *vel = &pose->impulse;
         f32 len;
 
         Vec4_Add(&pose->pos, &pose->pos, vel);
@@ -1578,41 +1578,41 @@ void BtlMove_UpdateHoverOffset(BtlMoveChr *chr) {
     BtlMovePose *pose = BtlChar_GetPos(chr);
     f32 a;
 
-    Vec4_SetZero(&pose->unk20);
+    Vec4_SetZero(&pose->dispOfs);
     if (BtlChar_TestFlag(chr, 0x29)) {
-        pose->unkA8 = 0.0f;
+        pose->hoverPhase = 0.0f;
     }
     if (BtlChars_IsTimeStopped()) {
         return;
     }
     if (BtlChar_TestFlag(chr, 0xE) && BtlChar_TestFlag(chr, 0x1C)) {
-        pose->unkA8 = BtlUtil_WrapAngle(pose->unkA8 + BTL_DEG(6.0f));
+        pose->hoverPhase = BtlUtil_WrapAngle(pose->hoverPhase + BTL_DEG(6.0f));
     } else {
-        if (1.5707963f < pose->unkA8) {
-            pose->unkA8 = 3.14159265f - pose->unkA8;
+        if (1.5707963f < pose->hoverPhase) {
+            pose->hoverPhase = 3.14159265f - pose->hoverPhase;
         }
-        if (pose->unkA8 < -1.5707963f) {
-            pose->unkA8 = -3.14159265f - pose->unkA8;
+        if (pose->hoverPhase < -1.5707963f) {
+            pose->hoverPhase = -3.14159265f - pose->hoverPhase;
         }
-        if (0.0f < pose->unkA8) {
-            pose->unkA8 -= BTL_DEG(6.0f);
-            if (pose->unkA8 < 0.0f) {
-                pose->unkA8 = 0.0f;
+        if (0.0f < pose->hoverPhase) {
+            pose->hoverPhase -= BTL_DEG(6.0f);
+            if (pose->hoverPhase < 0.0f) {
+                pose->hoverPhase = 0.0f;
             }
         }
-        if (pose->unkA8 < 0.0f) {
-            pose->unkA8 += BTL_DEG(6.0f);
-            if (0.0f < pose->unkA8) {
-                pose->unkA8 = 0.0f;
+        if (pose->hoverPhase < 0.0f) {
+            pose->hoverPhase += BTL_DEG(6.0f);
+            if (0.0f < pose->hoverPhase) {
+                pose->hoverPhase = 0.0f;
             }
         }
     }
-    pose->unk20.y = Mathf_Sin(pose->unkA8) * 2.0f;
-    if (chr->unkFE8 > 0) {
-        f32 k = ((f32)(chr->unkFE8 & 1) - 0.5f) * 0.5f;
+    pose->dispOfs.y = Mathf_Sin(pose->hoverPhase) * 2.0f;
+    if (chr->shakeTimer > 0) {
+        f32 k = ((f32)(chr->shakeTimer & 1) - 0.5f) * 0.5f;
 
-        pose->unk20.x = -Mathf_Cos(pose->yaw) * k;
-        pose->unk20.z = Mathf_Sin(pose->yaw) * k;
+        pose->dispOfs.x = -Mathf_Cos(pose->yaw) * k;
+        pose->dispOfs.z = Mathf_Sin(pose->yaw) * k;
     }
 }
 
@@ -1626,8 +1626,8 @@ void BtlMove_UpdateDefenseTimers(BtlMoveChr *chr) {
     }
     if (BtlChar_TestFlag(chr, 0x12C)) {
         chr->unk1068 = -30;
-        chr->unk106C = -30;
-        chr->unk107C = -30;
+        chr->dodgeWindow = -30;
+        chr->rushBreakWindow = -30;
     }
     chr->unk1068--;
     if (chr->unk1068 < -30) {
@@ -1645,34 +1645,34 @@ void BtlMove_UpdateDefenseTimers(BtlMoveChr *chr) {
         if (on) {
             chr->unk1068 = -1;
         }
-        if (chr->unkFB0 != 1) {
+        if (chr->reaction != 1) {
             chr->unk1068 = -30;
         }
     }
-    chr->unk106C--;
-    if (chr->unk106C < -30) {
-        chr->unk106C = -30;
+    chr->dodgeWindow--;
+    if (chr->dodgeWindow < -30) {
+        chr->dodgeWindow = -30;
         if (on) {
             if (BtlChar_TestFlag(chr, 0x138)) {
-                chr->unk106C = 4;
+                chr->dodgeWindow = 4;
             } else {
-                chr->unk106C = 2;
+                chr->dodgeWindow = 2;
             }
         }
     } else {
         if (on) {
-            chr->unk106C = -1;
+            chr->dodgeWindow = -1;
         }
     }
-    chr->unk1070--;
-    if (chr->unk1070 < -30) {
-        chr->unk1070 = -30;
+    chr->counterWindow--;
+    if (chr->counterWindow < -30) {
+        chr->counterWindow = -30;
         if (BtlInput_TestAction(chr, 0x26, 1)) {
-            chr->unk1070 = 1;
+            chr->counterWindow = 1;
         }
     } else {
         if (BtlInput_TestAction(chr, 0x26, 1)) {
-            chr->unk1070 = -1;
+            chr->counterWindow = -1;
         }
     }
     chr->unk1074--;
@@ -1682,26 +1682,26 @@ void BtlMove_UpdateDefenseTimers(BtlMoveChr *chr) {
             chr->unk1074 = 5;
         }
     }
-    chr->unk1078--;
-    if (chr->unk1078 < -30) {
-        chr->unk1078 = -30;
+    chr->throwBreakWindow--;
+    if (chr->throwBreakWindow < -30) {
+        chr->throwBreakWindow = -30;
         if (on) {
-            chr->unk1078 = 5;
+            chr->throwBreakWindow = 5;
         }
     }
-    chr->unk107C--;
-    if (chr->unk107C < -30) {
-        chr->unk107C = -30;
+    chr->rushBreakWindow--;
+    if (chr->rushBreakWindow < -30) {
+        chr->rushBreakWindow = -30;
         if (on) {
             if (BtlChar_TestFlag(chr, 0x138)) {
-                chr->unk107C = 4;
+                chr->rushBreakWindow = 4;
             } else {
-                chr->unk107C = 2;
+                chr->rushBreakWindow = 2;
             }
         }
     } else {
         if (on) {
-            chr->unk107C = -1;
+            chr->rushBreakWindow = -1;
         }
     }
     if (BtlParam_GetFlags2(chr) & 8) {
@@ -1716,6 +1716,6 @@ void BtlMove_UpdateDefenseTimers(BtlMoveChr *chr) {
         chr->unk1080 = -1;
     }
     if (BtlChar_TestFlag(chr, 0x80) && BtlMember_HasAbility(chr, 0x38)) {
-        chr->unk106C = 1;
+        chr->dodgeWindow = 1;
     }
 }

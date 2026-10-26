@@ -1096,7 +1096,7 @@ static void labels_take(void) {
     if (battleId != 0 && sBattleChoice == 0) { set_battle_font(font_by_id(battleId)); }
 }
 
-/* ---- the label of the PC's item of the main menu (src/menu/menu_a.c) ----
+/* ---- the label of the PC's item of the main menu (src/menu/main_menu.c) ----
    Made from the player's disc (MenuLabels_MainItem) in a thread of its own, started with the first frame, so that it is
    there when the main menu is first set up; the menu waits for it if not. */
 static unsigned char *sItemPic[2];

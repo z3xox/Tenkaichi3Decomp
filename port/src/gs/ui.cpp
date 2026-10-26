@@ -2101,7 +2101,7 @@ extern "C" void Port_UiBanner(const char *text, int ms) {
     sBannerUntil = ms > 0 ? SDL_GetTicks() + (Uint64)ms : 0;
 }
 
-// The save icon (quick saving, src/sys/mcflow_a.c): a small memory card in the bottom right corner of the picture
+// The save icon (quick saving, src/sys/memcard_flow.c): a small memory card in the bottom right corner of the picture
 // while the game saves, at least a second, then it fades. Set from the game's thread: 1 saving, 0 saved, -1 the
 // game's own window took over (an error: the icon goes at once).
 static volatile int sSaving;

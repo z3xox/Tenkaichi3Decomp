@@ -587,7 +587,7 @@ static void items_generic(const uint8_t *d, size_t n) {
     }
 }
 
-/* Entry 1 of a stage file is the stage object (BtlStage; relocated by BtlStage_Relocate, src/sys/gfxm_e_d.c):
+/* Entry 1 of a stage file is the stage object (BtlStage; relocated by BtlStage_Relocate, src/battle/stg_reloc.c):
    a header of counts and offsets, every offset in WORDS from the entry's start. The stage's texture file lies in
    the middle of the entry, the collision behind it, so nothing here may say where a table is. Four items:
      nodes       the timers and the transform nodes (with the debris keys)

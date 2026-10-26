@@ -23,7 +23,7 @@ extern BattleWork gBattleWork;
 extern s32 gBtlScriptCommands[]; /* table handed to Gsc_InitDefault */
 
 extern s32 BtlObj_CreateChara(s32 id);
-extern void BtlObj_Init(s32 arg);
+extern void BtlObj_Init(s32 prealloc);
 extern void BtlObj_Term(void);
 extern void Gsc_InitDefault(s32 *tbl);
 extern void Gsc_Exit(void);
@@ -63,7 +63,7 @@ void Battle_ResetWork(void) {
     if (Battle_GetMode() == 1) {
         ev = Battle_GetEventWork();
         BtlScript_Restart();
-        ev->unk4 = Gsc_StartMain(ev->script);
+        ev->mainAction = Gsc_StartMain(ev->script);
     }
 }
 

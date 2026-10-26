@@ -13,7 +13,7 @@
  * Everything this file calls outside itself is another module that is not decompiled. The names used for
  * the task system (BtlTask*), BtlChar_FindByObjId and BtlStage_IsReady are guesses recorded in
  * config/symbols/btl_scene.txt; Battle_GetStage, Battle_IsTimeLimitOff, Battle_GetTimeLimit and
- * Battle_GetRuleUnk10 come from battle/battle_setup.h.
+ * Battle_IsStageChangeEnabled come from battle/battle_setup.h.
  * The callees still called func_XXXXXXXX, from a first read of their code:
  *
  *   next module (blast records, gp 0x2FE9A8; 0x12DD80..0x12EEA0)
@@ -34,7 +34,7 @@
  *     BtlCharApi_GetHeight(i)   BtlObj_Get(i)->0xFF4 as float, 10.0 when there is no object
  *     BtlCharApi_IsFighter(id)  1 when a fighter has this object id
  *     BtlCharApi_GetOpponentObjId(id)  object id of that fighter's opponent
- *     BtlCharApi_GetPlayerObjUnk58(i)   pack pointer of fighter i (0x1DC280 -> +0x58)
+ *     BtlCharApi_GetPlayerCharPack(i)   pack pointer of fighter i (0x1DC280 -> +0x58)
  *     BtlCharApi_IsHidden(id)  bit 1 of object +0xA40, inverted
  *     BtlCharApi_IsFrozen(id)  the fighter is in hit-stop (+0x1320 > 0); BtlCharApi_AnyFrozen() any fighter is
  *     BtlCharApi_IsInRushSequence(id)  action id in 0x12D..0x12F or 0x139..0x13B
@@ -52,9 +52,9 @@
 extern void *memset(void *dst, s32 c, u32 n);
 
 extern BtlTaskClass gBtlSceneRootClass; /* 0x2C3490: {BtlSceneRoot_Update, BtlSceneRoot_Init, BtlSceneRoot_Term} */
-extern BtlTaskClass D_002C3550;         /* layer 0 */
-extern BtlTaskClass D_002C35D0;         /* layer 4 */
-extern BtlTaskClass D_002C36D0;         /* layer 1 */
+extern BtlTaskClass gEftStageClass;         /* layer 0 */
+extern BtlTaskClass gEftBurstLayerClass;         /* layer 4 */
+extern BtlTaskClass gEftShotMgrClass;         /* layer 1 */
 extern BtlTaskClass gEftCharRootClass;         /* layer 2 */
 extern BtlTaskClass gEftLayer3Class;         /* layer 3 */
 
@@ -106,7 +106,7 @@ extern s32 BtlChars_IsTimeStopped(void);
 extern f32 BtlCharApi_GetHeight(s32 objId);
 extern s32 BtlCharApi_IsFighter(s32 objId);
 extern s32 BtlCharApi_GetOpponentObjId(s32 objId);
-extern s32 *BtlCharApi_GetPlayerObjUnk58(s32 side);
+extern s32 *BtlCharApi_GetPlayerCharPack(s32 side);
 extern s32 BtlCharApi_IsHidden(s32 objId);
 extern s32 BtlCharApi_IsFrozen(s32 objId);
 extern s32 BtlCharApi_AnyFrozen(void);
@@ -251,7 +251,7 @@ s32 BtlScene_TestCharPackBit(s32 side, s32 bit) {
 
 /* Returns entry idx of a character's pack (0x2053B0), or NULL when the character has none. */
 s32 *BtlScene_GetCharPackEntry(s32 side, s32 idx) {
-    s32 *base = BtlCharApi_GetPlayerObjUnk58(side);
+    s32 *base = BtlCharApi_GetPlayerCharPack(side);
 
     if (base != NULL) {
         return (s32 *)((u8 *)base + ((u32)base[idx] >> 2 << 2));
@@ -406,7 +406,7 @@ void BtlScene_FreeLayer0(void) {
 /* Creates layer 0 at the head of the group if it does not exist. */
 void BtlScene_CreateLayer0(void) {
     if (gBtlScene->layer[0] == NULL) {
-        gBtlScene->layer[0] = BtlTaskList_AddHead(gBtlScene->group, &D_002C3550, NULL);
+        gBtlScene->layer[0] = BtlTaskList_AddHead(gBtlScene->group, &gEftStageClass, NULL);
     }
 }
 
@@ -477,34 +477,8 @@ s32 BtlScene_IsEffectStopped(s32 objId, s32 kind) {
 }
 
 /* Second per-kind test of the tasks, on the object's state (0x205DC8) and its fighter's actions. */
-#if 0
-/* Not matching (12 of 92 after alignment, 90 instructions against 92): only the tails of the first switch differ.
- * Before delay-slot filling this C gives: case 0 `beqz v0,END / X: s2 = 1 / b END`, case 1 `bnez v0,END / b X`,
- * cases 3 and 6 `beq -> X`: the final jump pass has cross-jumped the three `result = 1; break;` tails into the
- * copy of case 0, whose label X then stops the "branch around one instruction" rewrite. The original shows that
- * rewrite in BOTH case 0 and case 1 (`bnezl v0,END / li s2,1 / b END+4 / li v0,4`, and `beqzl` in case 1), so
- * there each case still had its own unlabelled `result = 1` and the block of cases 3 / 6 was separate (its
- * `li s2,1` went into the delay slot of `beq kind,3`, and the block then disappeared). What kept the three
- * tails from being cross-jumped is not found. Tried: all 24 orders of the four case groups with two forms of
- * each test, eight statement forms per case (if / break-first / ternary / ++ / |= / else forms), a goto to a
- * shared label. The default case no longer needs the `one` variable: two plain ifs give the original's
- * `li s0,1` (in the delay slot of the first call) and `sltu` / `movz`. Behaviour is the same as the original.
- * Cleanup 4 (reorg / jump behaviour worked out from dumps, 130 more forms):
- * - The rewrite in cases 0 and 1 is reorg's optimize_skip: `beqz v0,END / li s2,1 / b END` (a branch around ONE
- *   unlabelled instruction that is followed by a jump to the branch's own target) becomes `bnezl v0,END /
- *   li s2,1`. So before reorg both cases had their own unlabelled `result = 1` and cases 3 / 6 a third copy
- *   (label X; both dispatch branches then take X's `li s2,1` into a delay slot or find it redundant, and X
- *   is deleted as unreachable). The dispatch ends `beq kind,6,X / b default`, so X did not directly follow it.
- * - Cross-jumping needs two matching instructions, or one when the copy it starts from is entered through a
- *   label. Cases 0 / 1 are entered by falling out of a conditional branch (no merge between them); the copy
- *   of cases 3 / 6 IS entered through a label, so it always merges into another copy, whose `li` then gets
- *   the label that blocks optimize_skip. That is the whole difference, and nothing tried keeps X apart.
- * - `if (!AnyFrozen()) break; goto hide;` with `hide:` in cases 3 / 6 placed FIRST gives case 0 exactly
- *   (`bnez X / b END` filled from X's thread), 7 differ; case 1's `beqz` is predicted not taken, takes the
- *   `li v0,4` of the following jump instead, and the dispatch falls into X (`bne kind,6,default`).
- * - Cases 3 / 6 last (behind `default`): the default's second `if` is no longer converted to a conditional
- *   move by the first jump pass (it must fall into the switch end for that) and merges with X: 51 to 114.
- * - An inline helper for the first switch (five shapes): 39 to 50. */
+/* Cases 3 and 6 are two separate bodies, as in BtlScene_IsEffectStopped above (needed to match: written as
+ * `case 3: case 6:` the shared `result = 1` is merged into case 0's copy and cases 0 / 1 lose their own). */
 s32 BtlScene_IsEffectHidden(s32 objId, s32 kind) {
     s32 result = 0;
 
@@ -521,6 +495,8 @@ s32 BtlScene_IsEffectHidden(s32 objId, s32 kind) {
             }
             break;
         case 3:
+            result = 1;
+            break;
         case 6:
             result = 1;
             break;
@@ -562,8 +538,6 @@ s32 BtlScene_IsEffectHidden(s32 objId, s32 kind) {
     }
     return result;
 }
-#endif
-INCLUDE_ASM("asm/nonmatchings/battle/btl_scene", BtlScene_IsEffectHidden);
 
 /* Asks BtlScene_CheckStageChange to change the stage on the next frame (no caller). */
 void BtlScene_RequestStageChange(void) {
@@ -586,7 +560,7 @@ void BtlScene_ClearStageChangeRequest(void) {
 /*
  * Once per frame, while fighting, outside modes 4..7 and with the time limit off or at least 10: looks for the
  * first active blast record whose definition is of type 1 (flags & 3) and, when that definition has bit 0x4000,
- * whose own flag 0x10 is set. hit is 1 when rule word 0x18 is on, EftHit_HasDefFlag200000(rec) holds and the opponent is
+ * whose own flag 0x10 is set. hit is 1 when rule word 0x10 (stageChange, setup + 0x18) is on, EftHit_HasDefFlag200000(rec) holds and the opponent is
  * below half HP (BtlCharApi_IsTargetBelowHalfHp), else 2 when BtlCharApi_CanTechniqueFinish holds. hit 1 marks the record (flags 2 and 8, two
  * separate stores in the source: with one `|= 0xA` the loop is short enough for the compiler to hoist its
  * constants) and asks for the stage change; hit 2 sets held flag 0xAB on the opponent. A pending
@@ -623,7 +597,7 @@ void BtlScene_CheckStageChange(void) {
         target = BtlCharApi_GetOpponentObjId(rec->objId);
         attr = EftHit_GetTaskFlags(i);
         if (rec->active != 0) {
-            if (Battle_GetRuleUnk10() && EftHit_HasDefFlag200000(rec) && BtlCharApi_IsTargetBelowHalfHp(rec->objId, target)) {
+            if (Battle_IsStageChangeEnabled() && EftHit_HasDefFlag200000(rec) && BtlCharApi_IsTargetBelowHalfHp(rec->objId, target)) {
                 hit = 1;
             } else if (BtlCharApi_CanTechniqueFinish(rec->objId, target)) {
                 hit = 2;
@@ -765,10 +739,10 @@ void BtlSceneRoot_Update(void) {
 /* Creates the layer tasks enabled in layerMask, in the order 0, 1, 2, 3, 4. */
 void BtlScene_CreateLayers(void *group) {
     if (gBtlScene->layerMask & 8) {
-        gBtlScene->layer[0] = BtlTaskList_AddTail(gBtlScene->group, &D_002C3550, NULL);
+        gBtlScene->layer[0] = BtlTaskList_AddTail(gBtlScene->group, &gEftStageClass, NULL);
     }
     if (gBtlScene->layerMask & 4) {
-        gBtlScene->layer[1] = BtlTaskList_AddTail(gBtlScene->group, &D_002C36D0, NULL);
+        gBtlScene->layer[1] = BtlTaskList_AddTail(gBtlScene->group, &gEftShotMgrClass, NULL);
     }
     if (gBtlScene->layerMask & 2) {
         gBtlScene->layer[2] = BtlTaskList_AddTail(gBtlScene->group, &gEftCharRootClass, NULL);
@@ -777,7 +751,7 @@ void BtlScene_CreateLayers(void *group) {
         gBtlScene->layer[3] = BtlTaskList_AddTail(gBtlScene->group, &gEftLayer3Class, NULL);
     }
     if (gBtlScene->layerMask & 0x10) {
-        gBtlScene->layer[4] = BtlTaskList_AddTail(gBtlScene->group, &D_002C35D0, NULL);
+        gBtlScene->layer[4] = BtlTaskList_AddTail(gBtlScene->group, &gEftBurstLayerClass, NULL);
     }
 }
 

@@ -4,11 +4,11 @@
  * Not sound code: this is the packet layer of the 3D renderer at 0x10AD58..0x116xxx (its only callers), placed between
  * the pad and sound objects. No function here uses $gp. Everything is built in the frame's DMA buffer (Dma_Alloc /
  * Dma_AddRef) as VIF1 source-chain packets for nine VU1 microprograms, which sit right after .text:
- *     prog 0  0x2BF6B0..0x2BFAB0     prog 3  0x2C01C0..0x2C04F0     prog 6  0x2C1F00..0x2C2D30
+ *     prog 0  0x2BF6B0..0x2BFAB0     prog 2b 0x2C01C0..0x2C04F0     prog 6  0x2C1F00..0x2C2D30
  *     prog 1  0x2BFAB0..0x2BFEA0     prog 4  0x2C04F0..0x2C1180     prog 7  0x2C2D30..0x2C3080
- *     prog 2  0x2BFEA0..0x2C01C0     prog 5  0x2C1180..0x2C1F00     prog 8  0x2C3080..0x2C3380
- * (the program numbers are only the address order. "prog 3" here is the second variant of program 2, called 2b in
- * the listings: src/vu1/prog*.vsm, described in docs/systems/vu1/README.md.)
+ *     prog 2a 0x2BFEA0..0x2C01C0     prog 5  0x2C1180..0x2C1F00     prog 8  0x2C3080..0x2C3380
+ * (there is no program 3: 2a and 2b are the two variants of program 2, picked by the argument of Vu1Pkt_LoadProg2.
+ * The listings are src/vu1/prog*.vsm, described in docs/systems/vu1/README.md.)
  *
  * Each program has a pair of builders:
  *   Vu1Pkt_LoadProgN  a "ref" tag that uploads the microprogram, then a "cnt" packet: FLUSHE, UNPACK V4-32 of the
@@ -65,7 +65,7 @@ u32 *Vu1Pkt_CallProg7(u32 chain, f32 w) {
 u32 *Vu1Pkt_LoadProg7(void) {
     u32 *p;
 
-    Dma_AddRef(D_002C2D30, D_002C3080 - D_002C2D30);
+    Dma_AddRef(gVu1Prog7, gVu1Prog8 - gVu1Prog7);
     p = Dma_Alloc(0xF0);
     Vu0Screen_StoreMtx(p + 0x14);
     Vu0Clip_StoreMtx(p + 0x24);
@@ -99,7 +99,7 @@ u32 *Vu1Pkt_CallProg0(u32 chain) {
 u32 *Vu1Pkt_LoadProg0(void) {
     u32 *p;
 
-    Dma_AddRef(D_002BF6B0, D_002BFAB0 - D_002BF6B0);
+    Dma_AddRef(gVu1Prog0, gVu1Prog1 - gVu1Prog0);
     p = Dma_Alloc(0x240);
     p[0] = VU1_DMA_CNT | 0x23;
     p[1] = 0;
@@ -131,7 +131,7 @@ u32 *Vu1Pkt_CallProg1(u32 obj) {
 u32 *Vu1Pkt_LoadProg1(void) {
     u32 *p;
 
-    Dma_AddRef(D_002BFAB0, D_002BFEA0 - D_002BFAB0);
+    Dma_AddRef(gVu1Prog1, gVu1Prog2a - gVu1Prog1);
     p = Dma_Alloc(0x240);
     p[0] = VU1_DMA_CNT | 0x23;
     p[1] = 0;
@@ -164,9 +164,9 @@ u32 *Vu1Pkt_LoadProg2(s32 alt) {
     u32 *p;
 
     if (alt) {
-        Dma_AddRef(D_002C01C0, D_002C04F0 - D_002C01C0);
+        Dma_AddRef(gVu1Prog2b, gVu1Prog4 - gVu1Prog2b);
     } else {
-        Dma_AddRef(D_002BFEA0, D_002C01C0 - D_002BFEA0);
+        Dma_AddRef(gVu1Prog2a, gVu1Prog2b - gVu1Prog2a);
     }
     p = Dma_Alloc(0x150);
     p[0] = VU1_DMA_CNT | 0x14;
@@ -198,7 +198,7 @@ void Vu1Pkt_CallProg4(u32 chain) {
 void Vu1Pkt_LoadProg4(void *mtx) {
     u32 *p;
 
-    Dma_AddRef(D_002C04F0, D_002C1180 - D_002C04F0);
+    Dma_AddRef(gVu1Prog4, gVu1Prog5 - gVu1Prog4);
     p = Dma_Alloc(0xE0);
     Mtx_Copy(p + 0x24, mtx);
     Vu0Screen_StoreMtx(p + 4);
@@ -232,7 +232,7 @@ void Vu1Pkt_CallProg5(u32 chain, void *mtx) {
 void Vu1Pkt_LoadProg5(void *mtx) {
     u32 *p;
 
-    Dma_AddRef(D_002C1180, D_002C1F00 - D_002C1180);
+    Dma_AddRef(gVu1Prog5, gVu1Prog6 - gVu1Prog5);
     p = Dma_Alloc(0x120);
     Mtx_StoreIdentity(p + 4);
     Mtx_Copy(p + 0x34, mtx);
@@ -316,8 +316,8 @@ void Vu1Node_Animate(Vu1Node *node, Vu1Track *track, void *mtx, f32 frame) {
         Vu0Cur_TranslateLocal(node->pos);
         Vu0Cur_RotateYXZ(node->rot);
         Vu0Cur_StoreMtx(node->world);
-        Vec4_Copy(node->unkD0, node->unk30);
-        Vec4_Copy(node->unkE0, node->unk40);
+        Vec4_Copy(node->pivotOut, node->pivot);
+        Vec4_Copy(node->parentPivotOut, node->parentPivot);
         if (node->popCount) {
             Vu0Cur_PopN(node->popCount);
         }
@@ -340,8 +340,8 @@ void Vu1Node_Draw(Vu1Node *node) {
             p = Vu1Pkt_CallProg8(node);
             Mtx_Copy(p + 0x14, node->parent);
             Mtx_Copy(p + 4, node->world);
-            Vec4_Copy(p + 0x24, node->unkD0);
-            Vec4_Copy(p + 0x28, node->unkE0);
+            Vec4_Copy(p + 0x24, node->pivotOut);
+            Vec4_Copy(p + 0x28, node->parentPivotOut);
         }
         if (node->last) {
             break;
@@ -370,11 +370,11 @@ u32 *Vu1Pkt_LoadProg8(void) {
     u32 *p;
 
 #ifdef PORT
-    /* D_002C3380 is the first symbol of the next data file: on PC the linker puts it elsewhere, and the length
+    /* gVu1ProgEnd is the first symbol of the next data file: on PC the linker puts it elsewhere, and the length
        came out as nonsense (the chain then ran off into unrelated memory on every stage with animated objects). */
-    Dma_AddRef(D_002C3080, 0x300 / sizeof(D_002C3080[0]));
+    Dma_AddRef(gVu1Prog8, 0x300 / sizeof(gVu1Prog8[0]));
 #else
-    Dma_AddRef(D_002C3080, D_002C3380 - D_002C3080);
+    Dma_AddRef(gVu1Prog8, gVu1ProgEnd - gVu1Prog8);
 #endif
     p = Dma_Alloc(0x140);
     p[0] = VU1_DMA_CNT | 0x13;
@@ -406,7 +406,7 @@ void Vu1Pkt_CallProg6(u32 chain) {
 void Vu1Pkt_LoadProg6(u8 *obj, void *mtx, f32 *vec) {
     u32 *p;
 
-    Dma_AddRef(D_002C1F00, D_002C2D30 - D_002C1F00);
+    Dma_AddRef(gVu1Prog6, gVu1Prog7 - gVu1Prog6);
     p = Dma_Alloc(0x130);
     memset(p, 0, 0x130);
     Mtx_Copy(p + 0x24, obj + 0x100);

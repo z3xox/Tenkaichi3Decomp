@@ -41,7 +41,7 @@
  *     have it, BtlCam_GetDefaultView(); when neither has it, -1.
  *   - BtlCam_GetDefaultView(): mode 8: 0 if BattleSide_GetControl(0) == 0, else 1 if
  *     BattleSide_GetControl(1) == 0, else the word at 0x2FF280 (no writer found: 0); other modes:
- *     BtlCharApi_GetMgrUnk134() during a replay, else 0.
+ *     BtlCharApi_GetReplayViewSide() during a replay, else 0.
  *   - Last, if DemoCam_IsActive() (scripted camera: intro cuts, fixed pose) DemoCam_Update() builds and
  *     loads its view instead and the result is 1.
  *
@@ -67,10 +67,10 @@ typedef struct View {
     /* 0x040 */ Mtx44 world2view2;  /*   only the second is read again */
     /* 0x080 */ Mtx44 view2screen;  /* projection to GS screen coordinates (View_BuildProjection) */
     /* 0x0C0 */ Mtx44 view2clip;    /* projection to clip space */
-    /* 0x100 */ Mtx44 unk100;       /* diagonal + translation built by View_BuildProjection, not read here */
+    /* 0x100 */ Mtx44 clip2screen;       /* diagonal + translation built by View_BuildProjection, not read here */
     /* 0x140 */ Mtx44 world2screen; /* view2screen * world2view2 (View_UpdateMatrices) */
     /* 0x180 */ Mtx44 world2clip;   /* view2clip * world2view2 */
-    /* 0x1C0 */ Mtx44 unk1C0;       /* built by View_BuildProjection, not read here */
+    /* 0x1C0 */ Mtx44 frustum;       /* built by View_BuildProjection, not read here */
     /* 0x200 */ s32 scissorX0;
     /* 0x204 */ s32 scissorX1;
     /* 0x208 */ s32 scissorY0;
@@ -87,7 +87,7 @@ typedef struct View {
     /* 0x24C */ f32 zMax;         /* 10877000 */
     /* 0x250 */ f32 nearZ;        /* 0.3 */
     /* 0x254 */ f32 farZ;         /* 65536 */
-    /* 0x258 */ f32 unk258;       /* 1, scales [0][0] and [1][1] of the projections */
+    /* 0x258 */ f32 projScale;       /* 1, scales [0][0] and [1][1] of the projections */
     /* 0x25C */ f32 unk25C;
 } __attribute__((aligned(16))) View; /* size 0x260; the alignment is needed for the struct copy in BtlCam_SetViewLayout to match */
 
@@ -126,7 +126,7 @@ extern View *gBtlCamView;
 
 void View_BuildProjection(View *view);
 void View_SetProjection(View *view, Vec4 *screenSize, f32 screenDist, f32 aspectX, f32 aspectY, f32 centerX,
-                        f32 centerY, f32 zMin, f32 zMax, f32 nearZ, f32 farZ, f32 unk258);
+                        f32 centerY, f32 zMin, f32 zMax, f32 nearZ, f32 farZ, f32 projScale);
 void View_UpdateMatrices(View *view, Vec4 *pos);
 void View_SetTransform(Mtx44 *dst0, Mtx44 *dst1, Vec4 *pos, Vec4 *rot);
 void View_Apply(View *view, s32 scissor);
@@ -140,7 +140,7 @@ void BtlCam_Reset(void);
 void BtlCam_Init(void);
 void BtlCam_Term(void);
 void BtlCam_UpdateView(s32 side);
-s32 BtlCam_TraceStage(Vec4 *out, Vec4 *from, Vec4 *to, f32 *frac, s32 *hitObj);
+s32 BtlCam_TraceStage(Vec4 *out, Vec4 *from, Vec4 *to, f32 *frac, s32 *hitZone);
 s32 BtlCam_GetDefaultView(void);
 void BtlCam_SetLayout(s32 split, s32 apply);
 s32 BtlCam_GetPriorityView(void);

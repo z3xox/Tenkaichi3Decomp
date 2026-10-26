@@ -1,30 +1,30 @@
 # vu1_micro.data: the shape of this table, without its values (port/tools/make_skeleton.py)
 .section .data
 .p2align 4
-.globl D_002BF6B0
-D_002BF6B0:
+.globl gVu1Prog0
+gVu1Prog0:
     .space 1024
-.globl D_002BFAB0
-D_002BFAB0:
+.globl gVu1Prog1
+gVu1Prog1:
     .space 1008
-.globl D_002BFEA0
-D_002BFEA0:
+.globl gVu1Prog2a
+gVu1Prog2a:
     .space 800
-.globl D_002C01C0
-D_002C01C0:
+.globl gVu1Prog2b
+gVu1Prog2b:
     .space 816
-.globl D_002C04F0
-D_002C04F0:
+.globl gVu1Prog4
+gVu1Prog4:
     .space 3216
-.globl D_002C1180
-D_002C1180:
+.globl gVu1Prog5
+gVu1Prog5:
     .space 3456
-.globl D_002C1F00
-D_002C1F00:
+.globl gVu1Prog6
+gVu1Prog6:
     .space 3632
-.globl D_002C2D30
-D_002C2D30:
+.globl gVu1Prog7
+gVu1Prog7:
     .space 848
-.globl D_002C3080
-D_002C3080:
+.globl gVu1Prog8
+gVu1Prog8:
     .space 768

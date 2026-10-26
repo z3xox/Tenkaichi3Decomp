@@ -13,8 +13,8 @@ gEftSteam:
 .globl gEftStorm
 gEftStorm:
     .space 4
-.globl D_002FE9E4
-D_002FE9E4:
+.globl gEftStormNegZero
+gEftStormNegZero:
     .space 4
 .globl gEftSmokeMgr
 gEftSmokeMgr:

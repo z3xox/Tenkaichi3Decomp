@@ -6,10 +6,10 @@
 
 /*
  * Fighter clash sequences, fighter sound, fighter flags and opponent helpers, 0x1D8750..0x1DBF20:
- *   src/battle/btl_char_flag_clash.c  0x1D8750..0x1D9A20  clash sequences
- *   src/battle/btl_char_flag_snd.c    0x1D9A20..0x1DA8B8
+ *   src/battle/btl_clash.c  0x1D8750..0x1D9A20  clash sequences
+ *   src/battle/btl_char_sound.c    0x1D9A20..0x1DA8B8
  *   src/battle/btl_char_flag.c        0x1DA8B8..0x1DB048
- *   src/battle/btl_char_flag_opp.c    0x1DB048..0x1DBF20
+ *   src/battle/btl_opponent.c    0x1DB048..0x1DBF20
  * The structures are partial views local to these files: only the fields they touch.
  *
  * ---- Fighter flags ----
@@ -116,11 +116,11 @@ typedef struct BtlFlagBits {
 typedef struct BtlFlagPose {
     /* 0x00 [0x10] */ Vec4 pos;
     /* 0x10 [0x20] */ Vec4 rot;
-    /* 0x20 [0x30] */ Vec4 unk20;
+    /* 0x20 [0x30] */ Vec4 dispOfs;
     /* 0x30 [0x40] */ Vec4 unk30;
     /* 0x40 [0x50] */ Vec4 vel;   /* movement per second (inferred from BtlOpp_GetClosingTime) */
     /* 0x50 [0x60] */ u8 unk50[0x64 - 0x50];
-    /* 0x64 [0x74] */ f32 unk64;  /* yaw offset added to rot.y */
+    /* 0x64 [0x74] */ f32 rootYaw;  /* yaw offset added to rot.y */
     /* 0x68 [0x78] */ u8 unk68[0x94 - 0x68];
     /* 0x94 [0xA4] */ f32 yaw;    /* facing */
 } BtlFlagPose;
@@ -134,17 +134,17 @@ typedef struct BtlFlagChr {
     /* 0x0010 */ u8 unk10[0x950 - 0x10];
     /* 0x0950 */ s32 prevAction;
     /* 0x0954 */ u8 unk954[0x964 - 0x954];
-    /* 0x0964 */ s32 unk964;
-    /* 0x0968 */ s32 unk968;  /* last frame's unk964 (inferred from the pairing with prevAction) */
+    /* 0x0964 */ s32 actionFrame;
+    /* 0x0968 */ s32 prevActionFrame;  /* last frame's actionFrame (inferred from the pairing with prevAction) */
     /* 0x096C */ u8 unk96C[0xD88 - 0x96C];
-    /* 0x0D88 */ s32 unkD88;
+    /* 0x0D88 */ s32 evasionCount;
     /* 0x0D8C */ u8 unkD8C[0xE4C - 0xD8C];
     /* 0x0E4C */ s32 clashCountA; /* compared between the two fighters each frame of clash A */
     /* 0x0E50 */ s32 clashCountB; /* compared to pick the winner of clashes B and C */
     /* 0x0E54 */ u8 unkE54[0xE58 - 0xE54];
-    /* 0x0E58 */ s32 unkE58;
+    /* 0x0E58 */ s32 clashAnswer;
     /* 0x0E5C */ u8 unkE5C[0xFB0 - 0xE5C];
-    /* 0x0FB0 */ s32 unkFB0;
+    /* 0x0FB0 */ s32 reaction;
     /* 0x0FB4 */ u8 unkFB4[0x1084 - 0xFB4];
     /* 0x1084 */ u8 stage;                       /* current stage of the frame */
     /* 0x1085 */ u8 held[BTL_FLAG_BYTES];
@@ -155,7 +155,7 @@ typedef struct BtlFlagChr {
     /* 0x1262 */ u8 unk1262[0x1538 - 0x1262];
     /* 0x1538 */ BtlFlagBits bits;
     /* 0x1548 */ u8 unk1548[0x15A0 - 0x1548];
-    /* 0x15A0 */ Vec4 unk15A0;
+    /* 0x15A0 */ Vec4 lookOffset;
     /* 0x15B0 */ u8 unk15B0[0x1600 - 0x15B0];
 } BtlFlagChr; /* size 0x1600 */
 
@@ -176,7 +176,7 @@ typedef struct BtlFlagRoster {
     /* 0xA0 */ BtlFlagSndReqList snd;
 } BtlFlagRoster;
 
-/* btl_char_flag_clash.c */
+/* btl_clash.c */
 s32 BtlClash_BothInClashA(void);
 void BtlClash_HoldClashA(s32 player);
 s32 BtlClash_BothInActionFA(void);
@@ -193,7 +193,7 @@ s32 BtlClash_UpdateB(s32 state);
 s32 BtlClash_UpdateC(s32 state);
 void BtlClash_Update(void);
 
-/* btl_char_flag_snd.c */
+/* btl_char_sound.c */
 BtlFlagSoundSet *BtlCharSnd_GetSet(BtlFlagChr *chr);
 BtlFlagSoundSet *BtlCharSnd_GetLoopSet(BtlFlagChr *chr);
 s32 BtlCharSnd_IsLoopPlaying(s32 player, s32 kind, s32 id);
@@ -224,7 +224,7 @@ void BtlChar_SetStage(BtlFlagChr *chr, u8 stage);
 u32 BtlChar_GetStage(BtlFlagChr *chr);
 void BtlChar_SetHeldFlag(BtlFlagChr *chr, u32 n);
 void BtlChar_ClearFlag(BtlFlagChr *chr, u32 n);
-void BtlChar_ClearFlagRange(BtlFlagChr *chr, u32 a, u32 b);
+void BtlChar_ClearFlagRange(BtlFlagChr *chr, u32 first, u32 last);
 void BtlChar_ToggleHeldFlag(BtlFlagChr *chr, u32 n);
 void BtlChar_SetFlag(BtlFlagChr *chr, u32 n);
 s32 BtlChar_TestFlag(BtlFlagChr *chr, u32 n);
@@ -238,7 +238,7 @@ s32 BtlChar_TestOnceBit(BtlFlagChr *chr, s32 n);
 void BtlChar_SetFrameBits(BtlFlagChr *chr, u64 bits);
 void BtlChar_RaiseFirstClash(BtlFlagChr *chr);
 
-/* btl_char_flag_opp.c */
+/* btl_opponent.c */
 void BtlOpp_GetTargetPos(BtlFlagChr *chr, Vec4 *out);
 void BtlOpp_GetSnapPos(BtlFlagChr *chr, Vec4 *out, s32 slot);
 void BtlOpp_GetTargetRot(BtlFlagChr *chr, Vec4 *out);
@@ -259,20 +259,20 @@ f32 BtlOpp_GetHalfHeightDiff(BtlFlagChr *chr);
 f32 BtlOpp_GetRadius(BtlFlagChr *chr);
 s32 BtlOpp_GetParamByte2(BtlFlagChr *chr);
 f32 BtlOpp_GetHeight(BtlFlagChr *chr);
-f32 BtlOpp_GetObjUnkFFC(BtlFlagChr *chr);
+f32 BtlOpp_GetCenterHeight(BtlFlagChr *chr);
 s32 BtlOpp_GetParamWord0(BtlFlagChr *chr);
 s32 BtlOpp_GetPlayer(BtlFlagChr *chr);
 s32 BtlOpp_GetObjId(BtlFlagChr *chr);
 void *BtlOpp_GetObj(BtlFlagChr *chr);
 s32 BtlOpp_GetSeenAction(BtlFlagChr *chr);
-s32 BtlOpp_GetSeenUnk964(BtlFlagChr *chr);
+s32 BtlOpp_GetSeenActionFrame(BtlFlagChr *chr);
 f32 BtlOpp_GetObjUnkFF8(BtlFlagChr *chr);
-void BtlOpp_GetUnk15A0(BtlFlagChr *chr, Vec4 *out);
+void BtlOpp_GetLookOffset(BtlFlagChr *chr, Vec4 *out);
 void BtlOpp_GetNodePos(BtlFlagChr *chr, s32 node, Vec4 *out);
 void BtlOpp_GetObjVecFA0(BtlFlagChr *chr, Vec4 *out);
-s32 BtlOpp_GetUnkD88(BtlFlagChr *chr);
+s32 BtlOpp_GetEvasionCount(BtlFlagChr *chr);
 f32 BtlOpp_GetClosingTime(BtlFlagChr *chr);
-s32 BtlOpp_HasAbility(BtlFlagChr *chr, s32 arg);
+s32 BtlOpp_HasAbility(BtlFlagChr *chr, s32 ability);
 f32 BtlOpp_GetUnk20F318(BtlFlagChr *chr);
 s32 BtlOpp_GetClashCountB(BtlFlagChr *chr);
 void BtlOpp_MirrorFlags(BtlFlagChr *chr);

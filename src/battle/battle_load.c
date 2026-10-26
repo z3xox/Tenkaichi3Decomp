@@ -59,14 +59,14 @@ extern s32 gBtlLoadObj;    /* object made from it */
 
 extern void Fade_Start(s32 idx, s32 dir, f32 seconds);
 extern s32 Fade_IsDone(s32 idx);
-extern void Snd_LoadBank(s32 mask, void *data, s32 arg);
+extern void Snd_LoadBank(s32 mask, void *data, s32 sync);
 extern void Snd_UnloadBank(s32 mask);
 extern void Res_RelocateOffsets(void *out, void *base, void *hdr);
 extern s32 BtlObj_Get(s32 id);
 
 /* Sound driver. */
 extern void Snd_Reset(void);                         /* clears the 8 bank slots' transfer state */
-extern void Snd_ReloadBank(s32 mask, void *data, s32 arg); /* reloads a bank from a buffer that stays allocated */
+extern void Snd_ReloadBank(s32 mask, void *data, s32 sync); /* reloads a bank from a buffer that stays allocated */
 extern s32 Snd_IsUploadDone(void);                          /* 1 when no bank slot has a transfer pending */
 
 extern void BtlScene_FreeChar(s32 side);
@@ -81,7 +81,7 @@ extern s32 EftBurst_IsBusy(void);
 extern void EftBurst_End(void);
 extern void StgNav_Rebind(void);
 extern void BtlStage_Term(void);
-extern void StgFx_SetDisabled(s32 arg);
+extern void StgFx_SetDisabled(s32 disabled);
 extern void StgFx_Reset(void);
 
 /* Fighters. */
@@ -99,19 +99,19 @@ extern s32 BtlSide_GetActiveMember(s32 side); /* member index */
 extern s32 BtlCtrl_IsSwitching(s32 side);
 
 /* Battle objects / models. */
-extern s32 BtlObj_Create(s32 slot, s32 model, s32 arg);
+extern s32 BtlObj_Create(s32 slot, s32 model, s32 active);
 extern s32 BtlObj_CreateChara(s32 id);
 extern void BtlObj_Rebind(s32 objId, s32 id);
 extern s32 BtlObj_RequestCharaModel(s32 side, s32 chara, s32 costume, s32 variant);
 extern void BtlRes_CommitReloadEx(void);
-extern void BtlObj_Init(s32 arg);
+extern void BtlObj_Init(s32 prealloc);
 extern void BtlObj_Term(void);
-extern s32 BtlRes_Request(s32 arg, s32 file, s32 file8, s32 file9);
+extern s32 BtlRes_Request(s32 fixed, s32 file, s32 file8, s32 file9);
 extern s32 BtlRes_GetSlot(s32 handle);
 extern void BtlRes_Reload(s32 id, s32 file, s32 file8, s32 file9);
 extern void BtlRes_CommitReload2(void);
-extern void BtlObjAnim_PlayAuto(s32 obj, s32 arg, s32 arg2);
-extern void BtlObjAnim_PlayModel(s32 obj, s32 arg, s32 arg2);
+extern void BtlObjAnim_PlayAuto(s32 obj, s32 anim, s32 mode);
+extern void BtlObjAnim_PlayModel(s32 obj, s32 anim, s32 mode);
 
 /* Script / message objects. */
 extern void Gsc_InitDefault(s32 *tbl);
@@ -119,7 +119,7 @@ extern void Gsc_Exit(void);
 extern s32 Gsc_LoadFile(void *data);
 extern void Gsc_UnloadFile(s32 script);
 extern s32 Gsc_StartMain(s32 script);
-extern void Gsc_RunAction(s32 script, s32 arg);
+extern void Gsc_RunAction(s32 script, s32 action);
 extern void BtlScript_Init(void);
 extern void BtlScript_Nop(void);
 extern void BtlScript_ScanEvents(s32 script);
@@ -328,7 +328,7 @@ s32 BtlLoad_StepObject(BtlJob *job) {
         Battle_GetWork()->flags |= BATTLE_FLAG_LOAD_OBJECT;
         id = job->chara + BTL_FILE_OBJECT;
         if (job->chara < 0x100) {
-            if (job->unk1C != 0) {
+            if (job->anim1Chara != 0) {
                 id = job->chara * 10 + job->animChara + (BTL_FILE_CHARA + 4);
             } else {
                 id = job->chara * 10 + job->animChara + BTL_FILE_CHARA;
@@ -404,7 +404,7 @@ s32 BtlLoad_StepChara(BtlJob *job) {
         }
         if (job->modelOnly == 0) {
             file8 = job->animChara * 10 + (BTL_FILE_CHARA + 8);
-            file9 = job->unk1C * 10 + (BTL_FILE_CHARA + 9);
+            file9 = job->anim1Chara * 10 + (BTL_FILE_CHARA + 9);
             voice = job->voiceChara + ((gSaveData->flags & SAVE_FLAG_VOICE) ? BTL_FILE_VOICE_ALT : BTL_FILE_VOICE);
             BtlRes_Reload(BattleSide_GetModelSlot(job->side), model, file8, file9);
             res->bank = File_Request3(voice, res->bank, res->bankSize);
@@ -593,7 +593,7 @@ s32 BtlLoad_StepInitial(BtlJob *job) {
                 m->buf[0] = File_Request3(m->chara * 2 + side + BTL_FILE_CHARA_DATA, m->buf[0], BTL_MEMBER_BUF_SIZE);
             }
         }
-        res->unk8 = File_Request3(gProgress->unk0[0] + 6, NULL, 0);
+        res->hudFile = File_Request3(gProgress->unk0[0] + 6, NULL, 0);
         job->state++;
         break;
     case 5:
@@ -692,7 +692,7 @@ void BtlLoad_PollObjectRequest(void) {
             job->costume = slot;
             job->chara = id;
             job->animChara = costume;
-            job->unk1C = variant;
+            job->anim1Chara = variant;
             Job_Push((Job *)job);
             BtlChange_NotifyTaken();
         }
@@ -705,7 +705,7 @@ void BtlLoad_PollCharaRequest(void) {
     s32 costume;
     s32 variant;
     s32 animChara;
-    s32 unk1C;
+    s32 anim1Chara;
     s32 voiceChara;
     s32 side;
     s32 modelOnly;
@@ -713,8 +713,8 @@ void BtlLoad_PollCharaRequest(void) {
 
     for (side = 0; side < 2; side++) {
         if (BtlChange_IsPendingType0(side)) {
-            BtlChange_GetArgs(&chara, &costume, &variant, &animChara, &unk1C, &voiceChara, NULL);
-            if (animChara < 0 && unk1C < 0 && voiceChara < 0) {
+            BtlChange_GetArgs(&chara, &costume, &variant, &animChara, &anim1Chara, &voiceChara, NULL);
+            if (animChara < 0 && anim1Chara < 0 && voiceChara < 0) {
                 modelOnly = 1;
             } else {
                 modelOnly = 0;
@@ -726,7 +726,7 @@ void BtlLoad_PollCharaRequest(void) {
             job->step = BtlLoad_StepChara;
             job->chara = chara;
             job->animChara = animChara;
-            job->unk1C = unk1C;
+            job->anim1Chara = anim1Chara;
             job->voiceChara = voiceChara;
             job->costume = costume;
             job->variant = variant;
@@ -776,7 +776,7 @@ void BtlLoad_Reload(void) {
             job->kind = BTL_JOB_KIND_RESTART;
             job->chara = chara;
             job->animChara = chara;
-            job->unk1C = chara;
+            job->anim1Chara = chara;
             job->voiceChara = chara;
             job->costume = costume;
             job->variant = variant;
@@ -838,8 +838,8 @@ void BtlLoad_FreeAll(void) {
     }
     Heap_Free(res->bank);
     res->bank = NULL;
-    Heap_Free(res->unk8);
-    res->unk8 = NULL;
+    Heap_Free(res->hudFile);
+    res->hudFile = NULL;
     Heap_Free(res->stage);
     res->stage = NULL;
     if (res != NULL && res->transition != NULL) {
@@ -1087,7 +1087,7 @@ void BattleResult_Finish(void) {
     BattleResult_CollectEvents(res);
     res->clock = *BtlSeq_GetClock();
     if (res->winner & 8) {
-        res->unk8 = 1;
+        res->aborted = 1;
     }
     if (res->reason & 0x20) {
         res->winner |= 2;
@@ -1476,10 +1476,10 @@ void BattleSetup_DefaultOptions(void) {
 
     if (opt->isSet == 0) {
         memset(opt, 0, sizeof(BattleOption));
-        opt->optA[0] = gSaveData->unk1694;
-        opt->optA[1] = gSaveData->unk1694;
-        opt->optB[0] = gSaveData->unk1698;
-        opt->optB[1] = gSaveData->unk1698;
+        opt->optA[0] = gSaveData->camDistMode;
+        opt->optA[1] = gSaveData->camDistMode;
+        opt->optB[0] = gSaveData->camShakeOff;
+        opt->optB[1] = gSaveData->camShakeOff;
 #ifdef PORT
         {   /* An online match: the save is the session's empty one, the same on both copies; each side gets the
                camera type and the screen shake of its player's own save instead. */
@@ -1534,14 +1534,14 @@ void BattleSetup_SetOption14(s32 val) {
     memset(opt, 0, sizeof(BattleOption));
     opt->isSet = 1;
     opt->unk14 = val;
-    opt->optA[0] = gSaveData->unk1694;
-    opt->optA[1] = gSaveData->unk1694;
-    opt->optB[0] = gSaveData->unk1698;
-    opt->optB[1] = gSaveData->unk1698;
+    opt->optA[0] = gSaveData->camDistMode;
+    opt->optA[1] = gSaveData->camDistMode;
+    opt->optB[0] = gSaveData->camShakeOff;
+    opt->optB[1] = gSaveData->camShakeOff;
 }
 
 /* Sets the battle rules; bgm 24 means a random one of 0..23. */
-void BattleSetup_SetRule(s32 screenMode, s32 mode, s32 bgm, s32 timeLimit, s32 announcer, s32 stage, s32 unk10) {
+void BattleSetup_SetRule(s32 screenMode, s32 mode, s32 bgm, s32 timeLimit, s32 announcer, s32 stage, s32 stageChange) {
     BattleRule *rule = &SETUP()->rule;
 
 #ifdef PORT
@@ -1569,7 +1569,7 @@ void BattleSetup_SetRule(s32 screenMode, s32 mode, s32 bgm, s32 timeLimit, s32 a
     }
     rule->timeLimit = timeLimit;
     rule->announcer = announcer;
-    rule->unk10 = unk10;
+    rule->stageChange = stageChange;
 #ifdef PORT
     {
         extern int Port_TestStage(void); /* port/src/plat_stages.c: BT3_TEST_STAGE=<id> (testing), else -1 */
@@ -1583,15 +1583,15 @@ void BattleSetup_SetRule(s32 screenMode, s32 mode, s32 bgm, s32 timeLimit, s32 a
 }
 
 /* Sets one side: who controls it, pad, team size, options, lead member and usable characters. */
-void BattleSetup_SetSide(s32 sideNo, s32 control, s32 pad, s32 memberCount, s32 unk1FC, s32 unk200, s32 lead,
+void BattleSetup_SetSide(s32 sideNo, s32 control, s32 pad, s32 memberCount, s32 changeAllowed, s32 switchEnabled, s32 lead,
                    BattleCharaBits *bits) {
     BattleSide *side = Side(sideNo);
 
     side->control = control;
     side->pad = pad;
     side->memberCount = memberCount;
-    side->unk200 = unk200;
-    side->unk1FC = unk1FC;
+    side->switchEnabled = switchEnabled;
+    side->changeAllowed = changeAllowed;
     side->lead = lead;
     BattleSetup_InitCharaBits(&side->charaBits, bits);
 }
@@ -1706,19 +1706,19 @@ void BattleSetup_FinishEx(s32 wide) {
         }
     }
     rule = &SETUP()->rule;
-    rule->unk18 = 0;
+    rule->dragonBall = 0;
     if (Battle_GetMode() == 1) {
         for (i = 0; i < 7; i++) {
             s32 mask = 1 << i;
 
             if (!(gSaveData->unlockFlags & mask)) {
-                rule->unk18 = i + 1;
+                rule->dragonBall = i + 1;
                 break;
             }
         }
     }
     BattleSetup_DefaultOptions();
-    SETUP()->unk5A0 = 1;
+    SETUP()->finished = 1;
     memset(&gBattleReplay, 0, sizeof(BtlReplay));
     gBattleReplay.setup = *SETUP();
 }
@@ -1867,8 +1867,8 @@ void Battle_ResetStage(void) {
 }
 
 /* Returns rule word 0x10 (setup + 0x18). */
-s32 Battle_GetRuleUnk10(void) {
-    return SETUP()->rule.unk10;
+s32 Battle_IsStageChangeEnabled(void) {
+    return SETUP()->rule.stageChange;
 }
 
 /* Per-side option A (save 0x1694 by default). */
@@ -1901,13 +1901,13 @@ s32 BattleSide_IsCpu(s32 side) {
 }
 
 /* Returns side word 0x200. */
-s32 BattleSide_GetUnk200(s32 side) {
-    return Side(side)->unk200;
+s32 BattleSide_GetSwitchEnabled(s32 side) {
+    return Side(side)->switchEnabled;
 }
 
 /* Returns side word 0x1FC. */
-s32 BattleSide_GetUnk1FC(s32 side) {
-    return Side(side)->unk1FC;
+s32 BattleSide_GetChangeAllowed(s32 side) {
+    return Side(side)->changeAllowed;
 }
 
 /* Character the side starts the battle with. */

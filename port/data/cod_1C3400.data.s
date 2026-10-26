@@ -11,8 +11,8 @@ D_002C3408:
 .globl gTexBltPacket
 gTexBltPacket:
     .space 48
-.globl D_002C3440
-D_002C3440:
+.globl gObjDrawVec128
+gObjDrawVec128:
     .space 16
 .globl gMathfSinCoef
 gMathfSinCoef:
@@ -79,8 +79,8 @@ gEftWeatherPtclClass:
     .long EftWeatherPtcl_PostUpdate
     .long EftWeatherPtcl_Reset
     .long EftWeatherPtcl_Draw
-.globl D_002C3550
-D_002C3550:
+.globl gEftStageClass
+gEftStageClass:
     .long EftStage_Update
     .long EftStage_Init
     .long EftStage_Term
@@ -115,8 +115,8 @@ D_002C35B8:
     .long EftSurf_PostUpdate
     .long EftSurf_Reset
     .long EftSurf_Draw
-.globl D_002C35D0
-D_002C35D0:
+.globl gEftBurstLayerClass
+gEftBurstLayerClass:
     .long EftBurstLayer_Update
     .long EftBurstLayer_Init
     .long EftBurstLayer_Term
@@ -143,8 +143,8 @@ gEftSteamClass:
     .space 4
     .long EftSteam_Reset
     .long EftSteam_Draw
-.globl D_002C3630
-D_002C3630:
+.globl gEftWaterOrigin
+gEftWaterOrigin:
     .space 16
 .globl D_002C3640
 D_002C3640:
@@ -190,8 +190,8 @@ gEftBoundClass:
     .long EftBound_PostUpdate
     .long EftBound_Reset
     .long EftBound_Draw
-.globl D_002C36D0
-D_002C36D0:
+.globl gEftShotMgrClass
+gEftShotMgrClass:
     .long EftShotMgr_Update
     .long EftShotMgr_Init
     .long EftShotMgr_Term
@@ -445,8 +445,8 @@ gEftAbsorbClass:
     .long EftAbsorb_PostUpdate
     .long EftAbsorb_Reset
     .long EftAbsorb_Nop
-.globl D_002C3A18
-D_002C3A18:
+.globl gEftSpdLineClass
+gEftSpdLineClass:
     .long EftSpdLine_Update
     .long EftSpdLine_Init
     .long EftSpdLine_Term
@@ -537,8 +537,8 @@ D_002C3B20:
     .space 4
     .long EftDiscMgr_Reset
     .space 4
-.globl D_002C3B38
-D_002C3B38:
+.globl gEftDiscClass
+gEftDiscClass:
     .long EftDisc_Update
     .long EftDisc_Init
     .long EftDisc_Term
@@ -746,14 +746,14 @@ gEftKiBombClass:
     .long EftKiBomb_PostUpdate
     .long EftKiBomb_Reset
     .long EftKiBomb_Draw
-.globl D_002C3E00
-D_002C3E00:
+.globl gEftKiObjMgrClass
+gEftKiObjMgrClass:
     .long EftKiObjMgr_Update
     .long EftKiObjMgr_Init
     .long EftKiObjMgr_Term
     .space 12
-.globl D_002C3E18
-D_002C3E18:
+.globl gEftKiObjClass
+gEftKiObjClass:
     .long EftKiObj_Update
     .long EftKiObj_Init
     .long EftKiObj_Term
@@ -768,8 +768,8 @@ D_002C3E30:
     .space 4
     .long EftChainMgr_Reset
     .space 4
-.globl D_002C3E48
-D_002C3E48:
+.globl gEftChainClass
+gEftChainClass:
     .long EftChain_Update
     .long EftChain_Init
     .long EftChain_Term
@@ -806,8 +806,8 @@ gEftStreakClass:
     .long EftStreak_PostUpdate
     .long EftStreak_Reset
     .long EftStreak_Draw
-.globl D_002C3EC0
-D_002C3EC0:
+.globl gEftShotFxClass
+gEftShotFxClass:
     .long EftShotFx_Update
     .long EftShotFxMgr_Init
     .long EftShotFx_Term
@@ -896,9 +896,9 @@ gEftLayer3Classes:
     .space 4
     .long gEftGlowMgrClass
     .space 4
-    .long D_002C3A18
+    .long gEftSpdLineClass
     .space 4
-    .long D_002C3EC0
+    .long gEftShotFxClass
     .space 4
     .long gEftBladeMgrClass
     .space 4
@@ -974,8 +974,8 @@ D_002C40D8:
     .space 4
     .long EftBillMgr_Reset
     .space 4
-.globl D_002C40F0
-D_002C40F0:
+.globl gEftBillClass
+gEftBillClass:
     .long EftBill_Update
     .long EftBill_Init
     .long EftBill_Term
@@ -988,48 +988,48 @@ D_002C4108:
     .long EftGndDustMgr_Init
     .long EftGndDustMgr_Term
     .space 12
-.globl D_002C4120
-D_002C4120:
+.globl gEftGndDustPuffClass
+gEftGndDustPuffClass:
     .long EftGndDustPuff_Update
     .long EftGndDustPuff_Init
     .long EftGndDustPuff_Term
     .space 4
     .long EftGndDustPuff_Reset
     .long EftGndDustPuff_Draw
-.globl D_002C4138
-D_002C4138:
+.globl gEftGndDustSlideClass
+gEftGndDustSlideClass:
     .long EftGndDustSlide_Update
     .long EftGndDustSlide_Init
     .long EftGndDustSlide_Term
     .space 4
     .long EftGndDustSlide_Reset
     .long EftGndDustSlide_Draw
-.globl D_002C4150
-D_002C4150:
+.globl gEftGndDustDashClass
+gEftGndDustDashClass:
     .long EftGndDustDash_Update
     .long EftGndDustDash_Init
     .long EftGndDustDash_Term
     .space 4
     .long EftGndDustDash_Reset
     .long EftGndDustDash_Draw
-.globl D_002C4168
-D_002C4168:
+.globl gEftGndDustBurstClass
+gEftGndDustBurstClass:
     .long EftGndDustBurst_Update
     .long EftGndDustBurst_Init
     .long EftGndDustBurst_Term
     .space 4
     .long EftGndDustBurst_Reset
     .long EftGndDustBurst_Draw
-.globl D_002C4180
-D_002C4180:
+.globl gEftGndDustLandClass
+gEftGndDustLandClass:
     .long EftGndDustLand_Update
     .long EftGndDustLand_Init
     .long EftGndDustLand_Term
     .space 4
     .long EftGndDustLand_Reset
     .long EftGndDustLand_Draw
-.globl D_002C4198
-D_002C4198:
+.globl gEftGndDustImpactClass
+gEftGndDustImpactClass:
     .long EftGndDustImpact_Update
     .long EftGndDustImpact_Init
     .long EftGndDustImpact_Term
@@ -1240,18 +1240,18 @@ gBtlAiStepFuncs:
     .long BtlAiStep_OneFrame
     .long BtlAiStep_FacingOpponent
     .long BtlAiStep_SwitchQueued
-    .long BtlAiStep_Unk14
-    .long BtlAiStep_Unk15
+    .long BtlAiStep_ClashMash
+    .long BtlAiStep_ReachClassMoveSlot
     .long BtlAiStep_WaitNear2
     .long BtlAiStep_FireSkill
-    .long BtlAiStep_Unk18
-    .long BtlAiStep_Unk19
-    .long BtlAiStep_Unk20
-    .long BtlAiStep_Unk21
+    .long BtlAiStep_MashUntilNotHit
+    .long BtlAiStep_MashUntilStunEnds
+    .long BtlAiStep_WhileOppSkillFlag4
+    .long BtlAiStep_MashUntilKiBack
     .long BtlAiStep_WaitNear3
     .long BtlAiStep_Unk23
-.globl D_002C4768
-D_002C4768:
+.globl gBtlAiCondFuncs
+gBtlAiCondFuncs:
     .long BtlAiCond_False
     .long BtlAiCond_True
     .long BtlAiCond_Percent
@@ -1264,7 +1264,7 @@ D_002C4768:
     .long BtlAiCond_Flag6
     .long BtlAiCond_Status6
     .long BtlAiCond_Unk11
-    .long BtlAiCond_Unk12
+    .long BtlAiCond_OppSkillFlags
     .long BtlAiCond_Plan8Is2
     .long BtlAiCond_WorkBit0
     .long BtlAiCond_WorkBit1
@@ -1276,10 +1276,10 @@ D_002C4768:
     .long BtlAiCond_SeqReady
     .long BtlAiCond_Stage4Or27
     .long BtlAiCond_React40000
-    .long BtlAiCond_Unk24
+    .long BtlAiCond_HasBlastLimit
     .long BtlAiCond_Rate0
     .long BtlAiCond_Rate5
-    .long BtlAiCond_Unk27
+    .long BtlAiCond_IncomingBlastClass2
     .long BtlAiCond_Rate6
     .long BtlAiCond_Rate1
     .long BtlAiCond_Rate4
@@ -2061,8 +2061,8 @@ D_002C63F4:
 .globl gHudPromptCueDefs
 gHudPromptCueDefs:
     .space 48
-.globl D_002C6428
-D_002C6428:
+.globl gFontColorDefWord
+gFontColorDefWord:
     .space 8
 .globl D_002C6430
 D_002C6430:
@@ -2178,8 +2178,8 @@ D_002C65D4:
 .globl D_002C65E0
 D_002C65E0:
     .space 600
-.globl D_002C6838
-D_002C6838:
+.globl gFontIconDefs
+gFontIconDefs:
     .space 12
 .globl D_002C6844
 D_002C6844:
@@ -2265,7 +2265,7 @@ D_002C697C:
 .globl D_002C6988
 D_002C6988:
     .long D_002C6490
-    .long D_002C6838
+    .long gFontIconDefs
     .space 4
     .long D_002C649C
     .long D_002C6844
@@ -2375,38 +2375,38 @@ gStgLastLightVecA:
 .globl gStgLastLightVecB
 gStgLastLightVecB:
     .space 16
-.globl D_002C6C10
-D_002C6C10:
+.globl gStgLastLightDir
+gStgLastLightDir:
     .space 16
-.globl D_002C6C20
-D_002C6C20:
+.globl gBtlObjTalkPattern7
+gBtlObjTalkPattern7:
     .space 32
-.globl D_002C6C40
-D_002C6C40:
+.globl gBtlObjTalkPattern5
+gBtlObjTalkPattern5:
     .space 24
-.globl D_002C6C58
-D_002C6C58:
+.globl gBtlObjJawTrack0
+gBtlObjJawTrack0:
     .space 64
-.globl D_002C6C98
-D_002C6C98:
+.globl gBtlObjJawTrack1
+gBtlObjJawTrack1:
     .space 64
-.globl D_002C6CD8
-D_002C6CD8:
+.globl gBtlObjJawTrack2
+gBtlObjJawTrack2:
     .space 64
-.globl D_002C6D18
-D_002C6D18:
+.globl gBtlObjJawTrack3
+gBtlObjJawTrack3:
     .space 64
-.globl D_002C6D58
-D_002C6D58:
+.globl gBtlObjJawTrackAlt0
+gBtlObjJawTrackAlt0:
     .space 64
-.globl D_002C6D98
-D_002C6D98:
+.globl gBtlObjJawTrackAlt1
+gBtlObjJawTrackAlt1:
     .space 64
-.globl D_002C6DD8
-D_002C6DD8:
+.globl gBtlObjJawTrackAlt2
+gBtlObjJawTrackAlt2:
     .space 64
-.globl D_002C6E18
-D_002C6E18:
+.globl gBtlObjJawTrackAlt3
+gBtlObjJawTrackAlt3:
     .space 72
 .globl gFadeColors
 gFadeColors:
@@ -4310,7 +4310,7 @@ D_002E9C84:
     .space 4
 .globl D_002E9C88
 D_002E9C88:
-    .long D_3BE71C
+    .long gProgramImageEnd
 .globl D_002E9C8C
 D_002E9C8C:
     .space 4

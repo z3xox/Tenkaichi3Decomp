@@ -41,14 +41,14 @@ extern int gPortResim; /* gs/state.c: blanks being run again */
 extern int Port_Setting(const char *name, int def); /* plat_settings.c */
 extern void Port_AudioRefresh(void);                /* gs/snd_adx.c: the streams take their volume again */
 
-/* include/menu/menu_a.h: MenuProgress; the modes are in docs/systems/menu_overlay.md */
+/* include/menu/overlay_common.h: MenuProgress; the modes are in docs/systems/menu_overlay.md */
 extern struct { int unk0[2]; int loadPack, loadRes, loadSprites; int flags; int mode; } GAME_PTR gProgress;
 #define MODE_TITLE 1
 #define MODE_MAIN_MENU 4
 #define MODE_HIST_SEL 6 /* the story mode's saga select */
 #define MODE_EPISODES 7 /* the saga's episode list */
 
-/* include/menu/menu_a.h: Title (src/menu/menu_a_c.c) */
+/* include/menu/overlay_common.h: Title (src/menu/title.c) */
 typedef struct {
     char unk0[0xA8];
     int flags;     /* 0xA8: TITLE_ */
@@ -84,7 +84,7 @@ _Static_assert(offsetof(A11yDialog, choices) == 0x84, "Dialog");
 extern A11yDialog GAME_PTR gDialog;
 #define DIALOG_FLAG_OPEN 4
 
-/* include/menu/menu_a.h: MainMenu (src/menu/menu_a.c). Its "subtitles" (0x0C) are the guides' mouth data, not
+/* include/menu/overlay_common.h: MainMenu (src/menu/main_menu.c). Its "subtitles" (0x0C) are the guides' mouth data, not
    text: the line about the item is in the message window (msg_window). */
 typedef struct {
     char unk0[0x108];
@@ -101,7 +101,7 @@ extern A11yMainMenu GAME_PTR gMainMenu;
 #define MAINMENU_CHOSEN 1
 #define MAINMENU_LEAVING 2
 
-/* include/battle/view_a.h: MsgWin (src/battle/view_a_b.c), the window that shows one line of text: the main
+/* include/battle/view_a.h: MsgWin (src/ui/message_window.c), the window that shows one line of text: the main
    menu's line about the item, the duel settings' help. */
 typedef struct {
     void GAME_PTR text;      /* 0x00: NULL: drawn without text */
@@ -111,7 +111,7 @@ typedef struct {
 _Static_assert(offsetof(A11yMsgWin, str) == 0x98, "MsgWin");
 extern A11yMsgWin GAME_PTR gMsgWin;
 
-/* include/menu/menu_d.h: CharSel (src/menu/menu_c_e.c), the character, stage and music select. */
+/* include/menu/char_select.h: CharSel (src/menu/char_select.c), the character, stage and music select. */
 typedef struct {
     int col;          /* 0x00: cursor in the character grid (7 columns) */
     int row;          /* 0x04 */
@@ -202,7 +202,7 @@ extern A11yCharSel GAME_PTR gCharSel;
 #define CHARSEL_BGM_RANDOM 0x18
 #define CHARSEL_STAGE_RANDOM 0x23
 
-/* include/menu/menu_l.h LSelEntry = menu_j.h ESelEntry: the fighter being chosen in the one-fighter selects. */
+/* include/menu/tournament.h LSelEntry = menu_j.h ESelEntry: the fighter being chosen in the one-fighter selects. */
 typedef struct {
     int col;          /* 0x00: grid column */
     int row;          /* 0x04 */
@@ -221,7 +221,7 @@ _Static_assert(offsetof(A11ySelEntry, custom) == 0x14 && sizeof(A11ySelEntry) ==
 #define PICK_STEP_HELP 4
 #define PICK_STEP_COLOR 5
 
-/* include/menu/menu_l.h: SoloSel (src/menu/menu_l_b.c), one fighter for modes 15, 18, 21, 25 and 29. */
+/* include/menu/tournament.h: SoloSel (src/menu/solo_select.c), one fighter for modes 15, 18, 21, 25 and 29. */
 typedef struct {
     char unk0[0x14];
     uint32_t GAME_PTR nameText;    /* 0x14: section 28 */
@@ -248,7 +248,7 @@ extern A11ySoloSel GAME_PTR gSoloSel; /* NULL outside the screen */
 #define SOLOSEL_STARTED 2
 #define SOLOSEL_LEAVING 0x10
 
-/* include/menu/menu_j.h: ESel (src/menu/menu_i_d.c), the tournament's entrants (mode 34). */
+/* include/menu/tour_entry.h: ESel (src/menu/entry_select.c), the tournament's entrants (mode 34). */
 typedef struct {
     char unk0[0x14];
     uint32_t GAME_PTR nameText;    /* 0x14: section 30 */
@@ -278,7 +278,7 @@ extern A11yEntrySel GAME_PTR gEntrySel; /* NULL outside the screen */
 #define ESEL_ENTRIES 8
 #define TOUR_ENTRY_NUM (0x8C / 4) /* gProgress, in ints: entrants the player chooses (menu_j.h TourSession) */
 
-/* include/menu/menu_g.h: DuelMenu (src/menu/menu_g_c.c). The line about the item is in the message window. */
+/* include/menu/duel.h: DuelMenu (src/menu/duel_menu.c). The line about the item is in the message window. */
 typedef struct {
     char unk0[0x10C];
     int flags;      /* 0x10C: DUELMENU_ */
@@ -311,16 +311,16 @@ extern A11yDuelMenu GAME_PTR gDuelMenu;
 typedef struct {
     unsigned char cleared;        /* 0x0 */
     char unk1[0xC - 1];
-} A11yMissionRecord;               /* include/menu/menu_p.h: PSaveMission */
+} A11yMissionRecord;               /* include/menu/ub_score.h: PSaveMission */
 
 typedef struct {
     int defeated;                    /* opponents beaten */
     int score;                       /* shown * 100 */
     unsigned char rank, hours, minutes, seconds;
-} A11ySurvRecord;                    /* include/menu/menu_s.h: SSaveSurv */
+} A11ySurvRecord;                    /* include/menu/survival.h: SSaveSurv */
 
 typedef struct {
-    int flags;  /* 0x0: MSLOT_ (include/menu/menu_c.h) */
+    int flags;  /* 0x0: MSLOT_ (include/menu/history.h) */
     int val[3]; /* 0x4: bit n is the sub menu's item n: [0] listed, [1] cleared, [2] new */
 } A11ySaveSlot;                    /* include/sys/save.h: SaveSlot */
 
@@ -329,7 +329,7 @@ typedef struct {
     int score;                       /* shown * 100 */
     unsigned char cleared;           /* the ladder was finished */
     unsigned char unk9[3];
-} A11ySimRank;                       /* include/menu/menu_r.h: SimRankRec */
+} A11ySimRank;                       /* include/menu/sim_top.h: SimRankRec */
 
 typedef struct {
     char unk0[0xC];
@@ -370,7 +370,7 @@ extern A11ySave GAME_PTR gSaveData;
 /* Labels the game draws as pictures (the plates of pzs3us1/00449.bin and the title's). All the labels of this file
    are in English and said through tr(): the other languages are in a11y_<code>.txt (gs/a11y.c; Spanish in
    port/lang/a11y_es.txt, which has every label here and must get the new ones). */
-static const char *const kMainMenuItems[11] = { /* by item id: src/menu/menu_a.c, MainMenu_Init */
+static const char *const kMainMenuItems[11] = { /* by item id: src/menu/main_menu.c, MainMenu_Init */
     "Dragon History", "Ultimate Battle", "Dragon World Tour", "Duel", "Dragon Net Battle", "Evolution Z",
     "Ultimate Training", "Data Center", "Character Reference", "Options", "Shenron",
 };
@@ -396,7 +396,7 @@ static const char *const kSongNames[20] = {
 static const char *const kCellMarks[4] = {
     "Random", "Locked", "Custom characters", "Empty",
 };
-/* The duel menu (src/menu/menu_g_c.c, DuelMenu_ClipGoto): its plates by level and row, then the settings' values
+/* The duel menu (src/menu/duel_menu.c, DuelMenu_ClipGoto): its plates by level and row, then the settings' values
    by row of their lists (DuelMenu_SetupValue). */
 static const char *const kDuelTop[4] = {
     "1P vs CPU", "1P vs 2P", "CPU vs CPU", "Battle Settings",
@@ -565,8 +565,8 @@ static void main_menu(void) {
     }
 }
 
-/* include/menu/menu_p.h: UbMenu (src/menu/menu_p_c.c), the menu of mode 13. Its four plates lead to modes 20, 14,
-   17 and 24 (Ub_Main, src/menu/menu_o_c.c); the third stays shut, and the cursor skips it, until 30 missions are
+/* include/menu/ub_score.h: UbMenu (src/menu/ub_menu.c), the menu of mode 13. Its four plates lead to modes 20, 14,
+   17 and 24 (Ub_Main, src/menu/ub.c); the third stays shut, and the cursor skips it, until 30 missions are
    cleared (gUbMenuPlate3Open, UbMenu_Input). The guides say each plate's name; the plates are pictures. */
 typedef struct {
     char unk0[0x84];
@@ -575,7 +575,7 @@ typedef struct {
 } A11yUbMenu;
 _Static_assert(offsetof(A11yUbMenu, cur) == 0x88, "UbMenu");
 extern A11yUbMenu GAME_PTR gUbMenu;
-extern int gUbMenuPlate3Open; /* src/menu/menu_p_c.c: the third plate is open */
+extern int gUbMenuPlate3Open; /* src/menu/ub_menu.c: the third plate is open */
 #define UBMENU_CHOSEN 1
 #define UBMENU_LEAVING 2
 #define UBMENU_PLATES 4
@@ -609,7 +609,7 @@ static void ub_menu(void) {
     }
 }
 
-/* include/menu/menu_o.h: DiscFusion (src/menu/menu_o_b.c), the Disc Fusion screen of mode 24: two plates, one per
+/* include/menu/ub.h: DiscFusion (src/menu/disc_fusion.c), the Disc Fusion screen of mode 24: two plates, one per
    earlier game's disc, with text line 0x15A + disc (0x15C + disc once that disc was read: DiscFusion_Init) of the
    screen's own text. Its disc swap asks through the Dialog, read by dialog(). */
 typedef struct {
@@ -654,7 +654,7 @@ static void disc_fusion(void) {
     item = cur;
 }
 
-/* include/menu/menu_o.h: MisSel (src/menu/menu_o_d.c), the Mission 100 select of mode 14: pages of five missions
+/* include/menu/ub.h: MisSel (src/menu/mission_select.c), the Mission 100 select of mode 14: pages of five missions
    (left and right turn the page). Confirm opens the mission's window, which shows its team kind, its rule and the
    opponents' faces; confirm again starts it. The names, the kinds and the rules are text lines 0xD8 + mission,
    0x148 + kind and 0x156 + rule of the screen's own text (MisSel_Draw). */
@@ -757,7 +757,7 @@ static void mission_select(void) {
     page = m->page;
 }
 
-/* include/menu/menu_j.h: TourMenu (src/menu/menu_j_b.c), the World Tour's menu of mode 33. One cursor per level
+/* include/menu/tour_entry.h: TourMenu (src/menu/tour_menu.c), the World Tour's menu of mode 33. One cursor per level
    (TOURMENU_LV_): the two top plates (0 the open tournament, for prizes, at the saved level and alone; 1 free play),
    the five tournaments, the tournament's explanation (the guide speaks it), the level and the number of entrants.
    TourMenu_Draw shows the two prizes of the tournament under the cursor and dims the shut ones in the top plate 0.
@@ -860,7 +860,7 @@ static void tour_menu(void) {
     }
 }
 
-/* include/menu/menu_c.h: HistSel (src/menu/menu_b_d.c), the story mode's saga select of mode 6. Focus 0 is the menu
+/* include/menu/history.h: HistSel (src/menu/history_select.c), the story mode's saga select of mode 6. Focus 0 is the menu
    (0 the sagas, 1 the level), focus 1 the ring of sagas and focus 2 the level; HistSel_Input reads the pad only while
    no guide script runs. The plates and the saga names are pictures; Goku's voice speaks each move. */
 typedef struct {
@@ -981,7 +981,7 @@ static void hist_select(void) {
     }
 }
 
-/* include/menu/menu_b.h: ModeMenu (src/menu/menu_a_d.c), the episode list of mode 7 for the saga gProgress->subMenu.
+/* include/menu/mode_menu.h: ModeMenu (src/menu/mode_menu.c), the episode list of mode 7 for the saga gProgress->subMenu.
    Left and right move without wrapping, X opens the episode's description, which the narrator reads aloud (its
    lines are real text and already reach the speech through the text boxes). The episode titles are pictures. */
 typedef struct {
@@ -1045,7 +1045,7 @@ static void episode_list(void) {
     say_item(text, cur, real, follow());
 }
 
-/* include/menu/menu_i.h: Train (src/menu/menu_h_d.c), the training menu of mode 44. Level 0 has two plates (0 the
+/* include/menu/training.h: Train (src/menu/training.c), the training menu of mode 44. Level 0 has two plates (0 the
    character select for free practice, 1 the lessons), level 1 the three classes and level 2 the class's lessons,
    three rows of a scrolling list whose names are real text. The explanation pages that follow are the message
    window's text (msg_window). The plates and the class names are pictures. */
@@ -1131,7 +1131,7 @@ static void train_menu(void) {
     }
 }
 
-/* include/menu/menu_s.h: SurvSel (src/menu/menu_s_b.c), the survival course select of mode 17. Up and down move
+/* include/menu/survival.h: SurvSel (src/menu/survival_select.c), the survival course select of mode 17. Up and down move
    through the three courses (wrapping), X opens the course's window (level 1) and X there starts it. The course
    names are real text (lines 0x13C.. of the screen's text); the best result is drawn with digit pictures. */
 typedef struct {
@@ -1190,7 +1190,7 @@ static void survival_select(void) {
     PortA11y_Say(text, follow());
 }
 
-/* include/menu/menu_r.h: SimTop (src/menu/menu_r_d.c), the Sim Dragon entry screen of mode 20. Up and down move
+/* include/menu/sim_top.h: SimTop (src/menu/sim_top.c), the Sim Dragon entry screen of mode 20. Up and down move
    through three plates drawn as pictures (start, ranking, how to play; wrapping), X opens one and triangle goes back.
    The ranking shows five of its ten rows and scrolls one row at a time; the help is one text line per page. */
 typedef struct {
@@ -1353,7 +1353,7 @@ static void char_name(char *out, int cap, A11yCharSel GAME_PTR cs, int chara) {
     chara_name(out, cap, cs->nameText, cs->formText, chara);
 }
 
-/* include/menu/menu_k.h: Bracket (src/menu/menu_k_b.c), the tournament tree of mode 35. While BRK_INPUT is set the
+/* include/menu/bracket.h: Bracket (src/menu/bracket.c), the tournament tree of mode 35. While BRK_INPUT is set the
    tree can be scrolled and X starts the next match; the winner's chip moving up (BRK_MOVE_B) shows who won. The
    names come from the screen's own name and form text, as its versus panel shows them. */
 typedef struct {
@@ -1363,13 +1363,13 @@ typedef struct {
     int costume;             /* 0x08 */
     int player;              /* 0x0C: which of the player's entrants, the "1P".."8P" plate */
     char unk10[0x28 - 0x10];
-} A11yBrkEntrant;            /* include/menu/menu_k.h: BrkEntrant */
+} A11yBrkEntrant;            /* include/menu/bracket.h: BrkEntrant */
 
 typedef struct {
     unsigned short flags;    /* 0x00: TOUR_MATCH_ */
     unsigned short ent[2];   /* 0x02: entrant indices, left and right */
     char unk6[0x10 - 0x6];
-} A11yTourMatch;             /* include/menu/menu_k.h: TourMatch */
+} A11yTourMatch;             /* include/menu/bracket.h: TourMatch */
 
 typedef struct {
     char unk0[0x24];
@@ -1811,7 +1811,7 @@ static void entry_select(void) {
     fighter_pick(&p, cur, entrants);
 }
 
-/* include/menu/menu_e.h and menu_f.h: TeamSel (src/menu/menu_e_b.c), the team select of the versus modes. Each side
+/* include/menu/team_select.h and menu_f.h: TeamSel (src/menu/team_select.c), the team select of the versus modes. Each side
    fills a list of up to five members, each chosen like in the versus select (grid, form, item set, costume), and
    confirms the list on its last plate; then pad 0 chooses the stage and the music. */
 typedef struct {
@@ -1824,7 +1824,7 @@ typedef struct {
     int color;        /* 0x18: costume */
     int chara;        /* 0x1C: the chosen character, -1 none yet */
     char unk20[0x30 - 0x20];
-} A11yTsMember;       /* include/menu/menu_e.h: TsMember */
+} A11yTsMember;       /* include/menu/team_select.h: TsMember */
 
 typedef struct {
     A11yTsMember member[5]; /* 0x000 */
@@ -1835,7 +1835,7 @@ typedef struct {
     int memberCount;  /* 0x134 */
     int chara;        /* 0x138: character under the cursor, line of the name files */
     int state;        /* 0x13C: TEAMSEL_ST_ */
-} A11yTeamSide;       /* include/menu/menu_e.h: TeamSelSide */
+} A11yTeamSide;       /* include/menu/team_select.h: TeamSelSide */
 _Static_assert(sizeof(A11yTsMember) == 0x30 && offsetof(A11yTeamSide, state) == 0x13C, "TeamSelSide");
 
 typedef struct {
@@ -2065,7 +2065,7 @@ static void team_select(void) {
     }
 }
 
-/* include/menu/menu_za.h: ReplayMenu (src/menu/menu_za_d.c), the replay list of mode 56. It shows one of the seven
+/* include/menu/dc_password_replay.h: ReplayMenu (src/menu/replay_menu.c), the replay list of mode 56. It shows one of the seven
    replay files at a time, its number and the two teams as chips; confirm loads it (from the Data Center) or saves
    the last fight into it (after a fight). The card's questions and messages are a Dialog, read by dialog(). */
 typedef struct {
@@ -2090,7 +2090,7 @@ typedef struct {
     int replayFlags;              /* 0x68C: ZAPROG_REPLAY_SAVE */
     char unk690[0x69C - 0x690];
     A11yReplaySlot replay[7];     /* 0x69C */
-} A11yZaProgress;                 /* include/menu/menu_za.h: ZaProgress, the view of gProgress */
+} A11yZaProgress;                 /* include/menu/dc_password_replay.h: ZaProgress, the view of gProgress */
 _Static_assert(sizeof(A11yReplaySlot) == 0x2C && offsetof(A11yZaProgress, replay) == 0x69C, "ZaProgress");
 #define REPLAY_LEAVE 1
 #define REPLAY_STARTED 4
@@ -2158,7 +2158,7 @@ static void replay_menu(void) {
     PortA11y_Say(text, follow());
 }
 
-/* include/menu/menu_h.h: CharRef (src/menu/menu_h_b.c), the character reference of mode 60. A list of the unlocked
+/* include/menu/char_reference.h: CharRef (src/menu/char_reference.c), the character reference of mode 60. A list of the unlocked
    characters; X opens one's page, whose menu has the profile (real text), a voice sample, the guide's comment
    (voiced, with subtitles) and the model viewer. Left and right page through the characters there too. */
 typedef struct {
@@ -2306,7 +2306,7 @@ static void char_ref(void) {
     costume = c->costume;
 }
 
-/* include/menu/menu_v.h: ItemHelp (src/menu/menu_v_c.c), the item details page: the item's name and description
+/* include/menu/evo_z_items.h: ItemHelp (src/menu/item_help.c), the item details page: the item's name and description
    from its own text. Its owner (the shop) says when it is open and which item it shows. */
 typedef struct {
     uint32_t GAME_PTR nameText;   /* 0x00: item names */
@@ -2334,7 +2334,7 @@ static void item_help(int item) {
     say_long(text, follow());
 }
 
-/* include/menu/menu_w.h: Shop (src/menu/menu_v_d.c), the item shop of Evolution Z (mode 50). Two plates (buy, the
+/* include/menu/shop.h: Shop (src/menu/shop.c), the item shop of Evolution Z (mode 50). Two plates (buy, the
    collection); each opens a list with four tabs (L1 and R1), the buy list asks for confirmation (buy, cancel,
    details) and shows what was bought. The guides' lines are voiced, with subtitles: not read. */
 typedef struct {
@@ -2346,7 +2346,7 @@ typedef struct {
     char unk8[0x14 - 8];
     int flags;            /* 0x14: WITEM_ */
     char unk18[0x28 - 0x18];
-} A11yShopItem;           /* include/menu/menu_w.h: WItemEntry */
+} A11yShopItem;           /* include/menu/shop.h: WItemEntry */
 typedef struct {
     int cur[4];           /* 0x0000: cursor of each tab */
     int tab;              /* 0x0010 */
@@ -2354,7 +2354,7 @@ typedef struct {
     int count[4];         /* 0x0020 */
     int ids[4][350];      /* 0x0030: 0-based items */
     char unk1610[0x1630 - 0x1610];
-} A11yShopList;           /* include/menu/menu_w.h: ShopList */
+} A11yShopList;           /* include/menu/shop.h: ShopList */
 typedef struct {
     char unk0[0x10];
     uint32_t GAME_PTR itemText;   /* 0x0010: item names; line 350 is the name of an item not owned */
@@ -2635,7 +2635,7 @@ static void duel_menu(void) {
 
 /* ---- the options screen ---- */
 
-/* include/menu/menu_x.h: Option (src/menu/menu_x_c.c, Option_Input), mode 62. The rows, the choices and the
+/* include/menu/evo_top_option.h: Option (src/menu/option.c, Option_Input), mode 62. The rows, the choices and the
    volumes are pictures; the guide's line under each row says what it does, not its name or value. */
 typedef struct {
     char unk0[0x10];
@@ -2749,7 +2749,7 @@ static void option_open(char *text, int cap, A11yOption GAME_PTR o) {
         break;
     case OPT_ITEM_VOLUME:
         if (two && gSaveData != NULL) {
-            /* 0..9, and the game wraps from 9 to 0 (Option_Input, src/menu/menu_x_c.c:646): the top is said */
+            /* 0..9, and the game wraps from 9 to 0 (Option_Input, src/menu/option.c:646): the top is said */
             snprintf(text, cap, tr("%s, %d of 9"),
                      v ? tr("Effects") : tr("Music"),
                      v ? gSaveData->seVolume : gSaveData->bgmVolume);
@@ -2866,7 +2866,7 @@ static void options(void) {
 
 /* ---- the battle's pause and result menus ---- */
 
-/* include/battle/hud_0.h: BtlMenuItem, BtlMenu and BtlMenuWork (src/battle/hud_0_b.c, the menu engine), only what
+/* include/battle/hud_0.h: BtlMenuItem, BtlMenu and BtlMenuWork (src/battle/btl_menu.c, the menu engine), only what
    is read. */
 typedef struct {
     int16_t text[2];      /* 0x00: text number per controller port (entry n + 8 of the battle's text table); negative:
@@ -2898,27 +2898,27 @@ typedef struct {
 } A11yBtlMenuWork;
 _Static_assert(sizeof(A11yBtlMenuWork) == 0x18, "BtlMenuWork");
 extern A11yBtlMenuWork GAME_PTR gBtlMenu; /* NULL outside a battle */
-extern int gPauseMenuWhich;              /* src/battle/hud_0.c: 0 the pause menu, 1 the result menu */
+extern int gPauseMenuWhich;              /* src/battle/pause_menu.c: 0 the pause menu, 1 the result menu */
 #define BTL_MENU_ITEM_SKILLS 3   /* as the first item: the page is the skill list */
 #define BTL_MENU_ITEM_CONTROLS 4 /* as the first item: the page is the controls */
 #define BTL_MENU_STATE_ACTIVE 4
 
 /* include/sys/common.h: CommonRes; in a battle, 0x28 is its common file, whose offset table holds the menus' text
-   (src/battle/hud_0_b.c, BtlMenu_GetText). */
+   (src/battle/btl_menu.c, BtlMenu_GetText). */
 extern struct { char unk0[0x28]; uint32_t GAME_PTR battle; } GAME_PTR gCommonRes;
 
 /* include/battle/battle.h: BattleWork, its flags and `running` (see battle_watch below). */
 extern struct { char unk0[0x19F0]; uint64_t flags; int running; } gBattleWork;
 #define BATTLE_FLAG_PAUSE_MENU 0x4000 /* the pause menu is open */
 
-/* gs/net.c: 1 in an online match, and which player this copy plays there. src/battle/hud_e_d.c: the port whose
+/* gs/net.c: 1 in an online match, and which player this copy plays there. src/battle/btl_pause.c: the port whose
    player opened the pause menu (it only reads). */
 extern int Port_NetActive(void), Port_NetMe(void);
 extern int BtlPause_GetMenuPad(void);
 
 /* The menu of the battle's tree that takes input (the deepest one open), or NULL when none is shown. Online the
    pause menu belongs to the player who opened it: the fight goes on under it and it is not drawn on the other
-   screen (src/battle/hud_0.c, PauseMenu_Draw), so there it is not a menu for this player either: it is not read
+   screen (src/battle/pause_menu.c, PauseMenu_Draw), so there it is not a menu for this player either: it is not read
    and the gauges and the cues go on. The menu after the fight is both players'. */
 static A11yBtlMenu GAME_PTR btl_menu_shown(void) {
     A11yBtlMenuWork GAME_PTR w = gBtlMenu;
@@ -3308,7 +3308,7 @@ static uint64_t string_hash(const uint16_t *s, int oneLine, int *len, int *lette
     return h;
 }
 
-/* src/battle/col_c.c, Font_NewCmd: the game queued a string to draw (kind 0: UTF-16 at `arg`; flags bit 0: one
+/* src/sys/font.c, Font_NewCmd: the game queued a string to draw (kind 0: UTF-16 at `arg`; flags bit 0: one
    line). Only noted here; said at the blank (shown_text). */
 void PortA11y_FontText(int kind, int arg, int flags) {
     A11yShown *e, *old = NULL;
@@ -3475,7 +3475,7 @@ static void fight_gauges(void) {
 extern void GAME_PTR BtlChar_FindBySide(int side);
 extern int BtlChar_GetFrame(void), BtlCharApi_GetChara(int objId), BtlCharApi_GetActiveMember(int objId);
 extern int BtlAct_CanTransform(void GAME_PTR chr, unsigned index, int needBlast, int needAllowed);
-extern int BtlChar_TestFlag(void GAME_PTR chr, unsigned n), BtlChar_TestMemberUnk70(void GAME_PTR chr);
+extern int BtlChar_TestFlag(void GAME_PTR chr, unsigned n), BtlChar_IsBodyChanged(void GAME_PTR chr);
 extern int BtlMember_HasKi(void GAME_PTR chr, int amount), BtlSuper_GetKiCost(void GAME_PTR chr, int slot);
 extern void PortA11y_Cue(int side, int kind); /* gs/a11y.c */
 
@@ -3496,7 +3496,7 @@ static int cue_ready(void GAME_PTR chr, int kind) {
     int n = 0;
 
     if (kind == CUE_ULTIMATE) {
-        return BtlChar_TestFlag(chr, CHR_POWERED_UP) && !BtlChar_TestMemberUnk70(chr) &&
+        return BtlChar_TestFlag(chr, CHR_POWERED_UP) && !BtlChar_IsBodyChanged(chr) &&
                BtlMember_HasKi(chr, BtlSuper_GetKiCost(chr, TECH_ULTIMATE));
     }
     for (i = 0; i < TRANSFORMS; i++) {
