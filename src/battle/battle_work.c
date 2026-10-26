@@ -56,7 +56,9 @@ void Battle_ResetWork(void) {
     BattleResult_Clear();
     BtlEvent_Reset();
 #ifdef PORT
+    Port_BattleBgm(1); /* (online: the player may hear a song of their own instead: port/src/plat_songs.c) */
     Bgm_Play(PORT_BGM_FILE(Battle_GetBgm())); /* (a song added from outside the disc has a file id of its own) */
+    Port_BattleBgm(0);
 #else
     Bgm_Play(Battle_GetBgm() + 0x10B16);
 #endif

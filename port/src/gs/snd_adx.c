@@ -501,6 +501,24 @@ static const char *voice_own_path(const char *path, char *buf, size_t size) {
     return buf;
 }
 
+/* The fight's music in an online match, the same way: the match computes with the music its menus chose (its
+   length, in view_start, is the disc's), and this copy may HEAR a song of the player's own songs/ folder instead
+   (the Dragon Net Battle window, plat_songs.c). Only the stream the battle code starts as the fight's music
+   (Port_BattleBgm); the menus' music is the game's. */
+static const char *music_own_path(const char *path) {
+    extern int PortSongs_BattleBgm(void);             /* plat_songs.c */
+    extern const char *PortSongs_NetPath(int again);
+    const char *mine;
+
+    if (!PortSongs_BattleBgm() || !Port_NetActive() || (mine = PortSongs_NetPath(gPortResim)) == NULL) {
+        return path;
+    }
+    if (getenv("BT3_SND_VERBOSE") != NULL) {
+        fprintf(stderr, "adx: the fight's music %s played as %s (this player's own)\n", path, mine);
+    }
+    return mine;
+}
+
 static void start(Player *p, const char *path) {
     SDL_AudioSpec spec;
     FILE *fp;
@@ -509,6 +527,7 @@ static void start(Player *p, const char *path) {
     char own[512];
 
     path = voice_own_path(path, own, sizeof(own));
+    path = music_own_path(path);
 
     if (gPortResim && (p->stream != NULL || p->ma != NULL) && strcmp(p->path, path) == 0) {
         return; /* a frame that is only being re-run starts the stream that is playing already: it plays on */

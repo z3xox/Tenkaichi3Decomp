@@ -63,6 +63,10 @@ int PortStages_Count(void);
 const char *PortSongs_Dir(void);                           // plat_songs.c
 const char *PortSongs_Name(int index);
 int PortSongs_Count(void);
+int PortSongs_NetMode(void);                               // ... the player's own music in online fights
+int PortSongs_NetChosen(int index);
+void PortSongs_NetChoose(int index, int on);
+void PortSongs_NetSave(void);
 int Port_Setting(const char *name, int def);   // plat_settings.c
 void Port_SettingSave(const char *name, int value);
 void Port_SettingText(const char *name, const char *def, char *out, int size);
@@ -780,6 +784,69 @@ static void quick_status(int state, int &lastState, const char *name) {
     }
 }
 
+// The player's own songs (songs/) in place of the match's music during online fights. Heard on this copy only: the
+// match still counts with the music its menus chose (plat_songs.c; snd_adx.c, music_own_path), so it plays the same
+// with a copy that has none of this. Choices: net_music in the settings, the checked songs in songs/online.txt (the
+// same two as Tenkaichi Budokai Online's Profile, src/menu/port_tbo.c).
+static void net_music(void) {
+    static const char *const kMode[] = {"Off (the match's music)", "Checked songs, at random", "Checked songs, in turn"};
+    int mode = PortSongs_NetMode(); // (each frame: Tenkaichi Budokai Online's Profile sets it too)
+    int n = PortSongs_Count();
+    char label[96];
+
+    snprintf(label, sizeof(label), "Your music in online fights: %s###netmusic", mode == 0 ? "off" : mode == 1 ? "at random" : "in turn");
+    if (!ImGui::CollapsingHeader(label)) {
+        return;
+    }
+    if (n == 0) {
+        ImGui::TextWrapped("No songs yet. Put .mp3, .wav, .flac or .adx files into the songs folder (%s) and start the game again.",
+                           PortSongs_Dir()[0] != '\0' ? PortSongs_Dir() : "songs");
+        return;
+    }
+    ImGui::SetNextItemWidth(U(260.0f));
+    if (ImGui::Combo("Music", &mode, kMode, 3)) {
+        Port_SettingSave("net_music", mode);
+        Port_SettingsWrite();
+    }
+    ImGui::SetItemTooltip("What you hear during an online fight. The music chosen in the match's menus is ignored\n"
+                          "for you, whether you are player 1 or 2; the other player hears their own choice.\n"
+                          "Off: the match's music, as before.");
+    ImGui::BeginDisabled(mode == 0);
+    {
+        bool changed = false, all = ImGui::Button("All");
+        ImGui::SameLine();
+        bool none = ImGui::Button("None");
+        float rows = (float)(n < 8 ? n : 8);
+        ImGui::BeginChild("netsongs", ImVec2(U(520.0f), rows * ImGui::GetFrameHeightWithSpacing() + ImGui::GetStyle().WindowPadding.y * 2.0f),
+                          ImGuiChildFlags_Borders | ImGuiChildFlags_NavFlattened);
+        for (int i = 0; i < n; i++) {
+            bool on = PortSongs_NetChosen(i) != 0;
+            char song[96];
+            int k = 0;
+            // the name as the list shows it ("##" would end the label early)
+            for (const char *c = PortSongs_Name(i); *c != '\0' && k < 80; c++) {
+                song[k++] = c[0] == '#' && c[1] == '#' ? ' ' : *c;
+            }
+            snprintf(song + k, sizeof(song) - (size_t)k, "###song%d", i);
+            if (all || none) {
+                on = all;
+                changed = true;
+                PortSongs_NetChoose(i, on);
+            }
+            if (ImGui::Checkbox(song, &on)) {
+                PortSongs_NetChoose(i, on);
+                changed = true;
+            }
+        }
+        ImGui::EndChild();
+        if (changed) {
+            PortSongs_NetSave();
+        }
+    }
+    ImGui::TextDisabled("Only you hear it. With no song checked the match's music plays.");
+    ImGui::EndDisabled();
+}
+
 static void build_net(void) {
     static char name[17] = "Player", address[64] = "", port[8] = "7000";
     static int tab, roll = -1, delay = 1, battle = -1, timeLimit = 3, speed = -1;
@@ -825,6 +892,8 @@ static void build_net(void) {
             Port_SettingTextSave("net_name", name);
             Port_SettingsWrite();
         }
+        ImGui::Spacing();
+        net_music();
         ImGui::Spacing();
         if (ImGui::BeginTabBar("net")) {
             if (ImGui::BeginTabItem("Host")) {

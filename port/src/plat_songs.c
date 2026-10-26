@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include "plat_songs.h"
 
 char gPortSongNames[PORT_SONG_MAX][64];
@@ -239,6 +240,158 @@ int PortSongs_Alias(const char *rel, char *out, unsigned n) {
         }
     }
     return 0;
+}
+
+/*
+ * Online fights with this player's own music. A match computes with the music its menus chose (the host's or the
+ * one who joins, whoever picked it), and that choice stays what both copies compute with: the stream's length the
+ * game is told is the original disc's (snd_adx.c, view_start). What this copy HEARS during the fight can be a song
+ * of this folder instead, as the other voice set is heard in its place (snd_adx.c, voice_own_path). Nothing of it
+ * goes over the network and the other player hears their own choice.
+ *
+ *   net_music (bt3_settings.txt): 0 the match's music, as before (the default); 1 one of the songs checked here at
+ *                                 random for each fight; 2 the checked songs one after the other.
+ *   online.txt (this folder):     the checked songs, one file name per line, in the order of the list.
+ *
+ * The Dragon Net Battle window (gs/ui.cpp) and Tenkaichi Budokai Online's Profile (src/menu/port_tbo.c) show the
+ * list and write both.
+ */
+static unsigned char sNetChosen[PORT_SONG_MAX];
+static int sNetRead, sNetLast = -1, sBattleBgm;
+static unsigned sNetSeed;
+
+static void net_read(void) {
+    char path[512], line[256];
+    FILE *fp;
+    int i;
+
+    if (sNetRead) {
+        return;
+    }
+    sNetRead = 1;
+    PortSongs_Init();
+    if (sDir[0] == '\0') {
+        return;
+    }
+    snprintf(path, sizeof(path), "%s/online.txt", sDir);
+    fp = fopen(path, "rb");
+    while (fp != NULL && fgets(line, sizeof(line), fp) != NULL) {
+        char *file = trim(line);
+        for (i = 0; i < gPortSongCount && file[0] != '\0' && file[0] != '#'; i++) {
+            if (strcmp(sFiles[i], file) == 0) {
+                sNetChosen[i] = 1;
+            }
+        }
+    }
+    if (fp != NULL) {
+        fclose(fp);
+    }
+}
+
+int PortSongs_NetChosen(int index) {
+    net_read();
+    return index >= 0 && index < gPortSongCount && sNetChosen[index];
+}
+
+void PortSongs_NetChoose(int index, int on) {
+    net_read();
+    if (index >= 0 && index < gPortSongCount) {
+        sNetChosen[index] = on != 0;
+    }
+}
+
+/* Writes online.txt (the checked songs). A song that is not in the folder any more is left out of it. */
+void PortSongs_NetSave(void) {
+    char path[512];
+    FILE *fp;
+    int i;
+
+    net_read();
+    if (sDir[0] == '\0') {
+        return;
+    }
+    snprintf(path, sizeof(path), "%s/online.txt", sDir);
+    if ((fp = fopen(path, "wb")) == NULL) {
+        fprintf(stderr, "bt3: songs: cannot write %s\n", path);
+        return;
+    }
+    fprintf(fp, "# The songs played in your online fights (Dragon Net Battle > Your music in online fights).\n");
+    for (i = 0; i < gPortSongCount; i++) {
+        if (sNetChosen[i]) {
+            fprintf(fp, "%s\n", sFiles[i]);
+        }
+    }
+    fclose(fp);
+}
+
+int PortSongs_NetMode(void) {
+    extern int Port_Setting(const char *name, int def); /* plat_settings.c */
+    int m = Port_Setting("net_music", 0);
+    return m >= 0 && m <= 2 ? m : 0;
+}
+
+/* The game's battle code (src/battle/battle_work.c) says when the fight's music is started: the one stream this
+   replaces. The menus' music, the stage select's preview and every other stream are left alone. */
+void Port_BattleBgm(int on) {
+    sBattleBgm = on != 0;
+}
+
+int PortSongs_BattleBgm(void) {
+    return sBattleBgm;
+}
+
+/* The file to play as this fight's music in an online match, or NULL for the match's own (net_music off, no song
+   checked). `again`: the blank is only being run again (rollback), so the song picked the first time is kept and
+   the stream plays on. A song of its own is picked with a generator of its own: the game's random numbers are part
+   of what the two copies compute and are not touched. */
+/* Whether song i's file can be opened (on Windows a name with characters outside the system's code page is read
+   from the folder with '?' in their place, and no such file opens: that song is left out rather than leaving the
+   fight without music). */
+static int net_playable(int i) {
+    FILE *fp = fopen(sAliases[i].target, "rb");
+    if (fp == NULL) {
+        return 0;
+    }
+    fclose(fp);
+    return 1;
+}
+
+const char *PortSongs_NetPath(int again) {
+    int mode = PortSongs_NetMode(), list[PORT_SONG_MAX], n = 0, i, pick;
+
+    if (mode == 0) {
+        return NULL;
+    }
+    net_read();
+    if (again && sNetLast >= 0 && sNetLast < gPortSongCount && sNetChosen[sNetLast]) {
+        return sAliases[sNetLast].target;
+    }
+    for (i = 0; i < gPortSongCount; i++) {
+        if (sNetChosen[i] && net_playable(i)) {
+            list[n++] = i;
+        }
+    }
+    if (n == 0) {
+        return NULL;
+    }
+    if (mode == 2) {
+        for (pick = 0; pick < n && list[pick] <= sNetLast; pick++) {
+        }
+        pick = pick < n ? list[pick] : list[0];
+    } else {
+        if (sNetSeed == 0) {
+            sNetSeed = (unsigned)time(NULL) ^ (unsigned)clock() ^ 0x9E3779B9u;
+        }
+        do {
+            sNetSeed ^= sNetSeed << 13;
+            sNetSeed ^= sNetSeed >> 17;
+            sNetSeed ^= sNetSeed << 5;
+            pick = list[sNetSeed % (unsigned)n];
+        } while (n > 1 && pick == sNetLast); /* (not the same song twice running) */
+    }
+    sNetLast = pick;
+    fprintf(stderr, "bt3: songs: this online fight plays %s for this player\n", sFiles[pick]);
+    return sAliases[pick].target;
 }
 
 /* BT3_TEST_BGM=<entry>: every battle is set up with that entry of the music list, whatever the menus chose

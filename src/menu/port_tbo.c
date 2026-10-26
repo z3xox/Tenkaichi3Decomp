@@ -264,6 +264,13 @@ extern int Port_Setting(const char *name, int def);
 extern void Port_SettingSave(const char *name, int value);
 extern void Port_SettingsWrite(void);
 #include "../../port/src/gs/net_lobby.h" /* the lobby (Port_LobbyView, Port_LobbyDo ...): plain C, its view has no pointers */
+/* plat_songs.c: the songs of the songs/ folder, and which of them this player hears in online fights */
+extern int PortSongs_Count(void);
+extern const char *PortSongs_Name(int index);
+extern int PortSongs_NetMode(void);
+extern int PortSongs_NetChosen(int index);
+extern void PortSongs_NetChoose(int index, int on);
+extern void PortSongs_NetSave(void);
 
 /* the screens */
 #define TB_HUB 0
@@ -276,6 +283,7 @@ extern void Port_SettingsWrite(void);
 #define TB_SPAR 7 /* Train While Waiting: the fighters of the sparring fight */
 #define TB_BLOCK 8 /* "Cannot Go Online": this game's data is not the disc's */
 #define TB_LOBBY 9 /* a lobby of up to eight (port/src/gs/net_lobby.c): its places, its rules, its talk */
+#define TB_SONGS 10 /* Profile's songs: which of songs/ this player hears in online fights */
 #define TB_FIGHTERS 161
 #define TB_TOURNAMENT_STAGE 4 /* the World Tournament Stage, at noon */
 
@@ -304,7 +312,12 @@ extern void Port_SettingsWrite(void);
 /* (the input delay and the rollback are the room's: Create Room sets them; a joiner gets the host's, a quick match
    has its own) */
 #define PR_NAME 0
-#define PR_COUNT 1
+#define PR_MUSIC 1 /* the fight's music this player hears online: the match's, or their own songs (plat_songs.c) */
+#define PR_SONGS 2
+#define PR_COUNT 3
+
+/* the songs page: rows on the page at a time */
+#define SG_ROWS 6
 
 #define TB_CHAT_MAX 60 /* a line of the lobby's chat */
 #define KEY_COLS 9
@@ -371,6 +384,9 @@ typedef struct TboScreen {
     s32 lbSeenState;    /* the lobby's state last frame (reached: the page's windows come in then) */
     char chat[TB_CHAT_MAX + 1];
     s32 chatLen;
+    /* the songs page */
+    s32 sgCur;
+    s32 sgTop;          /* the first row on the page */
 } TboScreen;
 
 static TboScreen *sTb;
@@ -403,10 +419,11 @@ static char *sTbHubSay[HUB_COUNT] = {
     "The Tenkaichi Budokai itself: brackets of 4 to 16 players. That one is coming soon!",
     "Your last matches, saved to watch again. That one is coming soon!",
     "The strongest in the world, among your friends, and with each fighter. Coming soon!",
-    "The name your rivals see.",
+    "The name your rivals see, and your own music for online fights.",
 };
 static void Tb_LobbyOpen(void);
 static void Tb_LobbyCreate(void);
+static char *sTbMusic[3] = {"MATCH'S MUSIC", "MY SONGS, RANDOM", "MY SONGS, IN TURN"};
 static char *sTbTime[5] = {"60 SECONDS", "90 SECONDS", "180 SECONDS", "240 SECONDS", "NO LIMIT"};
 static char sTbKeys[KEY_ROWS][KEY_COLS + 1] = {"ABCDEFGHI", "JKLMNOPQR", "STUVWXYZ0", "123456789"};
 
@@ -1047,15 +1064,35 @@ static void Tb_JoinUpdate(s32 live) {
 }
 
 /* ---------------------------------------------------------------------------------------------- Profile */
+/* How many songs are checked for online fights. */
+static s32 Tb_SongsChecked(void) {
+    s32 n = 0;
+    s32 i;
+
+    for (i = 0; i < PortSongs_Count(); i++) {
+        n += PortSongs_NetChosen(i) != 0;
+    }
+    return n;
+}
+
 static void Tb_ProfileUpdate(s32 live) {
     Pad *pad = &gPad[0];
 
-    Ps_Prompt(0, "Type Name");
+    if (sTb->prCur == PR_MUSIC) {
+        Ps_Prompt(3, "Change");
+    } else {
+        Ps_Prompt(0, sTb->prCur == PR_NAME ? "Type Name" : "Choose Songs");
+    }
     Ps_Prompt(2, "Back");
     if (!live) {
         return;
     }
     Ps_Move(&sTb->prCur, PR_COUNT);
+    if (sTb->prCur == PR_MUSIC && Ps_Side() != 0) { /* kept at once (net_music): the next fight plays it */
+        Port_SettingSave("net_music", Ps_Wrap(PortSongs_NetMode() + Ps_Side(), 0, 2));
+        Port_SettingsWrite();
+        Snd_PlaySe(1, 0);
+    }
     if ((pad->gamePressed & PADG_CROSS) && sTb->prCur == PR_NAME) {
         Snd_PlaySe(1, 1);
         Ps_Copy(sTb->typed, Port_NetNameGet(), 20);
@@ -1063,6 +1100,16 @@ static void Tb_ProfileUpdate(s32 live) {
         Tb_SetMode(TB_NAME);
         sTb->keyRow = 0;
         sTb->keyCol = 0;
+    } else if ((pad->gamePressed & PADG_CROSS) && sTb->prCur == PR_SONGS) {
+        if (PortSongs_Count() == 0) {
+            Snd_PlaySe(1, 2);
+            Tb_Note("NO SONGS YET: PUT MP3, WAV, FLAC OR ADX FILES IN THE SONGS FOLDER");
+        } else {
+            Snd_PlaySe(1, 1);
+            sTb->sgCur = 0;
+            sTb->sgTop = 0;
+            Tb_SetMode(TB_SONGS);
+        }
     } else if (pad->gamePressed & PADG_TRIANGLE) {
         Snd_PlaySe(1, 2);
         Tb_SaveChoices();
@@ -1156,6 +1203,50 @@ static void Tb_NameUpdate(s32 live) {
         Tb_SetMode(TB_PROFILE);
     } else if (done == -1) {
         Snd_PlaySe(1, 2);
+        Tb_SetMode(TB_PROFILE);
+    }
+}
+
+/* ---------------------------------------------------------------------------------------------- Profile's songs */
+/* The songs of the songs/ folder, each checked or not: in an online fight this player hears one of the checked ones
+   in place of the music the match's menus chose (port/src/plat_songs.c, gs/snd_adx.c). Kept in songs/online.txt
+   with every change. */
+static void Tb_SongsUpdate(s32 live) {
+    Pad *pad = &gPad[0];
+    s32 n = PortSongs_Count();
+
+    Ps_Prompt(0, "Check");
+    Ps_Prompt(1, "All / None");
+    Ps_Prompt(2, "Back");
+    if (!live || n == 0) {
+        if (live && (pad->gamePressed & PADG_TRIANGLE)) {
+            Snd_PlaySe(1, 2);
+            Tb_SetMode(TB_PROFILE);
+        }
+        return;
+    }
+    Ps_Move(&sTb->sgCur, n);
+    if (sTb->sgCur < sTb->sgTop) {
+        sTb->sgTop = sTb->sgCur;
+    } else if (sTb->sgCur >= sTb->sgTop + SG_ROWS) {
+        sTb->sgTop = sTb->sgCur - SG_ROWS + 1;
+    }
+    if (pad->gamePressed & PADG_CROSS) {
+        PortSongs_NetChoose(sTb->sgCur, !PortSongs_NetChosen(sTb->sgCur));
+        PortSongs_NetSave();
+        Snd_PlaySe(1, PortSongs_NetChosen(sTb->sgCur) ? 1 : 0);
+    } else if (pad->gamePressed & PADG_SQUARE) { /* every song, or none when they all are */
+        s32 all = Tb_SongsChecked() < n;
+        s32 i;
+
+        for (i = 0; i < n; i++) {
+            PortSongs_NetChoose(i, all);
+        }
+        PortSongs_NetSave();
+        Snd_PlaySe(1, all ? 1 : 0);
+    } else if (pad->gamePressed & PADG_TRIANGLE) {
+        Snd_PlaySe(1, 2);
+        sTb->prCur = PR_SONGS;
         Tb_SetMode(TB_PROFILE);
     }
 }
@@ -1537,12 +1628,23 @@ static void Tb_DrawProfile(void) {
     Tb_DrawRows(PR_COUNT, sTb->prCur, 110.0f);
 }
 
+/* The songs' value on Profile: how many are checked of how many there are. */
+static void Tb_SongsText(char *out) {
+    if (PortSongs_Count() == 0) {
+        sprintf(out, "NONE IN SONGS/");
+    } else {
+        sprintf(out, Tb_Fmt("%d OF %d CHECKED"), (int)Tb_SongsChecked(), (int)PortSongs_Count());
+    }
+}
+
 static void Tb_DrawProfileText(void) {
     static char value[PR_COUNT][32];
-    static char *label[PR_COUNT] = {"Name"};
+    static char *label[PR_COUNT] = {"Name", "Music Online", "Songs"};
     s32 i;
 
     Ps_Copy(value[PR_NAME], Port_NetNameGet(), 32);
+    Ps_Copy(value[PR_MUSIC], sTbMusic[PortSongs_NetMode()], 32);
+    Tb_SongsText(value[PR_SONGS]);
     Ps_Text(26.0f, 76.0f, "PLAYER CARD", 0.62f, 0.0f, 2);
     for (i = 0; i < PR_COUNT; i++) {
         f32 y = 110.0f + 34.0f * (f32)i;
@@ -2594,6 +2696,62 @@ static void Tb_LobbyFocus(char *focus, char *now) {
     }
 }
 
+/* A song's name as a row shows it: cut to what fits, not inside a letter of more than one byte. */
+static void Tb_SongName(char *out, s32 index, s32 max) {
+    s32 n;
+
+    Ps_Copy(out, PortSongs_Name(index), max);
+    n = Ps_Len(out);
+    if (n > 40) {
+        n = 40;
+        while (n > 0 && ((u8)out[n] & 0xC0) == 0x80) {
+            n--;
+        }
+        out[n] = 0;
+        Ps_Cat(out, "...", max);
+    }
+}
+
+static void Tb_DrawSongs(void) {
+    s32 n = PortSongs_Count();
+    s32 rows = n < SG_ROWS ? n : SG_ROWS;
+    s32 i;
+
+    Ps_Panel(TBO_KIT_WINDOW, 14.0f, 92.0f, 498.0f, 106.0f + 34.0f * (f32)rows + 6.0f, 0x80);
+    for (i = 0; i < rows; i++) {
+        f32 y = 106.0f + 34.0f * (f32)i;
+
+        if (sTb->sgTop + i == sTb->sgCur) {
+            Ps_Pill(TBO_KIT_SEL, 20.0f, y - 2.0f, 492.0f, y + 28.0f, 0x80);
+        } else {
+            Ps_Pill(TBO_KIT_BAR, 24.0f, y, 488.0f, y + 26.0f, 0x80);
+        }
+    }
+}
+
+static void Tb_DrawSongsText(void) {
+    static char name[SG_ROWS][64];
+    static char line[48];
+    s32 n = PortSongs_Count();
+    s32 i;
+
+    sprintf(line, Tb_Fmt("%d OF %d CHECKED"), (int)Tb_SongsChecked(), (int)n);
+    Ps_Text(26.0f, 76.0f, "YOUR SONGS ONLINE", 0.56f, 0.0f, 2);
+    Ps_Align(2);
+    Ps_Text(486.0f, 76.0f, line, 0.5f, 0.0f, 3);
+    Ps_Align(0);
+    for (i = 0; i < SG_ROWS && sTb->sgTop + i < n; i++) {
+        s32 k = sTb->sgTop + i;
+        f32 y = 106.0f + 34.0f * (f32)i;
+
+        Tb_SongName(name[i], k, 64);
+        Ps_Text(36.0f, Ps_TextTop(y + 13.0f, 0.6f), name[i], 0.6f, 370.0f, k == sTb->sgCur ? 1 : 0);
+        Ps_Align(2);
+        Ps_Text(476.0f, Ps_TextTop(y + 13.0f, 0.54f), PortSongs_NetChosen(k) ? "ON" : "OFF", 0.54f, 60.0f, PortSongs_NetChosen(k) ? 5 : 4);
+        Ps_Align(0);
+    }
+}
+
 /* What the hosts say in the box at the foot of the screen (two lines at most). */
 static char *Tb_Help(void) {
     switch (sTb->mode) {
@@ -2616,7 +2774,12 @@ static char *Tb_Help(void) {
     case TB_NAME:
         return "Pick your letters, then Done! Square deletes, Start finishes.";
     case TB_PROFILE:
-        return "Show everyone who you are! This is the name your rivals see.";
+        return sTb->prCur == PR_MUSIC ? "What you hear in online fights: the match's music, or your own songs. Only you hear yours!"
+               : sTb->prCur == PR_SONGS ? "Your songs from the songs folder: check the ones you want to hear in online fights."
+               : "Show everyone who you are! This is the name your rivals see.";
+    case TB_SONGS:
+        return PortSongs_NetMode() == 0 ? "Music Online is set to the match's music: change it on Profile to hear these!"
+               : "Checked songs play in your online fights, as P1 or P2. Your rival hears their own music.";
     case TB_LOBBY:
         if (sTbLv.state == 1) {
             return sTbLv.owner ? "Opening your lobby! The others join it with its code." : "Knocking at the lobby's door...";
@@ -2637,8 +2800,8 @@ static char *Tb_Help(void) {
 }
 
 /* Each page's title (by TB_ mode), as its heading shows it and the screen reader says it. */
-static char *sTbTitle[10] = {"Tenkaichi Budokai Online", "Create Room", "Join Room", "Searching", "Profile", "Profile", "Quick Match",
-                             "Train While Waiting", "Tenkaichi Budokai Online", "Lobby"};
+static char *sTbTitle[11] = {"Tenkaichi Budokai Online", "Create Room", "Join Room", "Searching", "Profile", "Profile", "Quick Match",
+                             "Train While Waiting", "Tenkaichi Budokai Online", "Lobby", "Your Music"};
 
 /* ---- the screen reader (port/src/gs/a11y.c; silent unless the player has it on). The game's own screens are read
    from their state by port/src/a11y_game.c; these pages say what they show themselves: the page's title as it opens,
@@ -2772,9 +2935,24 @@ static void Tb_Speak(void) {
     case TB_LOBBY:
         Tb_LobbyFocus(focus, now);
         break;
+    case TB_SONGS:
+        if (PortSongs_Count() > 0) {
+            Tb_SongName(focus, sTb->sgCur, 120);
+            Ps_Cat(focus, PortSongs_NetChosen(sTb->sgCur) ? ": on" : ": off", 160);
+        }
+        break;
     default:
-        Ps_Copy(focus, "Name: ", 160);
-        Ps_Cat(focus, (char *)Port_NetNameGet(), 160);
+        if (sTb->mode == TB_PROFILE && sTb->prCur == PR_MUSIC) {
+            Ps_Copy(focus, "Music online: ", 160);
+            Ps_Cat(focus, sTbMusic[PortSongs_NetMode()], 160);
+        } else if (sTb->mode == TB_PROFILE && sTb->prCur == PR_SONGS) {
+            Ps_Copy(focus, "Songs: ", 160);
+            Tb_SongsText(part);
+            Ps_Cat(focus, part, 160);
+        } else {
+            Ps_Copy(focus, "Name: ", 160);
+            Ps_Cat(focus, (char *)Port_NetNameGet(), 160);
+        }
         break;
     }
     if (sTb->mode != mode) {
@@ -2953,6 +3131,9 @@ static void Tb_Draw(void) {
     case TB_SPAR:
         Tb_DrawSpar();
         break;
+    case TB_SONGS:
+        Tb_DrawSongs();
+        break;
     case TB_BLOCK:
         break; /* (drawn last, over the rest) */
     case TB_LOBBY:
@@ -3004,6 +3185,9 @@ static void Tb_DrawText(void) {
         break;
     case TB_SPAR:
         Tb_DrawSparText();
+        break;
+    case TB_SONGS:
+        Tb_DrawSongsText();
         break;
     case TB_BLOCK:
         break;
@@ -3137,6 +3321,9 @@ s32 PortTbo_Run(void) {
             break;
         case TB_LOBBY:
             Tb_LobbyUpdate(live);
+            break;
+        case TB_SONGS:
+            Tb_SongsUpdate(live);
             break;
         }
         Tb_Speak();

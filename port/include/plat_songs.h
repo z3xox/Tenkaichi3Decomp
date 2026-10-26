@@ -23,6 +23,7 @@ void PortSongs_Init(void);
 void PortSongs_Refresh(void);       /* the select screens call it as they set up their music list: nothing to do now */
 int PortSongs_Count(void);
 int PortSongs_Offset(int index);    /* the music-list entry value of the index-th added track */
+const char *PortSongs_Name(int index); /* its name in the menus */
 
 /* The game reads these (small data, a low address). */
 extern char gPortSongNames[PORT_SONG_MAX][64];
@@ -32,5 +33,14 @@ extern int gPortSongOffsets[PORT_SONG_MAX];
 /* 1 if the file the game asks for is an added song served from elsewhere; `out` gets its path. */
 int PortSongs_Alias(const char *rel, char *out, unsigned n);
 int PortSongs_IsFile(const char *path); /* the file of an added song */
+
+/* This player's own music in online fights (plat_songs.c, after PortSongs_Alias): heard on this copy only. */
+int PortSongs_NetMode(void);              /* net_music: 0 the match's music, 1 a checked song at random, 2 in turn */
+int PortSongs_NetChosen(int index);       /* whether the index-th added song is checked (songs/online.txt) */
+void PortSongs_NetChoose(int index, int on);
+void PortSongs_NetSave(void);             /* writes songs/online.txt */
+void Port_BattleBgm(int on);              /* src/battle/battle_work.c: the fight's music is being started */
+int PortSongs_BattleBgm(void);
+const char *PortSongs_NetPath(int again); /* the file to play instead, or NULL (gs/snd_adx.c) */
 
 #endif

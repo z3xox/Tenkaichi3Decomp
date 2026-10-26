@@ -95,7 +95,13 @@ not listed while the .mp3 is there (it can be deleted). Anything else (ogg, m4a.
 
 Optional: a file songs.txt here, one line per song, "file|Name In The Menu", gives other names and an order.
 
-Added songs are not written to your save, and they are not offered in an online match (Dragon Net Battle).
+Added songs are not written to your save, and they are not offered in an online match's music select.
+
+Online fights with your own music: in Tenkaichi Budokai Online > Profile ("Music Online" and "Songs"), or in the
+Dragon Net Battle window ("Your music in online fights"), check the songs and choose random or in turn. During an
+online fight you then hear one of them instead of the music the
+match's menus chose, whether you are player 1 or 2. Only you hear it; the match plays exactly as it would without
+it, also against a player who does not have it. The checked songs are kept in online.txt in this folder.
 """
 
 

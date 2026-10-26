@@ -2594,7 +2594,7 @@ behaviour is taken for a picture.
 |---|---|---|
 | `mods/<path>` | as the file it replaces | yes: it is what is hashed |
 | added stages (`stages/`, plat_stages.c) | yes, their collision | no: the stage selects do not offer them in a session (`extra = Port_NetSession() ? 0 : ...`, menu_c_e.c, menu_e_b.c), nor the stage swaps of `BT3_STAGE_REPLACE`, and the stage buffer has the game's own size. They are hashed like a stage and printed on a line of their own: `N added stage(s) <hash> (not offered online, not counted)` |
-| added songs (`songs/`, plat_songs.c) | no | no; not offered in a session either |
+| added songs (`songs/`, plat_songs.c) | no | no; not offered in a session's music select. A player can HEAR their own checked songs in place of the fight's music (Tenkaichi Budokai Online > Profile, or the Dragon Net Battle window; `net_music`, `songs/online.txt`): snd_adx.c `music_own_path` swaps only the played file of the stream `Battle_ResetWork` starts (`Port_BattleBgm`), while `view_start` still counts the disc track's length, so nothing reaches the game's state |
 | texture packs (gs_texpack.c) | no (replaced at upload, in the renderer) | no |
 | movies | no; not played in a session (plat_movie.c) | no |
 | `BT3_FILE_ALIAS` | - | reaches only the streams and movies (`Port_FilePath`); the pack loader does not read it (the comment in plat_stages.c that says so is out of date) |
