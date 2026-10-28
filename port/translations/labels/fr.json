@@ -1,0 +1,2031 @@
+{
+  "schema_version": 1,
+  "labels_version": 1,
+  "translation_version": 1,
+  "labels_count": 505,
+  "locale": "fr",
+  "name": "Français",
+  "order": 3,
+  "labels": {
+    "timer-white/0/0": {
+      "original": "0",
+      "text": "0"
+    },
+    "timer-white/0/1": {
+      "original": "1",
+      "text": "1"
+    },
+    "timer-white/0/2": {
+      "original": "2",
+      "text": "2"
+    },
+    "timer-white/0/3": {
+      "original": "3",
+      "text": "3"
+    },
+    "timer-white/0/4": {
+      "original": "4",
+      "text": "4"
+    },
+    "timer-white/0/5": {
+      "original": "5",
+      "text": "5"
+    },
+    "timer-white/0/6": {
+      "original": "6",
+      "text": "6"
+    },
+    "timer-white/0/7": {
+      "original": "7",
+      "text": "7"
+    },
+    "timer-white/0/8": {
+      "original": "8",
+      "text": "8"
+    },
+    "timer-white/0/9": {
+      "original": "9",
+      "text": "9"
+    },
+    "timer-white/0/10": {
+      "original": "∞",
+      "text": "∞"
+    },
+    "timer-yellow/0/0": {
+      "original": "0",
+      "text": "0"
+    },
+    "timer-yellow/0/1": {
+      "original": "1",
+      "text": "1"
+    },
+    "timer-yellow/0/2": {
+      "original": "2",
+      "text": "2"
+    },
+    "timer-yellow/0/3": {
+      "original": "3",
+      "text": "3"
+    },
+    "timer-yellow/0/4": {
+      "original": "4",
+      "text": "4"
+    },
+    "timer-yellow/0/5": {
+      "original": "5",
+      "text": "5"
+    },
+    "timer-yellow/0/6": {
+      "original": "6",
+      "text": "6"
+    },
+    "timer-yellow/0/7": {
+      "original": "7",
+      "text": "7"
+    },
+    "timer-yellow/0/8": {
+      "original": "8",
+      "text": "8"
+    },
+    "timer-yellow/0/9": {
+      "original": "9",
+      "text": "9"
+    },
+    "timer-yellow/0/10": {
+      "original": "∞",
+      "text": "∞"
+    },
+    "timer-red/0/0": {
+      "original": "0",
+      "text": "0"
+    },
+    "timer-red/0/1": {
+      "original": "1",
+      "text": "1"
+    },
+    "timer-red/0/2": {
+      "original": "2",
+      "text": "2"
+    },
+    "timer-red/0/3": {
+      "original": "3",
+      "text": "3"
+    },
+    "timer-red/0/4": {
+      "original": "4",
+      "text": "4"
+    },
+    "timer-red/0/5": {
+      "original": "5",
+      "text": "5"
+    },
+    "timer-red/0/6": {
+      "original": "6",
+      "text": "6"
+    },
+    "timer-red/0/7": {
+      "original": "7",
+      "text": "7"
+    },
+    "timer-red/0/8": {
+      "original": "8",
+      "text": "8"
+    },
+    "timer-red/0/9": {
+      "original": "9",
+      "text": "9"
+    },
+    "timer-red/0/10": {
+      "original": "∞",
+      "text": "∞"
+    },
+    "win-counter/0/0": {
+      "original": "Wins",
+      "text": "Victoires"
+    },
+    "blast-stock-counter/0/0": {
+      "original": "0",
+      "text": "0"
+    },
+    "blast-stock-counter/0/1": {
+      "original": "1",
+      "text": "1"
+    },
+    "blast-stock-counter/0/2": {
+      "original": "2",
+      "text": "2"
+    },
+    "blast-stock-counter/0/3": {
+      "original": "3",
+      "text": "3"
+    },
+    "blast-stock-counter/0/4": {
+      "original": "4",
+      "text": "4"
+    },
+    "blast-stock-counter/0/5": {
+      "original": "5",
+      "text": "5"
+    },
+    "blast-stock-counter/0/6": {
+      "original": "6",
+      "text": "6"
+    },
+    "blast-stock-counter/0/7": {
+      "original": "7",
+      "text": "7"
+    },
+    "notice-blue/0/0": {
+      "original": "Ready!",
+      "text": "Prêt !"
+    },
+    "notice-orange/0/0": {
+      "original": "Fight!",
+      "text": "Combattez !"
+    },
+    "notice-red/0/0": {
+      "original": "K.O.!",
+      "text": "K.-O. !"
+    },
+    "notice-silver/0/0": {
+      "original": "Success",
+      "text": "Réussite"
+    },
+    "notice-silver/0/1": {
+      "original": "Perfect!",
+      "text": "Parfait !"
+    },
+    "notice-green/0/0": {
+      "original": "Ringout!",
+      "text": "Hors du ring !"
+    },
+    "notice-green/0/1": {
+      "original": "Time Up!",
+      "text": "Temps écoulé !"
+    },
+    "notice-gold/0/0": {
+      "original": "Winner!",
+      "text": "Vainqueur !"
+    },
+    "notice-purple/0/0": {
+      "original": "Loser",
+      "text": "Perdant"
+    },
+    "combo-red-digits/0/0": {
+      "original": "0",
+      "text": "0"
+    },
+    "combo-red-digits/0/1": {
+      "original": "1",
+      "text": "1"
+    },
+    "combo-red-digits/0/2": {
+      "original": "2",
+      "text": "2"
+    },
+    "combo-red-digits/0/3": {
+      "original": "3",
+      "text": "3"
+    },
+    "combo-red-digits/0/4": {
+      "original": "4",
+      "text": "4"
+    },
+    "combo-red-digits/0/5": {
+      "original": "5",
+      "text": "5"
+    },
+    "combo-red-digits/0/6": {
+      "original": "6",
+      "text": "6"
+    },
+    "combo-red-digits/0/7": {
+      "original": "7",
+      "text": "7"
+    },
+    "combo-red-digits/0/8": {
+      "original": "8",
+      "text": "8"
+    },
+    "combo-red-digits/0/9": {
+      "original": "9",
+      "text": "9"
+    },
+    "combo-orange-digits/0/0": {
+      "original": "0",
+      "text": "0"
+    },
+    "combo-orange-digits/0/1": {
+      "original": "1",
+      "text": "1"
+    },
+    "combo-orange-digits/0/2": {
+      "original": "2",
+      "text": "2"
+    },
+    "combo-orange-digits/0/3": {
+      "original": "3",
+      "text": "3"
+    },
+    "combo-orange-digits/0/4": {
+      "original": "4",
+      "text": "4"
+    },
+    "combo-orange-digits/0/5": {
+      "original": "5",
+      "text": "5"
+    },
+    "combo-orange-digits/0/6": {
+      "original": "6",
+      "text": "6"
+    },
+    "combo-orange-digits/0/7": {
+      "original": "7",
+      "text": "7"
+    },
+    "combo-orange-digits/0/8": {
+      "original": "8",
+      "text": "8"
+    },
+    "combo-orange-digits/0/9": {
+      "original": "9",
+      "text": "9"
+    },
+    "combo-hits/0/0": {
+      "original": "Hits!",
+      "text": "Coups !"
+    },
+    "combo-counter/0/0": {
+      "original": "Counter!",
+      "text": "Contre !"
+    },
+    "combo-max-power/0/0": {
+      "original": "MAX POWER!",
+      "text": "PUISSANCE MAX !"
+    },
+    "combo-lock-on/0/0": {
+      "original": "Lock on",
+      "text": "Verrouillage"
+    },
+    "combo-first-attack/0/0": {
+      "original": "First Attack!",
+      "text": "Première attaque !"
+    },
+    "combo-boost/0/0": {
+      "original": "BOOST!",
+      "text": "BOOST !"
+    },
+    "stage/0/0": {
+      "original": "Wasteland - Noon",
+      "text": "Terres désolées - Jour"
+    },
+    "stage/0/1": {
+      "original": "Rocky Area - Noon",
+      "text": "Zone rocheuse - Jour"
+    },
+    "stage/0/2": {
+      "original": "Planet Namek",
+      "text": "Planète Namek"
+    },
+    "stage/0/3": {
+      "original": "Dying Namek",
+      "text": "Namek en péril"
+    },
+    "stage/1/0": {
+      "original": "World Tournament Stage - Noon",
+      "text": "Tournoi mondial - Jour"
+    },
+    "stage/1/1": {
+      "original": "Kami's Lookout",
+      "text": "Palais de Kami"
+    },
+    "stage/1/2": {
+      "original": "Cell Games Arena - Evening",
+      "text": "Cell Game - Soir"
+    },
+    "stage/1/3": {
+      "original": "Supreme Kai's World",
+      "text": "Monde des Kaïo Shins"
+    },
+    "stage/2/0": {
+      "original": "Hyperbolic Time Chamber",
+      "text": "Salle de l'Esprit et du Temps"
+    },
+    "stage/2/1": {
+      "original": "City Ruins - Noon",
+      "text": "Ville en ruines - Jour"
+    },
+    "stage/2/2": {
+      "original": "Mountain Road - Noon",
+      "text": "Route de montagne - Jour"
+    },
+    "stage/2/3": {
+      "original": "Islands",
+      "text": "Îles"
+    },
+    "stage/3/0": {
+      "original": "Kame House",
+      "text": "Kame House"
+    },
+    "stage/3/1": {
+      "original": "Planet - Night",
+      "text": "Planète - Nuit"
+    },
+    "stage/3/2": {
+      "original": "Glacier",
+      "text": "Glacier"
+    },
+    "stage/3/3": {
+      "original": "Ruined Earth",
+      "text": "Terre dévastée"
+    },
+    "stage/4/0": {
+      "original": "Outer Space",
+      "text": "Espace"
+    },
+    "stage/4/1": {
+      "original": "Penguin Village",
+      "text": "Village Pingouin"
+    },
+    "stage/4/2": {
+      "original": "Hell",
+      "text": "Enfer"
+    },
+    "stage/4/3": {
+      "original": "Desert - Noon",
+      "text": "Désert - Jour"
+    },
+    "stage/5/0": {
+      "original": "King's Castle",
+      "text": "Château du roi"
+    },
+    "stage/5/1": {
+      "original": "Muscle Tower",
+      "text": "Tour du Muscle"
+    },
+    "stage/5/2": {
+      "original": "Mount Paozu",
+      "text": "Mont Paozu"
+    },
+    "stage/5/3": {
+      "original": "Wasteland - Evening",
+      "text": "Terres désolées - Soir"
+    },
+    "stage/6/0": {
+      "original": "Wasteland - Night",
+      "text": "Terres désolées - Nuit"
+    },
+    "stage/6/1": {
+      "original": "Rocky Area - Evening",
+      "text": "Zone rocheuse - Soir"
+    },
+    "stage/6/2": {
+      "original": "Rocky Area - Night",
+      "text": "Zone rocheuse - Nuit"
+    },
+    "stage/6/3": {
+      "original": "World Tournament Stage - Evening",
+      "text": "Tournoi mondial - Soir"
+    },
+    "stage/7/0": {
+      "original": "Cell Game - Noon",
+      "text": "Cell Game - Jour"
+    },
+    "stage/7/1": {
+      "original": "City Ruins - Evening",
+      "text": "Ville en ruines - Soir"
+    },
+    "stage/7/2": {
+      "original": "City Ruins - Night",
+      "text": "Ville en ruines - Nuit"
+    },
+    "stage/7/3": {
+      "original": "Desert - Evening",
+      "text": "Désert - Soir"
+    },
+    "stage/8/0": {
+      "original": "Desert - Night",
+      "text": "Désert - Nuit"
+    },
+    "stage/8/1": {
+      "original": "Mountain Road - Evening",
+      "text": "Route de montagne - Soir"
+    },
+    "stage/8/2": {
+      "original": "Planet - Evening",
+      "text": "Planète - Soir"
+    },
+    "stage/8/3": {
+      "original": "Random",
+      "text": "Aléatoire"
+    },
+    "song/0/0": {
+      "original": "The Meteor",
+      "text": "The Meteor"
+    },
+    "song/0/1": {
+      "original": "Vital Burner",
+      "text": "Vital Burner"
+    },
+    "song/0/2": {
+      "original": "Innocent World",
+      "text": "Innocent World"
+    },
+    "song/0/3": {
+      "original": "After The Fire",
+      "text": "After The Fire"
+    },
+    "song/0/4": {
+      "original": "Sweet Vibration",
+      "text": "Sweet Vibration"
+    },
+    "song/0/5": {
+      "original": "Survive",
+      "text": "Survive"
+    },
+    "song/0/6": {
+      "original": "Heat Capacity",
+      "text": "Heat Capacity"
+    },
+    "song/0/7": {
+      "original": "Overture",
+      "text": "Overture"
+    },
+    "song/1/0": {
+      "original": "Shine",
+      "text": "Shine"
+    },
+    "song/1/1": {
+      "original": "Power Scale",
+      "text": "Power Scale"
+    },
+    "song/1/2": {
+      "original": "Edge of Spirit",
+      "text": "Edge of Spirit"
+    },
+    "song/1/3": {
+      "original": "Caution !",
+      "text": "Caution !"
+    },
+    "song/1/4": {
+      "original": "Menace",
+      "text": "Menace"
+    },
+    "song/1/5": {
+      "original": "Hot Soul",
+      "text": "Hot Soul"
+    },
+    "song/1/6": {
+      "original": "High and Scream",
+      "text": "High and Scream"
+    },
+    "song/1/7": {
+      "original": "Shootout In Meteor",
+      "text": "Shootout In Meteor"
+    },
+    "song/2/0": {
+      "original": "Dynamite Battle",
+      "text": "Dynamite Battle"
+    },
+    "song/2/1": {
+      "original": "Burnin' Up",
+      "text": "Burnin' Up"
+    },
+    "song/2/2": {
+      "original": "Wild Rush",
+      "text": "Wild Rush"
+    },
+    "song/2/3": {
+      "original": "Evolution",
+      "text": "Evolution"
+    },
+    "song/2/4": {
+      "original": "********",
+      "text": "********"
+    },
+    "song/2/5": {
+      "original": "********",
+      "text": "********"
+    },
+    "song/2/6": {
+      "original": "********",
+      "text": "********"
+    },
+    "song/2/7": {
+      "original": "********",
+      "text": "********"
+    },
+    "song-highlighted/0/0": {
+      "original": "The Meteor",
+      "text": "The Meteor"
+    },
+    "song-highlighted/0/1": {
+      "original": "Vital Burner",
+      "text": "Vital Burner"
+    },
+    "song-highlighted/0/2": {
+      "original": "Innocent World",
+      "text": "Innocent World"
+    },
+    "song-highlighted/0/3": {
+      "original": "After The Fire",
+      "text": "After The Fire"
+    },
+    "song-highlighted/0/4": {
+      "original": "Sweet Vibration",
+      "text": "Sweet Vibration"
+    },
+    "song-highlighted/0/5": {
+      "original": "Survive",
+      "text": "Survive"
+    },
+    "song-highlighted/0/6": {
+      "original": "Heat Capacity",
+      "text": "Heat Capacity"
+    },
+    "song-highlighted/0/7": {
+      "original": "Overture",
+      "text": "Overture"
+    },
+    "song-highlighted/1/0": {
+      "original": "Shine",
+      "text": "Shine"
+    },
+    "song-highlighted/1/1": {
+      "original": "Power Scale",
+      "text": "Power Scale"
+    },
+    "song-highlighted/1/2": {
+      "original": "Edge of Spirit",
+      "text": "Edge of Spirit"
+    },
+    "song-highlighted/1/3": {
+      "original": "Caution !",
+      "text": "Caution !"
+    },
+    "song-highlighted/1/4": {
+      "original": "Menace",
+      "text": "Menace"
+    },
+    "song-highlighted/1/5": {
+      "original": "Hot Soul",
+      "text": "Hot Soul"
+    },
+    "song-highlighted/1/6": {
+      "original": "High and Scream",
+      "text": "High and Scream"
+    },
+    "song-highlighted/1/7": {
+      "original": "Shootout In Meteor",
+      "text": "Shootout In Meteor"
+    },
+    "song-highlighted/2/0": {
+      "original": "Dynamite Battle",
+      "text": "Dynamite Battle"
+    },
+    "song-highlighted/2/1": {
+      "original": "Burnin' Up",
+      "text": "Burnin' Up"
+    },
+    "song-highlighted/2/2": {
+      "original": "Wild Rush",
+      "text": "Wild Rush"
+    },
+    "song-highlighted/2/3": {
+      "original": "Evolution",
+      "text": "Evolution"
+    },
+    "song-highlighted/2/4": {
+      "original": "********",
+      "text": "********"
+    },
+    "song-highlighted/2/5": {
+      "original": "********",
+      "text": "********"
+    },
+    "song-highlighted/2/6": {
+      "original": "********",
+      "text": "********"
+    },
+    "song-highlighted/2/7": {
+      "original": "********",
+      "text": "********"
+    },
+    "main-5/0/0": {
+      "original": "Dragon History",
+      "text": "Histoire Dragon"
+    },
+    "main-5/0/1": {
+      "original": "Ultimate Battle",
+      "text": "Combat ultime"
+    },
+    "main-5/0/2": {
+      "original": "Dragon World Tour",
+      "text": "Tour du monde Dragon"
+    },
+    "main-5/0/3": {
+      "original": "Duel",
+      "text": "Duel"
+    },
+    "main-5/0/4": {
+      "original": "Dragon Net Battle",
+      "text": "Combat Dragon en ligne"
+    },
+    "main-5/0/5": {
+      "original": "Evolution Z",
+      "text": "Évolution Z"
+    },
+    "main-5/0/6": {
+      "original": "Ultimate Training",
+      "text": "Entraînement ultime"
+    },
+    "main-5/0/7": {
+      "original": "Data Center",
+      "text": "Centre de données"
+    },
+    "main-5/1/0": {
+      "original": "Character Reference",
+      "text": "Guide des personnages"
+    },
+    "main-5/1/1": {
+      "original": "Options",
+      "text": "Options"
+    },
+    "main-5/1/2": {
+      "original": "Shenron",
+      "text": "Shenron"
+    },
+    "main-5/1/3": {
+      "original": "Tenkaichi Budokai Online",
+      "text": "Tenkaichi Budokai Online"
+    },
+    "main-6/0/0": {
+      "original": "Dragon History",
+      "text": "Histoire Dragon"
+    },
+    "main-6/0/1": {
+      "original": "Ultimate Battle",
+      "text": "Combat ultime"
+    },
+    "main-6/0/2": {
+      "original": "Dragon World Tour",
+      "text": "Tour du monde Dragon"
+    },
+    "main-6/0/3": {
+      "original": "Duel",
+      "text": "Duel"
+    },
+    "main-6/0/4": {
+      "original": "Dragon Net Battle",
+      "text": "Combat Dragon en ligne"
+    },
+    "main-6/0/5": {
+      "original": "Evolution Z",
+      "text": "Évolution Z"
+    },
+    "main-6/0/6": {
+      "original": "Ultimate Training",
+      "text": "Entraînement ultime"
+    },
+    "main-6/0/7": {
+      "original": "Data Center",
+      "text": "Centre de données"
+    },
+    "main-6/1/0": {
+      "original": "Character Reference",
+      "text": "Guide des personnages"
+    },
+    "main-6/1/1": {
+      "original": "Options",
+      "text": "Options"
+    },
+    "main-6/1/2": {
+      "original": "Shenron",
+      "text": "Shenron"
+    },
+    "main-6/1/3": {
+      "original": "Tenkaichi Budokai Online",
+      "text": "Tenkaichi Budokai Online"
+    },
+    "main-heading/0/0": {
+      "original": "Main Menu",
+      "text": "Menu principal"
+    },
+    "versus-heading/0/0": {
+      "original": "Versus Menu",
+      "text": "Menu Versus"
+    },
+    "history-heading/0/0": {
+      "original": "Dragon History",
+      "text": "Histoire Dragon"
+    },
+    "ultimate-heading/0/0": {
+      "original": "Ultimate Battle",
+      "text": "Combat ultime"
+    },
+    "sim-heading/0/0": {
+      "original": "Sim Dragon",
+      "text": "Sim Dragon"
+    },
+    "mission-heading/0/0": {
+      "original": "Mission 100",
+      "text": "Mission 100"
+    },
+    "survival-heading/0/0": {
+      "original": "Survival",
+      "text": "Survie"
+    },
+    "fusion-heading/0/0": {
+      "original": "Disc Fusion",
+      "text": "Fusion de disques"
+    },
+    "tour-heading/0/0": {
+      "original": "Dragon World Tour",
+      "text": "Tour du monde Dragon"
+    },
+    "evolution-heading/0/0": {
+      "original": "Evolution Z",
+      "text": "Évolution Z"
+    },
+    "shop-heading/0/0": {
+      "original": "Item Shop",
+      "text": "Boutique d'objets"
+    },
+    "map-heading/0/0": {
+      "original": "Map Select",
+      "text": "Choix du terrain"
+    },
+    "bgm-select-heading/0/0": {
+      "original": "BGM Select",
+      "text": "Choix de la musique"
+    },
+    "training-heading/0/0": {
+      "original": "Ultimate Training",
+      "text": "Entraînement ultime"
+    },
+    "heading-battle-training/0/0": {
+      "original": "Battle Training",
+      "text": "Entraînement au combat"
+    },
+    "data-heading/0/0": {
+      "original": "Data Center",
+      "text": "Centre de données"
+    },
+    "password-heading/0/0": {
+      "original": "Password Input Screen",
+      "text": "Saisie du mot de passe"
+    },
+    "fighter-heading/0/0": {
+      "original": "Fighter Catalog",
+      "text": "Catalogue des combattants"
+    },
+    "replay-heading/0/0": {
+      "original": "Replay Data",
+      "text": "Données des rediffusions"
+    },
+    "reference-heading/0/0": {
+      "original": "Character Reference",
+      "text": "Guide des personnages"
+    },
+    "options-heading/0/0": {
+      "original": "Options",
+      "text": "Options"
+    },
+    "screen-heading/0/0": {
+      "original": "Screen",
+      "text": "Écran"
+    },
+    "sound-heading/0/0": {
+      "original": "Sound",
+      "text": "Son"
+    },
+    "bgm-heading/0/0": {
+      "original": "BGM Test",
+      "text": "Test musical"
+    },
+    "controller-heading/0/0": {
+      "original": "Controller",
+      "text": "Manette"
+    },
+    "shenron-heading/0/0": {
+      "original": "Shenron",
+      "text": "Shenron"
+    },
+    "battle-class-heading/0/0": {
+      "original": "Basic",
+      "text": "Débutant"
+    },
+    "battle-class-heading/0/1": {
+      "original": "Intermediate",
+      "text": "Intermédiaire"
+    },
+    "battle-class-heading/0/2": {
+      "original": "Advanced",
+      "text": "Avancé"
+    },
+    "title-normal/0/0": {
+      "original": "New Game",
+      "text": "Nouvelle partie"
+    },
+    "title-normal/0/1": {
+      "original": "Continue",
+      "text": "Continuer"
+    },
+    "title-selected/0/0": {
+      "original": "New Game",
+      "text": "Nouvelle partie"
+    },
+    "title-selected/0/1": {
+      "original": "Continue",
+      "text": "Continuer"
+    },
+    "title-press-start/0/0": {
+      "original": "Press START button",
+      "text": "Appuyez sur START"
+    },
+    "versus-normal/0/0": {
+      "original": "1P VS COM",
+      "text": "1P VS COM"
+    },
+    "versus-normal/0/1": {
+      "original": "1P VS 2P",
+      "text": "1P VS 2P"
+    },
+    "versus-normal/0/2": {
+      "original": "COM VS COM",
+      "text": "COM VS COM"
+    },
+    "versus-normal/0/3": {
+      "original": "Battle Settings",
+      "text": "Paramètres du combat"
+    },
+    "versus-selected/0/0": {
+      "original": "1P VS COM",
+      "text": "1P VS COM"
+    },
+    "versus-selected/0/1": {
+      "original": "1P VS 2P",
+      "text": "1P VS 2P"
+    },
+    "versus-selected/0/2": {
+      "original": "COM VS COM",
+      "text": "COM VS COM"
+    },
+    "versus-selected/0/3": {
+      "original": "Battle Settings",
+      "text": "Paramètres du combat"
+    },
+    "versus-type-normal/0/0": {
+      "original": "Single Battle",
+      "text": "Combat individuel"
+    },
+    "versus-type-normal/0/1": {
+      "original": "Team Battle",
+      "text": "Combat en équipe"
+    },
+    "versus-type-normal/0/2": {
+      "original": "DP Battle",
+      "text": "Combat DP"
+    },
+    "versus-type-selected/0/0": {
+      "original": "Single Battle",
+      "text": "Combat individuel"
+    },
+    "versus-type-selected/0/1": {
+      "original": "Team Battle",
+      "text": "Combat en équipe"
+    },
+    "versus-type-selected/0/2": {
+      "original": "DP Battle",
+      "text": "Combat DP"
+    },
+    "options-normal/0/0": {
+      "original": "Save/Load",
+      "text": "Sauvegarder/Charger"
+    },
+    "options-normal/0/1": {
+      "original": "Screen",
+      "text": "Écran"
+    },
+    "options-normal/0/2": {
+      "original": "Sound",
+      "text": "Son"
+    },
+    "options-normal/0/3": {
+      "original": "Controller",
+      "text": "Manette"
+    },
+    "options-normal/0/4": {
+      "original": "Camera Type",
+      "text": "Type de caméra"
+    },
+    "options-normal/0/5": {
+      "original": "Screen Shake",
+      "text": "Secousses de l'écran"
+    },
+    "options-normal/0/6": {
+      "original": "Screen Adjust",
+      "text": "Réglage de l'écran"
+    },
+    "options-normal/0/7": {
+      "original": "Speaker",
+      "text": "Haut-parleurs"
+    },
+    "options-sound-normal/0/0": {
+      "original": "Volume",
+      "text": "Volume"
+    },
+    "options-sound-normal/0/1": {
+      "original": "BGM Test",
+      "text": "Test musical"
+    },
+    "options-sound-normal/0/2": {
+      "original": "Change Voice",
+      "text": "Langue des voix"
+    },
+    "options-sound-normal/0/3": {
+      "original": "Control Type",
+      "text": "Type de commandes"
+    },
+    "options-sound-normal/0/4": {
+      "original": "Vibration",
+      "text": "Vibration"
+    },
+    "options-selected/0/0": {
+      "original": "Save/Load",
+      "text": "Sauvegarder/Charger"
+    },
+    "options-selected/0/1": {
+      "original": "Screen",
+      "text": "Écran"
+    },
+    "options-selected/0/2": {
+      "original": "Sound",
+      "text": "Son"
+    },
+    "options-selected/0/3": {
+      "original": "Controller",
+      "text": "Manette"
+    },
+    "options-selected/0/4": {
+      "original": "Camera Type",
+      "text": "Type de caméra"
+    },
+    "options-selected/0/5": {
+      "original": "Screen Shake",
+      "text": "Secousses de l'écran"
+    },
+    "options-selected/0/6": {
+      "original": "Screen Adjust",
+      "text": "Réglage de l'écran"
+    },
+    "options-selected/0/7": {
+      "original": "Speaker",
+      "text": "Haut-parleurs"
+    },
+    "options-sound-selected/0/0": {
+      "original": "Volume",
+      "text": "Volume"
+    },
+    "options-sound-selected/0/1": {
+      "original": "BGM Test",
+      "text": "Test musical"
+    },
+    "options-sound-selected/0/2": {
+      "original": "Change Voice",
+      "text": "Langue des voix"
+    },
+    "options-sound-selected/0/3": {
+      "original": "Control Type",
+      "text": "Type de commandes"
+    },
+    "options-sound-selected/0/4": {
+      "original": "Vibration",
+      "text": "Vibration"
+    },
+    "options-actions-normal/0/0": {
+      "original": "EXIT",
+      "text": "QUITTER"
+    },
+    "options-actions-normal/0/1": {
+      "original": "Default",
+      "text": "Par défaut"
+    },
+    "save-confirm-normal/0/0": {
+      "original": "Yes",
+      "text": "Oui"
+    },
+    "save-confirm-normal/0/1": {
+      "original": "No",
+      "text": "Non"
+    },
+    "options-actions-selected/0/0": {
+      "original": "EXIT",
+      "text": "QUITTER"
+    },
+    "options-actions-selected/0/1": {
+      "original": "Default",
+      "text": "Par défaut"
+    },
+    "save-confirm-selected/0/0": {
+      "original": "Yes",
+      "text": "Oui"
+    },
+    "save-confirm-selected/0/1": {
+      "original": "No",
+      "text": "Non"
+    },
+    "options-values-normal/0/0": {
+      "original": "ON",
+      "text": "OUI"
+    },
+    "options-values-normal/0/1": {
+      "original": "OFF",
+      "text": "NON"
+    },
+    "options-values-normal/0/2": {
+      "original": "Save",
+      "text": "Sauvegarder"
+    },
+    "options-values-normal/0/3": {
+      "original": "Load",
+      "text": "Charger"
+    },
+    "options-values-normal/0/4": {
+      "original": "Stereo",
+      "text": "Stéréo"
+    },
+    "options-values-normal/0/5": {
+      "original": "Mono",
+      "text": "Mono"
+    },
+    "options-values-normal/0/6": {
+      "original": "English",
+      "text": "Anglais"
+    },
+    "options-values-normal/0/7": {
+      "original": "Japanese",
+      "text": "Japonais"
+    },
+    "options-controls-normal/0/0": {
+      "original": "1P",
+      "text": "1P"
+    },
+    "options-controls-normal/0/1": {
+      "original": "2P",
+      "text": "2P"
+    },
+    "options-controls-normal/0/2": {
+      "original": "Normal",
+      "text": "Normal"
+    },
+    "options-controls-normal/0/3": {
+      "original": "Custom",
+      "text": "Personnalisé"
+    },
+    "options-controls-normal/0/4": {
+      "original": "Simple",
+      "text": "Simple"
+    },
+    "options-values-selected/0/0": {
+      "original": "ON",
+      "text": "OUI"
+    },
+    "options-values-selected/0/1": {
+      "original": "OFF",
+      "text": "NON"
+    },
+    "options-values-selected/0/2": {
+      "original": "Save",
+      "text": "Sauvegarder"
+    },
+    "options-values-selected/0/3": {
+      "original": "Load",
+      "text": "Charger"
+    },
+    "options-values-selected/0/4": {
+      "original": "Stereo",
+      "text": "Stéréo"
+    },
+    "options-values-selected/0/5": {
+      "original": "Mono",
+      "text": "Mono"
+    },
+    "options-values-selected/0/6": {
+      "original": "English",
+      "text": "Anglais"
+    },
+    "options-values-selected/0/7": {
+      "original": "Japanese",
+      "text": "Japonais"
+    },
+    "options-controls-selected/0/0": {
+      "original": "1P",
+      "text": "1P"
+    },
+    "options-controls-selected/0/1": {
+      "original": "2P",
+      "text": "2P"
+    },
+    "options-controls-selected/0/2": {
+      "original": "Normal",
+      "text": "Normal"
+    },
+    "options-controls-selected/0/3": {
+      "original": "Custom",
+      "text": "Personnalisé"
+    },
+    "options-controls-selected/0/4": {
+      "original": "Simple",
+      "text": "Simple"
+    },
+    "history-difficulty-normal/0/0": {
+      "original": "Easy",
+      "text": "Facile"
+    },
+    "history-difficulty-normal/0/1": {
+      "original": "Normal",
+      "text": "Normal"
+    },
+    "history-difficulty-normal/0/2": {
+      "original": "Hard",
+      "text": "Difficile"
+    },
+    "history-difficulty-selected/0/0": {
+      "original": "Easy",
+      "text": "Facile"
+    },
+    "history-difficulty-selected/0/1": {
+      "original": "Normal",
+      "text": "Normal"
+    },
+    "history-difficulty-selected/0/2": {
+      "original": "Hard",
+      "text": "Difficile"
+    },
+    "history-action-normal/0/0": {
+      "original": "Select Scenario",
+      "text": "Choix du scénario"
+    },
+    "history-action-normal/0/1": {
+      "original": "Select Difficulty",
+      "text": "Choix de la difficulté"
+    },
+    "history-action-selected/0/0": {
+      "original": "Select Scenario",
+      "text": "Choix du scénario"
+    },
+    "history-action-selected/0/1": {
+      "original": "Select Difficulty",
+      "text": "Choix de la difficulté"
+    },
+    "ultimate-battle/0/0": {
+      "original": "Sim Dragon",
+      "text": "Sim Dragon"
+    },
+    "ultimate-battle/0/1": {
+      "original": "Mission 100",
+      "text": "Mission 100"
+    },
+    "ultimate-battle/0/2": {
+      "original": "Survival",
+      "text": "Survie"
+    },
+    "ultimate-battle/0/3": {
+      "original": "Disc Fusion",
+      "text": "Fusion de disques"
+    },
+    "ultimate-battle/0/4": {
+      "original": "???",
+      "text": "???"
+    },
+    "sim-dragon-actions/0/0": {
+      "original": "Start",
+      "text": "Commencer"
+    },
+    "sim-dragon-actions/0/1": {
+      "original": "Battle Record",
+      "text": "Historique des combats"
+    },
+    "sim-dragon-actions/0/2": {
+      "original": "Explanation",
+      "text": "Explication"
+    },
+    "evolution-normal/0/0": {
+      "original": "Character Customize",
+      "text": "Personnalisation du personnage"
+    },
+    "evolution-normal/0/1": {
+      "original": "Item Shop",
+      "text": "Boutique d'objets"
+    },
+    "evolution-normal/0/2": {
+      "original": "Evolution Z Explanation",
+      "text": "Guide de l'Évolution Z"
+    },
+    "customize-menu-normal/0/0": {
+      "original": "Equip Item",
+      "text": "Équiper un objet"
+    },
+    "customize-menu-normal/0/1": {
+      "original": "Password",
+      "text": "Mot de passe"
+    },
+    "customize-menu-normal/0/2": {
+      "original": "Distribute Z Points",
+      "text": "Répartir les points Z"
+    },
+    "customize-slots-normal/0/3": {
+      "original": "Distribute Z Points",
+      "text": "Répartir les points Z"
+    },
+    "item-shop-normal/0/0": {
+      "original": "Item Exchange",
+      "text": "Échange d'objets"
+    },
+    "item-shop-normal/0/1": {
+      "original": "Item List",
+      "text": "Liste des objets"
+    },
+    "data-center-normal/0/0": {
+      "original": "Password Input Screen",
+      "text": "Saisie du mot de passe"
+    },
+    "data-center-normal/0/1": {
+      "original": "Replay",
+      "text": "Rediffusion"
+    },
+    "data-center-normal/0/2": {
+      "original": "Fighter Catalog",
+      "text": "Catalogue des combattants"
+    },
+    "character-reference-normal/0/0": {
+      "original": "Character Introduction",
+      "text": "Présentation du personnage"
+    },
+    "character-reference-normal/0/1": {
+      "original": "Voice Playback",
+      "text": "Écouter les voix"
+    },
+    "character-reference-normal/0/2": {
+      "original": "Chi-Chi's Commentary",
+      "text": "Commentaires de Chi-Chi"
+    },
+    "character-reference-normal/0/3": {
+      "original": "View Model",
+      "text": "Voir le modèle"
+    },
+    "evolution-selected/0/0": {
+      "original": "Character Customize",
+      "text": "Personnalisation du personnage"
+    },
+    "evolution-selected/0/1": {
+      "original": "Item Shop",
+      "text": "Boutique d'objets"
+    },
+    "evolution-selected/0/2": {
+      "original": "Evolution Z Explanation",
+      "text": "Guide de l'Évolution Z"
+    },
+    "customize-menu-selected/0/0": {
+      "original": "Equip Item",
+      "text": "Équiper un objet"
+    },
+    "customize-menu-selected/0/1": {
+      "original": "Password",
+      "text": "Mot de passe"
+    },
+    "customize-menu-selected/0/2": {
+      "original": "Distribute Z Points",
+      "text": "Répartir les points Z"
+    },
+    "customize-slots-selected/0/3": {
+      "original": "Distribute Z Points",
+      "text": "Répartir les points Z"
+    },
+    "item-shop-selected/0/0": {
+      "original": "Item Exchange",
+      "text": "Échange d'objets"
+    },
+    "item-shop-selected/0/1": {
+      "original": "Item List",
+      "text": "Liste des objets"
+    },
+    "data-center-selected/0/0": {
+      "original": "Password Input Screen",
+      "text": "Saisie du mot de passe"
+    },
+    "data-center-selected/0/1": {
+      "original": "Replay",
+      "text": "Rediffusion"
+    },
+    "data-center-selected/0/2": {
+      "original": "Fighter Catalog",
+      "text": "Catalogue des combattants"
+    },
+    "character-reference-selected/0/0": {
+      "original": "Character Introduction",
+      "text": "Présentation du personnage"
+    },
+    "character-reference-selected/0/1": {
+      "original": "Voice Playback",
+      "text": "Écouter les voix"
+    },
+    "character-reference-selected/0/2": {
+      "original": "Chi-Chi's Commentary",
+      "text": "Commentaires de Chi-Chi"
+    },
+    "character-reference-selected/0/3": {
+      "original": "View Model",
+      "text": "Voir le modèle"
+    },
+    "training-normal/0/0": {
+      "original": "Training",
+      "text": "Entraînement"
+    },
+    "training-normal/0/1": {
+      "original": "Battle Training",
+      "text": "Entraînement au combat"
+    },
+    "training-selected/0/0": {
+      "original": "Training",
+      "text": "Entraînement"
+    },
+    "training-selected/0/1": {
+      "original": "Battle Training",
+      "text": "Entraînement au combat"
+    },
+    "practice-normal/0/0": {
+      "original": "Single Practice",
+      "text": "Pratique individuelle"
+    },
+    "practice-normal/0/1": {
+      "original": "Team Practice",
+      "text": "Pratique en équipe"
+    },
+    "practice-selected/0/0": {
+      "original": "Single Practice",
+      "text": "Pratique individuelle"
+    },
+    "practice-selected/0/1": {
+      "original": "Team Practice",
+      "text": "Pratique en équipe"
+    },
+    "training-controller-normal/0/0": {
+      "original": "Nunchuk Style",
+      "text": "Style Nunchuk"
+    },
+    "training-controller-normal/0/1": {
+      "original": "Classic Style",
+      "text": "Style classique"
+    },
+    "training-controller-normal/0/2": {
+      "original": "GC Controller",
+      "text": "Manette GC"
+    },
+    "training-controller-selected/0/0": {
+      "original": "Nunchuk Style",
+      "text": "Style Nunchuk"
+    },
+    "training-controller-selected/0/1": {
+      "original": "Classic Style",
+      "text": "Style classique"
+    },
+    "training-controller-selected/0/2": {
+      "original": "GC Controller",
+      "text": "Manette GC"
+    },
+    "ultimate-battle-normal/0/0": {
+      "original": "Sim Dragon",
+      "text": "Sim Dragon"
+    },
+    "ultimate-battle-normal/0/1": {
+      "original": "Mission 100",
+      "text": "Mission 100"
+    },
+    "ultimate-battle-normal/0/2": {
+      "original": "Survival",
+      "text": "Survie"
+    },
+    "ultimate-battle-normal/0/3": {
+      "original": "Disc Fusion",
+      "text": "Fusion de disques"
+    },
+    "ultimate-battle-normal/0/4": {
+      "original": "???",
+      "text": "???"
+    },
+    "sim-dragon-actions-normal/0/0": {
+      "original": "Start",
+      "text": "Commencer"
+    },
+    "sim-dragon-actions-normal/0/1": {
+      "original": "Battle Record",
+      "text": "Historique des combats"
+    },
+    "sim-dragon-actions-normal/0/2": {
+      "original": "Explanation",
+      "text": "Explication"
+    },
+    "world-tour-list-normal/0/0": {
+      "original": "World Tour",
+      "text": "Tour du monde"
+    },
+    "world-tour-list-normal/0/1": {
+      "original": "Free",
+      "text": "Libre"
+    },
+    "world-tour-list-normal/0/2": {
+      "original": "World Tournament",
+      "text": "Tournoi mondial"
+    },
+    "world-tour-list-normal/0/3": {
+      "original": "World Martial Arts Big Tournament",
+      "text": "Grand tournoi des arts martiaux"
+    },
+    "world-tour-list-normal/0/4": {
+      "original": "Cell Games",
+      "text": "Cell Game"
+    },
+    "world-tour-list-normal/0/5": {
+      "original": "Otherworld Tournament",
+      "text": "Tournoi de l'au-delà"
+    },
+    "world-tour-list-normal/0/6": {
+      "original": "Yamcha Game",
+      "text": "Jeu de Yamcha"
+    },
+    "world-tour-custom-normal/0/0": {
+      "original": "Normal",
+      "text": "Normal"
+    },
+    "world-tour-custom-normal/0/1": {
+      "original": "Custom 1",
+      "text": "Personnalisé 1"
+    },
+    "world-tour-custom-normal/0/2": {
+      "original": "Custom 2",
+      "text": "Personnalisé 2"
+    },
+    "world-tour-custom-normal/0/3": {
+      "original": "Custom 3",
+      "text": "Personnalisé 3"
+    },
+    "versus-settings-normal/0/0": {
+      "original": "Duel Time",
+      "text": "Durée du duel"
+    },
+    "versus-settings-normal/0/1": {
+      "original": "COM Level",
+      "text": "Niveau de l'IA"
+    },
+    "versus-settings-normal/0/2": {
+      "original": "Referee",
+      "text": "Arbitre"
+    },
+    "versus-settings-normal/0/3": {
+      "original": "Transformations",
+      "text": "Transformations"
+    },
+    "versus-settings-normal/0/4": {
+      "original": "Map Setting",
+      "text": "Paramètres du terrain"
+    },
+    "versus-settings-normal/0/5": {
+      "original": "Default",
+      "text": "Par défaut"
+    },
+    "versus-dp-normal/0/0": {
+      "original": "10",
+      "text": "10"
+    },
+    "versus-dp-normal/0/1": {
+      "original": "15",
+      "text": "15"
+    },
+    "versus-dp-normal/0/2": {
+      "original": "20",
+      "text": "20"
+    },
+    "versus-onoff-normal/0/0": {
+      "original": "ON",
+      "text": "OUI"
+    },
+    "versus-onoff-normal/0/1": {
+      "original": "OFF",
+      "text": "NON"
+    },
+    "versus-time-normal/0/0": {
+      "original": "60",
+      "text": "60"
+    },
+    "versus-time-normal/0/1": {
+      "original": "90",
+      "text": "90"
+    },
+    "versus-time-normal/0/2": {
+      "original": "180",
+      "text": "180"
+    },
+    "versus-time-normal/0/3": {
+      "original": "240",
+      "text": "240"
+    },
+    "versus-time-normal/0/4": {
+      "original": "∞",
+      "text": "∞"
+    },
+    "versus-com-level-normal/0/0": {
+      "original": "Very Weak",
+      "text": "Très faible"
+    },
+    "versus-com-level-normal/0/1": {
+      "original": "Weak",
+      "text": "Faible"
+    },
+    "versus-com-level-normal/0/2": {
+      "original": "Average",
+      "text": "Moyen"
+    },
+    "versus-com-level-normal/0/3": {
+      "original": "Strong",
+      "text": "Fort"
+    },
+    "versus-com-level-normal/0/4": {
+      "original": "Very Strong",
+      "text": "Très fort"
+    },
+    "versus-referee-normal/0/0": {
+      "original": "Ox King",
+      "text": "Gyumaô"
+    },
+    "versus-referee-normal/0/1": {
+      "original": "Videl",
+      "text": "Videl"
+    },
+    "versus-referee-normal/0/2": {
+      "original": "Supreme Kai™",
+      "text": "Kaïo Shin™"
+    },
+    "versus-referee-normal/0/3": {
+      "original": "Shenron",
+      "text": "Shenron"
+    },
+    "versus-referee-normal/0/4": {
+      "original": "Announcer 1",
+      "text": "Présentateur 1"
+    },
+    "versus-referee-normal/0/5": {
+      "original": "Announcer 2",
+      "text": "Présentateur 2"
+    },
+    "versus-referee-normal/0/6": {
+      "original": "Announcer 3",
+      "text": "Présentateur 3"
+    },
+    "versus-transform-1p-normal/0/0": {
+      "original": "1P:ON",
+      "text": "1J:OUI"
+    },
+    "versus-transform-1p-normal/0/1": {
+      "original": "1P:OFF",
+      "text": "1J:NON"
+    },
+    "versus-transform-2p-normal/0/0": {
+      "original": "2P:ON",
+      "text": "2J:OUI"
+    },
+    "versus-transform-2p-normal/0/1": {
+      "original": "2P:OFF",
+      "text": "2J:NON"
+    },
+    "item-shop-confirm-normal/0/0": {
+      "original": "Yes",
+      "text": "Oui"
+    },
+    "item-shop-confirm-normal/0/1": {
+      "original": "No",
+      "text": "Non"
+    },
+    "item-shop-confirm-normal/0/2": {
+      "original": "Explanation",
+      "text": "Explication"
+    },
+    "world-tour-list-selected/0/0": {
+      "original": "World Tour",
+      "text": "Tour du monde"
+    },
+    "world-tour-list-selected/0/1": {
+      "original": "Free",
+      "text": "Libre"
+    },
+    "world-tour-list-selected/0/2": {
+      "original": "World Tournament",
+      "text": "Tournoi mondial"
+    },
+    "world-tour-list-selected/0/3": {
+      "original": "World Martial Arts Big Tournament",
+      "text": "Grand tournoi des arts martiaux"
+    },
+    "world-tour-list-selected/0/4": {
+      "original": "Cell Games",
+      "text": "Cell Game"
+    },
+    "world-tour-list-selected/0/5": {
+      "original": "Otherworld Tournament",
+      "text": "Tournoi de l'au-delà"
+    },
+    "world-tour-list-selected/0/6": {
+      "original": "Yamcha Game",
+      "text": "Jeu de Yamcha"
+    },
+    "world-tour-custom-selected/0/0": {
+      "original": "Normal",
+      "text": "Normal"
+    },
+    "world-tour-custom-selected/0/1": {
+      "original": "Custom 1",
+      "text": "Personnalisé 1"
+    },
+    "world-tour-custom-selected/0/2": {
+      "original": "Custom 2",
+      "text": "Personnalisé 2"
+    },
+    "world-tour-custom-selected/0/3": {
+      "original": "Custom 3",
+      "text": "Personnalisé 3"
+    },
+    "versus-settings-selected/0/0": {
+      "original": "Duel Time",
+      "text": "Durée du duel"
+    },
+    "versus-settings-selected/0/1": {
+      "original": "COM Level",
+      "text": "Niveau de l'IA"
+    },
+    "versus-settings-selected/0/2": {
+      "original": "Referee",
+      "text": "Arbitre"
+    },
+    "versus-settings-selected/0/3": {
+      "original": "Transformations",
+      "text": "Transformations"
+    },
+    "versus-settings-selected/0/4": {
+      "original": "Map Setting",
+      "text": "Paramètres du terrain"
+    },
+    "versus-settings-selected/0/5": {
+      "original": "Default",
+      "text": "Par défaut"
+    },
+    "versus-dp-selected/0/0": {
+      "original": "10",
+      "text": "10"
+    },
+    "versus-dp-selected/0/1": {
+      "original": "15",
+      "text": "15"
+    },
+    "versus-dp-selected/0/2": {
+      "original": "20",
+      "text": "20"
+    },
+    "versus-onoff-selected/0/0": {
+      "original": "ON",
+      "text": "OUI"
+    },
+    "versus-onoff-selected/0/1": {
+      "original": "OFF",
+      "text": "NON"
+    },
+    "versus-time-selected/0/0": {
+      "original": "60",
+      "text": "60"
+    },
+    "versus-time-selected/0/1": {
+      "original": "90",
+      "text": "90"
+    },
+    "versus-time-selected/0/2": {
+      "original": "180",
+      "text": "180"
+    },
+    "versus-time-selected/0/3": {
+      "original": "240",
+      "text": "240"
+    },
+    "versus-time-selected/0/4": {
+      "original": "∞",
+      "text": "∞"
+    },
+    "versus-com-level-selected/0/0": {
+      "original": "Very Weak",
+      "text": "Très faible"
+    },
+    "versus-com-level-selected/0/1": {
+      "original": "Weak",
+      "text": "Faible"
+    },
+    "versus-com-level-selected/0/2": {
+      "original": "Average",
+      "text": "Moyen"
+    },
+    "versus-com-level-selected/0/3": {
+      "original": "Strong",
+      "text": "Fort"
+    },
+    "versus-com-level-selected/0/4": {
+      "original": "Very Strong",
+      "text": "Très fort"
+    },
+    "versus-referee-selected/0/0": {
+      "original": "Ox King",
+      "text": "Gyumaô"
+    },
+    "versus-referee-selected/0/1": {
+      "original": "Videl",
+      "text": "Videl"
+    },
+    "versus-referee-selected/0/2": {
+      "original": "Supreme Kai™",
+      "text": "Kaïo Shin™"
+    },
+    "versus-referee-selected/0/3": {
+      "original": "Shenron",
+      "text": "Shenron"
+    },
+    "versus-referee-selected/0/4": {
+      "original": "Announcer 1",
+      "text": "Présentateur 1"
+    },
+    "versus-referee-selected/0/5": {
+      "original": "Announcer 2",
+      "text": "Présentateur 2"
+    },
+    "versus-referee-selected/0/6": {
+      "original": "Announcer 3",
+      "text": "Présentateur 3"
+    },
+    "versus-transform-1p-selected/0/0": {
+      "original": "1P:ON",
+      "text": "1J:OUI"
+    },
+    "versus-transform-1p-selected/0/1": {
+      "original": "1P:OFF",
+      "text": "1J:NON"
+    },
+    "versus-transform-2p-selected/0/0": {
+      "original": "2P:ON",
+      "text": "2J:OUI"
+    },
+    "versus-transform-2p-selected/0/1": {
+      "original": "2P:OFF",
+      "text": "2J:NON"
+    },
+    "item-shop-confirm-selected/0/0": {
+      "original": "Yes",
+      "text": "Oui"
+    },
+    "item-shop-confirm-selected/0/1": {
+      "original": "No",
+      "text": "Non"
+    },
+    "item-shop-confirm-selected/0/2": {
+      "original": "Explanation",
+      "text": "Explication"
+    },
+    "battle-training-normal/0/0": {
+      "original": "Basic",
+      "text": "Débutant"
+    },
+    "battle-training-normal/0/1": {
+      "original": "Intermediate",
+      "text": "Intermédiaire"
+    },
+    "battle-training-normal/0/2": {
+      "original": "Advanced",
+      "text": "Avancé"
+    },
+    "battle-training-selected/0/0": {
+      "original": "Basic",
+      "text": "Débutant"
+    },
+    "battle-training-selected/0/1": {
+      "original": "Intermediate",
+      "text": "Intermédiaire"
+    },
+    "battle-training-selected/0/2": {
+      "original": "Advanced",
+      "text": "Avancé"
+    },
+    "team-end-normal/0/0": {
+      "original": "END",
+      "text": "FIN"
+    },
+    "sound-digits-normal/0/0": {
+      "original": "0",
+      "text": "0"
+    },
+    "sound-digits-normal/0/1": {
+      "original": "1",
+      "text": "1"
+    },
+    "sound-digits-normal/0/2": {
+      "original": "2",
+      "text": "2"
+    },
+    "sound-digits-normal/0/3": {
+      "original": "3",
+      "text": "3"
+    },
+    "sound-digits-normal/0/4": {
+      "original": "4",
+      "text": "4"
+    },
+    "sound-digits-normal/0/5": {
+      "original": "5",
+      "text": "5"
+    },
+    "sound-digits-normal/0/6": {
+      "original": "6",
+      "text": "6"
+    },
+    "sound-digits-normal/0/7": {
+      "original": "7",
+      "text": "7"
+    },
+    "sound-digits-normal/0/8": {
+      "original": "8",
+      "text": "8"
+    },
+    "sound-digits-normal/0/9": {
+      "original": "9",
+      "text": "9"
+    },
+    "character-color-normal/0/0": {
+      "original": "1",
+      "text": "1"
+    },
+    "character-color-normal/0/1": {
+      "original": "2",
+      "text": "2"
+    },
+    "character-color-normal/0/2": {
+      "original": "3",
+      "text": "3"
+    },
+    "character-color-normal/0/3": {
+      "original": "4",
+      "text": "4"
+    },
+    "team-end-selected/0/0": {
+      "original": "END",
+      "text": "FIN"
+    },
+    "sound-digits-selected/0/0": {
+      "original": "0",
+      "text": "0"
+    },
+    "sound-digits-selected/0/1": {
+      "original": "1",
+      "text": "1"
+    },
+    "sound-digits-selected/0/2": {
+      "original": "2",
+      "text": "2"
+    },
+    "sound-digits-selected/0/3": {
+      "original": "3",
+      "text": "3"
+    },
+    "sound-digits-selected/0/4": {
+      "original": "4",
+      "text": "4"
+    },
+    "sound-digits-selected/0/5": {
+      "original": "5",
+      "text": "5"
+    },
+    "sound-digits-selected/0/6": {
+      "original": "6",
+      "text": "6"
+    },
+    "sound-digits-selected/0/7": {
+      "original": "7",
+      "text": "7"
+    },
+    "sound-digits-selected/0/8": {
+      "original": "8",
+      "text": "8"
+    },
+    "sound-digits-selected/0/9": {
+      "original": "9",
+      "text": "9"
+    },
+    "character-color-selected/0/0": {
+      "original": "1",
+      "text": "1"
+    },
+    "character-color-selected/0/1": {
+      "original": "2",
+      "text": "2"
+    },
+    "character-color-selected/0/2": {
+      "original": "3",
+      "text": "3"
+    },
+    "character-color-selected/0/3": {
+      "original": "4",
+      "text": "4"
+    },
+    "character-preview-color/0/0": {
+      "original": "0",
+      "text": "0"
+    },
+    "character-preview-color/0/1": {
+      "original": "1",
+      "text": "1"
+    },
+    "character-preview-color/0/2": {
+      "original": "2",
+      "text": "2"
+    },
+    "character-preview-color/0/3": {
+      "original": "3",
+      "text": "3"
+    },
+    "character-preview-color/0/4": {
+      "original": "4",
+      "text": "4"
+    },
+    "character-preview-color/0/5": {
+      "original": "5",
+      "text": "5"
+    },
+    "character-preview-color/0/6": {
+      "original": "6",
+      "text": "6"
+    },
+    "character-preview-color/0/7": {
+      "original": "7",
+      "text": "7"
+    },
+    "character-preview-color/0/8": {
+      "original": "8",
+      "text": "8"
+    },
+    "character-preview-color/0/9": {
+      "original": "9",
+      "text": "9"
+    },
+    "song-random/0/0": {
+      "original": "Random",
+      "text": "Aléatoire"
+    },
+    "song-random-highlighted/0/0": {
+      "original": "Random",
+      "text": "Aléatoire"
+    }
+  }
+}

@@ -86,6 +86,12 @@ int main(int argc, char **argv) {
     ut_worker(job);
     CHECK(UiText_EuropeanOnStartup(argv[2], why, sizeof(why)) == 4);
     CHECK(UiText_EuropeanOnStartup(argv[2], why, sizeof(why)) == 0);
+    /* Earlier installs have the pre-story version-1 catalog: refresh it, then keep the current copy. */
+    snprintf(path, sizeof(path), "%s/translations/ui/es.json", argv[2]);
+    fp = fopen(path, "wb"); CHECK(fp);
+    fputs("{\"source\": \"European disc, version 1\"}", fp); fclose(fp);
+    CHECK(UiText_EuropeanOnStartup(argv[2], why, sizeof(why)) == 1);
+    CHECK(UiText_EuropeanOnStartup(argv[2], why, sizeof(why)) == 0);
     CHECK(UiText_Load(argv[2], "es"));
     CHECK(sRowCount == 32800);
     snprintf(path, sizeof(path), "%s/pzs3us1/00560.bin", argv[1]);

@@ -1,13 +1,31 @@
 # Translations
 
-The port uses one selected language for three kinds of text. Each kind has its
-own JSON catalog under `gamedata/game-text/translations/`:
+The port uses one selected language for its native game catalogs, online menus
+and F1 settings. The graphical installer offers the same languages. English,
+Spanish (`es`), French (`fr`), German (`de`), Italian (`it`) and Catalan (`ca`) are bundled. Language selectors
+use the names English, Español, Français, Deutsch, Italiano and Català.
+
+Three kinds of runtime catalog live under `gamedata/game-text/translations/`:
 
 | Folder | Text covered | Where the English text comes from |
 | --- | --- | --- |
 | `labels/` | Menu and other text painted into artwork textures | Bundled `port/translations/labels/en.json` |
 | `ui/` | Original game's menu, mode and story dialogue text tables | Extracted from the USA game data at startup into `ui/en.json`, unless an English UI catalog is bundled |
 | `port/` | Text added by the PC port: the quit confirmation, the lines at the start of an online match (`{name}` is the rival's name), and the automatic update's lines (`update/...`; `{version}`, `{percent}`) | Bundled `port/translations/port/en.json` |
+
+The five translations contain the 505 menu/battle labels and 524 port/online
+entries each. The settings and installer have a separate compiled catalog,
+`port/translations/interface/<locale>.json`, with 500 messages per language. It works before installing any
+disc data. It includes their labels, choices, help, notices and native installer
+errors. Technical output from external tools and installation logs can remain
+in its source language.
+
+The European disc supplies the original game's Spanish, French, German and
+Italian text tables and artwork, as described below. Catalan translates the
+bundled labels, online menus, settings and installer; it has no European disc
+translation. Original dialogue and other game-table text without a Catalan
+`ui/ca.json` use the English fallback. Adding the bundled locale does not
+translate those original tables automatically.
 
 An entry has a stable ID, the English `original`, and editable `text`. For
 example, `port/en.json` contains:
@@ -64,10 +82,80 @@ locale is saved as `menu_lang` in `bt3_settings.txt`. The optional **Show langua
 selector at startup** setting displays the selector on later launches too.
 `BT3_MENU_LANG=es` overrides the saved choice for one launch.
 
-The catalogs are loaded once for a run. Restart the game after choosing a
-different language or editing a JSON file. The selected language applies
-across the available label, UI, and port catalogs; each kind falls back
-independently when it has no matching translation.
+The native game catalogs are loaded once for a run. Restart the game after
+choosing a different language or editing a runtime JSON file. F1 settings
+switch immediately; the game labels and text apply on the next launch. The
+selected language applies across the available label, UI, and port catalogs;
+each kind falls back independently when it has no matching translation.
+
+The installer offers the same six interface languages and starts with
+`BT3_MENU_LANG` or an existing saved `menu_lang`. Its language chooser changes
+the installer interface. Play keeps the game's saved language and first-run
+selector; it inherits `BT3_MENU_LANG` only when that override was explicitly
+supplied by the caller.
+
+## Settings and installer translations
+
+Edit `text` in `port/translations/interface/<locale>.json`, retaining the IDs,
+English `original`, printf arguments (including their order), and any `##`
+widget suffix. User names, addresses, paths and chat messages are data and are
+not passed through the interface translator. ImGui widget IDs stay stable when
+the visible language changes, and buttons grow to fit translated labels.
+
+After adding or changing interface wording in code, refresh catalog IDs without
+discarding existing translations:
+
+```bash
+python3 port/tools/interface_strings.py --update
+```
+
+Translate new entries, then rebuild the game and/or `sh port/setup/build.sh`.
+Both build paths compile the JSON into `port/build/gen/gs/ui_catalog_generated.h`
+and reject invalid format strings or changed widget suffixes. The release also
+includes the source catalogs under `translations/interface/`; editing those
+files requires rebuilding and does not hot-reload a compiled interface.
+
+Validate all bundled catalogs and exercise the production runtime loader:
+
+```bash
+gcc -std=gnu99 -g -O1 -no-pie -fsanitize=address,undefined -Iport/src/gs \
+    port/tests/menu_font/translations.c port/src/gs/menu_translation.c \
+    port/src/gs/ui_text_translate.c port/src/plat_settings.c -lpthread \
+    -o port/build/translations_test
+python3 port/tools/check_translations.py --runtime port/build/translations_test
+```
+
+`port/tests/menu_font/interface.cpp` has build instructions for its additional
+ImGui integration test: switching languages, stable widget and popup IDs,
+translated combo choices, button widths, and preservation of user input. These
+checks need no disc and do not replace play-testing with USA and European data.
+
+The native installer can also be checked without a disc. This exercises its
+worker thread in all six languages, retains the event protocol and UTF-8 file
+paths, and rejects missing or invalid images. It also launches a child through
+the Play button's helper to check normal language selection and an explicit
+override:
+
+```bash
+g++ -std=c++17 -g -O1 -no-pie -fsanitize=address,undefined \
+    -Iport/third_party/imgui -Iport/src/gs -Iport/build/gen/gs \
+    port/tests/menu_font/setup_localization.cpp port/setup/native.cpp \
+    -lSDL3 -lpthread -o port/build/setup_localization_test
+./port/build/setup_localization_test
+```
+
+Validation with privately supplied USA (`SLUS-21678`) and European (`SLES-54945`)
+images exercised the disc import and catalog refresh. The European extraction
+generated 47,533 entries per language: 29,846 differed from English in Spanish,
+30,240 in French, 29,929 in German and 29,358 in Italian. The generated catalogs
+and other disc files are local validation data and are not included in the
+source change.
+
+Offscreen OpenGL captures exercised F1 in all five translated languages, all
+eight settings tabs in Spanish and the exit dialog. The
+native Tenkaichi Budokai Online menu was also rendered in Catalan. Wider settings,
+adaptive field widths and wrapped help retain longer translated labels. These
+checks do not verify physical controllers, audible output, or a remote match.
 
 ## What each catalog can translate
 

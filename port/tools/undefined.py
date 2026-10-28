@@ -183,6 +183,7 @@ def main():
     # renderer: ordinary host code, hardware float. Its shaders are compiled to SPIR-V and embedded.
     gen = ROOT / "port/build/gen/gs"
     gen.mkdir(parents=True, exist_ok=True)
+    subprocess.run([sys.executable, str(ROOT / 'port/tools/interface_strings.py')], cwd=ROOT, check=True)
     # This build's full release number, for the automatic update (gs/net_update.c): BT3_VERSION=0.1.38.9 (the release
     # workflow passes its tag's), "dev" without it. A "dev" build never offers to update itself.
     ver = os.environ.get("BT3_VERSION", "").strip().lstrip("vV") or "dev"

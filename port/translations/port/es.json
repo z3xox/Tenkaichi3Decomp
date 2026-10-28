@@ -1,0 +1,2631 @@
+{
+  "schema_version": 1,
+  "labels_version": 3,
+  "translation_version": 1,
+  "labels_count": 524,
+  "locale": "es",
+  "name": "Español",
+  "order": 2,
+  "labels": {
+    "quit/confirm": {
+      "original": "Close the game?\nUnsaved progress will be lost.",
+      "text": "¿Cerrar el juego?\nSe perderá el progreso sin guardar.",
+      "note": "shown by the PC port"
+    },
+    "net/connecting": {
+      "original": "Connecting to your rival...",
+      "text": "Conectando con tu rival...",
+      "note": "shown by the PC port"
+    },
+    "net/rival_here": {
+      "original": "Your rival \"{name}\" is here! The match begins.",
+      "text": "¡Tu rival \"{name}\" está aquí! Empieza el combate.",
+      "note": "shown by the PC port"
+    },
+    "net/lobby_joined": {
+      "original": "You are in the lobby. Its screen opens from the main menu (Tenkaichi Budokai Online).",
+      "text": "Estás en la sala. Puedes abrirla desde el menú principal (Tenkaichi Budokai Online).",
+      "note": "shown by the PC port"
+    },
+    "net/rival_from": {
+      "original": "Your rival \"{name}\" from {region} is here! The match begins.",
+      "text": "¡Tu rival \"{name}\", de {region}, está aquí! Empieza el combate.",
+      "note": "shown by the PC port"
+    },
+    "net/round_trip": {
+      "original": "Round trip: ~{ms} ms",
+      "text": "Latencia de ida y vuelta: ~{ms} ms",
+      "note": "shown by the PC port"
+    },
+    "region/NA": {
+      "original": "North America",
+      "text": "América del Norte",
+      "note": "shown by the PC port"
+    },
+    "region/SA": {
+      "original": "South America",
+      "text": "América del Sur",
+      "note": "shown by the PC port"
+    },
+    "region/EU": {
+      "original": "Europe",
+      "text": "Europa",
+      "note": "shown by the PC port"
+    },
+    "region/ME": {
+      "original": "the Middle East",
+      "text": "Oriente Medio",
+      "note": "shown by the PC port"
+    },
+    "region/AF": {
+      "original": "Africa",
+      "text": "África",
+      "note": "shown by the PC port"
+    },
+    "region/AS": {
+      "original": "Asia",
+      "text": "Asia",
+      "note": "shown by the PC port"
+    },
+    "region/OC": {
+      "original": "Oceania",
+      "text": "Oceanía",
+      "note": "shown by the PC port"
+    },
+    "update/available": {
+      "original": "Update {version} available. F1 to update.",
+      "text": "Actualización {version} disponible. F1 para actualizar.",
+      "note": "shown by the PC port"
+    },
+    "update/downloading": {
+      "original": "Downloading update {version}: {percent}%",
+      "text": "Descargando la actualización {version}: {percent}%",
+      "note": "shown by the PC port"
+    },
+    "update/ready": {
+      "original": "Update {version} is ready. F1 > Restart now.",
+      "text": "La actualización {version} está lista. F1 > Reiniciar ahora.",
+      "note": "shown by the PC port"
+    },
+    "update/done": {
+      "original": "Updated to {version}.",
+      "text": "Actualizado a {version}.",
+      "note": "shown by the PC port"
+    },
+    "update/online_off": {
+      "original": "An update is being installed: online play is off until the game restarts (F1 > Restart now).",
+      "text": "Se está instalando una actualización: el juego online está desactivado hasta reiniciar el juego (F1 > Reiniciar ahora).",
+      "note": "shown by the PC port"
+    },
+    "tbo/47144fb5": {
+      "original": "Goku (Early)",
+      "text": "Goku (inicio)",
+      "note": "a fighter's name"
+    },
+    "tbo/5532a2ea": {
+      "original": "Goku (Med)",
+      "text": "Goku (medio)",
+      "note": "a fighter's name"
+    },
+    "tbo/0829cc5a": {
+      "original": "Goku (Med) Super Saiyan",
+      "text": "Goku (medio) Supersaiyan",
+      "note": "a fighter's name"
+    },
+    "tbo/14aad12f": {
+      "original": "Goku (End)",
+      "text": "Goku (final)",
+      "note": "a fighter's name"
+    },
+    "tbo/a165f025": {
+      "original": "Goku (End) Super Saiyan",
+      "text": "Goku (final) Supersaiyan",
+      "note": "a fighter's name"
+    },
+    "tbo/733bea17": {
+      "original": "Goku (End) Super Saiyan 2",
+      "text": "Goku (final) Supersaiyan 2",
+      "note": "a fighter's name"
+    },
+    "tbo/723be884": {
+      "original": "Goku (End) Super Saiyan 3",
+      "text": "Goku (final) Supersaiyan 3",
+      "note": "a fighter's name"
+    },
+    "tbo/684c9c97": {
+      "original": "Goku (GT)",
+      "text": "Goku (GT)",
+      "note": "a fighter's name"
+    },
+    "tbo/3439bead": {
+      "original": "Goku (GT) Super Saiyan",
+      "text": "Goku (GT) Supersaiyan",
+      "note": "a fighter's name"
+    },
+    "tbo/2898098c": {
+      "original": "Goku (GT) Super Saiyan 3",
+      "text": "Goku (GT) Supersaiyan 3",
+      "note": "a fighter's name"
+    },
+    "tbo/279807f9": {
+      "original": "Goku (GT) Super Saiyan 4",
+      "text": "Goku (GT) Supersaiyan 4",
+      "note": "a fighter's name"
+    },
+    "tbo/a35cfc8f": {
+      "original": "Kid Goku",
+      "text": "Goku niño",
+      "note": "a fighter's name"
+    },
+    "tbo/08682a02": {
+      "original": "Great Ape",
+      "text": "Ozaru",
+      "note": "a fighter's name"
+    },
+    "tbo/52ba5e72": {
+      "original": "Kid Gohan",
+      "text": "Gohan niño",
+      "note": "a fighter's name"
+    },
+    "tbo/3b3c3988": {
+      "original": "Teen Gohan",
+      "text": "Gohan adolescente",
+      "note": "a fighter's name"
+    },
+    "tbo/8673706c": {
+      "original": "Teen Gohan Super Saiyan",
+      "text": "Gohan adolescente Supersaiyan",
+      "note": "a fighter's name"
+    },
+    "tbo/43753122": {
+      "original": "Teen Gohan Super Saiyan 2",
+      "text": "Gohan adolescente Supersaiyan 2",
+      "note": "a fighter's name"
+    },
+    "tbo/f4ea3792": {
+      "original": "Gohan",
+      "text": "Gohan",
+      "note": "a fighter's name"
+    },
+    "tbo/b8394a62": {
+      "original": "Gohan Super Saiyan",
+      "text": "Gohan Supersaiyan",
+      "note": "a fighter's name"
+    },
+    "tbo/2b66ccbc": {
+      "original": "Gohan Super Saiyan 2",
+      "text": "Gohan Supersaiyan 2",
+      "note": "a fighter's name"
+    },
+    "tbo/d8f45651": {
+      "original": "Great Saiyaman",
+      "text": "Gran Saiyaman",
+      "note": "a fighter's name"
+    },
+    "tbo/1b44b02f": {
+      "original": "Ultimate Gohan",
+      "text": "Gohan definitivo",
+      "note": "a fighter's name"
+    },
+    "tbo/0243536e": {
+      "original": "Piccolo (Early)",
+      "text": "Piccolo (inicio)",
+      "note": "a fighter's name"
+    },
+    "tbo/739a9a98": {
+      "original": "Piccolo (End)",
+      "text": "Piccolo (final)",
+      "note": "a fighter's name"
+    },
+    "tbo/38d62635": {
+      "original": "Nail",
+      "text": "Nail",
+      "note": "a fighter's name"
+    },
+    "tbo/edcce8a0": {
+      "original": "Krillin",
+      "text": "Krillin",
+      "note": "a fighter's name"
+    },
+    "tbo/6791359c": {
+      "original": "Yamcha",
+      "text": "Yamcha",
+      "note": "a fighter's name"
+    },
+    "tbo/daf863dd": {
+      "original": "Tien",
+      "text": "Tien",
+      "note": "a fighter's name"
+    },
+    "tbo/ac26a866": {
+      "original": "Chiaotzu",
+      "text": "Chiaotzu",
+      "note": "a fighter's name"
+    },
+    "tbo/71539abb": {
+      "original": "Vegeta (Scouter)",
+      "text": "Vegeta (rastreador)",
+      "note": "a fighter's name"
+    },
+    "tbo/4b2faa86": {
+      "original": "Vegeta (Scouter) Great Ape",
+      "text": "Vegeta (rastreador) Ozaru",
+      "note": "a fighter's name"
+    },
+    "tbo/ad2d3213": {
+      "original": "Vegeta",
+      "text": "Vegeta",
+      "note": "a fighter's name"
+    },
+    "tbo/4a2cb8e9": {
+      "original": "Vegeta Super Saiyan",
+      "text": "Vegeta Supersaiyan",
+      "note": "a fighter's name"
+    },
+    "tbo/a19f64b6": {
+      "original": "Super Vegeta",
+      "text": "Super Vegeta",
+      "note": "a fighter's name"
+    },
+    "tbo/a3eda500": {
+      "original": "Vegeta (2nd Form)",
+      "text": "Vegeta (2.ª forma)",
+      "note": "a fighter's name"
+    },
+    "tbo/1d02aee4": {
+      "original": "Vegeta (2nd Form) Super Saiyan",
+      "text": "Vegeta (2.ª forma) Supersaiyan",
+      "note": "a fighter's name"
+    },
+    "tbo/d4eb651a": {
+      "original": "Vegeta (2nd Form) Super Saiyan 2",
+      "text": "Vegeta (2.ª forma) Supersaiyan 2",
+      "note": "a fighter's name"
+    },
+    "tbo/66feeed2": {
+      "original": "Majin Vegeta",
+      "text": "Majin Vegeta",
+      "note": "a fighter's name"
+    },
+    "tbo/ceeb5ba8": {
+      "original": "Vegeta (2nd Form) Super Saiyan 4",
+      "text": "Vegeta (2.ª forma) Supersaiyan 4",
+      "note": "a fighter's name"
+    },
+    "tbo/01bf8f62": {
+      "original": "Trunks (Sword)",
+      "text": "Trunks (espada)",
+      "note": "a fighter's name"
+    },
+    "tbo/212e2d52": {
+      "original": "Trunks (Sword) Super Saiyan",
+      "text": "Trunks (espada) Supersaiyan",
+      "note": "a fighter's name"
+    },
+    "tbo/cfbc4d2a": {
+      "original": "Trunks",
+      "text": "Trunks",
+      "note": "a fighter's name"
+    },
+    "tbo/a6a4849a": {
+      "original": "Trunks Super Saiyan",
+      "text": "Trunks Supersaiyan",
+      "note": "a fighter's name"
+    },
+    "tbo/d35909d3": {
+      "original": "Super Trunks",
+      "text": "Super Trunks",
+      "note": "a fighter's name"
+    },
+    "tbo/a0e2ba8a": {
+      "original": "Kid Trunks",
+      "text": "Trunks niño",
+      "note": "a fighter's name"
+    },
+    "tbo/e2af28fa": {
+      "original": "Kid Trunks Super Saiyan",
+      "text": "Trunks niño Supersaiyan",
+      "note": "a fighter's name"
+    },
+    "tbo/fd7c21a2": {
+      "original": "Goten",
+      "text": "Goten",
+      "note": "a fighter's name"
+    },
+    "tbo/b8d35a92": {
+      "original": "Goten Super Saiyan",
+      "text": "Goten Supersaiyan",
+      "note": "a fighter's name"
+    },
+    "tbo/e69522c8": {
+      "original": "Gotenks",
+      "text": "Gotenks",
+      "note": "a fighter's name"
+    },
+    "tbo/2a853cac": {
+      "original": "Gotenks Super Saiyan",
+      "text": "Gotenks Supersaiyan",
+      "note": "a fighter's name"
+    },
+    "tbo/239878f5": {
+      "original": "Gotenks Super Saiyan 3",
+      "text": "Gotenks Supersaiyan 3",
+      "note": "a fighter's name"
+    },
+    "tbo/9fd25899": {
+      "original": "Vegito",
+      "text": "Vegito",
+      "note": "a fighter's name"
+    },
+    "tbo/403c3b40": {
+      "original": "Super Vegito",
+      "text": "Super Vegito",
+      "note": "a fighter's name"
+    },
+    "tbo/e8fbff85": {
+      "original": "Super Gogeta",
+      "text": "Super Gogeta",
+      "note": "a fighter's name"
+    },
+    "tbo/2faab00c": {
+      "original": "Gogeta Super Saiyan 4",
+      "text": "Gogeta Supersaiyan 4",
+      "note": "a fighter's name"
+    },
+    "tbo/bffb8d59": {
+      "original": "Mr Satan",
+      "text": "Mr Satan",
+      "note": "a fighter's name"
+    },
+    "tbo/5e67ccc5": {
+      "original": "Videl",
+      "text": "Videl",
+      "note": "a fighter's name"
+    },
+    "tbo/ce4b3203": {
+      "original": "Great Saiyaman 2",
+      "text": "Gran Saiyaman 2",
+      "note": "a fighter's name"
+    },
+    "tbo/aec17547": {
+      "original": "Supreme Kai",
+      "text": "Kaioshin",
+      "note": "a fighter's name"
+    },
+    "tbo/4f335016": {
+      "original": "Kibito Kai",
+      "text": "Kibitoshin",
+      "note": "a fighter's name"
+    },
+    "tbo/36e10de8": {
+      "original": "Yajirobe",
+      "text": "Yajirobe",
+      "note": "a fighter's name"
+    },
+    "tbo/1df15958": {
+      "original": "Paikuhan",
+      "text": "Paikuhan",
+      "note": "a fighter's name"
+    },
+    "tbo/d781487c": {
+      "original": "Tapion",
+      "text": "Tapion",
+      "note": "a fighter's name"
+    },
+    "tbo/b45aef8c": {
+      "original": "Pan",
+      "text": "Pan",
+      "note": "a fighter's name"
+    },
+    "tbo/c12277c7": {
+      "original": "Uub",
+      "text": "Uub",
+      "note": "a fighter's name"
+    },
+    "tbo/01762d15": {
+      "original": "Majuub",
+      "text": "Majuub",
+      "note": "a fighter's name"
+    },
+    "tbo/0b69c760": {
+      "original": "Master Roshi",
+      "text": "Maestro Roshi",
+      "note": "a fighter's name"
+    },
+    "tbo/e6ebfdd0": {
+      "original": "Master Roshi Full Power",
+      "text": "Maestro Roshi máximo poder",
+      "note": "a fighter's name"
+    },
+    "tbo/93cba6d3": {
+      "original": "Grandpa Gohan",
+      "text": "Abuelo Gohan",
+      "note": "a fighter's name"
+    },
+    "tbo/1fe08c36": {
+      "original": "Namu",
+      "text": "Namu",
+      "note": "a fighter's name"
+    },
+    "tbo/46276aea": {
+      "original": "Hatchan",
+      "text": "Hatchan",
+      "note": "a fighter's name"
+    },
+    "tbo/e4a3fcfc": {
+      "original": "King Vegeta",
+      "text": "Rey Vegeta",
+      "note": "a fighter's name"
+    },
+    "tbo/fdbb9c8d": {
+      "original": "King Vegeta Great Ape",
+      "text": "Rey Vegeta Ozaru",
+      "note": "a fighter's name"
+    },
+    "tbo/658861bd": {
+      "original": "Bardock",
+      "text": "Bardock",
+      "note": "a fighter's name"
+    },
+    "tbo/0c09b520": {
+      "original": "Bardock Great Ape",
+      "text": "Bardock Ozaru",
+      "note": "a fighter's name"
+    },
+    "tbo/ef62a869": {
+      "original": "Celipa",
+      "text": "Celipa",
+      "note": "a fighter's name"
+    },
+    "tbo/63dacbbc": {
+      "original": "Celipa Great Ape",
+      "text": "Celipa Ozaru",
+      "note": "a fighter's name"
+    },
+    "tbo/4b836b2d": {
+      "original": "Raditz",
+      "text": "Raditz",
+      "note": "a fighter's name"
+    },
+    "tbo/556ffdb0": {
+      "original": "Raditz Great Ape",
+      "text": "Raditz Ozaru",
+      "note": "a fighter's name"
+    },
+    "tbo/f9f4461b": {
+      "original": "Saibamen",
+      "text": "Saibamen",
+      "note": "a fighter's name"
+    },
+    "tbo/2404d243": {
+      "original": "Nappa",
+      "text": "Nappa",
+      "note": "a fighter's name"
+    },
+    "tbo/8aec2eae": {
+      "original": "Nappa Great Ape",
+      "text": "Nappa Ozaru",
+      "note": "a fighter's name"
+    },
+    "tbo/75e31249": {
+      "original": "Zarbon",
+      "text": "Zarbon",
+      "note": "a fighter's name"
+    },
+    "tbo/ba7a1d84": {
+      "original": "Zarbon Transformed",
+      "text": "Zarbon transformado",
+      "note": "a fighter's name"
+    },
+    "tbo/95a82d97": {
+      "original": "Dodoria",
+      "text": "Dodoria",
+      "note": "a fighter's name"
+    },
+    "tbo/53e25084": {
+      "original": "Cui",
+      "text": "Cui",
+      "note": "a fighter's name"
+    },
+    "tbo/b84848ff": {
+      "original": "Ginyu",
+      "text": "Ginyu",
+      "note": "a fighter's name"
+    },
+    "tbo/bcc01181": {
+      "original": "Recoome",
+      "text": "Recoome",
+      "note": "a fighter's name"
+    },
+    "tbo/0afaf501": {
+      "original": "Burter",
+      "text": "Burter",
+      "note": "a fighter's name"
+    },
+    "tbo/0f96426f": {
+      "original": "Jeice",
+      "text": "Jeice",
+      "note": "a fighter's name"
+    },
+    "tbo/632ffeca": {
+      "original": "Guldo",
+      "text": "Guldo",
+      "note": "a fighter's name"
+    },
+    "tbo/a8a1f900": {
+      "original": "Frieza 1st Form",
+      "text": "Freezer 1.ª forma",
+      "note": "a fighter's name"
+    },
+    "tbo/0e4669b4": {
+      "original": "Frieza 2nd Form",
+      "text": "Freezer 2.ª forma",
+      "note": "a fighter's name"
+    },
+    "tbo/14f24529": {
+      "original": "Frieza 3rd Form",
+      "text": "Freezer 3.ª forma",
+      "note": "a fighter's name"
+    },
+    "tbo/6e1ea610": {
+      "original": "Frieza Final Form",
+      "text": "Freezer forma final",
+      "note": "a fighter's name"
+    },
+    "tbo/97de7551": {
+      "original": "Frieza 100% Power",
+      "text": "Freezer poder al 100%",
+      "note": "a fighter's name"
+    },
+    "tbo/cb181bf2": {
+      "original": "Mecha Frieza",
+      "text": "Mecha Freezer",
+      "note": "a fighter's name"
+    },
+    "tbo/bd6e3264": {
+      "original": "King Cold",
+      "text": "Rey Cold",
+      "note": "a fighter's name"
+    },
+    "tbo/07f8f3b0": {
+      "original": "Appule",
+      "text": "Appule",
+      "note": "a fighter's name"
+    },
+    "tbo/4f494028": {
+      "original": "Frieza Soldier",
+      "text": "Soldado de Freezer",
+      "note": "a fighter's name"
+    },
+    "tbo/b3bc179b": {
+      "original": "Android 16",
+      "text": "Androide 16",
+      "note": "a fighter's name"
+    },
+    "tbo/b2bc1608": {
+      "original": "Android 17",
+      "text": "Androide 17",
+      "note": "a fighter's name"
+    },
+    "tbo/b1bc1475": {
+      "original": "Android 18",
+      "text": "Androide 18",
+      "note": "a fighter's name"
+    },
+    "tbo/b0bc12e2": {
+      "original": "Android 19",
+      "text": "Androide 19",
+      "note": "a fighter's name"
+    },
+    "tbo/439b7882": {
+      "original": "Android 2",
+      "text": "Androide 2",
+      "note": "a fighter's name"
+    },
+    "tbo/1d801dfd": {
+      "original": "Cell 1st Form",
+      "text": "Cell 1.ª forma",
+      "note": "a fighter's name"
+    },
+    "tbo/e78fffcd": {
+      "original": "Cell 2nd Form",
+      "text": "Cell 2.ª forma",
+      "note": "a fighter's name"
+    },
+    "tbo/a4a4303a": {
+      "original": "Perfect Cell",
+      "text": "Cell perfecto",
+      "note": "a fighter's name"
+    },
+    "tbo/7d38f3c7": {
+      "original": "Super Perfect Cell",
+      "text": "Cell superperfecto",
+      "note": "a fighter's name"
+    },
+    "tbo/e161be77": {
+      "original": "Cell Jr",
+      "text": "Cell Jr",
+      "note": "a fighter's name"
+    },
+    "tbo/4769862a": {
+      "original": "Babidi",
+      "text": "Babidi",
+      "note": "a fighter's name"
+    },
+    "tbo/f195300e": {
+      "original": "Dabura",
+      "text": "Dabura",
+      "note": "a fighter's name"
+    },
+    "tbo/18766e84": {
+      "original": "Majin Buu",
+      "text": "Majin Buu",
+      "note": "a fighter's name"
+    },
+    "tbo/7fa44f3f": {
+      "original": "Evil Buu",
+      "text": "Buu malvado",
+      "note": "a fighter's name"
+    },
+    "tbo/06b14618": {
+      "original": "Super Buu",
+      "text": "Super Buu",
+      "note": "a fighter's name"
+    },
+    "tbo/b14a9a1d": {
+      "original": "Super Buu Gotenks Absorbed",
+      "text": "Super Buu con Gotenks absorbido",
+      "note": "a fighter's name"
+    },
+    "tbo/04051e17": {
+      "original": "Super Buu Gohan Absorbed",
+      "text": "Super Buu con Gohan absorbido",
+      "note": "a fighter's name"
+    },
+    "tbo/4740d09f": {
+      "original": "Kid Buu",
+      "text": "Buu pequeño",
+      "note": "a fighter's name"
+    },
+    "tbo/517db745": {
+      "original": "Garlic Jr",
+      "text": "Garlic Jr",
+      "note": "a fighter's name"
+    },
+    "tbo/9b013972": {
+      "original": "Super Garlic Jr",
+      "text": "Super Garlic Jr",
+      "note": "a fighter's name"
+    },
+    "tbo/6afd1289": {
+      "original": "Wheelo",
+      "text": "Wheelo",
+      "note": "a fighter's name"
+    },
+    "tbo/6a8a2710": {
+      "original": "Turles",
+      "text": "Turles",
+      "note": "a fighter's name"
+    },
+    "tbo/c080c7c1": {
+      "original": "Turles Great Ape",
+      "text": "Turles Ozaru",
+      "note": "a fighter's name"
+    },
+    "tbo/de021cfe": {
+      "original": "Slug",
+      "text": "Slug",
+      "note": "a fighter's name"
+    },
+    "tbo/a05cbddb": {
+      "original": "Slug Giant",
+      "text": "Slug gigante",
+      "note": "a fighter's name"
+    },
+    "tbo/632728c1": {
+      "original": "Sauza",
+      "text": "Sauza",
+      "note": "a fighter's name"
+    },
+    "tbo/49b0f1eb": {
+      "original": "Cooler",
+      "text": "Cooler",
+      "note": "a fighter's name"
+    },
+    "tbo/997f0423": {
+      "original": "Cooler Final Form",
+      "text": "Cooler forma final",
+      "note": "a fighter's name"
+    },
+    "tbo/371b0b1e": {
+      "original": "Metal Cooler",
+      "text": "Metal Cooler",
+      "note": "a fighter's name"
+    },
+    "tbo/b6bc1c54": {
+      "original": "Android 13",
+      "text": "Androide 13",
+      "note": "a fighter's name"
+    },
+    "tbo/3094bbf8": {
+      "original": "Android 13 Fusion",
+      "text": "Androide 13 fusión",
+      "note": "a fighter's name"
+    },
+    "tbo/f7804fed": {
+      "original": "Broly",
+      "text": "Broly",
+      "note": "a fighter's name"
+    },
+    "tbo/1d0dae2f": {
+      "original": "Broly Super Saiyan",
+      "text": "Broly Supersaiyan",
+      "note": "a fighter's name"
+    },
+    "tbo/261e2478": {
+      "original": "Broly Legendary Super Saiyan",
+      "text": "Broly legendario Supersaiyan",
+      "note": "a fighter's name"
+    },
+    "tbo/507c24c5": {
+      "original": "Zangya",
+      "text": "Zangya",
+      "note": "a fighter's name"
+    },
+    "tbo/e7589385": {
+      "original": "Bojack",
+      "text": "Bojack",
+      "note": "a fighter's name"
+    },
+    "tbo/b4c431a8": {
+      "original": "Bojack 100% Power",
+      "text": "Bojack poder al 100%",
+      "note": "a fighter's name"
+    },
+    "tbo/69a84d39": {
+      "original": "Janemba",
+      "text": "Janemba",
+      "note": "a fighter's name"
+    },
+    "tbo/4fe3957a": {
+      "original": "Super Janemba",
+      "text": "Super Janemba",
+      "note": "a fighter's name"
+    },
+    "tbo/b3164dd1": {
+      "original": "Hildegarn",
+      "text": "Hildegarn",
+      "note": "a fighter's name"
+    },
+    "tbo/a0af8b99": {
+      "original": "Baby Vegeta",
+      "text": "Baby Vegeta",
+      "note": "a fighter's name"
+    },
+    "tbo/a0f17543": {
+      "original": "Super Baby 1",
+      "text": "Super Baby 1",
+      "note": "a fighter's name"
+    },
+    "tbo/a1f176d6": {
+      "original": "Super Baby 2",
+      "text": "Super Baby 2",
+      "note": "a fighter's name"
+    },
+    "tbo/2d755011": {
+      "original": "Super Baby Great Ape",
+      "text": "Super Baby Ozaru",
+      "note": "a fighter's name"
+    },
+    "tbo/ff7bb5c0": {
+      "original": "Super 17",
+      "text": "Super 17",
+      "note": "a fighter's name"
+    },
+    "tbo/95c02e7f": {
+      "original": "Nuova Shenron",
+      "text": "Nuova Shenron",
+      "note": "a fighter's name"
+    },
+    "tbo/53359116": {
+      "original": "Shin Shenron",
+      "text": "Shin Shenron",
+      "note": "a fighter's name"
+    },
+    "tbo/2d487063": {
+      "original": "Omega Shenron",
+      "text": "Omega Shenron",
+      "note": "a fighter's name"
+    },
+    "tbo/a49d3ecb": {
+      "original": "Taopaipai",
+      "text": "Taopaipai",
+      "note": "a fighter's name"
+    },
+    "tbo/bdd57c8d": {
+      "original": "Cyborg Tao",
+      "text": "Tao cíborg",
+      "note": "a fighter's name"
+    },
+    "tbo/2416b1c1": {
+      "original": "General Blue",
+      "text": "General Blue",
+      "note": "a fighter's name"
+    },
+    "tbo/ea61dc94": {
+      "original": "Akuman",
+      "text": "Akuman",
+      "note": "a fighter's name"
+    },
+    "tbo/7dd8256c": {
+      "original": "Pilaf Machine",
+      "text": "Máquina de Pilaf",
+      "note": "a fighter's name"
+    },
+    "tbo/085932f0": {
+      "original": "Pilaf Machine Fusion",
+      "text": "Máquina de Pilaf fusión",
+      "note": "a fighter's name"
+    },
+    "tbo/4c8d7fd1": {
+      "original": "Tambourine",
+      "text": "Tambourine",
+      "note": "a fighter's name"
+    },
+    "tbo/2ddb81f4": {
+      "original": "Demon King Piccolo",
+      "text": "Rey demonio Piccolo",
+      "note": "a fighter's name"
+    },
+    "tbo/38034896": {
+      "original": "Arale",
+      "text": "Arale",
+      "note": "a fighter's name"
+    },
+    "tbo/7a6daca5": {
+      "original": "Chichi",
+      "text": "Chi-Chi",
+      "note": "a fighter's name"
+    },
+    "tbo/697ad01c": {
+      "original": "Spopovich",
+      "text": "Spopovich",
+      "note": "a fighter's name"
+    },
+    "tbo/3c90153f": {
+      "original": "Future Gohan",
+      "text": "Gohan del futuro",
+      "note": "a fighter's name"
+    },
+    "tbo/6eb54315": {
+      "original": "Future Gohan Super Saiyan",
+      "text": "Gohan del futuro Supersaiyan",
+      "note": "a fighter's name"
+    },
+    "tbo/5af65acd": {
+      "original": "Quick Match",
+      "text": "Partida rápida",
+      "note": "a table of the online menu"
+    },
+    "tbo/bc7eac73": {
+      "original": "Ranked Match",
+      "text": "Partida clasificatoria",
+      "note": "main list of the online menu"
+    },
+    "tbo/a8c8cb73": {
+      "original": "Lobby",
+      "text": "Sala",
+      "note": "a table of the online menu"
+    },
+    "tbo/30025399": {
+      "original": "Join",
+      "text": "Unirse",
+      "note": "a table of the online menu"
+    },
+    "tbo/63cc7b7a": {
+      "original": "Friends",
+      "text": "Amigos",
+      "note": "main list of the online menu"
+    },
+    "tbo/77569cd2": {
+      "original": "Tournament",
+      "text": "Torneo",
+      "note": "a table of the online menu"
+    },
+    "tbo/d29d8613": {
+      "original": "Replays",
+      "text": "Repeticiones",
+      "note": "main list of the online menu"
+    },
+    "tbo/c3359fcc": {
+      "original": "Leaderboard",
+      "text": "Clasificación",
+      "note": "main list of the online menu"
+    },
+    "tbo/cd17328e": {
+      "original": "Profile",
+      "text": "Perfil",
+      "note": "a table of the online menu"
+    },
+    "tbo/6ae97ea0": {
+      "original": "Fight whoever is searching right now! No time limit, and you can train while you wait.",
+      "text": "¡Lucha con quien esté buscando rival! Sin límite de tiempo y con entrenamiento durante la espera.",
+      "note": "talk box at the foot of the screen (two lines at most), for the main list's entries"
+    },
+    "tbo/db875bd2": {
+      "original": "Fights that move your rank, season by season. That one is coming soon!",
+      "text": "Combates para subir en la clasificación cada temporada. ¡Próximamente!",
+      "note": "talk box at the foot of the screen (two lines at most), for the main list's entries"
+    },
+    "tbo/a74ebfd6": {
+      "original": "A lobby for your friends: up to eight, your rules, rematches, spectators and tournaments!",
+      "text": "¡Una sala para tus amigos: hasta ocho personas, tus reglas, revanchas, espectadores y torneos!",
+      "note": "talk box at the foot of the screen (two lines at most), for the main list's entries"
+    },
+    "tbo/2466fcbd": {
+      "original": "Got a lobby's code? Type it in to join, to play or to watch! By Address joins by the owner's address.",
+      "text": "¿Tienes un código de sala? Escríbelo para jugar o ver la partida. Por dirección te conecta con la dirección del anfitrión.",
+      "note": "talk box at the foot of the screen (two lines at most), for the main list's entries"
+    },
+    "tbo/eefeab33": {
+      "original": "Your rivals, who is online, and invites. That one is coming soon!",
+      "text": "Tus rivales, quién está conectado e invitaciones. ¡Próximamente!",
+      "note": "talk box at the foot of the screen (two lines at most), for the main list's entries"
+    },
+    "tbo/cb5f42f2": {
+      "original": "The Tenkaichi Budokai itself: brackets of 4 to 16 players. That one is coming soon!",
+      "text": "El Tenkaichi Budokai: eliminatorias de 4 a 16 jugadores. ¡Próximamente!",
+      "note": "talk box at the foot of the screen (two lines at most), for the main list's entries"
+    },
+    "tbo/517e7f66": {
+      "original": "Your last matches, saved to watch again. That one is coming soon!",
+      "text": "Tus últimos combates, guardados para volver a verlos. ¡Próximamente!",
+      "note": "talk box at the foot of the screen (two lines at most), for the main list's entries"
+    },
+    "tbo/cbebde6d": {
+      "original": "The strongest in the world, among your friends, and with each fighter. Coming soon!",
+      "text": "Los mejores del mundo, entre tus amigos y con cada luchador. ¡Próximamente!",
+      "note": "talk box at the foot of the screen (two lines at most), for the main list's entries"
+    },
+    "tbo/49ddf972": {
+      "original": "The name your rivals see.",
+      "text": "El nombre que ven tus rivales.",
+      "note": "talk box at the foot of the screen (two lines at most), for the main list's entries"
+    },
+    "tbo/54a83616": {
+      "original": "AUTO",
+      "text": "AUTO",
+      "note": "a table of the online menu"
+    },
+    "tbo/a149ec78": {
+      "original": "NORTH AMERICA",
+      "text": "AMÉRICA DEL NORTE",
+      "note": "a table of the online menu"
+    },
+    "tbo/78d3d69e": {
+      "original": "SOUTH AMERICA",
+      "text": "AMÉRICA DEL SUR",
+      "note": "a table of the online menu"
+    },
+    "tbo/a73d1a47": {
+      "original": "EUROPE",
+      "text": "EUROPA",
+      "note": "a table of the online menu"
+    },
+    "tbo/0da7d595": {
+      "original": "MIDDLE EAST",
+      "text": "ORIENTE MEDIO",
+      "note": "a table of the online menu"
+    },
+    "tbo/ddd717e7": {
+      "original": "AFRICA",
+      "text": "ÁFRICA",
+      "note": "a table of the online menu"
+    },
+    "tbo/cc172277": {
+      "original": "ASIA",
+      "text": "ASIA",
+      "note": "a table of the online menu"
+    },
+    "tbo/9d53ebcb": {
+      "original": "OCEANIA",
+      "text": "OCEANÍA",
+      "note": "a table of the online menu"
+    },
+    "tbo/87e9c000": {
+      "original": "ANYWHERE",
+      "text": "CUALQUIER LUGAR",
+      "note": "a table of the online menu"
+    },
+    "tbo/b07e4cee": {
+      "original": "60 SECONDS",
+      "text": "60 SEGUNDOS",
+      "note": "a time limit's name"
+    },
+    "tbo/89d908d9": {
+      "original": "90 SECONDS",
+      "text": "90 SEGUNDOS",
+      "note": "a time limit's name"
+    },
+    "tbo/e6ea1d01": {
+      "original": "180 SECONDS",
+      "text": "180 SEGUNDOS",
+      "note": "a time limit's name"
+    },
+    "tbo/34828410": {
+      "original": "240 SECONDS",
+      "text": "240 SEGUNDOS",
+      "note": "a time limit's name"
+    },
+    "tbo/fe568f7d": {
+      "original": "NO LIMIT",
+      "text": "SIN LÍMITE",
+      "note": "a time limit's name"
+    },
+    "tbo/76961704": {
+      "original": "AUTOMATIC",
+      "text": "AUTOMÁTICO",
+      "note": "in Tb_DelayText"
+    },
+    "tbo/b93dfe41": {
+      "original": "%d FRAME",
+      "text": "%d fotograma",
+      "note": "in Tb_DelayText; keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/ae96f656": {
+      "original": "%d FRAMES",
+      "text": "%d fotogramas",
+      "note": "in Tb_DelayText; keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/7965b55e": {
+      "original": "CHECKING YOUR GAME DATA AGAINST THE DISC... TRY AGAIN IN A MOMENT",
+      "text": "COMPROBANDO LOS DATOS DEL JUEGO CON EL DISCO... VUELVE A INTENTARLO EN UN MOMENTO",
+      "note": "in Tb_Vanilla"
+    },
+    "tbo/c2954bc2": {
+      "original": "Back",
+      "text": "Atrás",
+      "note": "in Tb_BracketUpdate"
+    },
+    "tbo/6a4bf6dc": {
+      "original": "THE NETWORK COULD NOT BE OPENED ON THIS PC",
+      "text": "NO SE PUDO INICIAR LA RED EN ESTE PC",
+      "note": "in Tb_QuickStart"
+    },
+    "tbo/cdeade39": {
+      "original": "THE PORT AFTER THE COLON IS A NUMBER FROM 1 TO 65535",
+      "text": "EL PUERTO TRAS LOS DOS PUNTOS ES UN NÚMERO DEL 1 AL 65535",
+      "note": "in Tb_AddrSplit"
+    },
+    "tbo/2bd101fd": {
+      "original": "TYPE THE OWNER'S ADDRESS FIRST, AS 192.168.1.20 OR 192.168.1.20:7000",
+      "text": "ESCRIBE LA DIRECCIÓN DEL ANFITRIÓN, COMO 192.168.1.20 O 192.168.1.20:7000",
+      "note": "in Tb_AddrSplit"
+    },
+    "tbo/f311a921": {
+      "original": "THE CONNECTION WAS REFUSED",
+      "text": "CONEXIÓN RECHAZADA",
+      "note": "in Tb_SearchNews"
+    },
+    "tbo/4841c46e": {
+      "original": "THE TWO GAMES COULD NOT REACH EACH OTHER, EVEN THROUGH THE RELAY",
+      "text": "LOS JUEGOS NO PUDIERON CONECTARSE, NI SIQUIERA MEDIANTE EL RELÉ",
+      "note": "in Tb_SearchNews"
+    },
+    "tbo/e80cb980": {
+      "original": "THE OTHER GAME IS ANOTHER VERSION: BOTH NEED THE SAME RELEASE",
+      "text": "EL OTRO JUEGO TIENE OTRA VERSIÓN: AMBOS NECESITÁIS LA MISMA",
+      "note": "in Tb_SearchNews"
+    },
+    "tbo/1e96be10": {
+      "original": "THE SEARCH COULD NOT BE STARTED",
+      "text": "NO SE HA PODIDO INICIAR LA BÚSQUEDA",
+      "note": "in Tb_SearchNews"
+    },
+    "tbo/1e01c3db": {
+      "original": "Train While Waiting",
+      "text": "Entrenar mientras esperas",
+      "note": "a table of the online menu"
+    },
+    "tbo/35afca3b": {
+      "original": "Cancel",
+      "text": "Cancelar",
+      "note": "in Tb_LobbyUpdate"
+    },
+    "tbo/a1de2fdd": {
+      "original": "Change",
+      "text": "Cambiar",
+      "note": "in Tb_LobbyUpdate"
+    },
+    "tbo/cc33bb3f": {
+      "original": "Start Training",
+      "text": "Empezar entrenamiento",
+      "note": "in Tb_DrawSparText"
+    },
+    "tbo/dce2da08": {
+      "original": "Next",
+      "text": "Siguiente",
+      "note": "in Tb_QuickUpdate"
+    },
+    "tbo/c646a2c9": {
+      "original": "Search",
+      "text": "Buscar",
+      "note": "read aloud by the screen reader (a piece may be joined to a name or a code after it)"
+    },
+    "tbo/69760784": {
+      "original": "Update available. Online servers are unreachable until you update.",
+      "text": "Actualización disponible. Los servidores online no estarán disponibles hasta que actualices.",
+      "note": "in Tb_HubUpdate"
+    },
+    "tbo/aff863ad": {
+      "original": "Enter",
+      "text": "Entrar",
+      "note": "in Tb_BracketUpdate"
+    },
+    "tbo/36e2ae69": {
+      "original": "NOT OPEN YET: IT NEEDS MORE FROM THE MATCHMAKING SERVICE",
+      "text": "AÚN NO DISPONIBLE: REQUIERE MÁS FUNCIONES DEL SERVICIO DE EMPAREJAMIENTO",
+      "note": "in Tb_HubUpdate"
+    },
+    "tbo/fdc830a1": {
+      "original": "Open Lobby",
+      "text": "Abrir sala",
+      "note": "a table of the online menu"
+    },
+    "tbo/e18cfbf4": {
+      "original": "Host by Address",
+      "text": "Crear por dirección",
+      "note": "a table of the online menu"
+    },
+    "tbo/f8718eca": {
+      "original": "DELETE",
+      "text": "BORRAR",
+      "note": "a table of the online menu"
+    },
+    "tbo/75b29508": {
+      "original": "PASTE",
+      "text": "PEGAR",
+      "note": "a table of the online menu"
+    },
+    "tbo/74b902f9": {
+      "original": "JOIN",
+      "text": "UNIRSE",
+      "note": "a table of the online menu"
+    },
+    "tbo/5d38deec": {
+      "original": "BY ADDRESS",
+      "text": "POR DIRECCIÓN",
+      "note": "a table of the online menu"
+    },
+    "tbo/1808f0e5": {
+      "original": "SPACE",
+      "text": "ESPACIO",
+      "note": "a table of the online menu"
+    },
+    "tbo/100e2fb1": {
+      "original": "DONE",
+      "text": "HECHO",
+      "note": "a table of the online menu"
+    },
+    "tbo/7dcdd869": {
+      "original": "A LOBBY'S CODE HAS SIX LETTERS AND NUMBERS",
+      "text": "EL CÓDIGO DE SALA TIENE SEIS LETRAS Y NÚMEROS",
+      "note": "in Tb_JoinTry"
+    },
+    "tbo/5797ea6a": {
+      "original": "Delete",
+      "text": "Borrar",
+      "note": "in Tb_ChatUpdate"
+    },
+    "tbo/475365d4": {
+      "original": "Type Name",
+      "text": "Escribir nombre",
+      "note": "in Tb_ProfileUpdate"
+    },
+    "tbo/3768c90e": {
+      "original": "SAVED: YOUR RIVALS WILL SEE THIS NAME",
+      "text": "GUARDADO: TUS RIVALES VERÁN ESTE NOMBRE",
+      "note": "in Tb_NameUpdate"
+    },
+    "tbo/e5ae5e32": {
+      "original": "SOON",
+      "text": "PRÓXIMAMENTE",
+      "note": "in Tb_DrawHubText"
+    },
+    "tbo/7eeffd43": {
+      "original": "PORT %d",
+      "text": "PUERTO %d",
+      "note": "in Tb_CreateValue; keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/45bef7d7": {
+      "original": "WITH A CODE",
+      "text": "CON CÓDIGO",
+      "note": "in Tb_CreateValue"
+    },
+    "tbo/7a8872ce": {
+      "original": "A NEW LOBBY",
+      "text": "NUEVA SALA",
+      "note": "in Tb_DrawCreateText"
+    },
+    "tbo/dc8fcdee": {
+      "original": "THE OWNER'S ADDRESS:PORT",
+      "text": "DIRECCIÓN:PUERTO DEL ANFITRIÓN",
+      "note": "in Tb_DrawAddrText"
+    },
+    "tbo/4a7095f9": {
+      "original": "NO :PORT TYPED: PORT 7000",
+      "text": "SIN :PUERTO: SE USA EL 7000",
+      "note": "in Tb_DrawAddrText"
+    },
+    "tbo/5af6220d": {
+      "original": "QUICK MATCH",
+      "text": "PARTIDA RÁPIDA",
+      "note": "in Tb_DrawWaitText"
+    },
+    "tbo/b719d0cd": {
+      "original": "TEAMS",
+      "text": "EQUIPOS",
+      "note": "in Tb_DrawWaitText"
+    },
+    "tbo/51f6716c": {
+      "original": "ONE ON ONE",
+      "text": "UNO CONTRA UNO",
+      "note": "in Tb_DrawQuickText"
+    },
+    "tbo/0b09d0de": {
+      "original": "YOUR RIVAL IS FROM",
+      "text": "TU RIVAL ES DE",
+      "note": "in Tb_DrawWaitText"
+    },
+    "tbo/d64caaaa": {
+      "original": "NO ONE THERE:",
+      "text": "NO HAY NADIE ALLÍ:",
+      "note": "in Tb_DrawWaitText"
+    },
+    "tbo/090e743f": {
+      "original": "SEARCHING EVERYWHERE",
+      "text": "BUSCANDO EN TODAS PARTES",
+      "note": "in Tb_DrawWaitText"
+    },
+    "tbo/ec365998": {
+      "original": "PLAYERS IN",
+      "text": "JUGADORES DE",
+      "note": "in Tb_DrawWaitText"
+    },
+    "tbo/b2f9f862": {
+      "original": "FIRST, EVERYONE AFTER %d S",
+      "text": "Primero, todos después de %d s",
+      "note": "in Tb_DrawWaitText; keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/84f70b39": {
+      "original": "NO ONE NEARBY:",
+      "text": "NO HAY NADIE CERCA:",
+      "note": "in Tb_DrawWaitText"
+    },
+    "tbo/41dc25de": {
+      "original": "LOOKING FOR A RIVAL",
+      "text": "BUSCANDO RIVAL",
+      "note": "in Tb_DrawWaitText"
+    },
+    "tbo/fd48fd82": {
+      "original": "NEAR YOU FIRST",
+      "text": "PRIMERO LOS MÁS CERCANOS",
+      "note": "in Tb_DrawWaitText"
+    },
+    "tbo/408ede5d": {
+      "original": "THE SERVICE PAIRS YOU",
+      "text": "EL SERVICIO TE EMPAREJA",
+      "note": "in Tb_DrawWaitText"
+    },
+    "tbo/ec23250b": {
+      "original": "WITH THE NEXT RIVAL",
+      "text": "CON EL SIGUIENTE RIVAL",
+      "note": "in Tb_DrawWaitText"
+    },
+    "tbo/862d2306": {
+      "original": "%d IN THIS QUEUE",
+      "text": "%d en esta cola",
+      "note": "in Tb_DrawWaitText; keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/63b08453": {
+      "original": "JOINING LOBBY",
+      "text": "ENTRANDO EN LA SALA",
+      "note": "in Tb_DrawWaitText"
+    },
+    "tbo/52be91e5": {
+      "original": "LOOKING FOR",
+      "text": "BUSCANDO",
+      "note": "in Tb_DrawWaitText"
+    },
+    "tbo/262c66ca": {
+      "original": "THE LOBBY...",
+      "text": "LA SALA...",
+      "note": "in Tb_DrawWaitText"
+    },
+    "tbo/4f5cca17": {
+      "original": "YOUR RIVAL IS HERE!",
+      "text": "¡TU RIVAL ESTÁ AQUÍ!",
+      "note": "in Tb_DrawWaitText"
+    },
+    "tbo/83b67a0b": {
+      "original": "SEARCHING...  %d:%02d",
+      "text": "Buscando...  %d:%02d",
+      "note": "in Tb_DrawWaitText; keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/a29e7724": {
+      "original": "No Quick Match",
+      "text": "Sin partida rápida",
+      "note": "in Tb_DrawBlockText"
+    },
+    "tbo/9267b4cf": {
+      "original": "Quick match needs the original disc's data.",
+      "text": "Las partidas rápidas requieren los datos originales del disco.",
+      "note": "in Tb_DrawBlockText"
+    },
+    "tbo/dc9dff88": {
+      "original": "In a lobby with friends, both need the same data.",
+      "text": "En una sala con amigos, ambos necesitáis los mismos datos.",
+      "note": "in Tb_DrawBlockText"
+    },
+    "tbo/f91cccc9": {
+      "original": "Changed: ",
+      "text": "Modificado: ",
+      "note": "in Tb_DrawBlockText"
+    },
+    "tbo/2f7145d1": {
+      "original": "Your game data is not the disc's.",
+      "text": "Los datos del juego no son los del disco.",
+      "note": "in Tb_DrawBlockText"
+    },
+    "tbo/e722d5da": {
+      "original": "Your game data could not be checked.",
+      "text": "No se pudieron verificar los datos del juego.",
+      "note": "in Tb_DrawBlockText"
+    },
+    "tbo/3ee7cb94": {
+      "original": "Take out what you added in gamedata/mods.",
+      "text": "Quita lo que añadiste en gamedata/mods.",
+      "note": "in Tb_DrawBlockText"
+    },
+    "tbo/c09a8369": {
+      "original": "(Fighter mods switch off by themselves online.)",
+      "text": "(Los mods de luchadores se desactivan online.)",
+      "note": "in Tb_DrawBlockText"
+    },
+    "tbo/074a6822": {
+      "original": "BACK",
+      "text": "ATRÁS",
+      "note": "in Tb_DrawBlockText"
+    },
+    "tbo/d56afe67": {
+      "original": "TYPE YOUR NAME",
+      "text": "ESCRIBE TU NOMBRE",
+      "note": "in Tb_DrawName"
+    },
+    "tbo/1abec0a2": {
+      "original": "SPARRING AT THE TOURNAMENT",
+      "text": "ENTRENANDO EN EL TORNEO",
+      "note": "in Tb_DrawSparText"
+    },
+    "tbo/b5bdd13c": {
+      "original": "You",
+      "text": "Tú",
+      "note": "in Tb_DrawSparText"
+    },
+    "tbo/16b28759": {
+      "original": "Partner",
+      "text": "Compañero",
+      "note": "in Tb_DrawSparText"
+    },
+    "tbo/214c1457": {
+      "original": "QUICK MATCH SEARCH",
+      "text": "BÚSQUEDA DE PARTIDA RÁPIDA",
+      "note": "in Tb_DrawSparText"
+    },
+    "tbo/4e52ee24": {
+      "original": "JOINING A LOBBY",
+      "text": "ENTRANDO EN UNA SALA",
+      "note": "in Tb_DrawSparText"
+    },
+    "tbo/7b88c127": {
+      "original": "SEARCHING  %d:%02d",
+      "text": "Buscando  %d:%02d",
+      "note": "in Tb_DrawSparText; keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/171ea85f": {
+      "original": "THE MATCH STARTS THE MOMENT",
+      "text": "EL COMBATE EMPIEZA CUANDO",
+      "note": "in Tb_DrawSparText"
+    },
+    "tbo/0c77e01a": {
+      "original": "YOUR RIVAL ARRIVES",
+      "text": "LLEGA TU RIVAL",
+      "note": "in Tb_DrawSparText"
+    },
+    "tbo/4b4c02bb": {
+      "original": "PICK YOUR BATTLE",
+      "text": "ELIGE TU COMBATE",
+      "note": "in Tb_DrawQuickText"
+    },
+    "tbo/957fd957": {
+      "original": "Battle",
+      "text": "Combate",
+      "note": "a rule of the lobby"
+    },
+    "tbo/73e896b1": {
+      "original": "TEAMS (UP TO 5)",
+      "text": "EQUIPOS (HASTA 5)",
+      "note": "in Tb_DrawQuickText"
+    },
+    "tbo/492e789d": {
+      "original": "Region",
+      "text": "Región",
+      "note": "in Tb_DrawQuickText"
+    },
+    "tbo/e1a0bace": {
+      "original": "WAITING RIGHT NOW",
+      "text": "ESPERANDO AHORA",
+      "note": "in Tb_DrawQuickText"
+    },
+    "tbo/b9c8008d": {
+      "original": "Teams",
+      "text": "Equipos",
+      "note": "sign shown during Train While Waiting's sparring fight"
+    },
+    "tbo/4505dcec": {
+      "original": "One on One",
+      "text": "Uno contra uno",
+      "note": "sign shown during Train While Waiting's sparring fight"
+    },
+    "tbo/2f48b54b": {
+      "original": "%d WAITING",
+      "text": "%d esperando",
+      "note": "in Tb_DrawQuickText; keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/ba47aa06": {
+      "original": "PLAYERS THERE FIRST, EVERYONE AFTER %d S",
+      "text": "Primero los de esa región; todos tras %d s",
+      "note": "in Tb_DrawQuickText; keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/e5b25999": {
+      "original": "RIVALS NEAR YOU FIRST, THEN ANYWHERE",
+      "text": "PRIMERO RIVALES CERCANOS, LUEGO DE CUALQUIER LUGAR",
+      "note": "in Tb_DrawQuickText"
+    },
+    "tbo/f4c4191c": {
+      "original": "THE NEXT RIVAL, WHEREVER: THE FASTEST",
+      "text": "EL SIGUIENTE RIVAL, DONDE SEA: LO MÁS RÁPIDO",
+      "note": "in Tb_DrawQuickText"
+    },
+    "tbo/0fe07306": {
+      "original": "Name",
+      "text": "Nombre",
+      "note": "in Tb_DrawProfileText"
+    },
+    "tbo/ddd36d5e": {
+      "original": "PLAYER CARD",
+      "text": "FICHA DE JUGADOR",
+      "note": "in Tb_DrawProfileText"
+    },
+    "tbo/07c1d089": {
+      "original": "SINGLE BATTLE",
+      "text": "COMBATE INDIVIDUAL",
+      "note": "a battle type (the lobby's rules)"
+    },
+    "tbo/06f2566e": {
+      "original": "TEAM BATTLE",
+      "text": "COMBATE POR EQUIPOS",
+      "note": "a battle type (the lobby's rules)"
+    },
+    "tbo/1b6191fa": {
+      "original": "DP BATTLE: 10 DP",
+      "text": "COMBATE DP: 10 DP",
+      "note": "a battle type (the lobby's rules)"
+    },
+    "tbo/daefde8f": {
+      "original": "DP BATTLE: 15 DP",
+      "text": "COMBATE DP: 15 DP",
+      "note": "a battle type (the lobby's rules)"
+    },
+    "tbo/6a5503bf": {
+      "original": "DP BATTLE: 20 DP",
+      "text": "COMBATE DP: 20 DP",
+      "note": "a battle type (the lobby's rules)"
+    },
+    "tbo/534e7732": {
+      "original": "Mode",
+      "text": "Modo",
+      "note": "a rule of the lobby"
+    },
+    "tbo/b6e9b0af": {
+      "original": "Time Limit",
+      "text": "Límite de tiempo",
+      "note": "a rule of the lobby"
+    },
+    "tbo/e74e3860": {
+      "original": "Game Speed",
+      "text": "Velocidad del juego",
+      "note": "a rule of the lobby"
+    },
+    "tbo/769c309d": {
+      "original": "Rollback",
+      "text": "Rollback",
+      "note": "a rule of the lobby"
+    },
+    "tbo/ed4e24b4": {
+      "original": "Input Delay",
+      "text": "Retardo de entrada",
+      "note": "a rule of the lobby"
+    },
+    "tbo/432d9216": {
+      "original": "Entrants",
+      "text": "Participantes",
+      "note": "in Tb_RuleName"
+    },
+    "tbo/7ad24952": {
+      "original": "The owner went back to the lobby.",
+      "text": "El anfitrión ha vuelto a la sala.",
+      "note": "a line of the lobby: what happened, or why it closed (talk box or a window)"
+    },
+    "tbo/31571824": {
+      "original": "The two players could not connect to each other.",
+      "text": "Los dos jugadores no pudieron conectarse.",
+      "note": "a line of the lobby: what happened, or why it closed (talk box or a window)"
+    },
+    "tbo/e620c8d1": {
+      "original": "The lobby was closed by its owner.",
+      "text": "El anfitrión ha cerrado la sala.",
+      "note": "a line of the lobby: what happened, or why it closed (talk box or a window)"
+    },
+    "tbo/9f977205": {
+      "original": "The lobby's owner removed you from the lobby.",
+      "text": "El anfitrión te ha expulsado de la sala.",
+      "note": "a line of the lobby: what happened, or why it closed (talk box or a window)"
+    },
+    "tbo/acf04ad5": {
+      "original": "The connection to the lobby's owner was lost: the lobby is closed.",
+      "text": "Se ha perdido la conexión con el anfitrión: la sala está cerrada.",
+      "note": "a line of the lobby: what happened, or why it closed (talk box or a window)"
+    },
+    "tbo/cfe30adb": {
+      "original": "This lobby is full (8 places).",
+      "text": "La sala está llena (8 plazas).",
+      "note": "a line of the lobby: what happened, or why it closed (talk box or a window)"
+    },
+    "tbo/db43c724": {
+      "original": "The lobby owner's game is a different version: joining needs the same release.",
+      "text": "La versión del anfitrión es distinta: necesitáis la misma para entrar.",
+      "note": "a line of the lobby: what happened, or why it closed (talk box or a window)"
+    },
+    "tbo/d29ae0f1": {
+      "original": "The game at that address is a different version: joining needs the same release.",
+      "text": "El juego de esa dirección tiene otra versión. Para unirse se necesita la misma versión.",
+      "note": "a line of the lobby: what happened, or why it closed (talk box or a window)"
+    },
+    "tbo/803ae285": {
+      "original": "Someone with another version of the game tried to join.",
+      "text": "Alguien con otra versión del juego ha intentado unirse.",
+      "note": "a line of the lobby: what happened, or why it closed (talk box or a window)"
+    },
+    "tbo/5f1d5850": {
+      "original": "The lobby owner's game data are not the same as yours (a modified disc image or mods on one side): you cannot join.",
+      "text": "Los datos del anfitrión son distintos (ISO modificada o mods): no puedes entrar.",
+      "note": "a line of the lobby: what happened, or why it closed (talk box or a window)"
+    },
+    "tbo/d343b038": {
+      "original": "That address is not known.",
+      "text": "Dirección desconocida.",
+      "note": "a line of the lobby: what happened, or why it closed (talk box or a window)"
+    },
+    "tbo/0ffe55c2": {
+      "original": "No socket could be opened.",
+      "text": "No se pudo abrir una conexión de red.",
+      "note": "a line of the lobby: what happened, or why it closed (talk box or a window)"
+    },
+    "tbo/d3075a80": {
+      "original": "Lobbies need the game's state list (the .mem file beside the program): copy all the files of the release.",
+      "text": "Las salas necesitan la lista de estado (el archivo .mem junto al programa): copia todos los archivos de la versión.",
+      "note": "a line of the lobby: what happened, or why it closed (talk box or a window)"
+    },
+    "tbo/b14d7b08": {
+      "original": "The tournament was called off.",
+      "text": "El torneo se ha cancelado.",
+      "note": "a line of the lobby: what happened, or why it closed (talk box or a window)"
+    },
+    "tbo/d4c50b23": {
+      "original": "The match will be played again.",
+      "text": "Se repetirá el combate.",
+      "note": "a line of the lobby: what happened, or why it closed (talk box or a window)"
+    },
+    "tbo/97b5e3f1": {
+      "original": "No winner: the match will be played again.",
+      "text": "Sin ganador: se repetirá el combate.",
+      "note": "a line of the lobby: what happened, or why it closed (talk box or a window)"
+    },
+    "tbo/79b937db": {
+      "original": "The players' results differ: the match will be played again.",
+      "text": "Los resultados de los jugadores no coinciden: se repetirá el combate.",
+      "note": "a line of the lobby: what happened, or why it closed (talk box or a window)"
+    },
+    "tbo/4a76e9ef": {
+      "original": "Only one player's result came: the match will be played again.",
+      "text": "Solo ha llegado el resultado de un jugador: se repetirá el combate.",
+      "note": "a line of the lobby: what happened, or why it closed (talk box or a window)"
+    },
+    "tbo/e97830bb": {
+      "original": "The two games disagree on this match: the owner chooses the winner.",
+      "text": "Los dos juegos no coinciden en este combate: el anfitrión elige al ganador.",
+      "note": "a line of the lobby: what happened, or why it closed (talk box or a window)"
+    },
+    "tbo/6a9b02d5": {
+      "original": "The host's game data are not the same as yours (a modified disc image or mods on one side): you cannot watch this match.",
+      "text": "Tus datos del juego y los del anfitrión son distintos (imagen modificada o mods en uno de los equipos). No puedes observar esta partida.",
+      "note": "a table of the online menu"
+    },
+    "tbo/dc75af5c": {
+      "original": "This match already has as many spectators as it can take (6).",
+      "text": "Esta partida ya tiene el máximo de espectadores (6).",
+      "note": "a table of the online menu"
+    },
+    "tbo/74e44163": {
+      "original": "The host does not let anyone watch its matches.",
+      "text": "El anfitrión no permite espectadores.",
+      "note": "a table of the online menu"
+    },
+    "tbo/5dda5287": {
+      "original": "This match cannot be watched (it was not started from the online menus).",
+      "text": "No se puede observar este combate porque no se inició desde los menús online.",
+      "note": "a table of the online menu"
+    },
+    "tbo/c59d3e7e": {
+      "original": "That is the address of the player who joined, not of the host: spectators connect to the host.",
+      "text": "Esa es la dirección del jugador que se unió, no del anfitrión. Los espectadores se conectan al anfitrión.",
+      "note": "a table of the online menu"
+    },
+    "tbo/b272b73f": {
+      "original": "This match is a lobby's: join the lobby (its code, or its owner's address) to watch it.",
+      "text": "Esta partida pertenece a una sala. Únete a ella con su código o la dirección del anfitrión para observar.",
+      "note": "a table of the online menu"
+    },
+    "tbo/c5f78375": {
+      "original": "The host's game is a different version: watching needs the same release as the host's.",
+      "text": "El anfitrión tiene otra versión del juego. Para observar necesitas su misma versión.",
+      "note": "a table of the online menu"
+    },
+    "tbo/430f233b": {
+      "original": "No answer from the host. Check the address and port. Watching a match needs a release newer than 0.1.38.7 on the host as well (an older host does not answer spectators).",
+      "text": "El anfitrión no responde. Comprueba la dirección y el puerto. Para observar, el anfitrión también necesita una versión posterior a la 0.1.38.7; las anteriores no responden a espectadores.",
+      "note": "a table of the online menu"
+    },
+    "tbo/e62c73bf": {
+      "original": "Your game data and the other player's are not the same (a modified disc image or mods on one side): an online match needs the same on both.",
+      "text": "Tus datos del juego y los del rival son distintos (imagen modificada o mods en uno de los equipos). Para jugar online, ambos debéis tener los mismos datos.",
+      "note": "a table of the online menu"
+    },
+    "tbo/e584114e": {
+      "original": "Too many have asked to watch that room in the last two minutes; try again soon.",
+      "text": "Demasiadas solicitudes para observar esa sala en los últimos dos minutos. Inténtalo de nuevo en breve.",
+      "note": "a table of the online menu"
+    },
+    "tbo/b3551db3": {
+      "original": "No room with that code, or the matchmaking service does not take spectators yet. (Codes last ten minutes; a host on 0.1.38.7 or older gives its room up when the match begins.)",
+      "text": "No hay sala con ese código, o el servicio aún no admite espectadores. Los códigos duran diez minutos; un anfitrión con la versión 0.1.38.7 o anterior abandona su sala al empezar la partida.",
+      "note": "a table of the online menu"
+    },
+    "tbo/9c7b74fe": {
+      "original": "The matchmaking service could not be reached (is the network up?).",
+      "text": "No se puede conectar con el servicio de emparejamiento. ¿Hay conexión de red?",
+      "note": "a table of the online menu"
+    },
+    "tbo/fe0b1da7": {
+      "original": "Too many wrong codes from this address; try again in an hour.",
+      "text": "Demasiados códigos incorrectos desde esta dirección. Inténtalo de nuevo dentro de una hora.",
+      "note": "a table of the online menu"
+    },
+    "tbo/8f37733d": {
+      "original": "%s joined the lobby",
+      "text": "%s ha entrado en la sala",
+      "note": "a line of the lobby with a player's name in it (%s: the name; keep it); keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/25054265": {
+      "original": "%s left the lobby",
+      "text": "%s ha salido de la sala",
+      "note": "a line of the lobby with a player's name in it (%s: the name; keep it); keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/d7f42b6f": {
+      "original": "%s was removed from the lobby",
+      "text": "%s ha sido expulsado de la sala",
+      "note": "a line of the lobby with a player's name in it (%s: the name; keep it); keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/671e120c": {
+      "original": "%s lost the connection to the lobby",
+      "text": "%s ha perdido la conexión con la sala",
+      "note": "a line of the lobby with a player's name in it (%s: the name; keep it); keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/2b3053af": {
+      "original": "%s won the match",
+      "text": "%s ha ganado el combate",
+      "note": "a line of the lobby with a player's name in it (%s: the name; keep it); keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/e04c8d85": {
+      "original": "%s won by walkover",
+      "text": "%s ha ganado por abandono",
+      "note": "a line of the lobby with a player's name in it (%s: the name; keep it); keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/fafe3ace": {
+      "original": "%s is the champion!",
+      "text": "¡%s es el campeón!",
+      "note": "a line of the lobby with a player's name in it (%s: the name; keep it); keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/855bad3c": {
+      "original": "%s lost the connection: the place is held for 90 s",
+      "text": "%s ha perdido la conexión: su plaza se reserva durante 90 s",
+      "note": "a line of the lobby with a player's name in it (%s: the name; keep it); keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/30c9ed5d": {
+      "original": "%s is back in the tournament",
+      "text": "%s ha vuelto al torneo",
+      "note": "a line of the lobby with a player's name in it (%s: the name; keep it); keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/7efaf582": {
+      "original": "%s did not come back in time",
+      "text": "%s no ha vuelto a tiempo",
+      "note": "a line of the lobby with a player's name in it (%s: the name; keep it); keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/3af78389": {
+      "original": "%s won the match (the owner's choice)",
+      "text": "%s ha ganado el combate (decisión del anfitrión)",
+      "note": "a line of the lobby with a player's name in it (%s: the name; keep it); keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/4aeb635c": {
+      "original": "Tournament: %d entrants",
+      "text": "Torneo: %d participantes",
+      "note": "a line of what happened in the lobby (shown in the talk box); keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/efd9fed4": {
+      "original": "Match %d: %s vs %s",
+      "text": "Combate %d: %s contra %s",
+      "note": "a line of what happened in the lobby (shown in the talk box); keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/ceee99f2": {
+      "original": "TOURNAMENT",
+      "text": "TORNEO",
+      "note": "in Tb_RuleValue"
+    },
+    "tbo/029ff683": {
+      "original": "VERSUS",
+      "text": "VERSUS",
+      "note": "in Tb_RuleValue"
+    },
+    "tbo/0037177e": {
+      "original": "%d PLAYERS",
+      "text": "%d JUGADORES",
+      "note": "in Tb_RuleValue; keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/cc8c6c4e": {
+      "original": "%d%% (STANDARD)",
+      "text": "%d%% (ESTÁNDAR)",
+      "note": "in Tb_RuleValue; keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/2e1505ea": {
+      "original": "OFF",
+      "text": "NO",
+      "note": "in Tb_RuleValue"
+    },
+    "tbo/18391954": {
+      "original": "UP TO %d FRAMES",
+      "text": "Hasta %d fotogramas",
+      "note": "in Tb_RuleValue; keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/a21dc87b": {
+      "original": "Match On",
+      "text": "Combate en curso",
+      "note": "a button of the tournament's bracket page"
+    },
+    "tbo/60eb85f1": {
+      "original": "Start Next Match",
+      "text": "Iniciar siguiente combate",
+      "note": "a button of the tournament's bracket page"
+    },
+    "tbo/8dbf37f0": {
+      "original": "New Tournament",
+      "text": "Nuevo torneo",
+      "note": "a button of the tournament's bracket page"
+    },
+    "tbo/70839d1a": {
+      "original": "Start Tournament",
+      "text": "Iniciar torneo",
+      "note": "a button of the lobby's page"
+    },
+    "tbo/c0dbd10e": {
+      "original": "Start Match",
+      "text": "Empezar combate",
+      "note": "a button of the lobby's page"
+    },
+    "tbo/f6157c13": {
+      "original": "Bracket",
+      "text": "Cuadro",
+      "note": "a button of the lobby's page"
+    },
+    "tbo/a3681e9d": {
+      "original": "Not Ready",
+      "text": "No preparado",
+      "note": "a button of the lobby's page"
+    },
+    "tbo/0bca3294": {
+      "original": "Ready",
+      "text": "Listo",
+      "note": "a button of the lobby's page"
+    },
+    "tbo/2279d8cb": {
+      "original": "Chat",
+      "text": "Chat",
+      "note": "a button of the lobby's page"
+    },
+    "tbo/046de1ef": {
+      "original": "Close Lobby",
+      "text": "Cerrar sala",
+      "note": "in Tb_LobbyUpdate"
+    },
+    "tbo/9af3e8d8": {
+      "original": "Leave Lobby",
+      "text": "Salir de la sala",
+      "note": "in Tb_LobbyUpdate"
+    },
+    "tbo/04a31c30": {
+      "original": "A MATCH IS ON ALREADY",
+      "text": "YA HAY UN COMBATE EN CURSO",
+      "note": "message on the tournament's bracket page"
+    },
+    "tbo/72ad9deb": {
+      "original": "TWO PLAYERS ARE NEEDED: ONE IN 1P, ONE IN 2P",
+      "text": "HACEN FALTA DOS JUGADORES: UNO EN 1P Y OTRO EN 2P",
+      "note": "message on the lobby's page"
+    },
+    "tbo/0f232ca5": {
+      "original": "CHOOSE THE WINNER OF THE DISPUTED MATCH ON THE BRACKET",
+      "text": "ELIGE EN EL CUADRO AL GANADOR DEL COMBATE EN DISPUTA",
+      "note": "message on the tournament's bracket page"
+    },
+    "tbo/70b4ea16": {
+      "original": "WAITING FOR A PLAYER WHO LOST THE CONNECTION",
+      "text": "ESPERANDO A UN JUGADOR QUE PERDIÓ LA CONEXIÓN",
+      "note": "message on the tournament's bracket page"
+    },
+    "tbo/8cce4591": {
+      "original": "NO MATCH LEFT TO PLAY",
+      "text": "NO QUEDAN COMBATES POR JUGAR",
+      "note": "message on the tournament's bracket page"
+    },
+    "tbo/f0585c99": {
+      "original": "PUT AT LEAST TWO PLAYERS IN THE PLAYER PLACES",
+      "text": "COLOCA AL MENOS A DOS JUGADORES EN LAS PLAZAS DE JUGADOR",
+      "note": "message on the tournament's bracket page"
+    },
+    "tbo/f28e14cf": {
+      "original": "Send",
+      "text": "Enviar",
+      "note": "in Tb_ChatUpdate"
+    },
+    "tbo/b3a43630": {
+      "original": "Yes",
+      "text": "Sí",
+      "note": "an item of a spectator's own pause menu (the battle's pause menu box)"
+    },
+    "tbo/61e6be1a": {
+      "original": "No",
+      "text": "No",
+      "note": "an item of a spectator's own pause menu (the battle's pause menu box)"
+    },
+    "tbo/7f2c2a34": {
+      "original": "Move",
+      "text": "Mover",
+      "note": "a choice in a window over the lobby's page"
+    },
+    "tbo/8b4c2738": {
+      "original": "Remove from the Lobby",
+      "text": "Expulsar de la sala",
+      "note": "a choice in a window over the lobby's page"
+    },
+    "tbo/85e4b82f": {
+      "original": "OK",
+      "text": "Aceptar",
+      "note": "in Tb_LobbyUpdate"
+    },
+    "tbo/9a81788a": {
+      "original": "Move Here",
+      "text": "Mover aquí",
+      "note": "in Tb_LobbyUpdate"
+    },
+    "tbo/02998b89": {
+      "original": "Copy Code",
+      "text": "Copiar código",
+      "note": "in Tb_LobbyUpdate"
+    },
+    "tbo/7977315c": {
+      "original": "Copy Address",
+      "text": "Copiar dirección",
+      "note": "in Tb_LobbyUpdate"
+    },
+    "tbo/d8276663": {
+      "original": "THE ENTRANTS CANNOT CHANGE DURING A TOURNAMENT",
+      "text": "LOS PARTICIPANTES NO PUEDEN CAMBIAR DURANTE UN TORNEO",
+      "note": "in Tb_LobbyUpdate"
+    },
+    "tbo/cb3ac6f1": {
+      "original": "THE RULES CANNOT CHANGE DURING A MATCH",
+      "text": "LAS REGLAS NO PUEDEN CAMBIAR DURANTE UN COMBATE",
+      "note": "in Tb_LobbyUpdate"
+    },
+    "tbo/abbe2b2f": {
+      "original": "NOT DURING A MATCH: THE PLACES CHANGE BETWEEN MATCHES",
+      "text": "NO DURANTE UN COMBATE: LOS PUESTOS CAMBIAN ENTRE COMBATES",
+      "note": "in Tb_LobbyUpdate"
+    },
+    "tbo/7b251eb4": {
+      "original": "THE LOBBY'S OWNER CHOOSES WHO PLAYS",
+      "text": "EL ANFITRIÓN DECIDE QUIÉN JUEGA",
+      "note": "in Tb_LobbyUpdate"
+    },
+    "tbo/230019b7": {
+      "original": "COPIED: PASTE THE CODE TO THE OTHERS",
+      "text": "COPIADO: ENVÍA EL CÓDIGO A LOS DEMÁS",
+      "note": "in Tb_LobbyUpdate"
+    },
+    "tbo/7cec6090": {
+      "original": "COPIED: PASTE THE ADDRESS TO THE OTHERS",
+      "text": "COPIADA: PEGA LA DIRECCIÓN PARA ENVIÁRSELA A LOS DEMÁS",
+      "note": "in Tb_LobbyUpdate"
+    },
+    "tbo/b2da602e": {
+      "original": "PLAYERS  %d / %d",
+      "text": "JUGADORES  %d / %d",
+      "note": "the lobby's page (its places, code, rules and buttons); keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/cd00c329": {
+      "original": "PLAYERS",
+      "text": "JUGADORES",
+      "note": "the lobby's page (its places, code, rules and buttons)"
+    },
+    "tbo/a42cb0d8": {
+      "original": "SPECTATORS  %d / %d",
+      "text": "ESPECTADORES  %d / %d",
+      "note": "the lobby's page (its places, code, rules and buttons); keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/955f9554": {
+      "original": "%dP",
+      "text": "%dP",
+      "note": "the lobby's page (its places, code, rules and buttons); keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/9d318a74": {
+      "original": "OWNER",
+      "text": "ANFITRIÓN",
+      "note": "the lobby's page (its places, code, rules and buttons)"
+    },
+    "tbo/956decfc": {
+      "original": "YOU",
+      "text": "TÚ",
+      "note": "the tournament's bracket page (its boxes, labels and buttons)"
+    },
+    "tbo/cdda2cd4": {
+      "original": "READY",
+      "text": "LISTO",
+      "note": "the lobby's page (its places, code, rules and buttons)"
+    },
+    "tbo/0f47254e": {
+      "original": "EMPTY",
+      "text": "VACÍO",
+      "note": "the lobby's page (its places, code, rules and buttons)"
+    },
+    "tbo/fa3a73c0": {
+      "original": "LOBBY CODE",
+      "text": "CÓDIGO DE SALA",
+      "note": "the lobby's page (its places, code, rules and buttons)"
+    },
+    "tbo/a02073a4": {
+      "original": "GIVE IT TO THE OTHERS",
+      "text": "DÁSELO A LOS DEMÁS",
+      "note": "the lobby's page (its places, code, rules and buttons)"
+    },
+    "tbo/02d80d84": {
+      "original": "THE OTHERS JOIN WITH IT",
+      "text": "LOS DEMÁS ENTRAN CON ÉL",
+      "note": "the lobby's page (its places, code, rules and buttons)"
+    },
+    "tbo/24fff026": {
+      "original": "PORT",
+      "text": "PUERTO",
+      "note": "the lobby's page (its places, code, rules and buttons)"
+    },
+    "tbo/110f86d1": {
+      "original": "ON YOUR NETWORK",
+      "text": "EN TU RED",
+      "note": "the lobby's page (its places, code, rules and buttons)"
+    },
+    "tbo/fd3284f3": {
+      "original": "LOBBY",
+      "text": "SALA",
+      "note": "the lobby's page (its places, code, rules and buttons)"
+    },
+    "tbo/c6c714b5": {
+      "original": "JOINED BY ADDRESS",
+      "text": "CONECTADO POR DIRECCIÓN",
+      "note": "the lobby's page (its places, code, rules and buttons)"
+    },
+    "tbo/4ee481ac": {
+      "original": "A MATCH IS ON",
+      "text": "HAY UN COMBATE EN CURSO",
+      "note": "the tournament's bracket page (its boxes, labels and buttons)"
+    },
+    "tbo/b0c74b4f": {
+      "original": "TOURNAMENT ON",
+      "text": "TORNEO EN CURSO",
+      "note": "the tournament's bracket page (its boxes, labels and buttons)"
+    },
+    "tbo/459ba42c": {
+      "original": "TOURNAMENT OVER",
+      "text": "TORNEO TERMINADO",
+      "note": "the tournament's bracket page (its boxes, labels and buttons)"
+    },
+    "tbo/3f846580": {
+      "original": "RULES",
+      "text": "REGLAS",
+      "note": "the lobby's page (its places, code, rules and buttons)"
+    },
+    "tbo/61a56231": {
+      "original": "RULES (THE OWNER'S)",
+      "text": "REGLAS (DEL ANFITRIÓN)",
+      "note": "the lobby's page (its places, code, rules and buttons)"
+    },
+    "tbo/9a794a04": {
+      "original": "Opening the Lobby",
+      "text": "Abriendo la sala",
+      "note": "a window over the lobby's page"
+    },
+    "tbo/64b37fd4": {
+      "original": "Joining the Lobby",
+      "text": "Uniéndose a la sala",
+      "note": "a window over the lobby's page"
+    },
+    "tbo/1dc0e8b3": {
+      "original": "Looking for the lobby's owner...",
+      "text": "Buscando al anfitrión de la sala...",
+      "note": "a window over the lobby's page"
+    },
+    "tbo/5e4123ab": {
+      "original": "Opening the port...",
+      "text": "Abriendo el puerto...",
+      "note": "a window over the lobby's page"
+    },
+    "tbo/92a4570b": {
+      "original": "Asking the matchmaking service for a code...",
+      "text": "Solicitando un código al servicio de emparejamiento...",
+      "note": "a window over the lobby's page"
+    },
+    "tbo/c4e534b9": {
+      "original": "No Longer in the Lobby",
+      "text": "Ya no estás en la sala",
+      "note": "a window over the lobby's page"
+    },
+    "tbo/8a42dc66": {
+      "original": "The lobby is closed.",
+      "text": "La sala está cerrada.",
+      "note": "in Tb_LobbyFocus"
+    },
+    "tbo/91247a9b": {
+      "original": "Call Off the Tournament?",
+      "text": "¿Cancelar el torneo?",
+      "note": "a window over the lobby's page"
+    },
+    "tbo/2cdf5bbd": {
+      "original": "Its bracket is lost; the lobby is Versus again.",
+      "text": "Se pierde el cuadro; la sala vuelve al modo Versus.",
+      "note": "a window over the lobby's page"
+    },
+    "tbo/6c46cc0d": {
+      "original": "Close the Lobby?",
+      "text": "¿Cerrar la sala?",
+      "note": "a window over the lobby's page"
+    },
+    "tbo/d080c3d8": {
+      "original": "Leave the Lobby?",
+      "text": "¿Salir de la sala?",
+      "note": "a window over the lobby's page"
+    },
+    "tbo/2e299489": {
+      "original": "Everyone in it goes back to the menus.",
+      "text": "Todos volverán a los menús.",
+      "note": "a window over the lobby's page"
+    },
+    "tbo/037af163": {
+      "original": "You go back to the online menu.",
+      "text": "Volverás al menú online.",
+      "note": "a window over the lobby's page"
+    },
+    "tbo/c94c6ec6": {
+      "original": "SAY SOMETHING TO THE LOBBY",
+      "text": "ESCRIBE ALGO PARA LA SALA",
+      "note": "a window over the lobby's page"
+    },
+    "tbo/0e08fa64": {
+      "original": "Opening the lobby",
+      "text": "Abriendo la sala",
+      "note": "in Tb_LobbyFocus"
+    },
+    "tbo/bc7da534": {
+      "original": "Joining the lobby",
+      "text": "Uniéndose a la sala",
+      "note": "in Tb_LobbyFocus"
+    },
+    "tbo/79a13df7": {
+      "original": "Close the lobby? ",
+      "text": "¿Cerrar la sala? ",
+      "note": "in Tb_LobbyFocus"
+    },
+    "tbo/dac31748": {
+      "original": "Leave the lobby? ",
+      "text": "¿Salir de la sala? ",
+      "note": "in Tb_LobbyFocus"
+    },
+    "tbo/9274b361": {
+      "original": "Call off the tournament? ",
+      "text": "¿Cancelar el torneo? ",
+      "note": "in Tb_LobbyFocus"
+    },
+    "tbo/57a9b141": {
+      "original": "Player %d",
+      "text": "Jugador %d",
+      "note": "in Tb_LobbyFocus; keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/cc4162bf": {
+      "original": "Spectator %d",
+      "text": "Espectador %d",
+      "note": "in Tb_LobbyFocus; keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/861c18af": {
+      "original": "Move to ",
+      "text": "Mover a ",
+      "note": "in Tb_LobbyFocus"
+    },
+    "tbo/138fd078": {
+      "original": ", owner",
+      "text": ", anfitrión",
+      "note": "in Tb_LobbyFocus"
+    },
+    "tbo/272e9078": {
+      "original": ", ready",
+      "text": ", listo",
+      "note": "in Tb_LobbyFocus"
+    },
+    "tbo/bb563457": {
+      "original": "Final",
+      "text": "Final",
+      "note": "a round of a tournament, after \"Next: A vs B\" in brackets"
+    },
+    "tbo/3b4ddbc9": {
+      "original": "Semifinal",
+      "text": "Semifinal",
+      "note": "a round of a tournament, after \"Next: A vs B\" in brackets"
+    },
+    "tbo/62b8644d": {
+      "original": "Quarterfinal",
+      "text": "Cuartos de final",
+      "note": "a round of a tournament, after \"Next: A vs B\" in brackets"
+    },
+    "tbo/0641ef78": {
+      "original": "Back to the Lobby",
+      "text": "Volver a la sala",
+      "note": "an item of a spectator's own pause menu (the battle's pause menu box)"
+    },
+    "tbo/eb3c210b": {
+      "original": "%d ENTRANTS",
+      "text": "%d PARTICIPANTES",
+      "note": "the tournament's bracket page (its boxes, labels and buttons); keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/b6a8bbc3": {
+      "original": "BYE",
+      "text": "PASE LIBRE",
+      "note": "the tournament's bracket page (its boxes, labels and buttons)"
+    },
+    "tbo/1f91d354": {
+      "original": "DISCONNECTED %d:%02d",
+      "text": "DESCONECTADO %d:%02d",
+      "note": "the tournament's bracket page (its boxes, labels and buttons); keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/103c2070": {
+      "original": "LEFT",
+      "text": "SE FUE",
+      "note": "the tournament's bracket page (its boxes, labels and buttons)"
+    },
+    "tbo/439352e6": {
+      "original": "CHAMPION",
+      "text": "CAMPEÓN",
+      "note": "the tournament's bracket page (its boxes, labels and buttons)"
+    },
+    "tbo/be046417": {
+      "original": "FINAL",
+      "text": "FINAL",
+      "note": "the tournament's bracket page (its boxes, labels and buttons)"
+    },
+    "tbo/383141e4": {
+      "original": "THE TWO GAMES DISAGREE ON THIS MATCH: CHOOSE THE WINNER",
+      "text": "LOS DOS JUEGOS NO COINCIDEN EN ESTE COMBATE: ELIGE AL GANADOR",
+      "note": "the tournament's bracket page (its boxes, labels and buttons)"
+    },
+    "tbo/0ae273d1": {
+      "original": "THE OWNER IS CHOOSING THE WINNER",
+      "text": "EL ANFITRIÓN ESTÁ ELIGIENDO AL GANADOR",
+      "note": "the tournament's bracket page (its boxes, labels and buttons)"
+    },
+    "tbo/35ce081c": {
+      "original": "%s is the champion! Congratulations!",
+      "text": "¡%s es el campeón! ¡Enhorabuena!",
+      "note": "talk box on the tournament's bracket page (%s: a player's name; keep it); keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/5d0fda61": {
+      "original": "The tournament is over.",
+      "text": "El torneo ha terminado.",
+      "note": "talk box on the tournament's bracket page (%s: a player's name; keep it)"
+    },
+    "tbo/fb8e2d35": {
+      "original": "New Tournament draws another of the player places.",
+      "text": "Nuevo torneo genera otro cuadro con las plazas de jugadores.",
+      "note": "talk box on the tournament's bracket page (%s: a player's name; keep it)"
+    },
+    "tbo/72e9d136": {
+      "original": "Waiting for the next match...",
+      "text": "Esperando el siguiente combate...",
+      "note": "talk box on the tournament's bracket page (%s: a player's name; keep it)"
+    },
+    "tbo/442d8430": {
+      "original": "%s vs %s",
+      "text": "%s vs %s",
+      "note": "talk box on the tournament's bracket page (%s: a player's name; keep it); keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/9cc3727e": {
+      "original": "The two games disagree on this match: choose the winner.",
+      "text": "Los dos juegos no coinciden en este combate: elige al ganador.",
+      "note": "talk box on the tournament's bracket page (%s: a player's name; keep it)"
+    },
+    "tbo/1b0b672d": {
+      "original": "The owner is choosing the winner.",
+      "text": "El anfitrión está eligiendo al ganador.",
+      "note": "talk box on the tournament's bracket page (%s: a player's name; keep it)"
+    },
+    "tbo/af3b98c0": {
+      "original": "Now: %s vs %s",
+      "text": "Ahora: %s contra %s",
+      "note": "talk box on the tournament's bracket page (%s: a player's name; keep it); keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/7f4be52b": {
+      "original": "Next: %s vs %s",
+      "text": "Siguiente: %s contra %s",
+      "note": "talk box on the tournament's bracket page (%s: a player's name; keep it); keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/879988c9": {
+      "original": "Waiting for %s to come back.",
+      "text": "Esperando a que %s vuelva.",
+      "note": "talk box on the tournament's bracket page (%s: a player's name; keep it); keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/976b0c98": {
+      "original": "Start it when both are here!",
+      "text": "¡Inícialo cuando estéis los dos!",
+      "note": "talk box on the tournament's bracket page (%s: a player's name; keep it)"
+    },
+    "tbo/6365e8a1": {
+      "original": "The owner starts it.",
+      "text": "El anfitrión lo inicia.",
+      "note": "talk box on the tournament's bracket page (%s: a player's name; keep it)"
+    },
+    "tbo/71cf1368": {
+      "original": "Choose the winner: ",
+      "text": "Elige al ganador: ",
+      "note": "in Tb_BracketFocus"
+    },
+    "tbo/855d984e": {
+      "original": "No code: the others type your address and this port on Join by Address. Left / right, L1 / R1 change it.",
+      "text": "Sin código: los demás introducen tu dirección y este puerto en Unirse por dirección. Izquierda/derecha o L1/R1 lo cambian.",
+      "note": "talk box at the foot of the screen (two lines at most)"
+    },
+    "tbo/2180d35d": {
+      "original": "Your lobby gets a code: give it to your friends, they type it on Join. Set the rules on its page!",
+      "text": "Tu sala recibe un código: pásaselo a tus amigos para que lo escriban en Unirse. ¡Configura las reglas en su pantalla!",
+      "note": "talk box at the foot of the screen (two lines at most)"
+    },
+    "tbo/457366cb": {
+      "original": "Enter the lobby's code, or Paste the one they sent you! Then Join: to play, or to watch from the stands.",
+      "text": "Introduce el código de la sala o pega el que te han enviado. Después, Unirse: para jugar o ver desde las gradas.",
+      "note": "talk box at the foot of the screen (two lines at most)"
+    },
+    "tbo/b3934c83": {
+      "original": "Type the lobby owner's address, and :port if it is not 7000. Then Join!",
+      "text": "Escribe la dirección del anfitrión y :puerto si no es el 7000. ¡Después, Unirse!",
+      "note": "talk box at the foot of the screen (two lines at most)"
+    },
+    "tbo/73f9fb75": {
+      "original": "Here we go! The match is starting!",
+      "text": "¡Allá vamos! ¡Empieza el combate!",
+      "note": "talk box at the foot of the screen (two lines at most)"
+    },
+    "tbo/b648dc56": {
+      "original": "Looking for a worthy challenger... Warm up in Training meanwhile!",
+      "text": "Buscando un rival digno... ¡Calienta en Entrenamiento mientras tanto!",
+      "note": "talk box at the foot of the screen (two lines at most)"
+    },
+    "tbo/c40519d7": {
+      "original": "Sorry! Quick match is for the game straight off the disc. Modded? Play your friends in a lobby!",
+      "text": "Las partidas rápidas usan los datos originales del disco. ¿Tienes mods? ¡Juega con tus amigos en una sala!",
+      "note": "talk box at the foot of the screen (two lines at most)"
+    },
+    "tbo/dda980c6": {
+      "original": "Warm up at the tournament while we search! Pick yourself and a sparring partner.",
+      "text": "¡Calienta en el torneo mientras buscamos! Elige tu luchador y un compañero de entrenamiento.",
+      "note": "talk box at the foot of the screen (two lines at most)"
+    },
+    "tbo/164ea733": {
+      "original": "Auto: rivals near you first. A region: players there first, everyone after 40 s. Anywhere: the fastest.",
+      "text": "Auto: primero rivales cercanos. Región: primero los de allí, todos tras 40 s. Cualquier lugar: lo más rápido.",
+      "note": "talk box at the foot of the screen (two lines at most)"
+    },
+    "tbo/3d4a10f0": {
+      "original": "Pick a battle and we'll find you a rival! No time limit, and the game runs a little faster.",
+      "text": "¡Elige un combate y te buscaremos rival! Sin límite de tiempo y con el juego un poco más rápido.",
+      "note": "talk box at the foot of the screen (two lines at most)"
+    },
+    "tbo/9c852db4": {
+      "original": "Pick your letters, then Done! Square deletes, Start finishes.",
+      "text": "¡Elige las letras y pulsa Hecho! Cuadrado borra, START termina.",
+      "note": "talk box at the foot of the screen (two lines at most)"
+    },
+    "tbo/546717fa": {
+      "original": "Show everyone who you are! This is the name your rivals see.",
+      "text": "¡Preséntate! Este es el nombre que verán tus rivales.",
+      "note": "talk box at the foot of the screen (two lines at most)"
+    },
+    "tbo/a05d46e9": {
+      "original": "Knocking at the lobby's door...",
+      "text": "Llamando a la puerta de la sala...",
+      "note": "talk box at the foot of the screen (two lines at most)"
+    },
+    "tbo/50826afb": {
+      "original": "Opening your lobby! The others join it with your address.",
+      "text": "¡Abriendo tu sala! Los demás entrarán con tu dirección.",
+      "note": "talk box at the foot of the screen (two lines at most)"
+    },
+    "tbo/7fc1879f": {
+      "original": "Opening your lobby! The others join it with its code.",
+      "text": "¡Abriendo tu sala! Los demás entrarán con el código.",
+      "note": "talk box at the foot of the screen (two lines at most)"
+    },
+    "tbo/27f5b2ac": {
+      "original": "You are out of that lobby. OK takes you back to the online menu.",
+      "text": "Has salido de la sala. Aceptar te devuelve al menú online.",
+      "note": "talk box at the foot of the screen (two lines at most)"
+    },
+    "tbo/4d44665c": {
+      "original": "Type a line for everyone in the lobby, then Done! Start sends it too.",
+      "text": "¡Escribe un mensaje para la sala y pulsa Hecho! START también lo envía.",
+      "note": "talk box at the foot of the screen (two lines at most)"
+    },
+    "tbo/43b56798": {
+      "original": "Welcome to the lobby! Its owner picks who plays and starts the match. Chat while you wait!",
+      "text": "¡Bienvenido a la sala! El anfitrión elige los jugadores e inicia el combate. ¡Chatea mientras esperas!",
+      "note": "talk box at the foot of the screen (two lines at most)"
+    },
+    "tbo/3b6ac746": {
+      "original": "Tournament: Entrants sets the player places. Move people into them (you too, to play), then Start Tournament!",
+      "text": "Torneo: Participantes fija las plazas de jugadores. Coloca a la gente (también a ti, si juegas) y pulsa Iniciar torneo.",
+      "note": "talk box at the foot of the screen (two lines at most)"
+    },
+    "tbo/63451d36": {
+      "original": "Your lobby is open! Give the others its code: they type it on Join. Then put two of you in 1P and 2P.",
+      "text": "¡Tu sala está abierta! Pasa el código a los demás para que lo escriban en Unirse. Después, coloca a dos en 1P y 2P.",
+      "note": "talk box at the foot of the screen (two lines at most)"
+    },
+    "tbo/8cd4aa37": {
+      "original": "Your lobby is open! The others join with your address and port (Join by Address). Then 1P and 2P.",
+      "text": "¡Tu sala está abierta! Los demás entran con tu dirección y puerto (Unirse por dirección). Después, 1P y 2P.",
+      "note": "talk box at the foot of the screen (two lines at most)"
+    },
+    "tbo/a41f676f": {
+      "original": "Tenkaichi Budokai Online",
+      "text": "Tenkaichi Budokai Online",
+      "note": "a table of the online menu"
+    },
+    "tbo/5fc90ef9": {
+      "original": "New Lobby",
+      "text": "Nueva sala",
+      "note": "a table of the online menu"
+    },
+    "tbo/8c5ceb17": {
+      "original": "Searching",
+      "text": "Buscando",
+      "note": "a table of the online menu"
+    },
+    "tbo/5ae13bda": {
+      "original": "Join by Address",
+      "text": "Unirse por dirección",
+      "note": "a table of the online menu"
+    },
+    "tbo/31d30786": {
+      "original": ", soon",
+      "text": ", próximamente",
+      "note": "read aloud by the screen reader (a piece may be joined to a name or a code after it)"
+    },
+    "tbo/1c799ded": {
+      "original": "Your rival is here! The match begins.",
+      "text": "¡Tu rival está aquí! Empieza el combate.",
+      "note": "read aloud by the screen reader (a piece may be joined to a name or a code after it)"
+    },
+    "tbo/30699b18": {
+      "original": " Your rival is from ",
+      "text": " Tu rival es de ",
+      "note": "read aloud by the screen reader (a piece may be joined to a name or a code after it)"
+    },
+    "tbo/c47c43fd": {
+      "original": "Quick match, teams: searching",
+      "text": "Partida rápida por equipos: buscando",
+      "note": "read aloud by the screen reader (a piece may be joined to a name or a code after it)"
+    },
+    "tbo/945ce7ee": {
+      "original": "Quick match, one on one: searching",
+      "text": "Partida rápida individual: buscando",
+      "note": "read aloud by the screen reader (a piece may be joined to a name or a code after it)"
+    },
+    "tbo/cb4e91e9": {
+      "original": "Joining lobby ",
+      "text": "Entrando en la sala ",
+      "note": "sign shown during Train While Waiting's sparring fight"
+    },
+    "tbo/13c9c45d": {
+      "original": "Battle: teams",
+      "text": "Combate: equipos",
+      "note": "read aloud by the screen reader (a piece may be joined to a name or a code after it)"
+    },
+    "tbo/6dc53abc": {
+      "original": "Battle: one on one",
+      "text": "Combate: individual",
+      "note": "read aloud by the screen reader (a piece may be joined to a name or a code after it)"
+    },
+    "tbo/c4dce01f": {
+      "original": "Region: ",
+      "text": "Región: ",
+      "note": "read aloud by the screen reader (a piece may be joined to a name or a code after it)"
+    },
+    "tbo/66836516": {
+      "original": "You: ",
+      "text": "Tú: ",
+      "note": "read aloud by the screen reader (a piece may be joined to a name or a code after it)"
+    },
+    "tbo/4484e7fb": {
+      "original": "Partner: ",
+      "text": "Compañero: ",
+      "note": "read aloud by the screen reader (a piece may be joined to a name or a code after it)"
+    },
+    "tbo/d3433c1f": {
+      "original": "Start training",
+      "text": "Empezar entrenamiento",
+      "note": "read aloud by the screen reader (a piece may be joined to a name or a code after it)"
+    },
+    "tbo/accce1a8": {
+      "original": "No quick match. Quick match needs the original disc's data; with friends, both need the same data.",
+      "text": "Sin partida rápida. Requiere los datos originales del disco; con amigos, ambos necesitáis los mismos datos.",
+      "note": "read aloud by the screen reader (a piece may be joined to a name or a code after it)"
+    },
+    "tbo/2871a93c": {
+      "original": "Name: ",
+      "text": "Nombre: ",
+      "note": "read aloud by the screen reader (a piece may be joined to a name or a code after it)"
+    },
+    "tbo/980cad7e": {
+      "original": "Code: ",
+      "text": "Código: ",
+      "note": "read aloud by the screen reader (a piece may be joined to a name or a code after it)"
+    },
+    "tbo/f9e64a11": {
+      "original": "Address: ",
+      "text": "Dirección: ",
+      "note": "read aloud by the screen reader (a piece may be joined to a name or a code after it)"
+    },
+    "tbo/8d3ea279": {
+      "original": "Chat: ",
+      "text": "Chat: ",
+      "note": "read aloud by the screen reader (a piece may be joined to a name or a code after it)"
+    },
+    "tbo/08fa56bb": {
+      "original": "Searching for a rival...  %d:%02d",
+      "text": "Buscando rival...  %d:%02d",
+      "note": "sign shown during Train While Waiting's sparring fight; keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/365337af": {
+      "original": "Quick Match: ",
+      "text": "Partida rápida: ",
+      "note": "sign shown during Train While Waiting's sparring fight"
+    },
+    "tbo/3fb4bf03": {
+      "original": "PLAYER 1",
+      "text": "JUGADOR 1",
+      "note": "a spectator's view of the match"
+    },
+    "tbo/40b4c096": {
+      "original": "PLAYER 2",
+      "text": "JUGADOR 2",
+      "note": "a spectator's view of the match"
+    },
+    "tbo/9d34c8bd": {
+      "original": "SPLIT SCREEN",
+      "text": "PANTALLA DIVIDIDA",
+      "note": "a spectator's view of the match"
+    },
+    "tbo/a1fd0b92": {
+      "original": "Spectating %s vs %s",
+      "text": "Viendo a %s contra %s",
+      "note": "the line over a match being watched (spectator); keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/6e585da4": {
+      "original": "CATCHING UP WITH THE MATCH... %d%%",
+      "text": "Sincronizando el combate... %d%%",
+      "note": "the line over a match being watched (spectator); keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/9545221c": {
+      "original": "NO LONGER THE PLAYERS' FIGHT (SINCE FRAME %d)",
+      "text": "Desincronizado de los jugadores (desde el fotograma %d)",
+      "note": "the line over a match being watched (spectator); keep the %d / %02d parts, in this order (and %% for a % sign)"
+    },
+    "tbo/8533cbf2": {
+      "original": "VIEW: ",
+      "text": "VISTA: ",
+      "note": "the line over a match being watched (spectator)"
+    },
+    "tbo/87d7e921": {
+      "original": "   R1: CHANGE   START: MENU",
+      "text": "   R1: CAMBIAR   START: MENÚ",
+      "note": "the line over a match being watched (spectator)"
+    },
+    "tbo/ac6faab6": {
+      "original": "Player 2",
+      "text": "Jugador 2",
+      "note": "a spectator's view of the match, in its pause menu (after \"View: \")"
+    },
+    "tbo/dfef065d": {
+      "original": "Split Screen",
+      "text": "Pantalla dividida",
+      "note": "a spectator's view of the match, in its pause menu (after \"View: \")"
+    },
+    "tbo/ab6fa923": {
+      "original": "Player 1",
+      "text": "Jugador 1",
+      "note": "a spectator's view of the match, in its pause menu (after \"View: \")"
+    },
+    "tbo/d6a2e9ba": {
+      "original": "Stop Watching",
+      "text": "Dejar de mirar",
+      "note": "an item of a spectator's own pause menu (the battle's pause menu box)"
+    },
+    "tbo/65fcffe0": {
+      "original": "Close the Lobby",
+      "text": "Cerrar la sala",
+      "note": "an item of a spectator's own pause menu (the battle's pause menu box)"
+    },
+    "tbo/819bf3f7": {
+      "original": "Leave the Lobby",
+      "text": "Salir de la sala",
+      "note": "an item of a spectator's own pause menu (the battle's pause menu box)"
+    },
+    "tbo/d720e6b8": {
+      "original": "Your screen only: the fight goes on",
+      "text": "Solo tu pantalla: el combate continúa",
+      "note": "an item of a spectator's own pause menu (the battle's pause menu box)"
+    },
+    "tbo/ab43d664": {
+      "original": "Continue",
+      "text": "Continuar",
+      "note": "an item of a spectator's own pause menu (the battle's pause menu box)"
+    },
+    "tbo/3c612e52": {
+      "original": "View: ",
+      "text": "Vista: ",
+      "note": "an item of a spectator's own pause menu (the battle's pause menu box)"
+    }
+  }
+}

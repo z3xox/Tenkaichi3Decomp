@@ -305,7 +305,7 @@ void UiText_ExtractOnStartup(const char *gameTextDir) {
    by the USA disc's IDs. A line is the same line on both discs where the European English is the USA English, or
    where its table has as many lines on both (the European English is then the USA line reworded: bullets added, a
    typo fixed, "Fight Again?"). Lines without their like stay English. */
-#define UT_EU_SOURCE "European disc, version 1"
+#define UT_EU_SOURCE "European disc, version 2"
 #define UT_EU_STRIDE 31  /* the menu archives: USA 448 + k is European 451 + k + 31 * language */
 #define UT_EU_FIRST 451
 #define UT_EU_HUD 5      /* the HUD: USA 5 is European 5 + language */

@@ -22,6 +22,7 @@
 #include <vector>
 #include <SDL3/SDL.h>
 #include "native.h"
+#include "../src/gs/ui_localization.h"
 
 namespace {
 
@@ -110,7 +111,7 @@ struct Iso {
 
     void read(Uint64 offset, void *buf, size_t n) {
         if (SDL_SeekIO(io, (Sint64)offset, SDL_IO_SEEK_SET) < 0 || SDL_ReadIO(io, buf, n) != n) {
-            throw Stop{"The disc image could not be read to its end. It may be incomplete."};
+            throw Stop{Bt3Ui::T("The disc image could not be read to its end. It may be incomplete.")};
         }
     }
     void walk(Uint32 lba, Uint32 size, const std::string &dir, int depth) {
@@ -157,11 +158,11 @@ struct Iso {
         Uint32 lba, size;
         io = SDL_IOFromFile(path.c_str(), "rb");
         if (io == NULL) {
-            throw Stop{"The disc image could not be opened: " + path};
+            throw Stop{Bt3Ui::T("The disc image could not be opened: ") + path};
         }
         if (SDL_SeekIO(io, 16 * 2048, SDL_IO_SEEK_SET) < 0 || SDL_ReadIO(io, pvd, sizeof(pvd)) != sizeof(pvd) || pvd[0] != 1 ||
             memcmp(pvd + 1, "CD001", 5) != 0) {
-            throw Stop{"This file is not a disc image (.iso). Compressed images (.chd, .cso, .gz) have to be converted to .iso first."};
+            throw Stop{Bt3Ui::T("This file is not a disc image (.iso). Compressed images (.chd, .cso, .gz) have to be converted to .iso first.")};
         }
         memcpy(&lba, pvd + 156 + 2, 4);
         memcpy(&size, pvd + 156 + 10, 4);
@@ -198,7 +199,7 @@ std::string upper(std::string s) {
 
 void check_cancel() {
     if (sCancel) {
-        throw Stop{"Cancelled. Install continues from where it stopped."};
+        throw Stop{Bt3Ui::T("Cancelled. Install continues from where it stopped.")};
     }
 }
 
@@ -206,20 +207,20 @@ void check_cancel() {
 void copy_out(Iso &iso, Uint64 offset, Uint64 size, const std::string &path, std::vector<Uint8> &buf) {
     SDL_IOStream *out = SDL_IOFromFile(path.c_str(), "wb");
     if (out == NULL) {
-        throw Stop{"Could not write " + path + ". Is the disk full or the folder read-only?"};
+        throw Stop{Bt3Ui::T("Could not write ") + path + Bt3Ui::T(". Is the disk full or the folder read-only?")};
     }
     while (size > 0) {
         size_t n = size < buf.size() ? (size_t)size : buf.size();
         iso.read(offset, buf.data(), n);
         if (SDL_WriteIO(out, buf.data(), n) != n) {
             SDL_CloseIO(out);
-            throw Stop{"Could not write " + path + ". Is the disk full?"};
+            throw Stop{Bt3Ui::T("Could not write ") + path + Bt3Ui::T(". Is the disk full?")};
         }
         offset += n;
         size -= n;
     }
     if (!SDL_CloseIO(out)) {
-        throw Stop{"Could not write " + path + ". Is the disk full?"};
+        throw Stop{Bt3Ui::T("Could not write ") + path + Bt3Ui::T(". Is the disk full?")};
     }
 }
 
@@ -236,8 +237,8 @@ void step_disc(Iso &iso, const std::string &path) {
     iso.open(path);
     const IsoFile *slus = iso.find("SLUS_216.78"), *dbzp = iso.find("BIN/DBZP.BIN");
     if (slus == NULL || dbzp == NULL) {
-        throw Stop{"This is not a disc image of the USA release of Budokai Tenkaichi 3 (no SLUS_216.78 on it).\n"
-                   "Other regions and the Wii version have different programs and are not supported."};
+        throw Stop{Bt3Ui::T("This is not a disc image of the USA release of Budokai Tenkaichi 3 (no SLUS_216.78 on it).\n"
+                   "Other regions and the Wii version have different programs and are not supported.")};
     }
     say("@note checking");
     std::vector<Uint8> elf((size_t)slus->size), rom(kRomEnd - kRomBase, 0), menu((size_t)dbzp->size);
@@ -261,8 +262,8 @@ void step_disc(Iso &iso, const std::string &path) {
     a.add(rom.data(), rom.size());
     b.add(menu.data(), menu.size());
     if (a.hex() != kRomSha1 || b.hex() != kDbzpSha1) {
-        throw Stop{"The game's programs on this disc do not have the expected checksums.\n"
-                   "The port needs the unmodified USA release (SLUS-21678); a patched or damaged image will not work."};
+        throw Stop{Bt3Ui::T("The game's programs on this disc do not have the expected checksums.\n"
+                   "The port needs the unmodified USA release (SLUS-21678); a patched or damaged image will not work.")};
     }
     say("@ok the USA release, checksums match");
 }
@@ -316,7 +317,7 @@ void step_data(Iso &iso, const std::string &root) {
         iso.read(f->offset, head, 8);
         memcpy(&count, head + 4, 4);
         if (memcmp(head, "AFS\0", 4) != 0 || (Uint64)count * 8 + 8 > f->size) {
-            throw Stop{"An archive on the disc (" + f->path + ") is damaged."};
+            throw Stop{Bt3Ui::T("An archive on the disc (") + f->path + Bt3Ui::T(") is damaged.")};
         }
         std::vector<Uint32> table((size_t)count * 2);
         iso.read(f->offset + 8, table.data(), table.size() * 4);
@@ -325,7 +326,7 @@ void step_data(Iso &iso, const std::string &root) {
             char name[32];
             snprintf(name, sizeof(name), "%05u.bin", i);
             if ((Uint64)table[i * 2] + table[i * 2 + 1] > f->size) {
-                throw Stop{"An archive on the disc (" + f->path + ") is damaged."};
+                throw Stop{Bt3Ui::T("An archive on the disc (") + f->path + Bt3Ui::T(") is damaged.")};
             }
             copy_out(iso, f->offset + table[i * 2], table[i * 2 + 1], dir + name, buf);
             files++;
@@ -367,7 +368,7 @@ void step_test(const std::string &root) {
     SDL_DestroyProperties(props);
     SDL_DestroyEnvironment(env);
     if (proc == NULL) {
-        throw Stop{std::string("The game could not be started: ") + SDL_GetError()};
+        throw Stop{std::string(Bt3Ui::T("The game could not be started: ")) + SDL_GetError()};
     }
     size_t size = 0;
     int code = -1;
@@ -406,7 +407,7 @@ void step_test(const std::string &root) {
     if (text.find("battle finished") == std::string::npos) {
         size_t end = text.find_last_not_of("\r\n"), begin = end == std::string::npos ? std::string::npos : text.rfind('\n', end);
         std::string last = end == std::string::npos ? "no output" : text.substr(begin == std::string::npos ? 0 : begin + 1, end - (begin == std::string::npos ? 0 : begin + 1) + 1);
-        throw Stop{"The game's demo fight did not finish. Its last line was:\n" + last + "\nThe full output is in install.log."};
+        throw Stop{Bt3Ui::T("The game's demo fight did not finish. Its last line was:\n") + last + Bt3Ui::T("\nThe full output is in install.log.")};
     }
     say("@ok the demo fight ran to its end");
 }
@@ -434,15 +435,15 @@ void step_eu(const std::string &root, const std::string &path) {
     const IsoFile *sles = iso.find("SLES_549.45"), *afs = iso.find("DATA/PZS3EU1.AFS"), *selector = iso.find("DATA/PZS3EU0.AFS");
     const IsoFile *openingAudio = iso.find("DATA/ZS3EUOP.ADX");
     if (sles == NULL || afs == NULL || selector == NULL || openingAudio == NULL) {
-        throw Stop{"This is not a disc image of the European release of Budokai Tenkaichi 3 (no SLES_549.45 on it).\n"
-                   "The languages come from the European release (SLES-54945); the game itself is set up from the USA one."};
+        throw Stop{Bt3Ui::T("This is not a disc image of the European release of Budokai Tenkaichi 3 (no SLES_549.45 on it).\n"
+                   "The languages come from the European release (SLES-54945); the game itself is set up from the USA one.")};
     }
     Uint8 head[8];
     Uint32 count;
     iso.read(afs->offset, head, 8);
     memcpy(&count, head + 4, 4);
     if (memcmp(head, "AFS\0", 4) != 0 || count == 0 || (Uint64)count * 8 + 8 > afs->size) {
-        throw Stop{"An archive on the European disc image (DATA/PZS3EU1.AFS) is damaged."};
+        throw Stop{Bt3Ui::T("An archive on the European disc image (DATA/PZS3EU1.AFS) is damaged.")};
     }
     std::vector<Uint32> table((size_t)count * 2);
     iso.read(afs->offset + 8, table.data(), table.size() * 4);
@@ -453,12 +454,12 @@ void step_eu(const std::string &root, const std::string &path) {
     for (Uint32 e : want) {
         char name[32], line[64];
         if (e >= count || (Uint64)table[e * 2] + table[e * 2 + 1] > afs->size) {
-            throw Stop{"An archive on the European disc image (DATA/PZS3EU1.AFS) is damaged or not the European release's."};
+            throw Stop{Bt3Ui::T("An archive on the European disc image (DATA/PZS3EU1.AFS) is damaged or not the European release's.")};
         }
         snprintf(name, sizeof(name), "%05u", e);
         copy_out(iso, afs->offset + table[e * 2], table[e * 2 + 1], dir + name + ".part", buf);
         if (!SDL_RenamePath((dir + name + ".part").c_str(), (dir + name + ".bin").c_str())) {
-            throw Stop{"Could not write " + dir + name + ".bin."};
+            throw Stop{Bt3Ui::T("Could not write ") + dir + name + ".bin."};
         }
         snprintf(line, sizeof(line), "@note %d of %d", ++done, (int)want.size());
         say(line);
@@ -467,35 +468,35 @@ void step_eu(const std::string &root, const std::string &path) {
     iso.read(selector->offset, head, 8);
     memcpy(&count, head + 4, 4);
     if (memcmp(head, "AFS\0", 4) != 0 || count < 2 || selector->size < 24) {
-        throw Stop{"The language selector archive on the European disc image (DATA/PZS3EU0.AFS) is damaged."};
+        throw Stop{Bt3Ui::T("The language selector archive on the European disc image (DATA/PZS3EU0.AFS) is damaged.")};
     }
     Uint32 selectorEntry[2];
     iso.read(selector->offset + 16, selectorEntry, sizeof(selectorEntry));
     if (selectorEntry[1] == 0 || selectorEntry[1] > (1u << 20) ||
         (Uint64)selectorEntry[0] + selectorEntry[1] > selector->size) {
-        throw Stop{"The language selector archive on the European disc image (DATA/PZS3EU0.AFS) is damaged."};
+        throw Stop{Bt3Ui::T("The language selector archive on the European disc image (DATA/PZS3EU0.AFS) is damaged.")};
     }
     std::string selectorDir = root + "gamedata/pzs3eu0/";
     SDL_CreateDirectory(selectorDir.c_str());
     copy_out(iso, selector->offset + selectorEntry[0], selectorEntry[1], selectorDir + "00001.part", buf);
     if (!SDL_RenamePath((selectorDir + "00001.part").c_str(), (selectorDir + "00001.bin").c_str())) {
-        throw Stop{"Could not write " + selectorDir + "00001.bin."};
+        throw Stop{Bt3Ui::T("Could not write ") + selectorDir + "00001.bin."};
     }
     std::string movieDir = root + "gamedata/disc/DATA/";
     SDL_CreateDirectory((root + "gamedata/disc/").c_str());
     SDL_CreateDirectory(movieDir.c_str());
     Uint8 magic[2];
     if (openingAudio->size < 2 || openingAudio->size > (16u << 20)) {
-        throw Stop{"The European opening soundtrack has an invalid size."};
+        throw Stop{Bt3Ui::T("The European opening soundtrack has an invalid size.")};
     }
     iso.read(openingAudio->offset, magic, sizeof(magic));
     if (magic[0] != 0x80 || magic[1] != 0) {
-        throw Stop{"The European opening soundtrack has an invalid header."};
+        throw Stop{Bt3Ui::T("The European opening soundtrack has an invalid header.")};
     }
     std::string dest = movieDir + "ZS3EUOP.ADX";
     copy_out(iso, openingAudio->offset, openingAudio->size, dest + ".part", buf);
     if (!SDL_RenamePath((dest + ".part").c_str(), dest.c_str())) {
-        throw Stop{"Could not write " + dest + "."};
+        throw Stop{Bt3Ui::T("Could not write ") + dest + "."};
     }
     say("@ok European languages and opening soundtrack: the game makes the languages at its next start");
 }
@@ -527,6 +528,8 @@ void work(std::string root, std::string path, std::string eu) {
         say("@fail");
         say("@stopped " + why);
     }
+    // This worker uses std::thread: SDL cannot clean its thread-local error storage automatically.
+    SDL_CleanupTLS();
     sRunning = false;
 }
 

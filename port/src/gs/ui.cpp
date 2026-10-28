@@ -8,6 +8,7 @@
 #include <string.h>
 #include <stdint.h>
 #include "imgui.h"
+#include "ui_localization.h"
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_sdlgpu3.h"
 #include "imgui_impl_opengl3.h"
@@ -363,20 +364,20 @@ static void fonts_apply(void) {
 
 // A combo of the game's fonts; the choice is loaded before the next frame.
 static void font_picker(const char *label, PanelFont &pf, const char *tip) {
-    if (ImGui::BeginCombo(label, pf.choice > 0 ? MenuText_FontName(pf.choice) : "Default")) {
-        if (ImGui::Selectable("Default", pf.choice == 0)) {
+    if (Bt3Ui::BeginCombo(label, pf.choice > 0 ? MenuText_FontName(pf.choice) : "Default")) {
+        if (Bt3Ui::Selectable("Default", pf.choice == 0)) {
             pf.pending = 0;
         }
         for (int i = 1; i < MenuText_FontCount(); i++) {
             ImGui::PushID(i);
-            if (ImGui::Selectable(MenuText_FontName(i), pf.choice == i)) {
+            if (Bt3Ui::Selectable(MenuText_FontName(i), pf.choice == i)) {
                 pf.pending = i;
             }
             ImGui::PopID();
         }
         ImGui::EndCombo();
     }
-    ImGui::SetItemTooltip("%s", tip);
+    Bt3Ui::SetItemTooltip("%s", Bt3Ui::T(tip));
 }
 
 static void bars_draw(void) {
@@ -505,11 +506,13 @@ static void language_init() {
     sLanguageCount = MenuTranslation_Available(sLanguages, (int)(sizeof(sLanguages) / sizeof(sLanguages[0])));
     sLanguageChoice = 0;
     const char *preferred = override != NULL && override[0] != '\0' ? override : saved[0] != '\0' ? saved : "en";
+    if (!Bt3Ui::SetLocale(preferred)) Bt3Ui::SetLocale("en");
     for (int i = 0; i < sLanguageCount; i++) if (strcmp(sLanguages[i].locale, preferred) == 0) sLanguageChoice = i;
 }
 
 extern "C" void Ui_LanguageChosen(const char *locale) {
     if (locale == NULL) return;
+    if (!Bt3Ui::SetLocale(locale)) Bt3Ui::SetLocale("en");
     for (int i = 0; i < sLanguageCount; i++) {
         if (strcmp(sLanguages[i].locale, locale) == 0) {
             sLanguageChoice = i;
@@ -522,6 +525,7 @@ extern "C" void Ui_LanguageChosen(const char *locale) {
 static void language_choose(int choice) {
     if (choice < 0 || choice >= sLanguageCount) return;
     MenuTranslation_SaveChoice(sLanguages[choice].locale);
+    if (!Bt3Ui::SetLocale(sLanguages[choice].locale)) Bt3Ui::SetLocale("en");
     sLanguageChoice = choice;
     sLanguageRestartPending = true;
 }
@@ -629,7 +633,7 @@ static void capture(int kind, int player, int action) {
 // A controller button pressed in the window (not while it waits for a binding, a list is open or a field is edited).
 static bool pad_pressed(ImGuiKey key) {
     return sCapKind == 0 && !sPadHold && !sQuit && !ImGui::IsAnyItemActive() &&
-           !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel) && ImGui::IsKeyPressed(key, false);
+           !Bt3Ui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel) && ImGui::IsKeyPressed(key, false);
 }
 
 extern "C" void PortA11y_Say(const char *text, int flags);
@@ -668,26 +672,26 @@ static void build_quit(void) {
     int focus = -1;
 
     sQuitNo = false;
-    if (!ImGui::IsPopupOpen("Exit game")) {
-        ImGui::OpenPopup("Exit game");
+    if (!Bt3Ui::IsPopupOpen("Exit game")) {
+        Bt3Ui::OpenPopup("Exit game");
     }
     ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-    if (ImGui::BeginPopupModal("Exit game", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings)) {
+    if (Bt3Ui::BeginPopupModal("Exit game", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings)) {
         const char *translated = MenuTranslation_PortText(PORT_TEXT_QUIT_CONFIRM);
         const char *kAsk = translated ? translated : "Close the game?\nUnsaved progress will be lost.";
         // the two buttons under the middle of the question (the window is as wide as its text)
-        float line = ImGui::CalcTextSize(kAsk).x, pair = U(140.0f) * 2.0f + ImGui::GetStyle().ItemSpacing.x;
-        ImGui::TextUnformatted(kAsk);
+        float line = Bt3Ui::CalcTextSize(kAsk).x, pair = U(140.0f) * 2.0f + ImGui::GetStyle().ItemSpacing.x;
+        Bt3Ui::TextUnformatted(kAsk);
         ImGui::Spacing();
         if (line > pair) {
             ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (line - pair) * 0.5f);
         }
-        if (ImGui::Button("Exit", ImVec2(U(140.0f), 0.0f))) {
+        if (Bt3Ui::Button("Exit", ImVec2(U(140.0f), 0.0f))) {
             exit(0);
         }
         focus = ImGui::IsItemFocused() ? 0 : focus;
         ImGui::SameLine();
-        if (ImGui::Button("Cancel", ImVec2(U(140.0f), 0.0f)) || ImGui::IsKeyPressed(ImGuiKey_GamepadFaceRight, false)) {
+        if (Bt3Ui::Button("Cancel", ImVec2(U(140.0f), 0.0f)) || ImGui::IsKeyPressed(ImGuiKey_GamepadFaceRight, false)) {
             stay = true;
         }
         focus = ImGui::IsItemFocused() ? 1 : focus;
@@ -748,39 +752,39 @@ static void quick_status(int state, int &lastState, const char *name) {
         state = 0;
     }
     if (state == 3 || state == 1) {
-        ImGui::TextUnformatted(Port_LobbyCheckingData() ? "Checking your game data... The search begins when it is done."
+        Bt3Ui::TextUnformatted(Port_LobbyCheckingData() ? "Checking your game data... The search begins when it is done."
                                : state == 1 ? "Found a player. Connecting..." : "Searching for a player in this queue...");
         if (state == 3 && since != 0 && !Port_LobbyCheckingData()) {
             Uint64 left = kSearchMs - (SDL_GetTicks() - since);
-            ImGui::TextDisabled("Searching for %d:%02d more. Leave the window open.", (int)(left / 60000), (int)(left / 1000 % 60));
+            Bt3Ui::TextDisabled("Searching for %d:%02d more. Leave the window open.", (int)(left / 60000), (int)(left / 1000 % 60));
         }
-        if (ImGui::Button("Cancel", ImVec2(U(120.0f), 0.0f))) {
+        if (Bt3Ui::Button("Cancel", ImVec2(U(120.0f), 0.0f))) {
             Port_LobbyCancel();
             lastState = 0;
         }
         return;
     }
     if (lastState == -3) {
-        ImGui::TextWrapped("%s", Port_LobbyError());
+        Bt3Ui::TextWrapped("%s", Bt3Ui::T(Port_LobbyError()));
     } else if (lastState == -4) {
-        ImGui::TextWrapped("The two games could not reach each other, directly or through the relay. Search again for another player.");
+        Bt3Ui::TextWrapped("The two games could not reach each other, directly or through the relay. Search again for another player.");
     } else if (lastState == -2) {
-        ImGui::TextWrapped("The other player's game is a different version. Search again.");
+        Bt3Ui::TextWrapped("The other player's game is a different version. Search again.");
     } else if (lastState == -5) {
-        ImGui::TextWrapped("Nobody was searching this queue in the last three minutes. Search again, or try another queue.");
+        Bt3Ui::TextWrapped("Nobody was searching this queue in the last three minutes. Search again, or try another queue.");
     }
     // Quick match is with strangers: the original disc's data only (gs/net.c refuses the search otherwise; said here
     // before it is asked for). With friends, by code or address, the same data on both sides is enough.
     const char *refused = Port_LobbyQuickRefusal();
     if (refused != NULL && refused[0] != '\0' && lastState != -3) {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.55f, 0.35f, 1.0f));
-        ImGui::TextWrapped("%s", refused);
+        Bt3Ui::TextWrapped("%s", refused);
         ImGui::PopStyleColor();
     } else if (refused != NULL) {
-        ImGui::TextDisabled("Checking your game data...");
+        Bt3Ui::TextDisabled("Checking your game data...");
     }
     ImGui::BeginDisabled(refused != NULL && refused[0] != '\0');
-    bool search = ImGui::Button(lastState == -5 ? "Search again" : "Search for a match", ImVec2(U(200.0f), 0.0f));
+    bool search = Bt3Ui::Button(lastState == -5 ? "Search again" : "Search for a match", ImVec2(U(200.0f), 0.0f));
     ImGui::EndDisabled();
     if (search) {
         since = SDL_GetTicks() + 1;
@@ -813,28 +817,28 @@ static void build_net(void) {
     if (pad_pressed(ImGuiKey_GamepadFaceRight)) { // Circle / B: out of the window, as its close button
         open = false;
     }
-    if (ImGui::Begin("Dragon Net Battle", &open, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize)) {
+    if (Bt3Ui::Begin("Dragon Net Battle", &open, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize)) {
         {
             int min = 0, latest = 0, mine = Port_LobbyRelease(&min, &latest);
             if (min > mine) {
                 ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.55f, 0.35f, 1.0f));
-                ImGui::TextWrapped("Update available. Online servers are unreachable until you update.");
+                Bt3Ui::TextWrapped("Update available. Online servers are unreachable until you update.");
                 ImGui::PopStyleColor();
-                ImGui::TextDisabled("You have 0.%d.%d; 0.%d.%d or newer is needed. github.com/z3xox/Tenkaichi3Decomp/releases", mine / 100, mine % 100, min / 100, min % 100);
+                Bt3Ui::TextDisabled("You have 0.%d.%d; 0.%d.%d or newer is needed. github.com/z3xox/Tenkaichi3Decomp/releases", mine / 100, mine % 100, min / 100, min % 100);
                 ImGui::Separator();
             } else if (latest > mine) {
-                ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.3f, 1.0f), "Update available: release 0.%d.%d.", latest / 100, latest % 100);
-                ImGui::TextDisabled("F1 to update, or github.com/z3xox/Tenkaichi3Decomp/releases");
+                Bt3Ui::TextColored(ImVec4(1.0f, 0.85f, 0.3f, 1.0f), "Update available: release 0.%d.%d.", latest / 100, latest % 100);
+                Bt3Ui::TextDisabled("F1 to update, or github.com/z3xox/Tenkaichi3Decomp/releases");
                 ImGui::Separator();
             }
             if (Port_OnlineBlocked() != NULL) { // an update is under way (gs/net_update.c): no new session starts
                 ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.55f, 0.35f, 1.0f));
-                ImGui::TextWrapped("%s", Port_OnlineBlocked());
+                Bt3Ui::TextWrapped("%s", Bt3Ui::T(Port_OnlineBlocked()));
                 ImGui::PopStyleColor();
                 ImGui::Separator();
             }
         }
-        ImGui::TextWrapped("Fight players on other computers. One of you opens a lobby, the others join it with its code or "
+        Bt3Ui::TextWrapped("Fight players on other computers. One of you opens a lobby, the others join it with its code or "
                            "the owner's address; its page (Tenkaichi Budokai Online) has the places, the rules and the matches.");
         ImGui::Spacing();
         ImGui::SetNextItemWidth(U(260.0f));
@@ -845,7 +849,7 @@ static void build_net(void) {
                 Port_SettingText("net_name", "Player", name, sizeof(name));
             }
         }
-        ImGui::InputText("Player name", name, sizeof(name));
+        Bt3Ui::InputText("Player name", name, sizeof(name));
         if (ImGui::IsItemDeactivatedAfterEdit()) {
             Port_SettingTextSave("net_name", name);
             Port_SettingsWrite();
@@ -859,16 +863,16 @@ static void build_net(void) {
                 ImGuiTabItemFlags f = firstTab != NULL && strcmp(firstTab, which) == 0 ? ImGuiTabItemFlags_SetSelected : 0;
                 return f;
             };
-            if (ImGui::BeginTabItem("Host", NULL, tabFlags("host"))) {
+            if (Bt3Ui::BeginTabItem("Host", NULL, tabFlags("host"))) {
                 static const char *const kRoll[] = {"Off (wait for each other)", "Up to 2 frames", "Up to 4 frames", "Up to 6 frames", "Up to 8 frames"};
                 tab = 0;
-                ImGui::Checkbox("Use a code (no port forwarding needed)", &useCode);
-                ImGui::SetItemTooltip("Your lobby gets a short code to tell the others, and the games find each other through a\n"
+                Bt3Ui::Checkbox("Use a code (no port forwarding needed)", &useCode);
+                Bt3Ui::SetItemTooltip("Your lobby gets a short code to tell the others, and the games find each other through a\n"
                                       "small matchmaking service. Works with most home routers. Without it the lobby is on a port,\n"
                                       "which must be reachable from the others (port forwarding or a virtual network).");
                 ImGui::BeginDisabled(useCode);
                 ImGui::SetNextItemWidth(U(120.0f));
-                ImGui::InputText("Port", port, sizeof(port), ImGuiInputTextFlags_CharsDecimal);
+                Bt3Ui::InputText("Port", port, sizeof(port), ImGuiInputTextFlags_CharsDecimal);
                 ImGui::EndDisabled();
                 if (roll < 0) { // the choices of last time (new names: the first ones' defaults were 4 frames and delay 1)
                     roll = Port_RollCan() ? Port_Setting("net_rollback2", 8) / 2 : 0;
@@ -878,10 +882,10 @@ static void build_net(void) {
                 }
                 ImGui::BeginDisabled(!Port_RollCan());
                 ImGui::SetNextItemWidth(U(260.0f));
-                ImGui::Combo("Rollback", &roll, kRoll, 5);
+                Bt3Ui::Combo("Rollback", &roll, kRoll, 5);
                 ImGui::EndDisabled();
                 if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-                    ImGui::SetTooltip("With rollback your own moves come out at once and the game corrects itself when the\n"
+                    Bt3Ui::SetTooltip("With rollback your own moves come out at once and the game corrects itself when the\n"
                                       "other player's buttons arrive. More frames cope with a slower connection and cost\n"
                                       "more processor time. Off: both games wait for each other every frame.");
                 }
@@ -889,10 +893,10 @@ static void build_net(void) {
                 {
                     static const char *const kDelay[] = {"Automatic (from the connection)", "0 frames", "1 frame", "2 frames", "3 frames",
                                                          "4 frames", "5 frames", "6 frames"};
-                    ImGui::Combo("Input delay", &delay, kDelay, 8);
+                    Bt3Ui::Combo("Input delay", &delay, kDelay, 8);
                 }
                 if (ImGui::IsItemHovered()) {
-                    ImGui::SetTooltip("How long after a press your own move comes out. A slow connection needs more, or the game\n"
+                    Bt3Ui::SetTooltip("How long after a press your own move comes out. A slow connection needs more, or the game\n"
                                       "has to guess too far ahead and stutters. Automatic measures the connection when the match\n"
                                       "starts: 1 frame on a good one, more on a slow one.");
                 }
@@ -908,26 +912,26 @@ static void build_net(void) {
                     }
                     ImGui::Spacing();
                     ImGui::SetNextItemWidth(U(260.0f));
-                    ImGui::Combo("Battle", &battle, kBattle, 5);
+                    Bt3Ui::Combo("Battle", &battle, kBattle, 5);
                     ImGui::SetNextItemWidth(U(260.0f));
-                    ImGui::Combo("Time limit", &timeLimit, kTime, 5);
+                    Bt3Ui::Combo("Time limit", &timeLimit, kTime, 5);
                     {
                         if (speed < 0) {
                             speed = Port_Setting("net_speed_host", Port_NetSpeedStandard()) /* (a new name with 0.1.31: the standard went from 120 to 114) */;
                         }
                         ImGui::SetNextItemWidth(U(260.0f));
-                        ImGui::SliderInt("Game speed", &speed, 100, 150, "%d%%", ImGuiSliderFlags_AlwaysClamp);
-                        ImGui::SetItemTooltip("How fast the match runs, for both players; the sound keeps its pitch.\n"
+                        Bt3Ui::SliderInt("Game speed", &speed, 100, 150, "%d%%", ImGuiSliderFlags_AlwaysClamp);
+                        Bt3Ui::SetItemTooltip("How fast the match runs, for both players; the sound keeps its pitch.\n"
                                               "100%% is the game's own speed. %d%% is the competitive standard, and what\n"
                                               "quick matches run at.\n"
                                               "With a player on 0.1.29 only 100%% and 120%% are possible, with an older\n"
                                               "release only 100%%.", Port_NetSpeedStandard());
                     }
                 }
-                ImGui::TextDisabled("The lobby's first rules; its owner changes them on its page. Everyone needs the same game data.");
+                Bt3Ui::TextDisabled("The lobby's first rules; its owner changes them on its page. Everyone needs the same game data.");
                 ImGui::EndTabItem();
             }
-            if (ImGui::BeginTabItem("Quick match", NULL, tabFlags("quick"))) {
+            if (Bt3Ui::BeginTabItem("Quick match", NULL, tabFlags("quick"))) {
                 static const char *const kQueue[] = {"Single battle", "Team battle", "DP battle (10 DP)", "DP battle (15 DP)", "DP battle (20 DP)"};
                 static Uint64 asked;
                 bool busy = sNetBusy; // (a search is under way: the queue is not changed under it)
@@ -953,30 +957,30 @@ static void build_net(void) {
                         Port_LobbyQueuesAsk();
                     }
                 }
-                ImGui::TextWrapped("Be matched with whoever is searching the same queue. All quick matches have no time limit and run at %d%% speed, "
+                Bt3Ui::TextWrapped("Be matched with whoever is searching the same queue. All quick matches have no time limit and run at %d%% speed, "
                                    "between games with the original disc's data.", Port_NetSpeedStandard());
                 ImGui::BeginDisabled(busy);
                 for (int i = 0; i < 5; i++) {
                     char label[80];
                     int n = Port_LobbyQueueWaiting(i);
                     if (n < 0) {
-                        snprintf(label, sizeof(label), "%s", kQueue[i]);
+                        snprintf(label, sizeof(label), "%s", Bt3Ui::T(kQueue[i]));
                     } else {
-                        snprintf(label, sizeof(label), "%s   (%d searching)###q%d", kQueue[i], n, i);
+                        snprintf(label, sizeof(label), Bt3Ui::T("%s   (%d searching)###q%d"), Bt3Ui::T(kQueue[i]), n, i);
                     }
-                    ImGui::RadioButton(label, &sQueue, i);
+                    Bt3Ui::RadioButton(label, &sQueue, i);
                 }
                 ImGui::EndDisabled();
-                ImGui::TextDisabled("The two games connect to each other directly when they can, as in most online fighting");
-                ImGui::TextDisabled("games: a player who inspects their own network traffic can see the other's address.");
+                Bt3Ui::TextDisabled("The two games connect to each other directly when they can, as in most online fighting");
+                Bt3Ui::TextDisabled("games: a player who inspects their own network traffic can see the other's address.");
                 ImGui::EndTabItem();
             }
-            if (ImGui::BeginTabItem("Join", NULL, tabFlags("join"))) {
+            if (Bt3Ui::BeginTabItem("Join", NULL, tabFlags("join"))) {
                 tab = 1;
                 ImGui::SetNextItemWidth(U(120.0f));
-                ImGui::InputText("Room code", roomCode, sizeof(roomCode), ImGuiInputTextFlags_CharsUppercase | ImGuiInputTextFlags_CharsNoBlank);
+                Bt3Ui::InputText("Room code", roomCode, sizeof(roomCode), ImGuiInputTextFlags_CharsUppercase | ImGuiInputTextFlags_CharsNoBlank);
                 ImGui::SameLine();
-                if (ImGui::Button("Paste")) { // the letters and digits of what was copied, as capitals
+                if (Bt3Ui::Button("Paste")) { // the letters and digits of what was copied, as capitals
                     char *clip = SDL_GetClipboardText();
                     size_t n = 0;
                     for (const char *c = clip; c != NULL && *c != '\0' && n + 1 < sizeof(roomCode); c++) {
@@ -987,12 +991,12 @@ static void build_net(void) {
                     roomCode[n] = '\0';
                     SDL_free(clip);
                 }
-                ImGui::TextDisabled("or, without a code, the host's address and port:");
+                Bt3Ui::TextDisabled("or, without a code, the host's address and port:");
                 ImGui::BeginDisabled(roomCode[0] != '\0');
                 ImGui::SetNextItemWidth(U(260.0f));
-                ImGui::InputText("Host's address", address, sizeof(address));
+                Bt3Ui::InputText("Host's address", address, sizeof(address));
                 ImGui::SetNextItemWidth(U(120.0f));
-                ImGui::InputText("Port", port, sizeof(port), ImGuiInputTextFlags_CharsDecimal);
+                Bt3Ui::InputText("Port", port, sizeof(port), ImGuiInputTextFlags_CharsDecimal);
                 ImGui::EndDisabled();
                 ImGui::EndTabItem();
             }
@@ -1025,23 +1029,23 @@ static void build_net(void) {
             if (tab == 2) {
                 quick_status(state, lastState, name);
             } else if (state == 3 || state == 1) { // joining a code: asking the service, then reaching the lobby's owner
-                ImGui::TextUnformatted(Port_LobbyCheckingData() ? "Checking your game data... Connecting begins when it is done."
+                Bt3Ui::TextUnformatted(Port_LobbyCheckingData() ? "Checking your game data... Connecting begins when it is done."
                                        : state == 1 ? "Found the lobby. Connecting to its owner..." : "Looking for the lobby...");
-                if (ImGui::Button("Cancel", ImVec2(U(120.0f), 0.0f))) {
+                if (Bt3Ui::Button("Cancel", ImVec2(U(120.0f), 0.0f))) {
                     Port_LobbyCancel();
                     lastState = 0;
                 }
             } else {
                 if (lastState == -3) {
-                    ImGui::TextWrapped("%s", Port_LobbyError());
+                    Bt3Ui::TextWrapped("%s", Bt3Ui::T(Port_LobbyError()));
                 } else if (lastState == -4) {
-                    ImGui::TextWrapped("The two games could not reach each other, directly or through the relay. "
+                    Bt3Ui::TextWrapped("The two games could not reach each other, directly or through the relay. "
                                        "Hosting on a port (with port forwarding or a virtual network such as Tailscale) still works.");
                 }
                 bool can = Port_OnlineBlocked() == NULL && (byCode ? (tab == 0 || strlen(roomCode) == 6) : atoi(port) > 0 && atoi(port) < 65536 && (tab == 0 || address[0] != '\0'));
                 bool lobby = false; // a lobby was opened or joined: its page is the screens' (the main menu opens it)
                 ImGui::BeginDisabled(!can);
-                if (ImGui::Button(tab == 0 ? "Open a lobby" : "Join the lobby", ImVec2(U(200.0f), 0.0f))) {
+                if (Bt3Ui::Button(tab == 0 ? "Open a lobby" : "Join the lobby", ImVec2(U(200.0f), 0.0f))) {
                     Port_NetNameSet(name);
                     Port_SettingTextSave("net_name", name);
                     lastState = 0;
@@ -1075,7 +1079,7 @@ static void build_net(void) {
                 }
                 ImGui::EndDisabled();
                 ImGui::SameLine();
-                if (ImGui::Button("Back", ImVec2(U(120.0f), 0.0f))) {
+                if (Bt3Ui::Button("Back", ImVec2(U(120.0f), 0.0f))) {
                     open = false;
                 }
                 if (lobby) {
@@ -1086,15 +1090,15 @@ static void build_net(void) {
                     return;
                 }
                 if (state == -2) {
-                    ImGui::TextWrapped("The other game is a different version. Everyone needs the same release.");
+                    Bt3Ui::TextWrapped("The other game is a different version. Everyone needs the same release.");
                 } else if (state < 0) {
-                    ImGui::TextWrapped("The search could not be started.");
+                    Bt3Ui::TextWrapped("The search could not be started.");
                 }
             }
         }
         ImGui::Spacing();
-        ImGui::TextDisabled("In a match both players get the same roster, with everything unlocked, and your own save is");
-        ImGui::TextDisabled("left alone. When the match ends everyone is back on the lobby's page.");
+        Bt3Ui::TextDisabled("In a match both players get the same roster, with everything unlocked, and your own save is");
+        Bt3Ui::TextDisabled("left alone. When the match ends everyone is back on the lobby's page.");
     }
     ImGui::End();
     if (!open) {
@@ -1277,17 +1281,17 @@ static const char *pad_source_name(int src) {
                                   "D-pad down", "D-pad left", "D-pad right", "Misc 1", "Right paddle 1", "Left paddle 1",
                                   "Right paddle 2", "Left paddle 2", "Touchpad"};
     static char other[24];
-    if (src == PORT_PAD_LT) { return "Left trigger"; }
-    if (src == PORT_PAD_RT) { return "Right trigger"; }
+    if (src == PORT_PAD_LT) { return Bt3Ui::T("Left trigger"); }
+    if (src == PORT_PAD_RT) { return Bt3Ui::T("Right trigger"); }
     if (src < 0) { return "-"; }
-    if (src < (int)(sizeof(names) / sizeof(names[0]))) { return names[src]; }
-    snprintf(other, sizeof(other), "Button %d", src);
+    if (src < (int)(sizeof(names) / sizeof(names[0]))) { return Bt3Ui::T(names[src]); }
+    snprintf(other, sizeof(other), Bt3Ui::T("Button %d"), src);
     return other;
 }
 
 static bool tab(const char *label, int index) {
     ImGuiTabItemFlags flags = sForceTab == index ? ImGuiTabItemFlags_SetSelected : 0;
-    bool on = ImGui::BeginTabItem(label, NULL, flags);
+    bool on = Bt3Ui::BeginTabItem(label, NULL, flags);
     if (on && sForceTab < 0) {
         sTab = index;
     }
@@ -1299,50 +1303,50 @@ static void video_tab(PortVideo &v) {
     char label[64];
     int best = 0, count = 0;
 
-    snprintf(label, sizeof(label), "%dx  (%d x %d)", v.scale, 512 * v.scale, 448 * v.scale);
-    if (ImGui::BeginCombo("Internal resolution", label)) {
+    snprintf(label, sizeof(label), Bt3Ui::T("%dx  (%d x %d)"), v.scale, 512 * v.scale, 448 * v.scale);
+    if (Bt3Ui::BeginCombo("Internal resolution", label)) {
         for (int n = 1; n <= 8; n++) {
-            snprintf(label, sizeof(label), "%dx  (%d x %d)", n, 512 * n, 448 * n);
-            if (ImGui::Selectable(label, n == v.scale)) { v.scale = n; }
+            snprintf(label, sizeof(label), Bt3Ui::T("%dx  (%d x %d)"), n, 512 * n, 448 * n);
+            if (Bt3Ui::Selectable(label, n == v.scale)) { v.scale = n; }
         }
         ImGui::EndCombo();
     }
-    ImGui::SetItemTooltip("How finely the game is drawn. 1x is the PlayStation 2's own resolution.\nHigher is sharper and uses more video memory.");
+    Bt3Ui::SetItemTooltip("How finely the game is drawn. 1x is the PlayStation 2's own resolution.\nHigher is sharper and uses more video memory.");
     for (int i = 1; i < (int)(sizeof(aspects) / sizeof(aspects[0])); i++) {
         if (abs(aspects[i].milli - v.aspectMilli) < abs(aspects[best].milli - v.aspectMilli)) { best = i; }
     }
-    if (ImGui::BeginCombo("Aspect ratio", aspects[best].name)) {
+    if (Bt3Ui::BeginCombo("Aspect ratio", aspects[best].name)) {
         for (int i = 0; i < (int)(sizeof(aspects) / sizeof(aspects[0])); i++) {
-            if (ImGui::Selectable(aspects[i].name, i == best)) { v.aspectMilli = aspects[i].milli; }
+            if (Bt3Ui::Selectable(aspects[i].name, i == best)) { v.aspectMilli = aspects[i].milli; }
         }
         ImGui::EndCombo();
     }
-    ImGui::SetItemTooltip("Wider than 4:3 shows more of the fight to the sides. Menus are stretched.");
-    if (ImGui::BeginCombo("2D filtering", v.smooth2d ? "Smooth" : "Sharp (console)")) {
-        if (ImGui::Selectable("Sharp (console)", !v.smooth2d)) { v.smooth2d = 0; }
-        if (ImGui::Selectable("Smooth", v.smooth2d != 0)) { v.smooth2d = 1; }
+    Bt3Ui::SetItemTooltip("Wider than 4:3 shows more of the fight to the sides. Menus are stretched.");
+    if (Bt3Ui::BeginCombo("2D filtering", v.smooth2d ? "Smooth" : "Sharp (console)")) {
+        if (Bt3Ui::Selectable("Sharp (console)", !v.smooth2d)) { v.smooth2d = 0; }
+        if (Bt3Ui::Selectable("Smooth", v.smooth2d != 0)) { v.smooth2d = 1; }
         ImGui::EndCombo();
     }
-    ImGui::SetItemTooltip("How the display of a fight, the menus and text are drawn above 1x internal resolution.\n"
+    Bt3Ui::SetItemTooltip("How the display of a fight, the menus and text are drawn above 1x internal resolution.\n"
                           "Sharp: each of the PlayStation 2's pixels is a block. Smooth: as an emulator shows them.\n"
                           "No difference at 1x.");
     bool full = v.fullscreen != 0;
-    if (ImGui::Checkbox("Full screen", &full)) { v.fullscreen = full; }
+    if (Bt3Ui::Checkbox("Full screen", &full)) { v.fullscreen = full; }
     ImGui::SameLine();
-    ImGui::TextDisabled("(F11)");
+    Bt3Ui::TextDisabled("(F11)");
     {
         bool vs = v.vsync != 0, fs = v.frameSkip != 0;
-        if (ImGui::Checkbox("V-sync", &vs)) { v.vsync = vs; }
-        ImGui::SetItemTooltip("Each picture waits for the display's refresh. Turn it on if the picture tears.\n"
+        if (Bt3Ui::Checkbox("V-sync", &vs)) { v.vsync = vs; }
+        Bt3Ui::SetItemTooltip("Each picture waits for the display's refresh. Turn it on if the picture tears.\n"
                               "Off is the default: it adds a little delay.");
-        if (ImGui::Checkbox("Skip pictures instead of slowing down", &fs)) { v.frameSkip = fs; }
-        ImGui::SetItemTooltip("When this machine cannot show a picture in time, the game normally runs slower.\n"
+        if (Bt3Ui::Checkbox("Skip pictures instead of slowing down", &fs)) { v.frameSkip = fs; }
+        Bt3Ui::SetItemTooltip("When this machine cannot show a picture in time, the game normally runs slower.\n"
                               "With this on it stays at full speed and leaves pictures out instead (choppier,\n"
                               "not slower). It helps where the graphics chip is the slow part. On by default.");
         {
             bool late = Port_LateInput() != 0;
-            if (ImGui::Checkbox("Low input lag (experimental)", &late)) { Port_LateInputSet(late); }
-            ImGui::SetItemTooltip("The game reads the controller, computes, and then waits before the picture is shown:\n"
+            if (Bt3Ui::Checkbox("Low input lag (experimental)", &late)) { Port_LateInputSet(late); }
+            Bt3Ui::SetItemTooltip("The game reads the controller, computes, and then waits before the picture is shown:\n"
                                   "about 33 ms in a fight. With this on the wait comes first, so the picture follows\n"
                                   "your press by the few milliseconds the machine needs. The game itself is unchanged.\n"
                                   "With Smooth motion as well: its in-between picture then follows your press at once and\n"
@@ -1353,11 +1357,11 @@ static void video_tab(PortVideo &v) {
             extern int Port_Setting(const char *name, int def);
             extern void Port_SettingSave(const char *name, int value);
             bool thr = Port_Setting("render_thread", 0) != 0;
-            if (ImGui::Checkbox("Render on a second processor core (experimental, after a restart)", &thr)) {
+            if (Bt3Ui::Checkbox("Render on a second processor core (experimental, after a restart)", &thr)) {
                 Port_SettingSave("render_thread", thr ? 1 : 0);
                 Port_SettingsWrite(); /* (kept outside the window's own values: written here, or it was lost at the end) */
             }
-            ImGui::SetItemTooltip("The picture is prepared and shown on a core of its own while the game computes the next\n"
+            Bt3Ui::SetItemTooltip("The picture is prepared and shown on a core of its own while the game computes the next\n"
                                   "moment: faster where the processor is the slow part (older or low-power machines).\n"
                                   "The same picture and the same game. Takes effect when the game is started again.\n"
                                   "Not with the OpenGL renderer, and not on machines with two cores or fewer.");
@@ -1366,15 +1370,15 @@ static void video_tab(PortVideo &v) {
     SDL_DisplayID *displays = SDL_GetDisplays(&count);
     if (v.display > count) { v.display = 0; }
     snprintf(label, sizeof(label), "%s", v.display == 0 ? "Chosen by the desktop" : SDL_GetDisplayName(displays[v.display - 1]));
-    if (ImGui::BeginCombo("Display", label)) {
-        if (ImGui::Selectable("Chosen by the desktop", v.display == 0)) { v.display = 0; }
+    if (Bt3Ui::BeginCombo("Display", label)) {
+        if (Bt3Ui::Selectable("Chosen by the desktop", v.display == 0)) { v.display = 0; }
         for (int i = 0; i < count; i++) {
             snprintf(label, sizeof(label), "%d: %s", i + 1, SDL_GetDisplayName(displays[i]));
-            if (ImGui::Selectable(label, v.display == i + 1)) { v.display = i + 1; }
+            if (Bt3Ui::Selectable(label, v.display == i + 1)) { v.display = i + 1; }
         }
         ImGui::EndCombo();
     }
-    ImGui::SetItemTooltip("Takes effect the next time the game starts.");
+    Bt3Ui::SetItemTooltip("Takes effect the next time the game starts.");
     SDL_free(displays);
     {   // which renderer draws the game: Vulkan (the default) or OpenGL 3.3, for machines without a working Vulkan
         static const char *const kApi[] = {"Vulkan", "OpenGL"};
@@ -1382,16 +1386,16 @@ static void video_tab(PortVideo &v) {
         if (api < 0) {
             api = Port_Setting("gpu_api", 0) == 1 ? 1 : 0;
         }
-        if (ImGui::Combo("Renderer", &api, kApi, 2)) {
+        if (Bt3Ui::Combo("Renderer", &api, kApi, 2)) {
             Port_SettingSave("gpu_api", api);
             Port_SettingsWrite();
         }
-        ImGui::SetItemTooltip("Takes effect the next time the game starts. Both draw the same picture; Vulkan is faster.\n"
+        Bt3Ui::SetItemTooltip("Takes effect the next time the game starts. Both draw the same picture; Vulkan is faster.\n"
                               "If the chosen one cannot start, the game tries the other.");
         if (api != (sGL ? 1 : 0)) {
-            ImGui::TextDisabled("Running now: %s. %s from the next start.", kApi[sGL ? 1 : 0], kApi[api]);
+            Bt3Ui::TextDisabled("Running now: %s. %s from the next start.", kApi[sGL ? 1 : 0], kApi[api]);
         }
-        ImGui::TextWrapped("Active GPU: %s", sGpuName);
+        Bt3Ui::TextWrapped("Active GPU: %s", sGpuName);
     }
     {
         // In-between pictures (gs_draw.c): the fight is computed 30 times a second, as on the console; with this
@@ -1399,12 +1403,12 @@ static void video_tab(PortVideo &v) {
         static const char *kSmooth[] = { "Off (30, as the console)", "60 pictures a second", "120 pictures a second", "240 pictures a second" };
         int smooth = gsInterp < 0 ? 0 : gsInterp > 3 ? 3 : gsInterp;
         ImGui::SetNextItemWidth(U(416.0f));
-        if (ImGui::Combo("Smooth motion", &smooth, kSmooth, 4)) {
+        if (Bt3Ui::Combo("Smooth motion", &smooth, kSmooth, 4)) {
             gsInterp = smooth;
             Port_SettingSave("interp", gsInterp);
             Port_SettingsWrite();
         }
-        ImGui::SetItemTooltip("Experimental. The game computes a fight 30 times a second. With this, more pictures are\n"
+        Bt3Ui::SetItemTooltip("Experimental. The game computes a fight 30 times a second. With this, more pictures are\n"
                               "drawn between each two. The fight itself does not change, and neither does online play.\n"
                               "The newest picture reaches the screen later: 17 ms at 60, 25 ms at 120, 29 ms at 240.\n"
                               "Choose what your screen can show. F9 switches it off and on.");
@@ -1415,7 +1419,7 @@ static void video_tab(PortVideo &v) {
         char shown[16];
         snprintf(shown, sizeof(shown), "%d%%%%", steps * 5);
         ImGui::SetNextItemWidth(U(416.0f));
-        ImGui::SliderInt("Menu size", &steps, 10, 40, shown, ImGuiSliderFlags_AlwaysClamp);
+        Bt3Ui::SliderInt("Menu size", &steps, 10, 40, shown, ImGuiSliderFlags_AlwaysClamp);
         int pct = steps * 5;
         if (ImGui::IsItemDeactivatedAfterEdit()) { // (applied on letting go: the slider would move under the pointer)
             sUiScalePct = pct;
@@ -1424,12 +1428,12 @@ static void video_tab(PortVideo &v) {
         } else if (!ImGui::IsItemActive()) {
             steps = (sUiScalePct < 0 ? 100 : sUiScalePct) / 5;
         }
-        ImGui::SetItemTooltip("The size of this window, the online windows, the chat and the notices. They already grow\n"
+        Bt3Ui::SetItemTooltip("The size of this window, the online windows, the chat and the notices. They already grow\n"
                               "with a picture taller than 1080 pixels; this makes them larger or smaller than that.");
     }
     {
         bool on = meter_on();
-        if (ImGui::Checkbox("Show frame rate, and the connection in an online match", &on)) {
+        if (Bt3Ui::Checkbox("Show frame rate, and the connection in an online match", &on)) {
             sMeter = on;
             Port_SettingSave("meter", sMeter);
             Port_SettingsWrite();
@@ -1438,15 +1442,16 @@ static void video_tab(PortVideo &v) {
     ImGui::Spacing();
     if (v.texPackCount > 0) {
         bool on = v.texPack != 0;
-        snprintf(label, sizeof(label), "Texture pack (%d textures)", v.texPackCount);
-        if (ImGui::Checkbox(label, &on)) { v.texPack = on; }
-        ImGui::SetItemTooltip("Replacement textures from the folder \"textures\" next to the game.");
+        snprintf(label, sizeof(label), Bt3Ui::T("Texture pack (%d textures)"), v.texPackCount);
+        SDL_strlcat(label, "###texture-pack", sizeof(label));
+        if (Bt3Ui::Checkbox(label, &on)) { v.texPack = on; }
+        Bt3Ui::SetItemTooltip("Replacement textures from the folder \"textures\" next to the game.");
     } else {
         ImGui::BeginDisabled();
         bool off = false;
-        ImGui::Checkbox("Texture pack (none found)", &off);
+        Bt3Ui::Checkbox("Texture pack (none found)", &off);
         ImGui::EndDisabled();
-        ImGui::SetItemTooltip("Put a pack's files (PCSX2 naming, .dds or .png) into a folder \"textures\" next to the game.");
+        Bt3Ui::SetItemTooltip("Put a pack's files (PCSX2 naming, .dds or .png) into a folder \"textures\" next to the game.");
     }
 }
 
@@ -1465,28 +1470,28 @@ static void effects_tab(PortVideo &v) {
     };
     for (int i = 0; i < 7; i++) {
         bool on = !((v.fxOff >> i) & 1);
-        if (ImGui::Checkbox(fx[i].name, &on)) { v.fxOff = (v.fxOff & ~(1 << i)) | (on ? 0 : 1 << i); }
-        ImGui::SetItemTooltip("%s", fx[i].tip);
+        if (Bt3Ui::Checkbox(fx[i].name, &on)) { v.fxOff = (v.fxOff & ~(1 << i)) | (on ? 0 : 1 << i); }
+        Bt3Ui::SetItemTooltip("%s", Bt3Ui::T(fx[i].tip));
         if (i == 6 && on) { /* Weather on: how much of it (fx_off bit 128: half the sprites) */
             static const char *const amount[2] = {"Full", "Light"};
             int light = (v.fxOff >> 7) & 1;
             ImGui::Indent();
             ImGui::SetNextItemWidth(ImGui::GetFontSize() * 8.0f);
-            if (ImGui::Combo("Weather amount", &light, amount, 2)) { v.fxOff = (v.fxOff & ~128) | (light ? 128 : 0); }
-            ImGui::SetItemTooltip("Light: half of the haze's sprites, a thinner haze; about half of what switching it off gains.");
+            if (Bt3Ui::Combo("Weather amount", &light, amount, 2)) { v.fxOff = (v.fxOff & ~128) | (light ? 128 : 0); }
+            Bt3Ui::SetItemTooltip("Light: half of the haze's sprites, a thinner haze; about half of what switching it off gains.");
             ImGui::Unindent();
         }
     }
     ImGui::Spacing();
-    ImGui::SliderInt("Glow strength", &v.glow, 0, 200, "%d%%", ImGuiSliderFlags_AlwaysClamp);
-    ImGui::SetItemTooltip("The glow around characters and things (a Super Saiyan's hair, auras).\n"
+    Bt3Ui::SliderInt("Glow strength", &v.glow, 0, 200, "%d%%", ImGuiSliderFlags_AlwaysClamp);
+    Bt3Ui::SetItemTooltip("The glow around characters and things (a Super Saiyan's hair, auras).\n"
                           "100%% is what the PlayStation 2 draws; the default here is 60%%.");
-    ImGui::SliderInt("Glare strength", &v.glare, 0, 200, "%d%%", ImGuiSliderFlags_AlwaysClamp);
-    ImGui::SetItemTooltip("The glare of the sky and the stage's light.\n"
+    Bt3Ui::SliderInt("Glare strength", &v.glare, 0, 200, "%d%%", ImGuiSliderFlags_AlwaysClamp);
+    Bt3Ui::SetItemTooltip("The glare of the sky and the stage's light.\n"
                           "100%% is what the PlayStation 2 draws; the default here is 60%%.");
     bool sharp = v.sharpBlur != 0;
-    if (ImGui::Checkbox("Sharp stage blur", &sharp)) { v.sharpBlur = sharp; }
-    ImGui::SetItemTooltip("On: the stage's blur keeps the detail of the internal resolution (crisper, as other\n"
+    if (Bt3Ui::Checkbox("Sharp stage blur", &sharp)) { v.sharpBlur = sharp; }
+    Bt3Ui::SetItemTooltip("On: the stage's blur keeps the detail of the internal resolution (crisper, as other\n"
                           "emulators show it upscaled). Off: as soft as the PlayStation 2 draws it. No difference at 1x.");
 }
 
@@ -1632,7 +1637,7 @@ static void update_panel(void) {
 
     Update_Status(&u);
     if (last > 0 && u.state < UPD_AVAILABLE) {
-        ImGui::TextColored(green, "Updated to %s.", ver);
+        Bt3Ui::TextColored(green, "Updated to %s.", ver);
         ImGui::Separator();
     }
     if (u.state < UPD_AVAILABLE) {
@@ -1640,37 +1645,37 @@ static void update_panel(void) {
     }
     // the line that says where it stands
     if (u.state == UPD_AVAILABLE) {
-        ImGui::TextColored(gold, "Update %s available (this is %s).", u.latest, u.current);
+        Bt3Ui::TextColored(gold, "Update %s available (this is %s).", u.latest, u.current);
     } else if (u.state == UPD_DOWNLOADING) {
-        ImGui::TextColored(gold, "Downloading %s: %d%% (%.1f of %.1f MB). You can go on playing.", u.latest, upd_percent(u), (double)u.got / 1e6,
+        Bt3Ui::TextColored(gold, "Downloading %s: %d%% (%.1f of %.1f MB). You can go on playing.", u.latest, upd_percent(u), (double)u.got / 1e6,
                            (double)u.total / 1e6);
         ImGui::ProgressBar((float)upd_percent(u) / 100.0f, ImVec2(-1.0f, 0.0f), "");
     } else if (u.state == UPD_VERIFYING) {
-        ImGui::TextColored(gold, "Checking the download of %s (its signature)...", u.latest);
+        Bt3Ui::TextColored(gold, "Checking the download of %s (its signature)...", u.latest);
         ImGui::ProgressBar(1.0f, ImVec2(-1.0f, 0.0f), "");
     } else if (u.state == UPD_READY) {
-        ImGui::TextColored(green, "Update %s is downloaded and verified.", u.latest);
+        Bt3Ui::TextColored(green, "Update %s is downloaded and verified.", u.latest);
     } else if (u.state == UPD_INSTALLING || u.state == UPD_INSTALLED) {
-        ImGui::TextColored(gold, "Installing %s...", u.latest);
+        Bt3Ui::TextColored(gold, "Installing %s...", u.latest);
     } else if (u.state == UPD_FAILED) {
         ImGui::PushStyleColor(ImGuiCol_Text, red);
-        ImGui::TextWrapped("The update to %s was not installed: %s", u.latest, u.why);
+        Bt3Ui::TextWrapped("The update to %s was not installed: %s", u.latest, Bt3Ui::T(u.why));
         ImGui::PopStyleColor();
     }
     // the buttons
     if (u.state == UPD_AVAILABLE && u.canInstall) {
-        if (ImGui::Button("Update now")) {
+        if (Bt3Ui::Button("Update now")) {
             Update_Download();
         }
-        ImGui::SetItemTooltip("Downloads the new version in the background and checks its signature; you go on playing\n"
+        Bt3Ui::SetItemTooltip("Downloads the new version in the background and checks its signature; you go on playing\n"
                               "meanwhile (online play waits until it is installed). Then Restart now installs it.\n"
                               "Your saves, settings, game data, mods and texture packs are not touched.");
         ImGui::SameLine();
         if (!sUpdLater) {
-            if (ImGui::Button("Later")) {
+            if (Bt3Ui::Button("Later")) {
                 sUpdLater = true;
             }
-            ImGui::SetItemTooltip("No reminder over the menus until the next start.");
+            Bt3Ui::SetItemTooltip("No reminder over the menus until the next start.");
             ImGui::SameLine();
         }
     } else if (u.state == UPD_READY) {
@@ -1678,49 +1683,49 @@ static void update_panel(void) {
         if (busy) {
             ImGui::BeginDisabled();
         }
-        if (ImGui::Button("Restart now")) {
+        if (Bt3Ui::Button("Restart now")) {
             upd_restart();
         }
         if (busy) {
             ImGui::EndDisabled();
         }
-        ImGui::SetItemTooltip(busy ? "Not during an online session: finish it first."
+        Bt3Ui::SetItemTooltip(busy ? "Not during an online session: finish it first."
                                    : "Installs the update over the game's folder and starts the new version (if anything\n"
                                      "goes wrong, every file is put back). Your saves and settings are not touched.");
         ImGui::SameLine();
     } else if (u.state == UPD_FAILED && u.canInstall) {
-        if (ImGui::Button("Try again")) {
+        if (Bt3Ui::Button("Try again")) {
             Update_Download();
         }
         ImGui::SameLine();
     }
-    if (ImGui::Button(sUpdNotes ? "Hide what's new" : "What's new")) {
+    if (Bt3Ui::Button(sUpdNotes ? "Hide what's new" : "What's new")) {
         sUpdNotes = !sUpdNotes;
     }
     ImGui::SameLine();
-    if (ImGui::Button("Release page")) {
+    if (Bt3Ui::Button("Release page")) {
         SDL_OpenURL(u.page);
     }
-    ImGui::SetItemTooltip("Opens the release page in your browser. To update by hand, copy the new files over the old ones.");
+    Bt3Ui::SetItemTooltip("Opens the release page in your browser. To update by hand, copy the new files over the old ones.");
     if (!u.canInstall && u.cannot[0] != '\0') {
         ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
-        ImGui::TextWrapped("%s", u.cannot);
+        Bt3Ui::TextWrapped("%s", Bt3Ui::T(u.cannot));
         ImGui::PopStyleColor();
     }
     if (Port_OnlineBlocked() != NULL && u.state != UPD_INSTALLED) {
         ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
-        ImGui::TextWrapped("%s", Port_OnlineBlocked());
+        Bt3Ui::TextWrapped("%s", Bt3Ui::T(Port_OnlineBlocked()));
         ImGui::PopStyleColor();
     }
     if (sUpdWhy[0] != '\0') {
         ImGui::PushStyleColor(ImGuiCol_Text, red);
-        ImGui::TextWrapped("%s", sUpdWhy);
+        Bt3Ui::TextWrapped("%s", Bt3Ui::T(sUpdWhy));
         ImGui::PopStyleColor();
     }
     if (sUpdNotes) {
         const char *notes = Update_Notes();
         ImGui::BeginChild("notes", ImVec2(0.0f, U(180.0f)), ImGuiChildFlags_Borders);
-        ImGui::TextWrapped("%s", notes[0] != '\0' ? notes : "(The release has no notes.)");
+        Bt3Ui::TextWrapped("%s", notes[0] != '\0' ? notes : Bt3Ui::T("(The release has no notes.)"));
         ImGui::EndChild();
     }
     ImGui::Separator();
@@ -1729,16 +1734,16 @@ static void update_panel(void) {
 static void misc_tab(void) {
     {
         bool chk = sUpdCheck != 0;
-        if (ImGui::Checkbox("Check for updates", &chk)) {
+        if (Bt3Ui::Checkbox("Check for updates", &chk)) {
             sUpdCheck = chk;
             Port_SettingSave("update_check", sUpdCheck);
             Port_SettingsWrite();
         }
-        ImGui::SetItemTooltip("Once per start, ask GitHub for the newest release and say so if it is newer than this one.\n"
+        Bt3Ui::SetItemTooltip("Once per start, ask GitHub for the newest release and say so if it is newer than this one.\n"
                               "Nothing is downloaded until you press Update now (at the top of this window).");
         ImGui::SameLine();
-        ImGui::TextDisabled("(installed: %s)", Update_Version()); // (PR #107: the version that is running)
-        ImGui::SetItemTooltip("The version of Tenkaichi3Decomp currently running (\"dev\": built locally, never offered updates).");
+        Bt3Ui::TextDisabled("(installed: %s)", Update_Version()); // (PR #107: the version that is running)
+        Bt3Ui::SetItemTooltip("The version of Tenkaichi3Decomp currently running (\"dev\": built locally, never offered updates).");
     }
     // the start of the game (PR #50): read by FirstRun_Main, so they count from the next start
     static int sSkipLogos = -1, sSkipIntro = -1, sSkipCopy = -1;
@@ -1749,37 +1754,37 @@ static void misc_tab(void) {
     }
     bool logos = sSkipLogos != 0, intro = sSkipIntro != 0, copy = sSkipCopy != 0;
     ImGui::Spacing();
-    if (ImGui::Checkbox("Skip logos", &logos)) {
+    if (Bt3Ui::Checkbox("Skip logos", &logos)) {
         sSkipLogos = logos;
         Port_SettingSave("skip_logos", sSkipLogos);
         Port_SettingsWrite();
     }
-    ImGui::SetItemTooltip("Start without the publisher and developer logos. From the next start of the game.");
-    if (ImGui::Checkbox("Skip intro video", &intro)) {
+    Bt3Ui::SetItemTooltip("Start without the publisher and developer logos. From the next start of the game.");
+    if (Bt3Ui::Checkbox("Skip intro video", &intro)) {
         sSkipIntro = intro;
         Port_SettingSave("skip_intro", sSkipIntro);
         Port_SettingsWrite();
     }
-    ImGui::SetItemTooltip("Start without the opening movie. From the next start of the game.");
-    if (ImGui::Checkbox("Skip copyright page", &copy)) {
+    Bt3Ui::SetItemTooltip("Start without the opening movie. From the next start of the game.");
+    if (Bt3Ui::Checkbox("Skip copyright page", &copy)) {
         sSkipCopy = copy;
         Port_SettingSave("skip_copyright", sSkipCopy);
         Port_SettingsWrite();
     }
-    ImGui::SetItemTooltip("The page of legal text shown for five seconds before the title screen, every time.");
+    Bt3Ui::SetItemTooltip("The page of legal text shown for five seconds before the title screen, every time.");
     bool hidePointer = Port_Setting("hide_pointer", 1) != 0;
-    if (ImGui::Checkbox("Hide the mouse pointer during play", &hidePointer)) {
+    if (Bt3Ui::Checkbox("Hide the mouse pointer during play", &hidePointer)) {
         Port_SettingSave("hide_pointer", hidePointer);
         Port_SettingsWrite();
     }
-    ImGui::SetItemTooltip("The pointer is hidden over the game and shown in this window, the online windows, the\n"
+    Bt3Ui::SetItemTooltip("The pointer is hidden over the game and shown in this window, the online windows, the\n"
                           "question before the game closes and while a chat line is typed.");
     bool quickSave = Port_Setting("save_quick", 1) != 0;
-    if (ImGui::Checkbox("Quick saving", &quickSave)) {
+    if (Bt3Ui::Checkbox("Quick saving", &quickSave)) {
         Port_SettingSave("save_quick", quickSave);
         Port_SettingsWrite();
     }
-    ImGui::SetItemTooltip("Save and load without the memory card pages: no question, no waiting, a small card in the\n"
+    Bt3Ui::SetItemTooltip("Save and load without the memory card pages: no question, no waiting, a small card in the\n"
                           "corner while it saves, and the save loaded at start without a page. Load in the options\n"
                           "still asks first, then loads at once. A missing card, a full card or a failed save is\n"
                           "still shown. Online the game's own pages always run. Off: the game's own pages.");
@@ -1792,17 +1797,17 @@ static void misc_tab(void) {
 // row "Let others watch your matches", for the rooms of two, went with them.)
 static void online_tab(void) {
     bool desyncEnds = Port_Setting("net_desync_end", 0) != 0;
-    if (ImGui::Checkbox("End an online match on a desync", &desyncEnds)) {
+    if (Bt3Ui::Checkbox("End an online match on a desync", &desyncEnds)) {
         Port_SettingSave("net_desync_end", desyncEnds);
         Port_SettingsWrite();
     }
-    ImGui::SetItemTooltip("The two games compare what they compute. Off: when they no longer agree you are told, and the match\n"
+    Bt3Ui::SetItemTooltip("The two games compare what they compute. Off: when they no longer agree you are told, and the match\n"
                           "goes on (the two screens may then show different fights). On: the match ends there.");
     bool chat = PortChat_Enabled() != 0;
-    if (ImGui::Checkbox("Online chat", &chat)) {
+    if (Bt3Ui::Checkbox("Online chat", &chat)) {
         PortChat_EnabledSet(chat);
     }
-    ImGui::SetItemTooltip("Text with the other player of an online match. Tab opens a line (setting key_chat), Enter sends it,\n"
+    Bt3Ui::SetItemTooltip("Text with the other player of an online match. Tab opens a line (setting key_chat), Enter sends it,\n"
                           "Esc puts it away; while it is typed the keyboard does not play, a controller does. Off: no lines\n"
                           "are shown or sent. A player without it sees nothing.");
     if (chat) {
@@ -1812,12 +1817,12 @@ static void online_tab(void) {
         }
         static const char *const kChatSizes[] = {"Compact", "Normal", "Large"};
         int size = sChatSize;
-        if (ImGui::Combo("Chat size", &size, kChatSizes, 3)) {
+        if (Bt3Ui::Combo("Chat size", &size, kChatSizes, 3)) {
             sChatSize = size;
             Port_SettingSave("chat_size", sChatSize);
             Port_SettingsWrite();
         }
-        ImGui::SetItemTooltip("How wide the online chat is and how many lines it shows (while typing / otherwise).\n"
+        Bt3Ui::SetItemTooltip("How wide the online chat is and how many lines it shows (while typing / otherwise).\n"
                               "Compact: 4 / 2, narrower.\n"
                               "Normal: 6 / 4.\n"
                               "Large: 8 / 6, wider, for large screens.");
@@ -1826,21 +1831,21 @@ static void online_tab(void) {
     if (getenv("BT3_UI_ADVANCED") != NULL) { // (testing, with BT3_UI_OPEN=7: the section opened, for a picture of it)
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
     }
-    if (ImGui::CollapsingHeader("Advanced")) {
-        ImGui::TextWrapped("Dragon Net Battle is the first online window of this port. Tenkaichi Budokai Online (the main "
+    if (Bt3Ui::CollapsingHeader("Advanced")) {
+        Bt3Ui::TextWrapped("Dragon Net Battle is the first online window of this port. Tenkaichi Budokai Online (the main "
                            "menu) does everything it does: lobbies by code or by address, and quick matches.");
         ImGui::BeginDisabled(Port_NetActive() != 0);
-        if (ImGui::Button("Open Dragon Net Battle")) {
+        if (Bt3Ui::Button("Open Dragon Net Battle")) {
             gPortNetMenuRequest = 1; // (opened in place of this window at the next frame: frame_build)
             set_open(false);
         }
         ImGui::EndDisabled();
         bool listed = Port_Setting("net_dnb_menu", 0) != 0;
-        if (ImGui::Checkbox("List Dragon Net Battle in the main menu", &listed)) {
+        if (Bt3Ui::Checkbox("List Dragon Net Battle in the main menu", &listed)) {
             Port_SettingSave("net_dnb_menu", listed ? 1 : 0);
             Port_SettingsWrite();
         }
-        ImGui::SetItemTooltip("Shows the entry beside Tenkaichi Budokai Online the next time the main menu is opened.");
+        Bt3Ui::SetItemTooltip("Shows the entry beside Tenkaichi Budokai Online the next time the main menu is opened.");
     }
 }
 
@@ -1848,7 +1853,7 @@ static void ui_tab(PortVideo &v) {
     if (sLanguageCount > 0) {
         bool overridden = getenv("BT3_MENU_LANG") != NULL && getenv("BT3_MENU_LANG")[0] != '\0';
         ImGui::BeginDisabled(overridden || Port_NetActive());
-        if (ImGui::BeginCombo("Language", sLanguages[sLanguageChoice].name)) {
+        if (ImGui::BeginCombo(Bt3Ui::Label("Language"), sLanguages[sLanguageChoice].name)) {
             for (int i = 0; i < sLanguageCount; i++) {
                 if (ImGui::Selectable(sLanguages[i].name, i == sLanguageChoice) && i != sLanguageChoice) language_choose(i);
                 if (i == sLanguageChoice) ImGui::SetItemDefaultFocus();
@@ -1856,76 +1861,76 @@ static void ui_tab(PortVideo &v) {
             ImGui::EndCombo();
         }
         ImGui::EndDisabled();
-        ImGui::SetItemTooltip("Game language based on available translations.");
+        Bt3Ui::SetItemTooltip("Game language based on available translations.");
         bool alwaysPrompt = Port_Setting("language_prompt_always", 0) != 0;
-        if (ImGui::Checkbox("Show language selector at startup", &alwaysPrompt)) {
+        if (Bt3Ui::Checkbox("Show language selector at startup", &alwaysPrompt)) {
             Port_SettingSave("language_prompt_always", alwaysPrompt);
             Port_SettingsWrite();
         }
-        ImGui::SetItemTooltip("Show the language list at every normal startup when more than one language is available.");
+        Bt3Ui::SetItemTooltip("Show the language list at every normal startup when more than one language is available.");
         if (sLanguageRestartPending) {
-            ImGui::TextColored(ImVec4(1.0f, 0.86f, 0.35f, 1.0f), "Language saved. It will apply on the next launch.");
+            Bt3Ui::TextColored(ImVec4(1.0f, 0.86f, 0.35f, 1.0f), "Language saved. It will apply on the next launch.");
         }
         ImGui::Separator();
     }
-    if (ImGui::BeginCombo("Menu font", MenuText_FontName(v.menuFont))) {
+    if (Bt3Ui::BeginCombo("Menu font", MenuText_FontName(v.menuFont))) {
         for (int i = 0; i < MenuText_FontCount(); i++) {
             if (!MenuText_FontAvailable(i, MENU_TEXT_MENU)) { continue; }
             ImGui::PushID(i);
-            if (ImGui::Selectable(MenuText_FontName(i), v.menuFont == i)) { v.menuFont = i; }
+            if (Bt3Ui::Selectable(MenuText_FontName(i), v.menuFont == i)) { v.menuFont = i; }
             if (v.menuFont == i) { ImGui::SetItemDefaultFocus(); }
             ImGui::PopID();
         }
         ImGui::EndCombo();
     }
-    ImGui::SetItemTooltip("Original uses the game's sprites. Other fonts replace matching menu labels immediately.\nBattle announcements have their own setting below.");
-    if (ImGui::BeginCombo("Battle font", MenuText_FontName(v.battleFont))) {
+    Bt3Ui::SetItemTooltip("Original uses the game's sprites. Other fonts replace matching menu labels immediately.\nBattle announcements have their own setting below.");
+    if (Bt3Ui::BeginCombo("Battle font", MenuText_FontName(v.battleFont))) {
         for (int i = 0; i < MenuText_FontCount(); i++) {
             if (!MenuText_FontAvailable(i, MENU_TEXT_BATTLE)) { continue; }
             ImGui::PushID(i);
-            if (ImGui::Selectable(MenuText_FontName(i), v.battleFont == i)) { v.battleFont = i; }
+            if (Bt3Ui::Selectable(MenuText_FontName(i), v.battleFont == i)) { v.battleFont = i; }
             if (v.battleFont == i) { ImGui::SetItemDefaultFocus(); }
             ImGui::PopID();
         }
         ImGui::EndCombo();
     }
-    ImGui::SetItemTooltip("Choose original battle announcements and HUD text, or any battle font listed in fonts.tsv.");
-    if (ImGui::BeginCombo("Dialogue / UI font", MenuText_FontName(v.textFont))) {
+    Bt3Ui::SetItemTooltip("Choose original battle announcements and HUD text, or any battle font listed in fonts.tsv.");
+    if (Bt3Ui::BeginCombo("Dialogue / UI font", MenuText_FontName(v.textFont))) {
         for (int i = 0; i < MenuText_FontCount(); i++) {
             if (!MenuText_FontAvailable(i, MENU_TEXT_DIALOGUE)) { continue; }
             ImGui::PushID(i);
-            if (ImGui::Selectable(MenuText_FontName(i), v.textFont == i)) { v.textFont = i; }
+            if (Bt3Ui::Selectable(MenuText_FontName(i), v.textFont == i)) { v.textFont = i; }
             if (v.textFont == i) { ImGui::SetItemDefaultFocus(); }
             ImGui::PopID();
         }
         ImGui::EndCombo();
     }
-    ImGui::SetItemTooltip("Replace the shared font used by dialogue, subtitles and ordinary UI text.\n"
+    Bt3Ui::SetItemTooltip("Replace the shared font used by dialogue, subtitles and ordinary UI text.\n"
                           "Original keeps the game's glyphs. Text placement, colors, shadows and icons are preserved.");
     static const char *const kHud[] = {"At the screen's edges", "At the edges, long health bars", "In the middle, as in 4:3"};
-    ImGui::Combo("HUD Style", &v.hudLayout, kHud, 3);
-    ImGui::SetItemTooltip("Where a fight's health bars and gauges sit in a picture wider than 4:3.\n"
+    Bt3Ui::Combo("HUD Style", &v.hudLayout, kHud, 3);
+    Bt3Ui::SetItemTooltip("Where a fight's health bars and gauges sit in a picture wider than 4:3.\n"
                           "Long health bars: the bars reach from the edges to the timer.\n"
                           "In the middle: the original 4:3 arrangement, next to the timer.");
     {
         bool m43 = Port_Menus43() != 0;
-        if (ImGui::Checkbox("Menus in 4:3", &m43)) {
+        if (Bt3Ui::Checkbox("Menus in 4:3", &m43)) {
             Port_Menus43Set(m43);
             Port_SettingSave("menus_43", m43);
             Port_SettingsWrite();
         }
-        ImGui::SetItemTooltip("In a picture wider than 4:3, show the menus at their own shape with black at the sides\n"
+        Bt3Ui::SetItemTooltip("In a picture wider than 4:3, show the menus at their own shape with black at the sides\n"
                               "instead of stretched to the width. Fights keep the wide picture.");
     }
     {
         static const char *const kBars[] = {"Black", "Border", "Fighter panels"};
         int b = sBars < 0 ? 0 : sBars;
-        if (ImGui::Combo("Side bars", &b, kBars, 3)) {
+        if (Bt3Ui::Combo("Side bars", &b, kBars, 3)) {
             sBars = b;
             Port_SettingSave("side_bars", sBars);
             Port_SettingsWrite();
         }
-        ImGui::SetItemTooltip("What fills the sides where the picture is narrower than the window:\n"
+        Bt3Ui::SetItemTooltip("What fills the sides where the picture is narrower than the window:\n"
                               "a 4:3 picture, or the menus with \"Menus in 4:3\", in a wide window.\n"
                               "Fighter panels: the border, and in a fight each side's fighter with its name and form.\n"
                               "Your own: a folder \"bars\" next to the game with trim.png (the strip along the\n"
@@ -1942,22 +1947,22 @@ static void ui_tab(PortVideo &v) {
 extern "C" int gPortMusicFollows; // snd_adx.c: 1 = looping music is sped up or slowed down with the game
 
 static void audio_tab(PortVideo &v) {
-    ImGui::SliderInt("Music", &v.music, 0, 200, "%d%%", ImGuiSliderFlags_AlwaysClamp);
-    ImGui::SliderInt("Sound effects", &v.effects, 0, 200, "%d%%", ImGuiSliderFlags_AlwaysClamp);
-    ImGui::SetItemTooltip("Hits, blasts, menu sounds. Takes effect with the next sound that starts.");
-    ImGui::SliderInt("Voices", &v.voices, 0, 200, "%d%%", ImGuiSliderFlags_AlwaysClamp);
-    ImGui::SetItemTooltip("The fighters' voices in a fight and the spoken lines outside one.");
-    ImGui::SliderInt("Stage sounds", &v.stage, 0, 200, "%d%%", ImGuiSliderFlags_AlwaysClamp);
-    ImGui::SetItemTooltip("A stage's background sound (wind, water) and its own effects.");
+    Bt3Ui::SliderInt("Music", &v.music, 0, 200, "%d%%", ImGuiSliderFlags_AlwaysClamp);
+    Bt3Ui::SliderInt("Sound effects", &v.effects, 0, 200, "%d%%", ImGuiSliderFlags_AlwaysClamp);
+    Bt3Ui::SetItemTooltip("Hits, blasts, menu sounds. Takes effect with the next sound that starts.");
+    Bt3Ui::SliderInt("Voices", &v.voices, 0, 200, "%d%%", ImGuiSliderFlags_AlwaysClamp);
+    Bt3Ui::SetItemTooltip("The fighters' voices in a fight and the spoken lines outside one.");
+    Bt3Ui::SliderInt("Stage sounds", &v.stage, 0, 200, "%d%%", ImGuiSliderFlags_AlwaysClamp);
+    Bt3Ui::SetItemTooltip("A stage's background sound (wind, water) and its own effects.");
     {
         bool follows = gPortMusicFollows > 0;
         ImGui::Spacing();
-        if (ImGui::Checkbox("Music follows game speed", &follows)) {
+        if (Bt3Ui::Checkbox("Music follows game speed", &follows)) {
             gPortMusicFollows = follows;
             Port_SettingSave("music_follows_speed", follows);
             Port_SettingsWrite(); // (in the file at once: it was lost at the end unless another setting was written after it)
         }
-        ImGui::SetItemTooltip("When the game runs at another speed than 100%% (an online match, the Cheats tab):\n"
+        Bt3Ui::SetItemTooltip("When the game runs at another speed than 100%% (an online match, the Cheats tab):\n"
                               "off, the music plays as it is; on, it is sped up or slowed down with the game,\n"
                               "at its own pitch, as an emulator does. Spoken lines always follow the game.");
     }
@@ -1976,18 +1981,18 @@ extern "C" void Port_AudioRefresh(void);
 static void cheats_tab(void) {
     {
         int speed = Port_GameSpeed();
-        if (ImGui::SliderInt("Game speed", &speed, 50, 200, "%d%%", ImGuiSliderFlags_AlwaysClamp)) {
+        if (Bt3Ui::SliderInt("Game speed", &speed, 50, 200, "%d%%", ImGuiSliderFlags_AlwaysClamp)) {
             Port_GameSpeedSet(speed);
             Port_AudioRefresh();
         }
         if (ImGui::IsItemDeactivatedAfterEdit()) {
             Port_SettingsWrite(); // (when the slider is let go: the speed was lost at the end unless another setting was written)
         }
-        ImGui::SetItemTooltip("How fast the game runs outside online play (the sound keeps its pitch). 100%% is the game's own;\n"
+        Bt3Ui::SetItemTooltip("How fast the game runs outside online play (the sound keeps its pitch). 100%% is the game's own;\n"
                               "114%% is what competitive play uses. An online match never uses this value:\n"
                               "its speed is the host's or the queue's.");
         ImGui::SameLine();
-        if (ImGui::Button("Reset")) {
+        if (Bt3Ui::Button("Reset")) {
             Port_GameSpeedSet(100);
             Port_AudioRefresh();
             Port_SettingsWrite();
@@ -1995,28 +2000,28 @@ static void cheats_tab(void) {
         ImGui::Separator();
         ImGui::Spacing();
     }
-    ImGui::TextWrapped("Unlock everything: all characters, stages, music and items, and the largest amount of Zenni. "
+    Bt3Ui::TextWrapped("Unlock everything: all characters, stages, music and items, and the largest amount of Zenni. "
                        "This is a debug function the game's developers left in.");
     ImGui::Spacing();
-    ImGui::TextWrapped("It also empties your records list, and it becomes permanent the next time the game saves. "
+    Bt3Ui::TextWrapped("It also empties your records list, and it becomes permanent the next time the game saves. "
                        "Use it after your save has been loaded (from the main menu on).");
     ImGui::Spacing();
-    if (ImGui::Button("Unlock everything...")) {
-        ImGui::OpenPopup("Unlock everything?");
+    if (Bt3Ui::Button("Unlock everything...")) {
+        Bt3Ui::OpenPopup("Unlock everything?");
     }
     if (gPortUnlockDone) {
         ImGui::SameLine();
-        ImGui::TextUnformatted("Done.");
+        Bt3Ui::TextUnformatted("Done.");
     }
-    if (ImGui::BeginPopupModal("Unlock everything?", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::TextUnformatted("Your records list will be emptied. This cannot be undone once the game saves.");
+    if (Bt3Ui::BeginPopupModal("Unlock everything?", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+        Bt3Ui::TextUnformatted("Your records list will be emptied. This cannot be undone once the game saves.");
         ImGui::Spacing();
-        if (ImGui::Button("Unlock", ImVec2(U(140.0f), 0.0f))) {
+        if (Bt3Ui::Button("Unlock", ImVec2(U(140.0f), 0.0f))) {
             gPortUnlockAll = 1;
             ImGui::CloseCurrentPopup();
         }
         ImGui::SameLine();
-        if (ImGui::Button("Cancel", ImVec2(U(140.0f), 0.0f))) {
+        if (Bt3Ui::Button("Cancel", ImVec2(U(140.0f), 0.0f))) {
             ImGui::CloseCurrentPopup();
         }
         ImGui::EndPopup();
@@ -2071,21 +2076,21 @@ static void sticks_panel(int player) {
         ImGui::BeginGroup();
         ImGui::AlignTextToFramePadding(); // (in both cells: the second one's lines start that much lower anyway)
         if (view.connected) {
-            ImGui::Text(view.dir[s] != 0 ? "%s: %s" : "%s", kStick[s], kDir[view.dir[s]]);
-            ImGui::Text("stick  %+.2f %+.2f", view.raw[s][0], view.raw[s][1]);
-            ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(colGame), "game   %+.2f %+.2f", view.game[s][0], view.game[s][1]);
+            Bt3Ui::Text(view.dir[s] != 0 ? "%s: %s" : "%s", Bt3Ui::T(kStick[s]), Bt3Ui::T(kDir[view.dir[s]]));
+            Bt3Ui::Text("stick  %+.2f %+.2f", view.raw[s][0], view.raw[s][1]);
+            Bt3Ui::TextColored(ImGui::ColorConvertU32ToFloat4(colGame), "game   %+.2f %+.2f", view.game[s][0], view.game[s][1]);
         } else {
-            ImGui::TextUnformatted(kStick[s]);
-            ImGui::TextDisabled("no controller");
-            ImGui::TextDisabled(" ");
+            Bt3Ui::TextUnformatted(kStick[s]);
+            Bt3Ui::TextDisabled("no controller");
+            Bt3Ui::TextDisabled(" ");
         }
         ImGui::SetNextItemWidth(U(100.0f));
-        snprintf(label, sizeof(label), "Deadzone##%d", s);
-        ImGui::SliderInt(label, &dead[s], -1, PORT_DEADZONE_MAX, dead[s] < 0 ? "Original" : "%d%%", ImGuiSliderFlags_AlwaysClamp);
+        snprintf(label, sizeof(label), Bt3Ui::Label("Deadzone##%d"), s);
+        Bt3Ui::SliderInt(label, &dead[s], -1, PORT_DEADZONE_MAX, dead[s] < 0 ? Bt3Ui::T("Original") : "%d%%", ImGuiSliderFlags_AlwaysClamp);
         if (ImGui::IsItemDeactivatedAfterEdit()) {
             PortInput_Save();
         }
-        ImGui::SetItemTooltip("How far the stick has to be moved before the game is told anything (the shaded middle).\n"
+        Bt3Ui::SetItemTooltip("How far the stick has to be moved before the game is told anything (the shaded middle).\n"
                               "Original: the game's own, 39%% for left / right and for up / down separately, a square.\n"
                               "0%% to 90%%: a round one of that size instead; from its edge the value grows evenly\n"
                               "to full at full tilt, and the stick counts as a direction half way between the two.\n"
@@ -2096,38 +2101,38 @@ static void sticks_panel(int player) {
     }
     for (int s = 0; s < 2; s++) {
         ImGui::TableNextColumn();
-        snprintf(label, sizeof(label), "%d%%%s", (int)(view.trigger[s] * 100.0f + 0.5f), view.triggerHeld[s] ? " pressed" : "");
+        snprintf(label, sizeof(label), "%d%%%s", (int)(view.trigger[s] * 100.0f + 0.5f), view.triggerHeld[s] ? Bt3Ui::T(" pressed") : "");
         ImGui::ProgressBar(view.trigger[s], ImVec2(U(144.0f), 0.0f), label);
-        ImGui::SetItemTooltip("A trigger counts as pressed from %d%% on. The game is told pressed or not, nothing between.",
+        Bt3Ui::SetItemTooltip("A trigger counts as pressed from %d%% on. The game is told pressed or not, nothing between.",
                               (PORT_TRIGGER_AT * 100 + 16383) / 32767);
         ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
-        ImGui::TextUnformatted(kTrigger[s]);
+        Bt3Ui::TextUnformatted(kTrigger[s]);
     }
     ImGui::EndTable();
     bool on = vib[0] != 0;
-    if (ImGui::Checkbox("Vibration", &on)) {
+    if (Bt3Ui::Checkbox("Vibration", &on)) {
         vib[0] = on;
         PortInput_Save();
     }
-    ImGui::SetItemTooltip("The game's own vibration (hits, clashes, charging), on this player's controller.\n"
+    Bt3Ui::SetItemTooltip("The game's own vibration (hits, clashes, charging), on this player's controller.\n"
                           "The game's Options > Controller > Vibration has to be on as well: it is, unless you turned it off.\n"
                           "The game gives none in a replay or for a side the computer plays.");
     ImGui::BeginDisabled(!on);
     ImGui::SameLine();
     ImGui::SetNextItemWidth(U(160.0f));
-    ImGui::SliderInt("Strength", &vib[1], 0, 100, "%d%%", ImGuiSliderFlags_AlwaysClamp);
+    Bt3Ui::SliderInt("Strength", &vib[1], 0, 100, "%d%%", ImGuiSliderFlags_AlwaysClamp);
     if (ImGui::IsItemDeactivatedAfterEdit()) {
         PortInput_Save();
     }
     ImGui::SameLine();
-    if (ImGui::Button("Test")) {
+    if (Bt3Ui::Button("Test")) {
         PortInput_VibrationTest(player);
     }
-    ImGui::SetItemTooltip("Half a second of both motors at this strength.");
+    Bt3Ui::SetItemTooltip("Half a second of both motors at this strength.");
     ImGui::EndDisabled();
     if (view.connected && !view.canVibrate) {
         ImGui::SameLine();
-        ImGui::TextDisabled("(this controller has none)");
+        Bt3Ui::TextDisabled("(this controller has none)");
     }
 }
 
@@ -2136,49 +2141,50 @@ static void controls_tab(void) {
     char label[96];
     int count = 0;
 
-    ImGui::RadioButton("Player 1", &player, 0);
+    Bt3Ui::RadioButton("Player 1", &player, 0);
     ImGui::SameLine();
-    ImGui::RadioButton("Player 2", &player, 1);
+    Bt3Ui::RadioButton("Player 2", &player, 1);
     int *slot = PortInput_PadSlot(player), *keys = PortInput_Keys(player), *pads = PortInput_PadButtons(player);
     SDL_JoystickID *ids = SDL_GetGamepads(&count);
     if (*slot < 0) {
-        snprintf(label, sizeof(label), "None");
+        snprintf(label, sizeof(label), Bt3Ui::T("None"));
     } else if (*slot < count) {
         snprintf(label, sizeof(label), "%d: %s", *slot + 1, SDL_GetGamepadNameForID(ids[*slot]));
     } else {
-        snprintf(label, sizeof(label), "Controller %d (not connected)", *slot + 1);
+        snprintf(label, sizeof(label), Bt3Ui::T("Controller %d (not connected)"), *slot + 1);
     }
     ImGui::SetNextItemWidth(U(300.0f));
-    if (ImGui::BeginCombo("Controller", label)) {
-        if (ImGui::Selectable("None", *slot < 0)) { *slot = -1; PortInput_Save(); }
+    if (Bt3Ui::BeginCombo("Controller", label)) {
+        if (Bt3Ui::Selectable("None", *slot < 0)) { *slot = -1; PortInput_Save(); }
         for (int i = 0; i < (count > 4 ? count : 4); i++) {
             if (i < count) {
                 snprintf(label, sizeof(label), "%d: %s", i + 1, SDL_GetGamepadNameForID(ids[i]));
             } else {
-                snprintf(label, sizeof(label), "Controller %d (not connected)", i + 1);
+                snprintf(label, sizeof(label), Bt3Ui::T("Controller %d (not connected)"), i + 1);
             }
-            if (ImGui::Selectable(label, *slot == i)) { *slot = i; PortInput_Save(); }
+            if (Bt3Ui::Selectable(label, *slot == i)) { *slot = i; PortInput_Save(); }
         }
         ImGui::EndCombo();
     }
     SDL_free(ids);
-    ImGui::SameLine();
-    if (ImGui::Button("Reset to defaults")) {
+    float resetRight = ImGui::GetItemRectMax().x + ImGui::GetStyle().ItemSpacing.x + Bt3Ui::ButtonWidth("Reset to defaults");
+    if (resetRight <= ImGui::GetCursorScreenPos().x + ImGui::GetContentRegionAvail().x) ImGui::SameLine();
+    if (Bt3Ui::Button("Reset to defaults")) {
         PortInput_ResetDefaults(player);
         PortInput_Save();
     }
-    if (ImGui::CollapsingHeader("Sticks, triggers and vibration", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (Bt3Ui::CollapsingHeader("Sticks, triggers and vibration", ImGuiTreeNodeFlags_DefaultOpen)) {
         sticks_panel(player);
     }
-    ImGui::TextDisabled("Choose a binding, then press the new key or button. Esc keeps it, Delete clears it;");
-    ImGui::TextDisabled("with a controller, press nothing for five seconds to keep it.");
+    Bt3Ui::TextDisabled("Choose a binding, then press the new key or button. Esc keeps it, Delete clears it;");
+    Bt3Ui::TextDisabled("with a controller, press nothing for five seconds to keep it.");
     // (never lower than a few rows: in a small window the tab scrolls as a whole instead)
     if (ImGui::BeginTable("bindings", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_BordersInnerV,
                           ImVec2(0.0f, ImGui::GetContentRegionAvail().y > U(140.0f) ? ImGui::GetContentRegionAvail().y : U(140.0f)))) {
         ImGui::TableSetupScrollFreeze(0, 1);
-        ImGui::TableSetupColumn("Action");
-        ImGui::TableSetupColumn("Keyboard");
-        ImGui::TableSetupColumn("Controller");
+        Bt3Ui::TableSetupColumn("Action");
+        Bt3Ui::TableSetupColumn("Keyboard");
+        Bt3Ui::TableSetupColumn("Controller");
         ImGui::TableHeadersRow();
         {   // what opens and closes this window (not a player's: one for the program)
             const int a = PORT_ACTIONS;
@@ -2187,15 +2193,15 @@ static void controls_tab(void) {
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
             ImGui::AlignTextToFramePadding();
-            ImGui::TextUnformatted("Open this window");
+            Bt3Ui::TextUnformatted("Open this window");
             ImGui::TableNextColumn();
-            snprintf(label, sizeof(label), "%s##k%d", waitKey ? "press a key..." : key > 0 ? SDL_GetScancodeName((SDL_Scancode)key) : "-", a);
-            if (ImGui::Button(label, ImVec2(-FLT_MIN, 0.0f))) {
+            snprintf(label, sizeof(label), "%s###k%d", waitKey ? Bt3Ui::T("press a key...") : key > 0 ? SDL_GetScancodeName((SDL_Scancode)key) : "-", a);
+            if (Bt3Ui::Button(label, ImVec2(-FLT_MIN, 0.0f))) {
                 capture(1, player, a);
             }
             ImGui::TableNextColumn();
-            snprintf(label, sizeof(label), "%s##p%d", waitPad ? "press a button..." : pad >= 0 ? pad_source_name(pad) : "START + SELECT", a);
-            if (ImGui::Button(label, ImVec2(-FLT_MIN, 0.0f))) {
+            snprintf(label, sizeof(label), "%s###p%d", waitPad ? Bt3Ui::T("press a button...") : pad >= 0 ? pad_source_name(pad) : "START + SELECT", a);
+            if (Bt3Ui::Button(label, ImVec2(-FLT_MIN, 0.0f))) {
                 capture(2, player, a);
             }
         }
@@ -2206,14 +2212,14 @@ static void controls_tab(void) {
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
             ImGui::AlignTextToFramePadding();
-            ImGui::TextUnformatted("Open online chat");
+            Bt3Ui::TextUnformatted("Open online chat");
             ImGui::TableNextColumn();
-            snprintf(label, sizeof(label), "%s##k%d", waitKey ? "press a key..." : key > 0 ? SDL_GetScancodeName((SDL_Scancode)key) : "Tab", a);
-            if (ImGui::Button(label, ImVec2(-FLT_MIN, 0.0f))) {
+            snprintf(label, sizeof(label), "%s###k%d", waitKey ? Bt3Ui::T("press a key...") : key > 0 ? SDL_GetScancodeName((SDL_Scancode)key) : "Tab", a);
+            if (Bt3Ui::Button(label, ImVec2(-FLT_MIN, 0.0f))) {
                 capture(1, player, a);
             }
             ImGui::TableNextColumn();
-            ImGui::TextDisabled("-");
+            Bt3Ui::TextDisabled("-");
         }
         for (int a = 0; a < PORT_ACTIONS; a++) {
             bool waitKey = sCapKind == 1 && sCapPlayer == player && sCapAction == a;
@@ -2221,21 +2227,21 @@ static void controls_tab(void) {
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
             ImGui::AlignTextToFramePadding();
-            ImGui::TextUnformatted(PortInput_ActionLabel(a));
+            Bt3Ui::TextUnformatted(PortInput_ActionLabel(a));
             ImGui::TableNextColumn();
-            snprintf(label, sizeof(label), "%s##k%d", waitKey ? "press a key..." : keys[a] > 0 ? SDL_GetScancodeName((SDL_Scancode)keys[a]) : "-", a);
-            if (ImGui::Button(label, ImVec2(-FLT_MIN, 0.0f))) {
+            snprintf(label, sizeof(label), "%s###k%d", waitKey ? Bt3Ui::T("press a key...") : keys[a] > 0 ? SDL_GetScancodeName((SDL_Scancode)keys[a]) : "-", a);
+            if (Bt3Ui::Button(label, ImVec2(-FLT_MIN, 0.0f))) {
                 capture(1, player, a);
             }
             ImGui::TableNextColumn();
             if (a < PORT_PAD_BUTTONS) {
-                snprintf(label, sizeof(label), "%s##p%d", waitPad ? "press a button..." : pad_source_name(pads[a]), a);
-                if (ImGui::Button(label, ImVec2(-FLT_MIN, 0.0f))) {
+                snprintf(label, sizeof(label), "%s###p%d", waitPad ? Bt3Ui::T("press a button...") : pad_source_name(pads[a]), a);
+                if (Bt3Ui::Button(label, ImVec2(-FLT_MIN, 0.0f))) {
                     capture(2, player, a);
                 }
             } else {
                 ImGui::AlignTextToFramePadding();
-                ImGui::TextDisabled(a < 20 ? "Left stick" : "Right stick");
+                Bt3Ui::TextDisabled(a < 20 ? "Left stick" : "Right stick");
             }
         }
         ImGui::EndTable();
@@ -2263,48 +2269,48 @@ static void build(void) {
     ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.5f), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
     // (760 high where the picture has the room: the Controls tab's sticks and its list of bindings together)
     { // (a large "Menu size" in a small window: no larger than the window)
-        float sw = U(640.0f), sh = io.DisplaySize.y >= U(800.0f) ? U(760.0f) : U(600.0f);
+        float sw = U(760.0f), sh = io.DisplaySize.y >= U(800.0f) ? U(760.0f) : U(600.0f);
         ImGui::SetNextWindowSize(ImVec2(sw < io.DisplaySize.x * 0.96f ? sw : io.DisplaySize.x * 0.96f,
                                         sh < io.DisplaySize.y * 0.94f ? sh : io.DisplaySize.y * 0.94f), ImGuiCond_Appearing);
     }
-    if (ImGui::Begin("Settings", &open, ImGuiWindowFlags_NoCollapse)) {
+    if (Bt3Ui::Begin("Settings", &open, ImGuiWindowFlags_NoCollapse)) {
         PortLobbyView lv;
         bool inLobby = Port_LobbyView(&lv) && lv.inMatch;
         if (inLobby) { // a lobby's match: the ways back (the owner: for everyone) and out
             ImGui::AlignTextToFramePadding();
-            ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.3f, 1.0f), "Lobby%s%s", lv.code[0] != '\0' ? " " : "", lv.code);
+            Bt3Ui::TextColored(ImVec4(1.0f, 0.85f, 0.3f, 1.0f), "Lobby%s%s", lv.code[0] != '\0' ? " " : "", lv.code);
             if (lv.owner) {
                 ImGui::SameLine();
-                if (ImGui::Button("Back to the lobby")) {
+                if (Bt3Ui::Button("Back to the lobby")) {
                     Port_LobbyDo(LOBBY_BACK, 0, 0);
                     open = false;
                 }
-                ImGui::SetItemTooltip("Ends the match for everyone: all go back to the lobby window, where the rules can be changed.");
+                Bt3Ui::SetItemTooltip("Ends the match for everyone: all go back to the lobby window, where the rules can be changed.");
             }
             ImGui::SameLine();
-            if (ImGui::Button(lv.owner ? "Close the lobby" : "Leave the lobby")) {
+            if (Bt3Ui::Button(lv.owner ? "Close the lobby" : "Leave the lobby")) {
                 Port_LobbyDo(LOBBY_LEAVE, 0, 0);
                 open = false;
             }
-            ImGui::SetItemTooltip(lv.owner ? "Ends the match and the lobby for everyone." : "Back to the main menu. A player leaving ends the match; a spectator leaving changes nothing for the others.");
+            Bt3Ui::SetItemTooltip(lv.owner ? "Ends the match and the lobby for everyone." : "Back to the main menu. A player leaving ends the match; a spectator leaving changes nothing for the others.");
             ImGui::Separator();
         }
         if (Port_NetSpectating()) { // watching a match: whose view, and the way out
             ImGui::AlignTextToFramePadding();
-            ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.3f, 1.0f), "Spectating %s vs %s", Port_NetName(0), Port_NetName(1));
+            Bt3Ui::TextColored(ImVec4(1.0f, 0.85f, 0.3f, 1.0f), "Spectating %s vs %s", Port_NetName(0), Port_NetName(1));
             ImGui::SameLine();
-            if (ImGui::Button("Change view")) {
+            if (Bt3Ui::Button("Change view")) {
                 spec_view_next();
             }
-            ImGui::SetItemTooltip("Player 1's view, player 2's, or both (split screen). Also V or R1 while watching.");
+            Bt3Ui::SetItemTooltip("Player 1's view, player 2's, or both (split screen). Also V or R1 while watching.");
             if (!inLobby) { // (in a lobby: "Leave the lobby", above)
                 ImGui::SameLine();
-                if (ImGui::Button("Stop watching")) {
+                if (Bt3Ui::Button("Stop watching")) {
                     Port_NetSpecLeave();
                     open = false;
                 }
             }
-            ImGui::TextDisabled("View: %s", spec_view_name(Port_NetSpecView()));
+            Bt3Ui::TextDisabled("View: %s", Bt3Ui::T(spec_view_name(Port_NetSpecView())));
             ImGui::Separator();
         }
         update_panel();
@@ -2317,10 +2323,10 @@ static void build(void) {
             if (tab("UI", 3)) { ui_tab(v); ImGui::EndTabItem(); }
             if (tab("Controls", 4)) {
                 bool cs = Port_ClashSquare() != 0;
-                if (ImGui::Checkbox("Clashes: Square counts as a direction", &cs)) {
+                if (Bt3Ui::Checkbox("Clashes: Square counts as a direction", &cs)) {
                     Port_ClashSquareSet(cs);
                 }
-                ImGui::SetItemTooltip("In a clash of two beams or two rushes the game counts newly pressed directions:\n"
+                Bt3Ui::SetItemTooltip("In a clash of two beams or two rushes the game counts newly pressed directions:\n"
                                       "turning the stick, or tapping the d-pad. With this on, each press of Square\n"
                                       "counts as one of them while the clash lasts, as a tap of the d-pad does.\n"
                                       "It only changes your own pad, so it can be used in online play.");
@@ -2335,10 +2341,10 @@ static void build(void) {
                     }
                     ImGui::SameLine();
                     ImGui::SetNextItemWidth(U(80.0f));
-                    if (ImGui::Combo("per press", &at, kWorth, 5)) {
+                    if (Bt3Ui::Combo("per press", &at, kWorth, 5)) {
                         Port_ClashSquareXSet(kQuarters[at]);
                     }
-                    ImGui::SetItemTooltip("What one press of Square is worth. The d-pad has four buttons to tap in turn and the\n"
+                    Bt3Ui::SetItemTooltip("What one press of Square is worth. The d-pad has four buttons to tap in turn and the\n"
                                           "stick four directions a turn; Square is one button. 1 is a single d-pad tap.\n"
                                           "Never more than one a frame, which is the most the game counts from any pad.");
                 }
@@ -2360,12 +2366,12 @@ static void build(void) {
             sForceTab = -1;
         }
         ImGui::Separator();
-        if (ImGui::Button("Exit game")) {
+        if (Bt3Ui::Button("Exit game")) {
             Ui_QuitAsk();
         }
         if ((io.BackendFlags & ImGuiBackendFlags_HasGamepad) != 0) {
             ImGui::SameLine();
-            ImGui::TextDisabled("D-pad: move   Cross / A: choose   Circle / B: back   L1 / R1: tab");
+            Bt3Ui::TextDisabled("D-pad: move   Cross / A: choose   Circle / B: back   L1 / R1: tab");
         }
     }
     ImGui::End();
@@ -2478,7 +2484,7 @@ static const char *spec_view_name(int view) {
     if (view == 2) {
         return "both (split screen)";
     }
-    SDL_snprintf(text, sizeof(text), "%s", Port_NetName(view)[0] != '\0' ? Port_NetName(view) : view == 0 ? "player 1" : "player 2");
+    SDL_snprintf(text, sizeof(text), "%s", Port_NetName(view)[0] != '\0' ? Port_NetName(view) : Bt3Ui::T(view == 0 ? "player 1" : "player 2"));
     return text;
 }
 
@@ -2491,16 +2497,16 @@ static void watchers_line(void) {
     ImGuiIO &io = ImGui::GetIO();
     char text[200];
     int n = Port_NetWatchers();
-    size_t at = (size_t)SDL_snprintf(text, sizeof(text), "%d watching: ", n);
+    size_t at = (size_t)SDL_snprintf(text, sizeof(text), Bt3Ui::T("%d watching: "), n);
     for (int i = 0; i < n && at < sizeof(text); i++) {
         at += (size_t)SDL_snprintf(text + at, sizeof(text) - at, "%s%s", i > 0 ? ", " : "", Port_NetWatcher(i));
     }
     ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - U(6.0f), U(6.0f)), ImGuiCond_Always, ImVec2(1.0f, 0.0f));
     ImGui::SetNextWindowBgAlpha(0.35f);
-    if (ImGui::Begin("##watchers", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoInputs |
+    if (Bt3Ui::Begin("##watchers", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoInputs |
                                              ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoSavedSettings)) {
         ImGui::SetWindowFontScale(0.85f);
-        ImGui::TextDisabled("%s", text);
+        Bt3Ui::TextDisabled("%s", text);
         ImGui::SetWindowFontScale(1.0f);
     }
     ImGui::End();
@@ -2536,30 +2542,30 @@ static void meter_draw(void) {
     int n[10];
     ImGui::SetNextWindowPos(ImVec2(U(8.0f), U(8.0f)), ImGuiCond_Always);
     ImGui::SetNextWindowBgAlpha(0.6f);
-    if (ImGui::Begin("##meter", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoInputs |
+    if (Bt3Ui::Begin("##meter", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoInputs |
                                           ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoSavedSettings)) {
         // a fight shows 30 frames a second and the menus 60, as on the console; the speed is what should stay at 100%
-        ImGui::Text("%.0f fps   speed %.0f%%", sFps, sSpeed);
+        Bt3Ui::Text("%.0f fps   speed %.0f%%", sFps, sSpeed);
         if (Port_NetStats(n)) {
             if (n[0] >= 0) {
-                ImGui::Text("ping %d ms%s", n[0], Port_LobbyRelayed() ? " (relay)" : "");
+                Bt3Ui::Text("ping %d ms%s", n[0], Port_LobbyRelayed() ? Bt3Ui::T(" (relay)") : "");
             } else {
-                ImGui::TextUnformatted("ping ...");
+                Bt3Ui::TextUnformatted("ping ...");
             }
             if (n[5] > 0) {
-                ImGui::Text("rollbacks %d/s, %.1f frames", n[1], (float)n[2] / 10.0f);
+                Bt3Ui::Text("rollbacks %d/s, %.1f frames", n[1], (float)n[2] / 10.0f);
             } else {
-                ImGui::TextUnformatted("rollback off");
+                Bt3Ui::TextUnformatted("rollback off");
             }
-            ImGui::Text("waited %d ms/s (%d times)", n[4], n[3]);
+            Bt3Ui::Text("waited %d ms/s (%d times)", n[4], n[3]);
             if (n[8] == 1) { // gs/net.c wait_end: input packets came, without the frame this copy needed
-                ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.3f, 1.0f), "  the other player's game is behind");
+                Bt3Ui::TextColored(ImVec4(1.0f, 0.8f, 0.3f, 1.0f), "  the other player's game is behind");
             } else if (n[8] == 2) { // nothing came for most of the wait
-                ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.3f, 1.0f), "  nothing arrived from the other player");
+                Bt3Ui::TextColored(ImVec4(1.0f, 0.8f, 0.3f, 1.0f), "  nothing arrived from the other player");
             }
-            ImGui::Text("delay %d%s, rollback up to %d", n[6], n[7] ? " (auto)" : "", n[5]);
+            Bt3Ui::Text("delay %d%s, rollback up to %d", n[6], n[7] ? Bt3Ui::T(" (auto)") : "", n[5]);
             if (n[9] != 0) { // the desync check found the two games apart (the match goes on)
-                ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "desync since frame %d", n[9]);
+                Bt3Ui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "desync since frame %d", n[9]);
             }
         }
     }
@@ -2732,7 +2738,7 @@ static void chat_draw(void) {
     if (sChat && sChatFocus) {
         ImGui::SetNextWindowFocus();
     }
-    if (ImGui::Begin("##chat", NULL, flags)) {
+    if (Bt3Ui::Begin("##chat", NULL, flags)) {
         if (sChat && ImGui::IsWindowHovered() && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
             sChatMoved = true;
         }
@@ -2741,15 +2747,15 @@ static void chat_draw(void) {
         }
         const char *names[2] = {Port_NetName(Port_NetMe()), Port_NetName(!Port_NetMe())};
         if (sChat) {
-            ImGui::TextColored(ImVec4(1.0f, 0.82f, 0.28f, 1.0f), "Chat (Tab)");
+            Bt3Ui::TextColored(ImVec4(1.0f, 0.82f, 0.28f, 1.0f), "Chat (Tab)");
             ImGui::SameLine();
-            ImGui::TextDisabled("::");
+            Bt3Ui::TextDisabled("::");
             if (ImGui::IsItemHovered()) {
-                ImGui::SetTooltip("Drag anywhere to move the chat window. Click a line to copy it.");
+                Bt3Ui::SetTooltip("Drag anywhere to move the chat window. Click a line to copy it.");
             }
             ImGui::SameLine(w - 70.0f);
             bool mute = PortChat_Muted() != 0;
-            if (ImGui::Checkbox("Mute", &mute)) {
+            if (Bt3Ui::Checkbox("Mute", &mute)) {
                 PortChat_MutedSet(mute);
                 sChatFocus = true;
             }
@@ -2774,7 +2780,7 @@ static void chat_draw(void) {
             const char *sender = l.sender[0] != '\0' ? l.sender : (names[l.mine ? 0 : 1][0] != '\0' ? names[l.mine ? 0 : 1] : (l.mine ? "You" : "Rival"));
             ImGui::PushID((int)i);
             ImVec4 nameCol = l.mine ? ImVec4(0.35f, 0.85f, 1.0f, alpha) : ImVec4(1.0f, 0.82f, 0.28f, alpha);
-            ImGui::TextColored(nameCol, "%s:", sender);
+            Bt3Ui::TextColored(nameCol, "%s:", sender);
             ImGui::SameLine(0.0f, U(4.0f));
 
             ImVec2 at = ImGui::GetCursorScreenPos();
@@ -2782,14 +2788,14 @@ static void chat_draw(void) {
                 ImGui::GetWindowDrawList()->AddText(NULL, 0.0f, ImVec2(at.x + 1.0f, at.y + 1.0f), IM_COL32(0, 0, 0, (int)(230.0f * alpha)), l.text, NULL, w - (at.x - ImGui::GetWindowPos().x));
             }
             ImGui::PushTextWrapPos(w);
-            ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, alpha), "%s", l.text);
+            Bt3Ui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, alpha), "%s", l.text);
             ImGui::PopTextWrapPos();
             if (sChat) { // a click copies the line (a room code or an address is passed on this way); a drag does not
                 static unsigned sCopiedIdx;
                 static Uint64 sCopiedMs;
                 bool copied = sCopiedIdx == i + 1 && now - sCopiedMs < 1500;
                 if (ImGui::IsItemHovered()) {
-                    ImGui::SetTooltip(copied ? "Copied" : "Click to copy");
+                    Bt3Ui::SetTooltip(copied ? "Copied" : "Click to copy");
                     if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && io.MouseDragMaxDistanceSqr[ImGuiMouseButton_Left] < 16.0f) {
                         SDL_SetClipboardText(l.text);
                         sCopiedIdx = i + 1;
@@ -2807,7 +2813,7 @@ static void chat_draw(void) {
                 sChatFocus = false;
             }
             ImGui::SetNextItemWidth(w);
-            if (ImGui::InputText("##chatline", sChatBuf, sizeof(sChatBuf), ImGuiInputTextFlags_EnterReturnsTrue)) {
+            if (Bt3Ui::InputText("##chatline", sChatBuf, sizeof(sChatBuf), ImGuiInputTextFlags_EnterReturnsTrue)) {
                 const char *p = sChatBuf;
                 while (*p == ' ') {
                     p++;
@@ -2822,7 +2828,7 @@ static void chat_draw(void) {
                     sChatFocus = true;
                 }
             }
-            ImGui::TextDisabled(sChatSoon ? "1 line/s: Enter to send" : "Enter: send   Esc/Tab: close   Ctrl+V: paste");
+            Bt3Ui::TextDisabled(sChatSoon ? "1 line/s: Enter to send" : "Enter: send   Esc/Tab: close   Ctrl+V: paste");
         }
     }
     ImGui::End();
@@ -3020,9 +3026,9 @@ static bool frame_build(void) {
         ImGuiIO &io = ImGui::GetIO();
         ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.035f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
         ImGui::SetNextWindowBgAlpha(0.80f);
-        if (ImGui::Begin("##update", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoInputs |
+        if (Bt3Ui::Begin("##update", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoInputs |
                                                ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoSavedSettings)) {
-            ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.3f, 1.0f), "%s", updLine);
+            Bt3Ui::TextColored(ImVec4(1.0f, 0.85f, 0.3f, 1.0f), "%s", updLine);
         }
         ImGui::End();
     }
@@ -3030,9 +3036,9 @@ static bool frame_build(void) {
         ImGuiIO &io = ImGui::GetIO();
         ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.12f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
         ImGui::SetNextWindowBgAlpha(0.85f);
-        if (ImGui::Begin("##notice", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoInputs |
+        if (Bt3Ui::Begin("##notice", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoInputs |
                                                ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoSavedSettings)) {
-            ImGui::TextUnformatted(sNotice);
+            Bt3Ui::TextUnformatted(sNotice);
         }
         ImGui::End();
     }

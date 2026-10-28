@@ -1,0 +1,2011 @@
+{
+  "schema_version": 1,
+  "labels_version": 1,
+  "translation_version": 1,
+  "labels_count": 500,
+  "locale": "de",
+  "name": "Deutsch",
+  "order": 4,
+  "labels": {
+    "interface/af9fe7e3": {
+      "original": "\nPython 3 has to be installed to set the game up.",
+      "text": "\nPython 3 muss installiert sein, um das Spiel einzurichten."
+    },
+    "interface/8d48c86c": {
+      "original": "\nThe full output is in install.log.",
+      "text": "\nDie vollständige Ausgabe steht in install.log."
+    },
+    "interface/4934f0e9": {
+      "original": "  nothing arrived from the other player",
+      "text": "  keine Daten vom anderen Spieler empfangen"
+    },
+    "interface/78aa108d": {
+      "original": "  the other player's game is behind",
+      "text": "  das Spiel des anderen Spielers liegt zurück"
+    },
+    "interface/28d427bd": {
+      "original": " (auto)",
+      "text": " (automatisch)"
+    },
+    "interface/6244eae1": {
+      "original": " (relay)",
+      "text": " (Relay)"
+    },
+    "interface/ead26297": {
+      "original": " pressed",
+      "text": " gedrückt"
+    },
+    "interface/bc74786f": {
+      "original": "%.0f fps   speed %.0f%%",
+      "text": "%.0f fps   Tempo %.0f%%"
+    },
+    "interface/d57bf9b3": {
+      "original": "%d watching: ",
+      "text": "%d Zuschauer: "
+    },
+    "interface/859b767d": {
+      "original": "%dx  (%d x %d)",
+      "text": "%dx  (%d x %d)"
+    },
+    "interface/906a7cc8": {
+      "original": "%s   (%d searching)###q%d",
+      "text": "%s   (%d suchen)###q%d"
+    },
+    "interface/0fbe4c56": {
+      "original": "(The release has no notes.)",
+      "text": "(Keine Hinweise zu dieser Version.)"
+    },
+    "interface/5e02ba38": {
+      "original": "(installed: %s)",
+      "text": "(installiert: %s)"
+    },
+    "interface/918a80fc": {
+      "original": "(this controller has none)",
+      "text": "(dieser Controller unterstützt sie nicht)"
+    },
+    "interface/424d5fbf": {
+      "original": ") is damaged.",
+      "text": ") ist beschädigt."
+    },
+    "interface/65377b2a": {
+      "original": ", %d of %d",
+      "text": ", %d von %d"
+    },
+    "interface/9d8c2976": {
+      "original": ". Is the disk full or the folder read-only?",
+      "text": ". Ist der Datenträger voll oder der Ordner schreibgeschützt?"
+    },
+    "interface/2d7dd17b": {
+      "original": ". Is the disk full?",
+      "text": ". Ist der Datenträger voll?"
+    },
+    "interface/338ba5b7": {
+      "original": "0 frames",
+      "text": "0 Frames"
+    },
+    "interface/22fbca11": {
+      "original": "1 frame",
+      "text": "1 Frame"
+    },
+    "interface/b64cd149": {
+      "original": "1 line/s: Enter to send",
+      "text": "1 Zeile/s: Eingabe zum Senden"
+    },
+    "interface/edc46556": {
+      "original": "120 pictures a second",
+      "text": "120 Bilder pro Sekunde"
+    },
+    "interface/ba727161": {
+      "original": "180 seconds",
+      "text": "180 Sekunden"
+    },
+    "interface/42390dc5": {
+      "original": "2 frames",
+      "text": "2 Frames"
+    },
+    "interface/8b0131b1": {
+      "original": "240 pictures a second",
+      "text": "240 Bilder pro Sekunde"
+    },
+    "interface/0adb7730": {
+      "original": "240 seconds",
+      "text": "240 Sekunden"
+    },
+    "interface/7ce57b0d": {
+      "original": "2D filtering",
+      "text": "2D-Filter"
+    },
+    "interface/b26f144c": {
+      "original": "3 frames",
+      "text": "3 Frames"
+    },
+    "interface/f760d4fb": {
+      "original": "4 frames",
+      "text": "4 Frames"
+    },
+    "interface/dcbb37d2": {
+      "original": "4:3 (original)",
+      "text": "4:3 (Original)"
+    },
+    "interface/fb2e948a": {
+      "original": "5 frames",
+      "text": "5 Frames"
+    },
+    "interface/e1512ff9": {
+      "original": "6 frames",
+      "text": "6 Frames"
+    },
+    "interface/48edcf57": {
+      "original": "60 pictures a second",
+      "text": "60 Bilder pro Sekunde"
+    },
+    "interface/1f37498e": {
+      "original": "60 seconds",
+      "text": "60 Sekunden"
+    },
+    "interface/f777d6b9": {
+      "original": "90 seconds",
+      "text": "90 Sekunden"
+    },
+    "interface/cc78b051": {
+      "original": "A / Cross",
+      "text": "A / Kreuz"
+    },
+    "interface/4334d3a8": {
+      "original": "A stage's background sound (wind, water) and its own effects.",
+      "text": "Umgebungsgeräusche der Arena (Wind, Wasser) und ihre Effekte."
+    },
+    "interface/16a84db9": {
+      "original": "A trigger counts as pressed from %d%% on. The game is told pressed or not, nothing between.",
+      "text": "Der Trigger gilt ab %d%% als gedrückt. Das Spiel erhält nur gedrückt oder nicht gedrückt, keine Zwischenwerte."
+    },
+    "interface/0a77a91f": {
+      "original": "Action",
+      "text": "Aktion"
+    },
+    "interface/e3490667": {
+      "original": "Active GPU: %s",
+      "text": "Aktive GPU: %s"
+    },
+    "interface/c1c631bd": {
+      "original": "Add languages and music...",
+      "text": "Sprachen und Musik hinzufügen..."
+    },
+    "interface/809a8034": {
+      "original": "Adds Spanish, German, French and Italian: menus, battle screen and text, as the European release has them. F1 > UI > Language picks one.",
+      "text": "Fügt Spanisch, Deutsch, Französisch und Italienisch hinzu: Menüs, Kampfanzeige und Texte der europäischen Version. Auswahl unter F1 > Oberfläche > Sprache."
+    },
+    "interface/60f3de7b": {
+      "original": "Advanced",
+      "text": "Experte"
+    },
+    "interface/1ed50feb": {
+      "original": "All files",
+      "text": "Alle Dateien"
+    },
+    "interface/3a24f6e2": {
+      "original": "An archive on the European disc image (DATA/PZS3EU1.AFS) is damaged or not the European release's.",
+      "text": "Ein Archiv im europäischen Disc-Abbild (DATA/PZS3EU1.AFS) ist beschädigt oder stammt nicht aus der europäischen Version."
+    },
+    "interface/f8742b3b": {
+      "original": "An archive on the European disc image (DATA/PZS3EU1.AFS) is damaged.",
+      "text": "Ein Archiv im europäischen Disc-Abbild (DATA/PZS3EU1.AFS) ist beschädigt."
+    },
+    "interface/0671cf0f": {
+      "original": "An archive on the disc (",
+      "text": "Ein Archiv auf der Disc ("
+    },
+    "interface/3081a8a6": {
+      "original": "Aspect ratio",
+      "text": "Seitenverhältnis"
+    },
+    "interface/2dfa549f": {
+      "original": "At the edges, long health bars",
+      "text": "An den Rändern, lange Lebensleisten"
+    },
+    "interface/d31e902d": {
+      "original": "At the screen's edges",
+      "text": "An den Bildschirmrändern"
+    },
+    "interface/88971439": {
+      "original": "Audio",
+      "text": "Audio"
+    },
+    "interface/ad8ef4e8": {
+      "original": "Automatic (from the connection)",
+      "text": "Automatisch (Verbindung)"
+    },
+    "interface/f1c2a894": {
+      "original": "B / Circle",
+      "text": "B / Kreis"
+    },
+    "interface/c2954bc2": {
+      "original": "Back",
+      "text": "Zurück"
+    },
+    "interface/707867e9": {
+      "original": "Back / Select",
+      "text": "Back / SELECT"
+    },
+    "interface/65d0e402": {
+      "original": "Back to the game",
+      "text": "Zurück zum Spiel"
+    },
+    "interface/952b1518": {
+      "original": "Back to the lobby",
+      "text": "Zurück zur Lobby"
+    },
+    "interface/e4c86dca": {
+      "original": "Back to the main menu. A player leaving ends the match; a spectator leaving changes nothing for the others.",
+      "text": "Zurück zum Hauptmenü. Verlässt ein Spieler die Partie, endet sie. Verlässt ein Zuschauer die Partie, ändert sich für die anderen nichts."
+    },
+    "interface/957fd957": {
+      "original": "Battle",
+      "text": "Kampf"
+    },
+    "interface/c4b18780": {
+      "original": "Battle font",
+      "text": "Kampfschrift"
+    },
+    "interface/8fb5462d": {
+      "original": "Be matched with whoever is searching the same queue. All quick matches have no time limit and run at %d%% speed, between games with the original disc's data.",
+      "text": "Finde einen Gegner in derselben Warteschlange. Schnelle Spiele haben kein Zeitlimit und laufen mit %d%% Geschwindigkeit. Beide Spiele benötigen die Originaldaten der Disc."
+    },
+    "interface/2b043744": {
+      "original": "Black",
+      "text": "Schwarz"
+    },
+    "interface/0cad6f57": {
+      "original": "Border",
+      "text": "Rahmen"
+    },
+    "interface/414cf243": {
+      "original": "Browse...",
+      "text": "Durchsuchen..."
+    },
+    "interface/cd75d4f3": {
+      "original": "Browse...##eu",
+      "text": "Durchsuchen...##eu"
+    },
+    "interface/95967543": {
+      "original": "Build",
+      "text": "Kompilierung"
+    },
+    "interface/72472622": {
+      "original": "Button %d",
+      "text": "Taste %d"
+    },
+    "interface/35afca3b": {
+      "original": "Cancel",
+      "text": "Abbrechen"
+    },
+    "interface/785c64aa": {
+      "original": "Cancelled. Finished steps are kept; Install continues from where it stopped.",
+      "text": "Abgebrochen. Abgeschlossene Schritte bleiben erhalten. Installieren setzt am unterbrochenen Schritt fort."
+    },
+    "interface/380df1e4": {
+      "original": "Cancelled. Install continues from where it stopped.",
+      "text": "Abgebrochen. Installieren setzt am unterbrochenen Schritt fort."
+    },
+    "interface/dafbff42": {
+      "original": "Change view",
+      "text": "Ansicht ändern"
+    },
+    "interface/f47d9b51": {
+      "original": "Chat (Tab)",
+      "text": "Chat (Tab)"
+    },
+    "interface/b7835580": {
+      "original": "Chat size",
+      "text": "Chatgröße"
+    },
+    "interface/2bc5074d": {
+      "original": "Cheats",
+      "text": "Cheats"
+    },
+    "interface/70ad7706": {
+      "original": "Check for updates",
+      "text": "Nach Updates suchen"
+    },
+    "interface/c9cb3dd4": {
+      "original": "Checking the download of %s (its signature)...",
+      "text": "Download von %s wird geprüft (Signatur)..."
+    },
+    "interface/53e0f204": {
+      "original": "Checking your game data...",
+      "text": "Deine Spieldaten werden geprüft..."
+    },
+    "interface/7cc9d8a5": {
+      "original": "Checking your game data... Connecting begins when it is done.",
+      "text": "Deine Spieldaten werden geprüft... Danach beginnt die Verbindung."
+    },
+    "interface/5a7dc9ae": {
+      "original": "Checking your game data... The search begins when it is done.",
+      "text": "Deine Spieldaten werden geprüft... Danach beginnt die Suche."
+    },
+    "interface/ec1c58da": {
+      "original": "Choose a binding, then press the new key or button. Esc keeps it, Delete clears it;",
+      "text": "Wähle eine Belegung und drücke die neue Taste. Esc behält die Belegung, Entf löscht sie;"
+    },
+    "interface/ebd1fbef": {
+      "original": "Choose original battle announcements and HUD text, or any battle font listed in fonts.tsv.",
+      "text": "Wähle die ursprünglichen Kampfansagen und HUD-Texte oder eine Kampfschrift aus fonts.tsv."
+    },
+    "interface/f9954c91": {
+      "original": "Choose your disc image of Dragon Ball Z: Budokai Tenkaichi 3, USA release (SLUS-21678), as an .iso file. The game's data is taken from it and stays on this computer. %s",
+      "text": "Wähle dein Disc-Abbild von Dragon Ball Z: Budokai Tenkaichi 3, US-Version (SLUS-21678), als .iso-Datei. Die Spieldaten werden daraus entnommen und bleiben auf diesem Computer. %s"
+    },
+    "interface/8d9ab4bf": {
+      "original": "Chosen by the desktop",
+      "text": "Vom Desktop gewählt"
+    },
+    "interface/812746a9": {
+      "original": "Circle",
+      "text": "Kreis"
+    },
+    "interface/3e383049": {
+      "original": "Clashes: Square counts as a direction",
+      "text": "Kräftemessen: Quadrat zählt als Richtung"
+    },
+    "interface/72c680c9": {
+      "original": "Click to copy",
+      "text": "Zum Kopieren klicken"
+    },
+    "interface/cd86acc3": {
+      "original": "Close",
+      "text": "Schließen"
+    },
+    "interface/d8059bb7": {
+      "original": "Close the game?\nUnsaved progress will be lost.",
+      "text": "Spiel schließen?\nNicht gespeicherter Fortschritt geht verloren."
+    },
+    "interface/15e31034": {
+      "original": "Close the game? Progress that was not saved is lost.",
+      "text": "Spiel schließen? Nicht gespeicherter Fortschritt geht verloren."
+    },
+    "interface/f26bbc80": {
+      "original": "Close the lobby",
+      "text": "Lobby schließen"
+    },
+    "interface/b89ead86": {
+      "original": "Compact",
+      "text": "Kompakt"
+    },
+    "interface/d61acc89": {
+      "original": "Compilers and tools on this computer",
+      "text": "Compiler und Werkzeuge dieses Computers"
+    },
+    "interface/a15e8ea1": {
+      "original": "Controller",
+      "text": "Controller"
+    },
+    "interface/010d9d7b": {
+      "original": "Controller %d (not connected)",
+      "text": "Controller %d (nicht verbunden)"
+    },
+    "interface/f6f22637": {
+      "original": "Controls",
+      "text": "Steuerung"
+    },
+    "interface/8dc21305": {
+      "original": "Copied",
+      "text": "Kopiert"
+    },
+    "interface/c5f1780e": {
+      "original": "Could not start python3: ",
+      "text": "python3 konnte nicht gestartet werden: "
+    },
+    "interface/a767f7d4": {
+      "original": "Could not write ",
+      "text": "Schreiben fehlgeschlagen: "
+    },
+    "interface/b663d53b": {
+      "original": "Cross",
+      "text": "Kreuz"
+    },
+    "interface/7e8fed21": {
+      "original": "D-pad down",
+      "text": "Steuerkreuz unten"
+    },
+    "interface/3c3d1bbc": {
+      "original": "D-pad left",
+      "text": "Steuerkreuz links"
+    },
+    "interface/777fd089": {
+      "original": "D-pad right",
+      "text": "Steuerkreuz rechts"
+    },
+    "interface/cfc44694": {
+      "original": "D-pad up",
+      "text": "Steuerkreuz oben"
+    },
+    "interface/b88a0f2f": {
+      "original": "D-pad: move   Cross / A: choose   Circle / B: back   L1 / R1: tab",
+      "text": "Steuerkreuz: bewegen   Kreuz / A: wählen   Kreis / B: zurück   L1 / R1: Reiter"
+    },
+    "interface/4b75fa5f": {
+      "original": "DP battle (10 DP)",
+      "text": "DP-Kampf (10 DP)"
+    },
+    "interface/a9b233f0": {
+      "original": "DP battle (15 DP)",
+      "text": "DP-Kampf (15 DP)"
+    },
+    "interface/5004deb4": {
+      "original": "DP battle (20 DP)",
+      "text": "DP-Kampf (20 DP)"
+    },
+    "interface/9bda99e2": {
+      "original": "Deadzone##%d",
+      "text": "Totzone##%d"
+    },
+    "interface/19dc307e": {
+      "original": "Default",
+      "text": "Standard"
+    },
+    "interface/e1a04acf": {
+      "original": "Depth tint",
+      "text": "Tiefentönung"
+    },
+    "interface/25ae275d": {
+      "original": "Dialogue / UI font",
+      "text": "Dialog- und Oberflächenschrift"
+    },
+    "interface/9cae68f1": {
+      "original": "Disc image",
+      "text": "Disc-Abbild"
+    },
+    "interface/5a05d9b5": {
+      "original": "Display",
+      "text": "Anzeige"
+    },
+    "interface/721d4867": {
+      "original": "Distance blur",
+      "text": "Fernunschärfe"
+    },
+    "interface/024e61ad": {
+      "original": "Done.",
+      "text": "Fertig."
+    },
+    "interface/2f071495": {
+      "original": "Downloading %s: %d%% (%.1f of %.1f MB). You can go on playing.",
+      "text": "%s wird heruntergeladen: %d%% (%.1f von %.1f MB). Du kannst weiterspielen."
+    },
+    "interface/2fe441b8": {
+      "original": "Downloading update {version}: {percent}%",
+      "text": "Update {version} wird heruntergeladen: {percent}%"
+    },
+    "interface/2c029eaa": {
+      "original": "Downloads the new version in the background and checks its signature; you go on playing\nmeanwhile (online play waits until it is installed). Then Restart now installs it.\nYour saves, settings, game data, mods and texture packs are not touched.",
+      "text": "Lädt die neue Version im Hintergrund herunter und prüft ihre Signatur. Du kannst\nweiterspielen; Onlinespiel wartet auf die Installation. Jetzt neu starten installiert\nsie anschließend. Spielstände, Einstellungen, Spieldaten, Mods und Texturpakete bleiben\nerhalten."
+    },
+    "interface/09904ef9": {
+      "original": "Drag anywhere to move the chat window. Click a line to copy it.",
+      "text": "Ziehe an einer beliebigen Stelle, um das Chatfenster zu verschieben. Klicke auf eine Zeile, um sie zu kopieren."
+    },
+    "interface/ebfc6f85": {
+      "original": "Dragon Net Battle",
+      "text": "Dragon-Netzwerkkampf"
+    },
+    "interface/ef59846a": {
+      "original": "Dragon Net Battle is the first online window of this port. Tenkaichi Budokai Online (the main menu) does everything it does: lobbies by code or by address, and quick matches.",
+      "text": "Dragon Net Battle ist das erste Onlinefenster dieses Ports. Tenkaichi Budokai Online im Hauptmenü bietet alle seine Funktionen: Lobbys über Code oder Adresse und schnelle Spiele."
+    },
+    "interface/851d025b": {
+      "original": "Each picture waits for the display's refresh. Turn it on if the picture tears.\nOff is the default: it adds a little delay.",
+      "text": "Jedes Bild wartet auf die Bildschirmaktualisierung. Bei Bildrissen einschalten.\nStandardmäßig aus, da es die Verzögerung etwas erhöht."
+    },
+    "interface/592fdd05": {
+      "original": "Effects",
+      "text": "Effekte"
+    },
+    "interface/10e4397f": {
+      "original": "End an online match on a desync",
+      "text": "Online-Kampf bei Desynchronisation beenden"
+    },
+    "interface/450e92b9": {
+      "original": "Ends the match and the lobby for everyone.",
+      "text": "Beendet die Partie und schließt die Lobby für alle."
+    },
+    "interface/aa2b61a9": {
+      "original": "Ends the match for everyone: all go back to the lobby window, where the rules can be changed.",
+      "text": "Beendet die Partie für alle. Alle kehren zur Lobby zurück, wo die Regeln geändert werden können."
+    },
+    "interface/043ba54f": {
+      "original": "Enter: send   Esc/Tab: close   Ctrl+V: paste",
+      "text": "Eingabe: senden   Esc/Tab: schließen   Strg+V: einfügen"
+    },
+    "interface/b343c4a7": {
+      "original": "European disc image (optional)",
+      "text": "Europäisches Disc-Abbild (optional)"
+    },
+    "interface/c50e22ef": {
+      "original": "European languages",
+      "text": "Europäische Sprachen"
+    },
+    "interface/b816c01a": {
+      "original": "European languages and opening soundtrack: the game makes the languages at its next start",
+      "text": "Europäische Sprachen und Titelmusik: Das Spiel bereitet die Sprachen beim nächsten Start vor"
+    },
+    "interface/07edcdff": {
+      "original": "Executable data",
+      "text": "Programmdaten"
+    },
+    "interface/34ce44a5": {
+      "original": "Exit",
+      "text": "BEENDEN"
+    },
+    "interface/09e6bab5": {
+      "original": "Exit game",
+      "text": "Spiel beenden"
+    },
+    "interface/43597f39": {
+      "original": "Experimental. The game computes a fight 30 times a second. With this, more pictures are\ndrawn between each two. The fight itself does not change, and neither does online play.\nThe newest picture reaches the screen later: 17 ms at 60, 25 ms at 120, 29 ms at 240.\nChoose what your screen can show. F9 switches it off and on.",
+      "text": "Experimentell. Das Spiel berechnet Kämpfe 30-mal pro Sekunde. Diese Option zeichnet\nZwischenbilder, ohne den Kampf oder das Onlinespiel zu ändern. Das neueste Bild\nerscheint später: 17 ms bei 60, 25 ms bei 120 und 29 ms bei 240. Wähle eine passende\nBildrate für deinen Bildschirm. F9 schaltet die Funktion um."
+    },
+    "interface/770df4a3": {
+      "original": "F1 to update, or github.com/z3xox/Tenkaichi3Decomp/releases",
+      "text": "F1 zum Aktualisieren oder github.com/z3xox/Tenkaichi3Decomp/releases"
+    },
+    "interface/d52258a6": {
+      "original": "Fight players on other computers. One of you opens a lobby, the others join it with its code or the owner's address; its page (Tenkaichi Budokai Online) has the places, the rules and the matches.",
+      "text": "Spiele gegen andere Computer. Einer öffnet eine Lobby, die anderen treten über ihren Code oder die Adresse des Besitzers bei. Ihre Seite in Tenkaichi Budokai Online zeigt Plätze, Regeln und Kämpfe."
+    },
+    "interface/bf7a6ae5": {
+      "original": "Fighter panels",
+      "text": "Kämpfer-Panels"
+    },
+    "interface/3d3198ec": {
+      "original": "Finish the online session first.",
+      "text": "Beende zuerst die Onlinesitzung."
+    },
+    "interface/66bf7d90": {
+      "original": "Form font",
+      "text": "Formenschrift"
+    },
+    "interface/56ad3981": {
+      "original": "Found a player. Connecting...",
+      "text": "Gegner gefunden. Verbindung wird hergestellt..."
+    },
+    "interface/ec5685ca": {
+      "original": "Found the lobby. Connecting to its owner...",
+      "text": "Lobby gefunden. Verbindung zum Besitzer wird hergestellt..."
+    },
+    "interface/7fa5ff5c": {
+      "original": "Full",
+      "text": "Vollständig"
+    },
+    "interface/4edbbee0": {
+      "original": "Full screen",
+      "text": "Vollbild"
+    },
+    "interface/3ed725e5": {
+      "original": "Game data",
+      "text": "Spieldaten"
+    },
+    "interface/ba3398b8": {
+      "original": "Game language based on available translations.",
+      "text": "Spielsprache anhand der verfügbaren Übersetzungen."
+    },
+    "interface/4192c6c0": {
+      "original": "Game speed",
+      "text": "Spielgeschwindigkeit"
+    },
+    "interface/dd5dbd2e": {
+      "original": "Glare and glow",
+      "text": "Blendung und Leuchten"
+    },
+    "interface/2829ca09": {
+      "original": "Glare strength",
+      "text": "Blendstärke"
+    },
+    "interface/a1ab591d": {
+      "original": "Glow strength",
+      "text": "Leuchtstärke"
+    },
+    "interface/478503eb": {
+      "original": "Guide",
+      "text": "Guide"
+    },
+    "interface/7b1426d7": {
+      "original": "HUD Style",
+      "text": "HUD-Stil"
+    },
+    "interface/992edd7f": {
+      "original": "Half a second of both motors at this strength.",
+      "text": "Aktiviert beide Motoren für eine halbe Sekunde mit dieser Stärke."
+    },
+    "interface/622cdd31": {
+      "original": "Hide the mouse pointer during play",
+      "text": "Mauszeiger beim Spielen ausblenden"
+    },
+    "interface/04e6a4f1": {
+      "original": "Hide what's new",
+      "text": "Neuerungen ausblenden"
+    },
+    "interface/6a70f3ef": {
+      "original": "Hits, blasts, menu sounds. Takes effect with the next sound that starts.",
+      "text": "Treffer, Energiestöße und Menügeräusche. Wirkt ab dem nächsten abgespielten Ton."
+    },
+    "interface/302af18f": {
+      "original": "Host",
+      "text": "Gastgeber"
+    },
+    "interface/8bab2f91": {
+      "original": "Host's address",
+      "text": "Adresse des Gastgebers"
+    },
+    "interface/690241cc": {
+      "original": "How far the stick has to be moved before the game is told anything (the shaded middle).\nOriginal: the game's own, 39%% for left / right and for up / down separately, a square.\n0%% to 90%%: a round one of that size instead; from its edge the value grows evenly\nto full at full tilt, and the stick counts as a direction half way between the two.\nThe white dot is the stick, the ring what the game is given; after the stick's name,\nthe direction the game takes it for. Choose a size that covers where the dot rests\nwhen the stick is let go.",
+      "text": "Wie weit der Stick bewegt werden muss, bevor das Spiel eine Eingabe erhält (schattierte\nMitte). Original: quadratische Zone des Spiels, 39%% je Achse. 0%% bis 90%%:\nkreisförmige Zone dieser Größe. Ab ihrem Rand steigt der Wert gleichmäßig bis zum\nMaximum bei vollem Ausschlag; eine Richtung zählt ab der Hälfte dieses Weges. Der weiße\nPunkt zeigt den Stick, der Ring die Spieleingabe. Hinter dem Sticknamen steht die\nerkannte Richtung. Wähle eine Zone, die den Punkt bei losgelassenem Stick abdeckt."
+    },
+    "interface/5faf6944": {
+      "original": "How fast the game runs outside online play (the sound keeps its pitch). 100%% is the game's own;\n114%% is what competitive play uses. An online match never uses this value:\nits speed is the host's or the queue's.",
+      "text": "Spielgeschwindigkeit außerhalb des Onlinespiels (die Tonhöhe bleibt gleich). 100%% ist\ndie Originalgeschwindigkeit, 114%% wird in Wettkämpfen genutzt. Online gilt immer die\nGeschwindigkeit des Hosts oder der Warteschlange."
+    },
+    "interface/ed8fe6b4": {
+      "original": "How fast the match runs, for both players; the sound keeps its pitch.\n100%% is the game's own speed. %d%% is the competitive standard, and what\nquick matches run at.\nWith a player on 0.1.29 only 100%% and 120%% are possible, with an older\nrelease only 100%%.",
+      "text": "Geschwindigkeit für beide Spieler; die Tonhöhe bleibt gleich. 100%% ist die\nOriginalgeschwindigkeit. %d%% ist der Wettkampfstandard und die Geschwindigkeit\nschneller Spiele. Mit Version 0.1.29 sind nur 100%% und 120%% möglich, mit älteren\nVersionen nur 100%%."
+    },
+    "interface/8cf704b7": {
+      "original": "How finely the game is drawn. 1x is the PlayStation 2's own resolution.\nHigher is sharper and uses more video memory.",
+      "text": "Auflösung, in der das Spiel gezeichnet wird. 1x entspricht der PlayStation 2. Höhere\nAuflösungen sind schärfer und benötigen mehr Grafikspeicher."
+    },
+    "interface/10edbcc2": {
+      "original": "How long after a press your own move comes out. A slow connection needs more, or the game\nhas to guess too far ahead and stutters. Automatic measures the connection when the match\nstarts: 1 frame on a good one, more on a slow one.",
+      "text": "Zeit zwischen Tastendruck und eigener Aktion. Eine langsame Verbindung braucht mehr\nVerzögerung, sonst muss das Spiel zu weit vorausberechnen und ruckelt. Automatisch misst\ndie Verbindung beim Start: 1 Frame bei guter Verbindung, mehr bei langsamer."
+    },
+    "interface/2c21922c": {
+      "original": "How the display of a fight, the menus and text are drawn above 1x internal resolution.\nSharp: each of the PlayStation 2's pixels is a block. Smooth: as an emulator shows them.\nNo difference at 1x.",
+      "text": "Darstellung von Kämpfen, Menüs und Texten über 1x interner Auflösung. Scharf: Jeder\nPixel der PlayStation 2 ist ein Block. Weich: wie bei einem Emulator. Bei 1x kein\nUnterschied."
+    },
+    "interface/dbf1b08a": {
+      "original": "How wide the online chat is and how many lines it shows (while typing / otherwise).\nCompact: 4 / 2, narrower.\nNormal: 6 / 4.\nLarge: 8 / 6, wider, for large screens.",
+      "text": "Breite des Onlinechats und Zeilenzahl (beim Tippen / sonst). Kompakt: 4 / 2, schmaler.\nNormal: 6 / 4. Groß: 8 / 6, breiter, für große Bildschirme."
+    },
+    "interface/234481b3": {
+      "original": "In a clash of two beams or two rushes the game counts newly pressed directions:\nturning the stick, or tapping the d-pad. With this on, each press of Square\ncounts as one of them while the clash lasts, as a tap of the d-pad does.\nIt only changes your own pad, so it can be used in online play.",
+      "text": "Beim Kräftemessen mit Strahlen oder Anstürmen zählt das Spiel neue Richtungseingaben\ndurch Stickdrehungen oder das Steuerkreuz. Hiermit zählt währenddessen auch jeder Druck\nauf Quadrat als Richtung. Das betrifft nur deinen Controller und funktioniert auch\nonline."
+    },
+    "interface/e6e1a2ae": {
+      "original": "In a match both players get the same roster, with everything unlocked, and your own save is",
+      "text": "Im Kampf haben beide dieselben Kämpfer und alles ist freigeschaltet. Dein Spielstand bleibt"
+    },
+    "interface/9d13694c": {
+      "original": "In a picture wider than 4:3, show the menus at their own shape with black at the sides\ninstead of stretched to the width. Fights keep the wide picture.",
+      "text": "Zeigt Menüs bei breiteren Bildern als 4:3 mit ihren ursprünglichen Proportionen und\nschwarzen Rändern. Kämpfe bleiben im Breitbildformat."
+    },
+    "interface/730cb31a": {
+      "original": "In the game, F1 opens the settings: resolution, widescreen, controls and sound.",
+      "text": "Im Spiel öffnet F1 die Einstellungen für Auflösung, Breitbild, Steuerung und Ton."
+    },
+    "interface/6996769e": {
+      "original": "In the middle, as in 4:3",
+      "text": "In der Mitte, wie bei 4:3"
+    },
+    "interface/9583ff54": {
+      "original": "Input delay",
+      "text": "Eingabeverzögerung"
+    },
+    "interface/b50cbd40": {
+      "original": "Install",
+      "text": "Installieren"
+    },
+    "interface/72bd7c32": {
+      "original": "Installing %s...",
+      "text": "%s wird installiert..."
+    },
+    "interface/70bf4ba3": {
+      "original": "Installs the update over the game's folder and starts the new version (if anything\ngoes wrong, every file is put back). Your saves and settings are not touched.",
+      "text": "Installiert das Update im Spielordner und startet die neue Version. Bei einem Fehler\nwerden alle Dateien wiederhergestellt. Spielstände und Einstellungen bleiben erhalten."
+    },
+    "interface/92d2fd02": {
+      "original": "Internal resolution",
+      "text": "Interne Auflösung"
+    },
+    "interface/9cb7bf0b": {
+      "original": "It also empties your records list, and it becomes permanent the next time the game saves. Use it after your save has been loaded (from the main menu on).",
+      "text": "Leert auch deine Rekordliste. Beim nächsten Speichern wird dies dauerhaft. Nutze es nach dem Laden deines Spielstands, ab dem Hauptmenü."
+    },
+    "interface/30025399": {
+      "original": "Join",
+      "text": "Beitreten"
+    },
+    "interface/4f30652a": {
+      "original": "Join the lobby",
+      "text": "Der Lobby beitreten"
+    },
+    "interface/27d1a714": {
+      "original": "Keyboard",
+      "text": "Tastatur"
+    },
+    "interface/17e1cc6e": {
+      "original": "L1",
+      "text": "L1"
+    },
+    "interface/16e1cadb": {
+      "original": "L2",
+      "text": "L2"
+    },
+    "interface/15e1c948": {
+      "original": "L3",
+      "text": "L3"
+    },
+    "interface/9a73db9b": {
+      "original": "Language",
+      "text": "Sprache"
+    },
+    "interface/a509a921": {
+      "original": "Language saved. It will apply on the next launch.",
+      "text": "Sprache gespeichert. Sie gilt ab dem nächsten Start."
+    },
+    "interface/f18b9f54": {
+      "original": "Large",
+      "text": "Groß"
+    },
+    "interface/f7f62b49": {
+      "original": "Later",
+      "text": "Später"
+    },
+    "interface/f52d3757": {
+      "original": "Leave the lobby",
+      "text": "Lobby verlassen"
+    },
+    "interface/ea8a7b95": {
+      "original": "Left and right choose, Enter confirms, Escape goes back to the game",
+      "text": "Links/rechts: wählen. Eingabe: bestätigen. Esc: zurück zum Spiel."
+    },
+    "interface/2982084b": {
+      "original": "Left paddle 1",
+      "text": "Linkes Paddle 1"
+    },
+    "interface/2a8209de": {
+      "original": "Left paddle 2",
+      "text": "Linkes Paddle 2"
+    },
+    "interface/3671b2f8": {
+      "original": "Left shoulder",
+      "text": "Linke Schultertaste"
+    },
+    "interface/3c1ca2b0": {
+      "original": "Left stick",
+      "text": "Linker Stick"
+    },
+    "interface/5f4d5b48": {
+      "original": "Left stick click",
+      "text": "Linken Stick drücken"
+    },
+    "interface/8c4b74fc": {
+      "original": "Left stick down",
+      "text": "Linker Stick nach unten"
+    },
+    "interface/ad3ad0f1": {
+      "original": "Left stick left",
+      "text": "Linker Stick nach links"
+    },
+    "interface/c9e66592": {
+      "original": "Left stick right",
+      "text": "Linker Stick nach rechts"
+    },
+    "interface/fda2d8bd": {
+      "original": "Left stick up",
+      "text": "Linker Stick nach oben"
+    },
+    "interface/c025c80c": {
+      "original": "Left trigger",
+      "text": "Linker Trigger"
+    },
+    "interface/8ad2f8cf": {
+      "original": "Light",
+      "text": "Leicht"
+    },
+    "interface/f908c1ed": {
+      "original": "Light: half of the haze's sprites, a thinner haze; about half of what switching it off gains.",
+      "text": "Leicht: halb so viele Nebelsprites, dünnerer Nebel und etwa die Hälfte des Leistungsgewinns vom Ausschalten."
+    },
+    "interface/a5aea4d9": {
+      "original": "List Dragon Net Battle in the main menu",
+      "text": "Dragon Net Battle im Hauptmenü anzeigen"
+    },
+    "interface/0c8028b3": {
+      "original": "Lobby%s%s",
+      "text": "Lobby%s%s"
+    },
+    "interface/a5bd9cd4": {
+      "original": "Looking for the lobby...",
+      "text": "Lobby wird gesucht..."
+    },
+    "interface/022ad366": {
+      "original": "Low input lag (experimental)",
+      "text": "Geringe Eingabeverzögerung (experimentell)"
+    },
+    "interface/a42017af": {
+      "original": "Menu font",
+      "text": "Menüschrift"
+    },
+    "interface/26498f4f": {
+      "original": "Menu size",
+      "text": "Oberflächengröße"
+    },
+    "interface/f47bafe5": {
+      "original": "Menus in 4:3",
+      "text": "Menüs in 4:3"
+    },
+    "interface/df71ca29": {
+      "original": "Misc",
+      "text": "Sonstiges"
+    },
+    "interface/b9060cee": {
+      "original": "Misc 1",
+      "text": "Sonstiges 1"
+    },
+    "interface/3d94d6a7": {
+      "original": "Missing",
+      "text": "Fehlt"
+    },
+    "interface/c09cceee": {
+      "original": "Models, sounds and text are unpacked",
+      "text": "Modelle, Ton und Texte werden entpackt"
+    },
+    "interface/dbbc75d1": {
+      "original": "Movement blur",
+      "text": "Bewegungsunschärfe"
+    },
+    "interface/584a1d74": {
+      "original": "Music",
+      "text": "Musik"
+    },
+    "interface/2a892a63": {
+      "original": "Music follows game speed",
+      "text": "Musik folgt Spieltempo"
+    },
+    "interface/3f609f74": {
+      "original": "Mute",
+      "text": "Stummschalten"
+    },
+    "interface/013a5ec3": {
+      "original": "Name font",
+      "text": "Namensschrift"
+    },
+    "interface/0c001980": {
+      "original": "Needs about 4 GB of free space and takes 5 to 10 minutes.",
+      "text": "Benötigt etwa 4 GB freien Speicher und 5 bis 10 Minuten."
+    },
+    "interface/d21908dc": {
+      "original": "Needs about 4 GB of free space and takes a minute or two.",
+      "text": "Benötigt etwa 4 GB freien Speicher und ein bis zwei Minuten."
+    },
+    "interface/22027531": {
+      "original": "Neither the game (Tenkaichi3Decomp, Tenkaichi3Decomp.dat) nor install.py was found next to this program.",
+      "text": "Weder das Spiel (Tenkaichi3Decomp, Tenkaichi3Decomp.dat) noch install.py wurde neben diesem Programm gefunden."
+    },
+    "interface/430f233b": {
+      "original": "No answer from the host. Check the address and port. Watching a match needs a release newer than 0.1.38.7 on the host as well (an older host does not answer spectators).",
+      "text": "Keine Antwort vom Host. Prüfe Adresse und Port. Zum Zuschauen braucht auch der Host eine neuere Version als 0.1.38.7; ältere antworten Zuschauern nicht."
+    },
+    "interface/6de7f47d": {
+      "original": "No limit",
+      "text": "Ohne Limit"
+    },
+    "interface/8b8b6937": {
+      "original": "No reminder over the menus until the next start.",
+      "text": "Keine Erinnerung über den Menüs bis zum nächsten Start."
+    },
+    "interface/8d8f19ea": {
+      "original": "No room with that code (codes last ten minutes).",
+      "text": "Kein Raum mit diesem Code (Codes gelten zehn Minuten)."
+    },
+    "interface/b3551db3": {
+      "original": "No room with that code, or the matchmaking service does not take spectators yet. (Codes last ten minutes; a host on 0.1.38.7 or older gives its room up when the match begins.)",
+      "text": "Kein Raum mit diesem Code, oder der Dienst unterstützt noch keine Zuschauer. Codes gelten zehn Minuten; Hosts mit Version 0.1.38.7 oder älter geben den Raum beim Partiestart auf."
+    },
+    "interface/fcafe98b": {
+      "original": "Nobody answered in two minutes.",
+      "text": "Zwei Minuten lang keine Antwort."
+    },
+    "interface/2660bebb": {
+      "original": "Nobody joined: the room code has run out. Host again for a new one.",
+      "text": "Niemand ist beigetreten: Der Raumcode ist abgelaufen. Hoste erneut für einen neuen Code."
+    },
+    "interface/3e6d9a05": {
+      "original": "Nobody was searching this queue in the last three minutes. Search again, or try another queue.",
+      "text": "In den letzten drei Minuten hat niemand in dieser Warteschlange gesucht. Suche erneut oder versuche eine andere."
+    },
+    "interface/304ff7fb": {
+      "original": "None",
+      "text": "Keiner"
+    },
+    "interface/58de2772": {
+      "original": "Normal",
+      "text": "Normal"
+    },
+    "interface/71d0307f": {
+      "original": "Not during an online session: finish it first.",
+      "text": "Nicht während einer Onlinesitzung: Beende sie zuerst."
+    },
+    "interface/419ee55b": {
+      "original": "Nothing is broken: finished steps are kept, and Install continues from where it stopped.",
+      "text": "Alles ist in Ordnung: Abgeschlossene Schritte bleiben erhalten. Installieren setzt am unterbrochenen Schritt fort."
+    },
+    "interface/aaadf1e7": {
+      "original": "Nothing is downloaded except one small tool.",
+      "text": "Es wird nur ein kleines Werkzeug heruntergeladen."
+    },
+    "interface/aac89823": {
+      "original": "Nothing is downloaded.",
+      "text": "Es wird nichts heruntergeladen."
+    },
+    "interface/71eaf22a": {
+      "original": "Off (30, as the console)",
+      "text": "Aus (30, wie die Konsole)"
+    },
+    "interface/f47bdffa": {
+      "original": "Off (wait for each other)",
+      "text": "Aus (aufeinander warten)"
+    },
+    "interface/69c93b7f": {
+      "original": "On: the stage's blur keeps the detail of the internal resolution (crisper, as other\nemulators show it upscaled). Off: as soft as the PlayStation 2 draws it. No difference at 1x.",
+      "text": "Ein: Die Unschärfe der Arena behält Details der internen Auflösung, wie beim\nHochskalieren anderer Emulatoren. Aus: so weich wie auf der PlayStation 2. Bei 1x kein\nUnterschied."
+    },
+    "interface/736bf2c4": {
+      "original": "Once per start, ask GitHub for the newest release and say so if it is newer than this one.\nNothing is downloaded until you press Update now (at the top of this window).",
+      "text": "Prüft beim Start die neueste Version auf GitHub und meldet eine neuere Veröffentlichung.\nLädt erst etwas herunter, wenn du oben im Fenster Jetzt aktualisieren drückst."
+    },
+    "interface/bc3b88aa": {
+      "original": "Online",
+      "text": "Online"
+    },
+    "interface/ef36c840": {
+      "original": "Online chat",
+      "text": "Online-Chat"
+    },
+    "interface/a9d7c477": {
+      "original": "Open Dragon Net Battle",
+      "text": "Dragon Net Battle öffnen"
+    },
+    "interface/b56d482a": {
+      "original": "Open a lobby",
+      "text": "Eine Lobby öffnen"
+    },
+    "interface/646d9de2": {
+      "original": "Open online chat",
+      "text": "Online-Chat öffnen"
+    },
+    "interface/8f987260": {
+      "original": "Open the log",
+      "text": "Protokoll öffnen"
+    },
+    "interface/e0a43849": {
+      "original": "Open this window",
+      "text": "Dieses Fenster öffnen"
+    },
+    "interface/3b585852": {
+      "original": "OpenGL",
+      "text": "OpenGL"
+    },
+    "interface/9e2cc02b": {
+      "original": "Opens the release page in your browser. To update by hand, copy the new files over the old ones.",
+      "text": "Öffnet die Veröffentlichungsseite im Browser. Kopiere zum manuellen Aktualisieren die neuen Dateien über die alten."
+    },
+    "interface/a2fe7692": {
+      "original": "Original",
+      "text": "Original"
+    },
+    "interface/56b4e2a5": {
+      "original": "Original uses the game's sprites. Other fonts replace matching menu labels immediately.\nBattle announcements have their own setting below.",
+      "text": "Original verwendet die Sprites des Spiels. Andere Schriften ersetzen erkannte Menütexte\nsofort. Kampfansagen haben unten eine eigene Einstellung."
+    },
+    "interface/1085e05d": {
+      "original": "Outline",
+      "text": "Umriss"
+    },
+    "interface/0713eb36": {
+      "original": "PS2 disc image",
+      "text": "PS2-Disc-Abbild"
+    },
+    "interface/3aaa45c3": {
+      "original": "Package to install",
+      "text": "Zu installierendes Paket"
+    },
+    "interface/b34a0288": {
+      "original": "Paste",
+      "text": "Einfügen"
+    },
+    "interface/29ab6f83": {
+      "original": "Play",
+      "text": "Spielen"
+    },
+    "interface/1c70fc20": {
+      "original": "Player",
+      "text": "Spieler"
+    },
+    "interface/ab6fa923": {
+      "original": "Player 1",
+      "text": "Spieler 1"
+    },
+    "interface/d16b2d2d": {
+      "original": "Player 1's view, player 2's, or both (split screen). Also V or R1 while watching.",
+      "text": "Sicht von Spieler 1, Spieler 2 oder beiden (geteilter Bildschirm). Beim Zuschauen auch mit V oder R1."
+    },
+    "interface/ac6faab6": {
+      "original": "Player 2",
+      "text": "Spieler 2"
+    },
+    "interface/f2bd8183": {
+      "original": "Player name",
+      "text": "Spielername"
+    },
+    "interface/e2c53cc6": {
+      "original": "Port",
+      "text": "Port"
+    },
+    "interface/8d183ea3": {
+      "original": "Put a pack's files (PCSX2 naming, .dds or .png) into a folder \"textures\" next to the game.",
+      "text": "Lege die Dateien eines Pakets (PCSX2-Dateinamen, .dds oder .png) in einen Ordner „textures“ neben dem Spiel."
+    },
+    "interface/1620246d": {
+      "original": "Quick match",
+      "text": "Schnelles Spiel"
+    },
+    "interface/f311a329": {
+      "original": "Quick match needs an official release of the game.",
+      "text": "Schnelle Spiele benötigen eine offizielle Spielversion."
+    },
+    "interface/69dbcae2": {
+      "original": "Quick saving",
+      "text": "Schnellspeichern"
+    },
+    "interface/0c044bcc": {
+      "original": "R1",
+      "text": "R1"
+    },
+    "interface/0f045085": {
+      "original": "R2",
+      "text": "R2"
+    },
+    "interface/0e044ef2": {
+      "original": "R3",
+      "text": "R3"
+    },
+    "interface/5335431d": {
+      "original": "Ready to play",
+      "text": "Bereit zum Spielen"
+    },
+    "interface/2ffbb381": {
+      "original": "Release page",
+      "text": "Veröffentlichungsseite"
+    },
+    "interface/4143b995": {
+      "original": "Render on a second processor core (experimental, after a restart)",
+      "text": "Auf zweitem Kern rendern (experimentell, nach Neustart)"
+    },
+    "interface/594a391e": {
+      "original": "Renderer",
+      "text": "Renderer"
+    },
+    "interface/914ec0dc": {
+      "original": "Replace the shared font used by dialogue, subtitles and ordinary UI text.\nOriginal keeps the game's glyphs. Text placement, colors, shadows and icons are preserved.",
+      "text": "Ersetzt die gemeinsame Schrift für Dialoge, Untertitel und Oberflächentexte. Original\nbehält die Schriftzeichen des Spiels. Positionen, Farben, Schatten und Symbole bleiben\nerhalten."
+    },
+    "interface/f984e6d5": {
+      "original": "Replacement textures from the folder \"textures\" next to the game.",
+      "text": "Ersatztexturen aus dem Ordner \"textures\" neben dem Spiel."
+    },
+    "interface/4e26fc61": {
+      "original": "Requirements",
+      "text": "Voraussetzungen"
+    },
+    "interface/0ac8a560": {
+      "original": "Reset",
+      "text": "Zurücksetzen"
+    },
+    "interface/4ac0e87d": {
+      "original": "Reset to defaults",
+      "text": "Standardwerte wiederherstellen"
+    },
+    "interface/54001a7c": {
+      "original": "Restart now",
+      "text": "Jetzt neu starten"
+    },
+    "interface/1f7dab24": {
+      "original": "Right paddle 1",
+      "text": "Rechtes Paddle 1"
+    },
+    "interface/227dafdd": {
+      "original": "Right paddle 2",
+      "text": "Rechtes Paddle 2"
+    },
+    "interface/b2d1109b": {
+      "original": "Right shoulder",
+      "text": "Rechte Schultertaste"
+    },
+    "interface/287675f9": {
+      "original": "Right stick",
+      "text": "Rechter Stick"
+    },
+    "interface/6198daad": {
+      "original": "Right stick click",
+      "text": "Rechten Stick drücken"
+    },
+    "interface/b6c0dc17": {
+      "original": "Right stick down",
+      "text": "Rechter Stick nach unten"
+    },
+    "interface/b5056682": {
+      "original": "Right stick left",
+      "text": "Rechter Stick nach links"
+    },
+    "interface/54408bef": {
+      "original": "Right stick right",
+      "text": "Rechter Stick nach rechts"
+    },
+    "interface/a0df3d2e": {
+      "original": "Right stick up",
+      "text": "Rechter Stick nach oben"
+    },
+    "interface/5d8023c1": {
+      "original": "Right trigger",
+      "text": "Rechter Trigger"
+    },
+    "interface/d8a11c6b": {
+      "original": "Rival",
+      "text": "Gegner"
+    },
+    "interface/769c309d": {
+      "original": "Rollback",
+      "text": "Rollback"
+    },
+    "interface/d2ccaad3": {
+      "original": "Room code",
+      "text": "Raumcode"
+    },
+    "interface/acf4de82": {
+      "original": "Room codes need an official release of the game. Playing by address still works.",
+      "text": "Raumcodes benötigen eine offizielle Spielversion. Spielen über eine Adresse funktioniert weiterhin."
+    },
+    "interface/cb75211f": {
+      "original": "Room codes need an official release of the game. Watching by address still works.",
+      "text": "Raumcodes benötigen eine offizielle Spielversion. Zuschauen über eine Adresse funktioniert weiterhin."
+    },
+    "interface/43d739f6": {
+      "original": "Running now: %s. %s from the next start.",
+      "text": "Aktuell: %s. %s ab dem nächsten Start."
+    },
+    "interface/b4293aad": {
+      "original": "SELECT",
+      "text": "SELECT"
+    },
+    "interface/0d94a63f": {
+      "original": "START",
+      "text": "STARTEN"
+    },
+    "interface/ab82964e": {
+      "original": "START + SELECT",
+      "text": "START + SELECT"
+    },
+    "interface/c5e113da": {
+      "original": "Save and load without the memory card pages: no question, no waiting, a small card in the\ncorner while it saves, and the save loaded at start without a page. Load in the options\nstill asks first, then loads at once. A missing card, a full card or a failed save is\nstill shown. Online the game's own pages always run. Off: the game's own pages.",
+      "text": "Speichert und lädt ohne Speicherkartenmenüs: ohne Nachfrage oder Wartezeit, mit kleinem\nSymbol beim Speichern und Laden beim Start. Laden in den Optionen fragt weiterhin nach\nund lädt dann sofort. Fehlende oder volle Karten sowie Speicherfehler werden weiterhin\ngemeldet. Online erscheinen immer die Originalmenüs. Aus: Originalmenüs des Spiels."
+    },
+    "interface/8a6979e4": {
+      "original": "Saved",
+      "text": "Gespeichert"
+    },
+    "interface/1f01df71": {
+      "original": "Search again",
+      "text": "Erneut suchen"
+    },
+    "interface/900b02b4": {
+      "original": "Search for a match",
+      "text": "Kampf suchen"
+    },
+    "interface/29f32027": {
+      "original": "Searching for %d:%02d more. Leave the window open.",
+      "text": "Suche noch %d:%02d. Lass das Fenster offen."
+    },
+    "interface/0b39e04c": {
+      "original": "Searching for a player in this queue...",
+      "text": "Spieler in dieser Warteschlange wird gesucht..."
+    },
+    "interface/448f51e1": {
+      "original": "See-through tint",
+      "text": "Sichtbarkeitstönung"
+    },
+    "interface/093892d6": {
+      "original": "Self-test",
+      "text": "Selbsttest"
+    },
+    "interface/aee4ff74": {
+      "original": "Setting up",
+      "text": "Installation"
+    },
+    "interface/4b058728": {
+      "original": "Settings",
+      "text": "Einstellungen"
+    },
+    "interface/6f31e27f": {
+      "original": "Setup stopped",
+      "text": "Installation angehalten"
+    },
+    "interface/0713ec1f": {
+      "original": "Sharp (console)",
+      "text": "Scharf (Konsole)"
+    },
+    "interface/d3af1a02": {
+      "original": "Sharp stage blur",
+      "text": "Scharfe Arena-Unschärfe"
+    },
+    "interface/e6a8b885": {
+      "original": "Show frame rate, and the connection in an online match",
+      "text": "Bildrate und Online-Verbindung anzeigen"
+    },
+    "interface/025c72f1": {
+      "original": "Show language selector at startup",
+      "text": "Sprachauswahl beim Start anzeigen"
+    },
+    "interface/2ec83be0": {
+      "original": "Show the language list at every normal startup when more than one language is available.",
+      "text": "Sprachliste bei jedem normalen Start mit mehreren verfügbaren Sprachen anzeigen."
+    },
+    "interface/223ee7dd": {
+      "original": "Shows the entry beside Tenkaichi Budokai Online the next time the main menu is opened.",
+      "text": "Zeigt den Eintrag beim nächsten Öffnen des Hauptmenüs neben Tenkaichi Budokai Online an."
+    },
+    "interface/6dd2dc18": {
+      "original": "Side bars",
+      "text": "Seitenleisten"
+    },
+    "interface/3b1e94e9": {
+      "original": "Single battle",
+      "text": "Einzelkampf"
+    },
+    "interface/ed1b0fee": {
+      "original": "Skip copyright page",
+      "text": "Copyright-Seite überspringen"
+    },
+    "interface/e0f80b43": {
+      "original": "Skip intro video",
+      "text": "Introvideo überspringen"
+    },
+    "interface/e85832fe": {
+      "original": "Skip logos",
+      "text": "Logos überspringen"
+    },
+    "interface/54ffade1": {
+      "original": "Skip pictures instead of slowing down",
+      "text": "Bilder überspringen statt verlangsamen"
+    },
+    "interface/4a02d9cf": {
+      "original": "Smooth",
+      "text": "Weich"
+    },
+    "interface/8f26288f": {
+      "original": "Smooth motion",
+      "text": "Flüssige Bewegung"
+    },
+    "interface/468a1af6": {
+      "original": "Someone has already joined that room.",
+      "text": "Jemand ist diesem Raum bereits beigetreten."
+    },
+    "interface/d40ba662": {
+      "original": "Sound effects",
+      "text": "Soundeffekte"
+    },
+    "interface/498f7adb": {
+      "original": "Spanish, German, French and Italian, plus the opening soundtrack",
+      "text": "Spanisch, Deutsch, Französisch und Italienisch sowie die Titelmusik"
+    },
+    "interface/9864ee8a": {
+      "original": "Spanish, German, French and Italian, plus the opening soundtrack: add a European disc image (SLES-54945).",
+      "text": "Spanisch, Deutsch, Französisch und Italienisch sowie die Titelmusik: Füge ein europäisches Disc-Abbild hinzu (SLES-54945)."
+    },
+    "interface/a1fd0b92": {
+      "original": "Spectating %s vs %s",
+      "text": "Zuschauen: %s gegen %s"
+    },
+    "interface/fac98c66": {
+      "original": "Square",
+      "text": "Quadrat"
+    },
+    "interface/4065ff27": {
+      "original": "Stage sounds",
+      "text": "Arenageräusche"
+    },
+    "interface/0ae8097f": {
+      "original": "Start",
+      "text": "Starten"
+    },
+    "interface/3458780c": {
+      "original": "Start without the opening movie. From the next start of the game.",
+      "text": "Start ohne Introfilm. Gilt ab dem nächsten Spielstart."
+    },
+    "interface/13e5e75f": {
+      "original": "Start without the publisher and developer logos. From the next start of the game.",
+      "text": "Start ohne Publisher- und Entwicklerlogos. Gilt ab dem nächsten Spielstart."
+    },
+    "interface/2ed2c08a": {
+      "original": "Sticks, triggers and vibration",
+      "text": "Sticks, Trigger und Vibration"
+    },
+    "interface/fcb4e5da": {
+      "original": "Stop watching",
+      "text": "Zuschauen beenden"
+    },
+    "interface/da4d03d0": {
+      "original": "Strength",
+      "text": "Stärke"
+    },
+    "interface/fb8358ec": {
+      "original": "Tab",
+      "text": "Tab"
+    },
+    "interface/62b9bfc9": {
+      "original": "Takes effect the next time the game starts.",
+      "text": "Gilt ab dem nächsten Spielstart."
+    },
+    "interface/faa06be2": {
+      "original": "Takes effect the next time the game starts. Both draw the same picture; Vulkan is faster.\nIf the chosen one cannot start, the game tries the other.",
+      "text": "Wirkt beim nächsten Spielstart. Beide zeichnen dasselbe Bild; Vulkan ist schneller. Kann\nder gewählte Renderer nicht starten, versucht das Spiel den anderen."
+    },
+    "interface/5559ca8e": {
+      "original": "Team battle",
+      "text": "Teamkampf"
+    },
+    "interface/959e49a4": {
+      "original": "Tenkaichi Budokai Online: the room was closed.",
+      "text": "Tenkaichi Budokai Online: Der Raum wurde geschlossen."
+    },
+    "interface/48e9fc1e": {
+      "original": "Tenkaichi Budokai Online: your opponent is here! The match begins.",
+      "text": "Tenkaichi Budokai Online: Dein Gegner ist da! Die Partie beginnt."
+    },
+    "interface/7158792c": {
+      "original": "Tenkaichi3Decomp",
+      "text": "Tenkaichi3Decomp"
+    },
+    "interface/5c286022": {
+      "original": "Tenkaichi3Decomp - Setup",
+      "text": "Tenkaichi3Decomp - Installation"
+    },
+    "interface/2ffcbe05": {
+      "original": "Test",
+      "text": "Testen"
+    },
+    "interface/3c8108c8": {
+      "original": "Text with the other player of an online match. Tab opens a line (setting key_chat), Enter sends it,\nEsc puts it away; while it is typed the keyboard does not play, a controller does. Off: no lines\nare shown or sent. A player without it sees nothing.",
+      "text": "Chat mit dem anderen Spieler einer Onlinepartie. Tab öffnet eine Zeile (Einstellung\nkey_chat), Eingabe sendet sie, Esc schließt sie. Beim Tippen steuert die Tastatur das\nSpiel nicht, der Controller funktioniert weiter. Aus: keine Nachrichten anzeigen oder\nsenden. Spieler ohne diese Option sehen nichts."
+    },
+    "interface/f572dfff": {
+      "original": "Texture pack (%d textures)",
+      "text": "Texturpaket (%d Texturen)"
+    },
+    "interface/5707d45e": {
+      "original": "Texture pack (none found)",
+      "text": "Texturpaket (keines gefunden)"
+    },
+    "interface/d343b038": {
+      "original": "That address is not known.",
+      "text": "Diese Adresse ist unbekannt."
+    },
+    "interface/24239609": {
+      "original": "That file does not exist.",
+      "text": "Diese Datei existiert nicht."
+    },
+    "interface/c59d3e7e": {
+      "original": "That is the address of the player who joined, not of the host: spectators connect to the host.",
+      "text": "Dies ist die Adresse des beigetretenen Spielers, nicht des Hosts. Zuschauer verbinden sich mit dem Host."
+    },
+    "interface/fba40e36": {
+      "original": "The European opening soundtrack has an invalid header.",
+      "text": "Die europäische Titelmusik hat einen ungültigen Header."
+    },
+    "interface/10a60782": {
+      "original": "The European opening soundtrack has an invalid size.",
+      "text": "Die europäische Titelmusik hat eine ungültige Größe."
+    },
+    "interface/4272cc67": {
+      "original": "The black line around the fighters.",
+      "text": "Die schwarze Umrisslinie um die Kämpfer."
+    },
+    "interface/57a68b8b": {
+      "original": "The bloom around bright things and the sky's glare.",
+      "text": "Das Leuchten heller Objekte und die Blendung des Himmels."
+    },
+    "interface/45122282": {
+      "original": "The blur of the scenery while the view turns or moves fast.",
+      "text": "Die Unschärfe der Umgebung bei schnellen Kamerabewegungen."
+    },
+    "interface/2c8c7f04": {
+      "original": "The data tables of the game's programs",
+      "text": "Die Datentabellen der Spielprogramme"
+    },
+    "interface/6d703d1c": {
+      "original": "The disc image could not be opened: ",
+      "text": "Disc-Abbild konnte nicht geöffnet werden: "
+    },
+    "interface/6aac2d04": {
+      "original": "The disc image could not be read to its end. It may be incomplete.",
+      "text": "Das Disc-Abbild konnte nicht vollständig gelesen werden. Es ist möglicherweise unvollständig."
+    },
+    "interface/84872260": {
+      "original": "The fighter's name down the panel. The game's fonts, as for the Menu font\n(a font of your own: add it to fonts/fonts.tsv). Default: the first of the list.",
+      "text": "Name des Kämpfers im Randbereich. Nutzt die Spielschriften wie die Menüschrift. Eigene\nSchriften in fonts/fonts.tsv eintragen. Standard: erster Listeneintrag."
+    },
+    "interface/051ec40a": {
+      "original": "The fighters' voices in a fight and the spoken lines outside one.",
+      "text": "Die Stimmen im Kampf und gesprochene Dialoge außerhalb."
+    },
+    "interface/d3898c09": {
+      "original": "The form under the portrait. The game's fonts, as for the Menu font.\nDefault: the first of the list.",
+      "text": "Form unter dem Porträt. Nutzt die Spielschriften wie die Menüschrift. Standard: erster\nListeneintrag."
+    },
+    "interface/bda8a4d4": {
+      "original": "The game could not be started: ",
+      "text": "Spiel konnte nicht gestartet werden: "
+    },
+    "interface/f3e05d48": {
+      "original": "The game is installed and its demo fight ran correctly.  (%d min %d s)",
+      "text": "Das Spiel ist installiert und der Testkampf lief erfolgreich.  (%d min %d s)"
+    },
+    "interface/1922e6ca": {
+      "original": "The game is installed.",
+      "text": "Das Spiel ist installiert."
+    },
+    "interface/03799a36": {
+      "original": "The game reads the controller, computes, and then waits before the picture is shown:\nabout 33 ms in a fight. With this on the wait comes first, so the picture follows\nyour press by the few milliseconds the machine needs. The game itself is unchanged.\nWith Smooth motion as well: its in-between picture then follows your press at once and\nthe full one a refresh later. Not used online. Off by default: on a machine that\ncannot keep up it may stutter where the original order would not.",
+      "text": "Das Spiel liest den Controller, rechnet und wartet vor der Anzeige: etwa 33 ms im Kampf.\nHiermit wartet es vor dem Einlesen, sodass das Bild nach wenigen Millisekunden\nRechenzeit auf deinen Tastendruck folgt. Das Spiel selbst bleibt gleich. Mit flüssiger\nBewegung reagiert das Zwischenbild sofort, das volle Bild eine Aktualisierung später.\nNicht online genutzt. Standardmäßig aus: Zu langsame Rechner können dadurch ruckeln."
+    },
+    "interface/a099003b": {
+      "original": "The game's demo fight did not finish. Its last line was:\n",
+      "text": "Der Demokampf wurde nicht beendet. Letzte Zeile:\n"
+    },
+    "interface/a7705c24": {
+      "original": "The game's demo fight, without a window",
+      "text": "Der Testkampf des Spiels ohne Fenster"
+    },
+    "interface/193dc244": {
+      "original": "The game's own vibration (hits, clashes, charging), on this player's controller.\nThe game's Options > Controller > Vibration has to be on as well: it is, unless you turned it off.\nThe game gives none in a replay or for a side the computer plays.",
+      "text": "Originalvibration des Spiels (Treffer, Kräftemessen, Aufladen) am Controller dieses\nSpielers. Auch Optionen > Controller > Vibration muss eingeschaltet sein; dies ist der\nStandard. Keine Vibration in Wiederholungen oder für computergesteuerte Seiten."
+    },
+    "interface/937ebbe9": {
+      "original": "The game's programs on this disc do not have the expected checksums.\nThe port needs the unmodified USA release (SLUS-21678); a patched or damaged image will not work.",
+      "text": "Die Programme auf der Disc haben nicht die erwarteten Prüfsummen. Der Port benötigt die\nunveränderte US-Version (SLUS-21678). Ein gepatchtes oder beschädigtes Abbild\nfunktioniert nicht."
+    },
+    "interface/cf7779f6": {
+      "original": "The glare of the sky and the stage's light.\n100%% is what the PlayStation 2 draws; the default here is 60%%.",
+      "text": "Himmelsglanz und Arenabeleuchtung. 100%% entspricht der PlayStation 2; hier sind 60%%\nvoreingestellt."
+    },
+    "interface/c9f70138": {
+      "original": "The glow around characters and things (a Super Saiyan's hair, auras).\n100%% is what the PlayStation 2 draws; the default here is 60%%.",
+      "text": "Leuchten um Figuren und Objekte (Super-Saiyajin-Haare, Auren). 100%% entspricht der\nPlayStation 2; hier sind 60%% voreingestellt."
+    },
+    "interface/80fd17f8": {
+      "original": "The haze of dust or mist that drifts over some stages (Desert and Rocky Area at noon, Rocky Area\nin the evening, Kami's Lookout; Glacier, Muscle Tower and the Time Chamber have a little of it too).\nA faint tint, made of big soft sprites over the whole picture: off, those stages run as fast as the\nothers (a fifth faster at 3x).",
+      "text": "Staub- oder Dunstschleier einiger Arenen: Wüste und Felsengebiet mittags, Felsengebiet\nabends und Gottes Palast; etwas davon auch auf dem Gletscher, im Muskelturm und im Raum\nvon Geist und Zeit. Ein schwacher Farbton aus großen weichen Sprites. Ohne ihn laufen\ndiese Arenen so schnell wie die anderen: bei 3x um ein Fünftel schneller."
+    },
+    "interface/a568e186": {
+      "original": "The haze that colours distant things.",
+      "text": "Der Dunst, der entfernte Objekte einfärbt."
+    },
+    "interface/74e44163": {
+      "original": "The host does not let anyone watch its matches.",
+      "text": "Der Host erlaubt keine Zuschauer."
+    },
+    "interface/6a9b02d5": {
+      "original": "The host's game data are not the same as yours (a modified disc image or mods on one side): you cannot watch this match.",
+      "text": "Deine Spieldaten unterscheiden sich von denen des Hosts (geändertes Abbild oder Mods auf einer Seite). Du kannst dieser Partie nicht zusehen."
+    },
+    "interface/48cd0059": {
+      "original": "The host's game is a different version: both players need the same release.",
+      "text": "Der Host hat eine andere Spielversion. Beide benötigen dieselbe Version."
+    },
+    "interface/c5f78375": {
+      "original": "The host's game is a different version: watching needs the same release as the host's.",
+      "text": "Der Host hat eine andere Spielversion. Zum Zuschauen brauchst du dieselbe Version wie der Host."
+    },
+    "interface/070157d7": {
+      "original": "The language selector archive on the European disc image (DATA/PZS3EU0.AFS) is damaged.",
+      "text": "Das Archiv der Sprachauswahl im europäischen Disc-Abbild (DATA/PZS3EU0.AFS) ist beschädigt."
+    },
+    "interface/5b9057df": {
+      "original": "The lobby's first rules; its owner changes them on its page. Everyone needs the same game data.",
+      "text": "Anfangsregeln der Lobby; ihr Besitzer ändert sie auf ihrer Seite. Alle benötigen dieselben Spieldaten."
+    },
+    "interface/e908d9e5": {
+      "original": "The lobby's room code has run out (the matchmaking service no longer knows it). Members by address can still come.",
+      "text": "Der Raumcode ist abgelaufen und dem Dienst nicht mehr bekannt. Beitritt über eine Adresse ist weiterhin möglich."
+    },
+    "interface/a921e102": {
+      "original": "The matchmaking could not be started.",
+      "text": "Die Spielersuche konnte nicht gestartet werden."
+    },
+    "interface/9c7b74fe": {
+      "original": "The matchmaking service could not be reached (is the network up?).",
+      "text": "Der Vermittlungsdienst ist nicht erreichbar. Besteht eine Netzwerkverbindung?"
+    },
+    "interface/82f7e1de": {
+      "original": "The matchmaking service does not know quick match yet.",
+      "text": "Der Dienst unterstützt noch keine schnellen Spiele."
+    },
+    "interface/e58639bd": {
+      "original": "The matchmaking service does not take lobbies yet. A lobby by address (a port) still works.",
+      "text": "Der Dienst unterstützt noch keine Lobbys. Eine Lobby über Adresse und Port funktioniert weiterhin."
+    },
+    "interface/11a7a222": {
+      "original": "The matchmaking service does not take spectators yet. Watching by address still works.",
+      "text": "Der Dienst unterstützt noch keine Zuschauer. Zuschauen über eine Adresse funktioniert weiterhin."
+    },
+    "interface/4ffefd3b": {
+      "original": "The matchmaking service gave no answer.",
+      "text": "Der Vermittlungsdienst hat nicht geantwortet."
+    },
+    "interface/bf935694": {
+      "original": "The matchmaking service gave no room.",
+      "text": "Der Vermittlungsdienst hat keinen Raum bereitgestellt."
+    },
+    "interface/bbbcc8fc": {
+      "original": "The other game is a different version. Everyone needs the same release.",
+      "text": "Das andere Spiel hat eine andere Version. Alle benötigen dieselbe Version."
+    },
+    "interface/2bcca661": {
+      "original": "The other player's game is a different version.",
+      "text": "Der andere Spieler hat eine andere Spielversion."
+    },
+    "interface/63423687": {
+      "original": "The other player's game is a different version. Search again.",
+      "text": "Der andere Spieler hat eine andere Version. Suche erneut."
+    },
+    "interface/b5281889": {
+      "original": "The page of legal text shown for five seconds before the title screen, every time.",
+      "text": "Die Rechtshinweise, die vor jedem Titelbildschirm fünf Sekunden lang erscheinen."
+    },
+    "interface/c6a89af8": {
+      "original": "The picture is prepared and shown on a core of its own while the game computes the next\nmoment: faster where the processor is the slow part (older or low-power machines).\nThe same picture and the same game. Takes effect when the game is started again.\nNot with the OpenGL renderer, and not on machines with two cores or fewer.",
+      "text": "Das Bild wird auf einem eigenen Kern vorbereitet und angezeigt, während das Spiel den\nnächsten Moment berechnet. Schneller bei begrenzter Prozessorleistung, etwa auf älteren\noder sparsamen Rechnern. Bild und Spiel bleiben gleich. Wirkt nach einem Neustart. Nicht\nmit OpenGL oder auf Rechnern mit höchstens zwei Kernen."
+    },
+    "interface/d409e2f8": {
+      "original": "The players' match has ended.",
+      "text": "The players' match has ended."
+    },
+    "interface/22761fab": {
+      "original": "The pointer is hidden over the game and shown in this window, the online windows, the\nquestion before the game closes and while a chat line is typed.",
+      "text": "Der Zeiger ist über dem Spiel verborgen und in den Einstellungen, Onlinefenstern, der\nSchließen-Abfrage und beim Schreiben im Chat sichtbar."
+    },
+    "interface/5adc72cf": {
+      "original": "The port is compiled (a few minutes)",
+      "text": "Der Port wird kompiliert (einige Minuten)"
+    },
+    "interface/0166b97a": {
+      "original": "The search could not be started.",
+      "text": "Die Suche konnte nicht gestartet werden."
+    },
+    "interface/a9f4b646": {
+      "original": "The setup script stopped unexpectedly. The details are in install.log.",
+      "text": "Das Installationsskript wurde unerwartet beendet. Details stehen in install.log."
+    },
+    "interface/23ad8c06": {
+      "original": "The setup stopped unexpectedly.",
+      "text": "Die Installation wurde unerwartet beendet."
+    },
+    "interface/8493cec6": {
+      "original": "The size of this window, the online windows, the chat and the notices. They already grow\nwith a picture taller than 1080 pixels; this makes them larger or smaller than that.",
+      "text": "Größe dieses Fensters, der Onlinefenster, des Chats und der Hinweise. Bei Bildern über\n1080 Pixel Höhe wachsen sie bereits mit; hier lässt sich die Größe zusätzlich anpassen."
+    },
+    "interface/f77b5ee9": {
+      "original": "The soft focus on distant scenery.",
+      "text": "Die sanfte Unschärfe entfernter Landschaften."
+    },
+    "interface/c4f97c57": {
+      "original": "The tint that shows a fighter behind scenery.",
+      "text": "Die Tönung, die Kämpfer hinter der Umgebung sichtbar macht."
+    },
+    "interface/5fcbfddf": {
+      "original": "The two games compare what they compute. Off: when they no longer agree you are told, and the match\ngoes on (the two screens may then show different fights). On: the match ends there.",
+      "text": "Beide Spiele vergleichen ihre Berechnungen. Aus: Bei Abweichungen erscheint eine Meldung\nund die Partie läuft weiter; die Bildschirme können unterschiedliche Kämpfe zeigen. Ein:\nDie Partie endet sofort."
+    },
+    "interface/6bfbe3b2": {
+      "original": "The two games connect to each other directly when they can, as in most online fighting",
+      "text": "Beide Spiele verbinden sich nach Möglichkeit direkt, wie in den meisten"
+    },
+    "interface/57f4d027": {
+      "original": "The two games could not reach each other, directly or through the relay. Hosting on a port (with port forwarding or a virtual network such as Tailscale) still works.",
+      "text": "Die Spiele konnten sich weder direkt noch über das Relay erreichen. Hosten über einen Port funktioniert weiterhin mit Portweiterleitung oder einem virtuellen Netzwerk wie Tailscale."
+    },
+    "interface/ce0826a8": {
+      "original": "The two games could not reach each other, directly or through the relay. Search again for another player.",
+      "text": "Die Spiele konnten sich weder direkt noch über das Relay erreichen. Suche erneut nach einem anderen Gegner."
+    },
+    "interface/2f65e656": {
+      "original": "The two games no longer agree (desync): your screen and the other player's may now show different fights.",
+      "text": "Beide Spiele sind nicht mehr synchron. Dein Bildschirm und der des Gegners können unterschiedliche Kämpfe zeigen."
+    },
+    "interface/993c3d26": {
+      "original": "The update is installed, but the new version could not be started: close the game and start it again.",
+      "text": "Das Update ist installiert, aber die neue Version konnte nicht gestartet werden. Schließe das Spiel und starte es erneut."
+    },
+    "interface/105a16f2": {
+      "original": "The update to %s was not installed: %s",
+      "text": "Das Update auf %s wurde nicht installiert: %s"
+    },
+    "interface/941df7f6": {
+      "original": "The version of Tenkaichi3Decomp currently running (\"dev\": built locally, never offered updates).",
+      "text": "Laufende Version von Tenkaichi3Decomp („dev“: lokal gebaut, keine Updateangebote)."
+    },
+    "interface/e783e5ae": {
+      "original": "This computer's address could not be found (no network?).",
+      "text": "Die Adresse dieses Computers konnte nicht ermittelt werden. Besteht eine Netzwerkverbindung?"
+    },
+    "interface/37ad5eb1": {
+      "original": "This computer's clock is wrong: set its date and time, then try again.",
+      "text": "Die Uhr dieses Computers ist falsch. Stelle Datum und Uhrzeit ein und versuche es erneut."
+    },
+    "interface/891ad24c": {
+      "original": "This file is not a disc image (.iso). Compressed images (.chd, .cso, .gz) have to be converted to .iso first.",
+      "text": "Diese Datei ist kein Disc-Abbild (.iso). Komprimierte Abbilder (.chd, .cso, .gz) müssen zuerst in .iso umgewandelt werden."
+    },
+    "interface/4b01fd92": {
+      "original": "This is not a disc image of the European release of Budokai Tenkaichi 3 (no SLES_549.45 on it).\nThe languages come from the European release (SLES-54945); the game itself is set up from the USA one.",
+      "text": "Dies ist kein Disc-Abbild der europäischen Version von Budokai Tenkaichi 3 (SLES_549.45\nfehlt). Die Sprachen stammen aus der europäischen Version (SLES-54945); das Spiel wird\naus der US-Version installiert."
+    },
+    "interface/3e2ede2e": {
+      "original": "This is not a disc image of the USA release of Budokai Tenkaichi 3 (no SLUS_216.78 on it).\nOther regions and the Wii version have different programs and are not supported.",
+      "text": "Dies ist kein Disc-Abbild der US-Version von Budokai Tenkaichi 3 (SLUS_216.78 fehlt).\nAndere Regionen und die Wii-Version nutzen andere Programme und werden nicht\nunterstützt."
+    },
+    "interface/dc75af5c": {
+      "original": "This match already has as many spectators as it can take (6).",
+      "text": "Diese Partie hat bereits die maximale Zuschauerzahl (6)."
+    },
+    "interface/5dda5287": {
+      "original": "This match cannot be watched (it was not started from the online menus).",
+      "text": "Diesem Kampf kann nicht zugesehen werden, da er nicht über die Onlinemenüs gestartet wurde."
+    },
+    "interface/b272b73f": {
+      "original": "This match is a lobby's: join the lobby (its code, or its owner's address) to watch it.",
+      "text": "Diese Partie gehört zu einer Lobby. Tritt ihr über den Code oder die Adresse des Besitzers bei, um zuzusehen."
+    },
+    "interface/9791138d": {
+      "original": "This sets the game up on your computer from your own PlayStation 2 disc.",
+      "text": "Installiert das Spiel von deiner eigenen PlayStation-2-Disc."
+    },
+    "interface/45d2d64f": {
+      "original": "Time limit",
+      "text": "Zeitlimit"
+    },
+    "interface/e584114e": {
+      "original": "Too many have asked to watch that room in the last two minutes; try again soon.",
+      "text": "Zu viele Zuschaueranfragen für diesen Raum in zwei Minuten. Versuche es in Kürze erneut."
+    },
+    "interface/b462464f": {
+      "original": "Too many rooms from this address; try again in a few minutes.",
+      "text": "Zu viele Räume von dieser Adresse. Versuche es in ein paar Minuten erneut."
+    },
+    "interface/8fa65fb7": {
+      "original": "Too many searches from this address; try again in a few minutes.",
+      "text": "Zu viele Suchen von dieser Adresse. Versuche es in ein paar Minuten erneut."
+    },
+    "interface/96dd4ea1": {
+      "original": "Too many wrong codes from this address, or too many joining that lobby at once; try again soon.",
+      "text": "Zu viele falsche Codes von dieser Adresse oder zu viele gleichzeitige Beitritte zur Lobby. Versuche es in Kürze erneut."
+    },
+    "interface/fe0b1da7": {
+      "original": "Too many wrong codes from this address; try again in an hour.",
+      "text": "Zu viele falsche Codes von dieser Adresse. Versuche es in einer Stunde erneut."
+    },
+    "interface/38dbf44d": {
+      "original": "Touchpad",
+      "text": "Touchpad"
+    },
+    "interface/e58886a5": {
+      "original": "Triangle",
+      "text": "Dreieck"
+    },
+    "interface/213e90fa": {
+      "original": "Try again",
+      "text": "Erneut versuchen"
+    },
+    "interface/7bf3b2fb": {
+      "original": "UI",
+      "text": "Oberfläche"
+    },
+    "interface/da4baaa9": {
+      "original": "Unavailable",
+      "text": "Nicht verfügbar"
+    },
+    "interface/9c799975": {
+      "original": "Unlock",
+      "text": "Freischalten"
+    },
+    "interface/94f28d20": {
+      "original": "Unlock everything...",
+      "text": "Alles freischalten..."
+    },
+    "interface/14f3aa29": {
+      "original": "Unlock everything: all characters, stages, music and items, and the largest amount of Zenni. This is a debug function the game's developers left in.",
+      "text": "Schaltet alle Figuren, Arenen, Musikstücke und Objekte frei und setzt Zeni auf das Maximum. Eine von den ursprünglichen Entwicklern hinterlassene Debugfunktion."
+    },
+    "interface/56a45577": {
+      "original": "Unlock everything?",
+      "text": "Alles freischalten?"
+    },
+    "interface/e3c6c893": {
+      "original": "Up to 2 frames",
+      "text": "Bis zu 2 Frames"
+    },
+    "interface/6d62049d": {
+      "original": "Up to 4 frames",
+      "text": "Bis zu 4 Frames"
+    },
+    "interface/408e728f": {
+      "original": "Up to 6 frames",
+      "text": "Bis zu 6 Frames"
+    },
+    "interface/de1d77d9": {
+      "original": "Up to 8 frames",
+      "text": "Bis zu 8 Frames"
+    },
+    "interface/ed3fb570": {
+      "original": "Update %s available (this is %s).",
+      "text": "Update %s verfügbar (aktuell %s)."
+    },
+    "interface/26220582": {
+      "original": "Update %s is downloaded and verified.",
+      "text": "Update %s ist heruntergeladen und geprüft."
+    },
+    "interface/69760784": {
+      "original": "Update available. Online servers are unreachable until you update.",
+      "text": "Update verfügbar. Die Onlineserver sind erst nach dem Update erreichbar."
+    },
+    "interface/ff6cec76": {
+      "original": "Update available: release 0.%d.%d.",
+      "text": "Update verfügbar: Version 0.%d.%d."
+    },
+    "interface/e9601784": {
+      "original": "Update now",
+      "text": "Jetzt aktualisieren"
+    },
+    "interface/0e47ff36": {
+      "original": "Update {version} available. F1 to update.",
+      "text": "Update {version} verfügbar. F1 zum Aktualisieren."
+    },
+    "interface/0c881e3b": {
+      "original": "Update {version} is ready. F1 > Restart now.",
+      "text": "Update {version} ist bereit. F1 > Jetzt neu starten."
+    },
+    "interface/fbb3007f": {
+      "original": "Updated to %s.",
+      "text": "Auf %s aktualisiert."
+    },
+    "interface/4e5ae017": {
+      "original": "Updated to {version}.",
+      "text": "Auf {version} aktualisiert."
+    },
+    "interface/97438739": {
+      "original": "Use a code (no port forwarding needed)",
+      "text": "Code verwenden (keine Portweiterleitung nötig)"
+    },
+    "interface/b514abff": {
+      "original": "Used for",
+      "text": "Verwendung"
+    },
+    "interface/4824d5ef": {
+      "original": "V-sync",
+      "text": "V-Sync"
+    },
+    "interface/bba606c9": {
+      "original": "Vibration",
+      "text": "Vibration"
+    },
+    "interface/5b67c80c": {
+      "original": "Video",
+      "text": "Grafik"
+    },
+    "interface/ebee7ad2": {
+      "original": "View: %s",
+      "text": "Ansicht: %s"
+    },
+    "interface/99069c5e": {
+      "original": "Voices",
+      "text": "Stimmen"
+    },
+    "interface/6eedd012": {
+      "original": "Vulkan",
+      "text": "Vulkan"
+    },
+    "interface/66eab633": {
+      "original": "Weather",
+      "text": "Wetter"
+    },
+    "interface/3e06dc25": {
+      "original": "Weather amount",
+      "text": "Wetterstärke"
+    },
+    "interface/f6f73a33": {
+      "original": "What fills the sides where the picture is narrower than the window:\na 4:3 picture, or the menus with \"Menus in 4:3\", in a wide window.\nFighter panels: the border, and in a fight each side's fighter with its name and form.\nYour own: a folder \"bars\" next to the game with trim.png (the strip along the\npicture, kept in proportion) and fill.png (stretched over the rest). Read at start.",
+      "text": "Füllt die Seiten, wenn das Bild schmaler als das Fenster ist: 4:3-Bild oder Menüs mit\n„Menüs in 4:3“ im Breitbildfenster. Kämpferbereiche: Rand und im Kampf je ein Kämpfer\nmit Name und Form. Eigene: Ordner „bars“ neben dem Spiel mit trim.png (Streifen am Bild,\nproportional) und fill.png (über den Rest gestreckt). Wird beim Start geladen."
+    },
+    "interface/2450fa20": {
+      "original": "What one press of Square is worth. The d-pad has four buttons to tap in turn and the\nstick four directions a turn; Square is one button. 1 is a single d-pad tap.\nNever more than one a frame, which is the most the game counts from any pad.",
+      "text": "Wert eines Drucks auf Quadrat. Das Steuerkreuz hat vier nacheinander drückbare Tasten,\nder Stick vier Richtungen je Drehung; Quadrat ist eine Taste. 1 entspricht einem\nSteuerkreuzdruck. Höchstens einer pro Frame, das Maximum des Spiels für jeden\nController."
+    },
+    "interface/091ebd33": {
+      "original": "What's new",
+      "text": "Neuerungen"
+    },
+    "interface/b0e7f67a": {
+      "original": "When the game runs at another speed than 100%% (an online match, the Cheats tab):\noff, the music plays as it is; on, it is sped up or slowed down with the game,\nat its own pitch, as an emulator does. Spoken lines always follow the game.",
+      "text": "Bei einer anderen Spielgeschwindigkeit als 100%% (Onlinepartie oder Reiter Cheats): Aus\nlässt die Musik unverändert. Ein passt ihr Tempo bei gleicher Tonhöhe an das Spiel an,\nwie ein Emulator. Sprachausgabe folgt dem Spiel immer."
+    },
+    "interface/0e9ac519": {
+      "original": "When this machine cannot show a picture in time, the game normally runs slower.\nWith this on it stays at full speed and leaves pictures out instead (choppier,\nnot slower). It helps where the graphics chip is the slow part. On by default.",
+      "text": "Kann der Rechner Bilder nicht rechtzeitig anzeigen, läuft das Spiel normalerweise\nlangsamer. Hiermit hält es die Geschwindigkeit und überspringt Bilder: weniger flüssig,\naber nicht langsamer. Hilft bei begrenzter Grafikleistung. Standardmäßig ein."
+    },
+    "interface/1548dcf3": {
+      "original": "Where a fight's health bars and gauges sit in a picture wider than 4:3.\nLong health bars: the bars reach from the edges to the timer.\nIn the middle: the original 4:3 arrangement, next to the timer.",
+      "text": "Position von Lebensbalken und Anzeigen bei breiteren Bildern als 4:3. Lange Balken: vom\nRand bis zur Uhr. Mittig: ursprüngliche 4:3-Anordnung neben der Uhr."
+    },
+    "interface/0b4a9c3f": {
+      "original": "Wider than 4:3 shows more of the fight to the sides. Menus are stretched.",
+      "text": "Breiter als 4:3 zeigt seitlich mehr vom Kampf. Menüs werden gestreckt."
+    },
+    "interface/4b5d793f": {
+      "original": "With rollback your own moves come out at once and the game corrects itself when the\nother player's buttons arrive. More frames cope with a slower connection and cost\nmore processor time. Off: both games wait for each other every frame.",
+      "text": "Mit Rollback erfolgen eigene Aktionen sofort. Das Spiel korrigiert sich, wenn die\nEingaben des Gegners eintreffen. Mehr Frames vertragen langsamere Verbindungen,\nbenötigen aber mehr Rechenleistung. Aus: Beide Spiele warten in jedem Frame aufeinander."
+    },
+    "interface/67578309": {
+      "original": "X / Square",
+      "text": "X / Quadrat"
+    },
+    "interface/8be1a537": {
+      "original": "Y / Triangle",
+      "text": "Y / Dreieck"
+    },
+    "interface/b5bdd13c": {
+      "original": "You",
+      "text": "Du"
+    },
+    "interface/5bc901a3": {
+      "original": "You are in the lobby. Its screen opens from the main menu (Tenkaichi Budokai Online).",
+      "text": "Du bist in der Lobby. Öffne sie über das Hauptmenü (Tenkaichi Budokai Online)."
+    },
+    "interface/f3873603": {
+      "original": "You can leave this running. Finished steps are kept if it is interrupted.",
+      "text": "Du kannst es laufen lassen. Abgeschlossene Schritte bleiben bei einer Unterbrechung erhalten."
+    },
+    "interface/3b19bd70": {
+      "original": "You have 0.%d.%d; 0.%d.%d or newer is needed. github.com/z3xox/Tenkaichi3Decomp/releases",
+      "text": "Du hast Version 0.%d.%d; mindestens 0.%d.%d wird benötigt. github.com/z3xox/Tenkaichi3Decomp/releases"
+    },
+    "interface/254ace8e": {
+      "original": "Your disc image is read and checked",
+      "text": "Dein Disc-Abbild wird gelesen und geprüft"
+    },
+    "interface/e62c73bf": {
+      "original": "Your game data and the other player's are not the same (a modified disc image or mods on one side): an online match needs the same on both.",
+      "text": "Deine Spieldaten unterscheiden sich von denen des Gegners (geändertes Abbild oder Mods auf einer Seite). Für eine Onlinepartie brauchen beide dieselben Daten."
+    },
+    "interface/3f856cfb": {
+      "original": "Your lobby gets a short code to tell the others, and the games find each other through a\nsmall matchmaking service. Works with most home routers. Without it the lobby is on a port,\nwhich must be reachable from the others (port forwarding or a virtual network).",
+      "text": "Die Lobby erhält einen kurzen Code zum Weitergeben. Ein kleiner Vermittlungsdienst\nverbindet die Spiele. Funktioniert mit den meisten Heimroutern. Ohne Code nutzt die\nLobby einen Port, der für die anderen per Portweiterleitung oder virtuellem Netzwerk\nerreichbar sein muss."
+    },
+    "interface/99aac5f2": {
+      "original": "Your records list will be emptied. This cannot be undone once the game saves.",
+      "text": "Deine Rekordliste wird geleert. Nach dem Speichern kann dies nicht rückgängig gemacht werden."
+    },
+    "interface/53783f21": {
+      "original": "already done",
+      "text": "bereits erledigt"
+    },
+    "interface/2adc6c22": {
+      "original": "already unpacked",
+      "text": "bereits entpackt"
+    },
+    "interface/de5d71f1": {
+      "original": "both (split screen)",
+      "text": "beide (geteilter Bildschirm)"
+    },
+    "interface/d82e71b1": {
+      "original": "checking",
+      "text": "Überprüfung"
+    },
+    "interface/bf5c518c": {
+      "original": "delay %d%s, rollback up to %d",
+      "text": "Verzögerung %d%s, Rollback bis %d"
+    },
+    "interface/a449f877": {
+      "original": "desync since frame %d",
+      "text": "desynchron seit Frame %d"
+    },
+    "interface/26f38071": {
+      "original": "done",
+      "text": "Fertig"
+    },
+    "interface/8d690af5": {
+      "original": "drop the file on this window, or browse",
+      "text": "Datei hier ablegen oder durchsuchen"
+    },
+    "interface/0def7a0b": {
+      "original": "game   %+.2f %+.2f",
+      "text": "Spiel   %+.2f %+.2f"
+    },
+    "interface/237fe01c": {
+      "original": "games: a player who inspects their own network traffic can see the other's address.",
+      "text": "Online-Kampfspielen: Wer seinen Netzwerkverkehr untersucht, kann die Adresse des Gegners sehen."
+    },
+    "interface/0564d132": {
+      "original": "left alone. When the match ends everyone is back on the lobby's page.",
+      "text": "unverändert. Nach dem Kampf kehren alle zur Lobbyseite zurück."
+    },
+    "interface/aab5a52e": {
+      "original": "no controller",
+      "text": "kein Controller"
+    },
+    "interface/49838a2b": {
+      "original": "or, without a code, the host's address and port:",
+      "text": "oder ohne Code die Adresse und der Port des Hosts:"
+    },
+    "interface/8a8be8d3": {
+      "original": "per press",
+      "text": "pro Tastendruck"
+    },
+    "interface/62f15b66": {
+      "original": "ping %d ms%s",
+      "text": "Ping %d ms%s"
+    },
+    "interface/807f0b17": {
+      "original": "ping ...",
+      "text": "Ping ..."
+    },
+    "interface/c94e3083": {
+      "original": "player 1",
+      "text": "Spieler 1"
+    },
+    "interface/ca4e3216": {
+      "original": "player 2",
+      "text": "Spieler 2"
+    },
+    "interface/dd26a5d5": {
+      "original": "press a button...",
+      "text": "Taste drücken..."
+    },
+    "interface/e5947102": {
+      "original": "press a key...",
+      "text": "Taste drücken..."
+    },
+    "interface/24134ef4": {
+      "original": "rollback off",
+      "text": "Rollback aus"
+    },
+    "interface/12ac015d": {
+      "original": "rollbacks %d/s, %.1f frames",
+      "text": "Rollbacks %d/s, %.1f Frames"
+    },
+    "interface/78412ae9": {
+      "original": "stick  %+.2f %+.2f",
+      "text": "Stick  %+.2f %+.2f"
+    },
+    "interface/03cd9b9c": {
+      "original": "the European release (SLES-54945)",
+      "text": "die europäische Version (SLES-54945)"
+    },
+    "interface/a148a8db": {
+      "original": "the USA release, checksums match",
+      "text": "US-Version, Prüfsummen stimmen überein"
+    },
+    "interface/927412fe": {
+      "original": "the demo fight ran to its end",
+      "text": "der Demokampf wurde beendet"
+    },
+    "interface/536fb752": {
+      "original": "the game's demo fight, no window",
+      "text": "Demokampf des Spiels ohne Fenster"
+    },
+    "interface/fdb52916": {
+      "original": "waited %d ms/s (%d times)",
+      "text": "gewartet %d ms/s (%d-mal)"
+    },
+    "interface/964c8fc3": {
+      "original": "with a controller, press nothing for five seconds to keep it.",
+      "text": "beim Controller fünf Sekunden nichts drücken, um sie zu behalten."
+    }
+  }
+}

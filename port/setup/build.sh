@@ -7,6 +7,7 @@
 #        on Windows (MSYS2 shell): with that shell's g++ and SDL3.
 cd "$(dirname "$0")/../.." || exit 1
 I=port/third_party/imgui
+python3 port/tools/interface_strings.py || exit 1
 if [ "$1" = win ]; then
     O=port/build/setup_win; OUT=port/build/Tenkaichi3Decomp-setup.exe; LIBS="-lSDL3 -static -static-libgcc -static-libstdc++ -mwindows"
     case "$(uname -s)" in
@@ -22,8 +23,13 @@ fi
 mkdir -p $O
 for f in $I/imgui.cpp $I/imgui_draw.cpp $I/imgui_tables.cpp $I/imgui_widgets.cpp $I/imgui_impl_sdl3.cpp $I/imgui_impl_sdlgpu3.cpp $I/imgui_impl_opengl3.cpp port/setup/native.cpp port/setup/setup.cpp; do
     o=$O/$(basename "$f" .cpp).o
-    if [ ! -f "$o" ] || [ "$f" -nt "$o" ] || [ port/setup/native.h -nt "$o" ]; then
-        $CXX -std=c++17 -O2 -w -I$I $SDL -c "$f" -o "$o" || exit 1
+    translation_changed=0
+    case "$f" in
+        port/setup/setup.cpp|port/setup/native.cpp)
+            if [ port/src/gs/ui_localization.h -nt "$o" ] || [ port/build/gen/gs/ui_catalog_generated.h -nt "$o" ]; then translation_changed=1; fi ;;
+    esac
+    if [ ! -f "$o" ] || [ "$f" -nt "$o" ] || [ port/setup/native.h -nt "$o" ] || [ "$translation_changed" = 1 ] || { [ "$f" = port/setup/setup.cpp ] && [ port/setup/game_launch.h -nt "$o" ]; }; then
+        $CXX -std=c++17 -O2 -w -I$I -Iport/build/gen/gs $SDL -c "$f" -o "$o" || exit 1
     fi
 done
 # -Wl,-Bdynamic for SDL3 only: the rest (C++ runtime, threads) is linked in

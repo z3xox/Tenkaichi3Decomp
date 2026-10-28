@@ -14,13 +14,16 @@
 #include <mutex>
 #include <string>
 #include <vector>
+#include <initializer_list>
 #include <SDL3/SDL.h>
 #include "imgui.h"
+#include "../src/gs/ui_localization.h"
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_sdlgpu3.h"
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_opengl3_loader.h" // glViewport, glClear for the OpenGL window (set up by ImGui_ImplOpenGL3_Init)
 #include "native.h"
+#include "game_launch.h"
 
 #define GAME "Tenkaichi3Decomp" /* the program this sets up: GAME, GAME.dat; this program is GAME-setup */
 
@@ -189,7 +192,7 @@ static void start_install() {
     SDL_DestroyProperties(props);
     sRunStart = SDL_GetTicks();
     if (sProc == NULL) {
-        sError = std::string("Could not start python3: ") + SDL_GetError() + "\nPython 3 has to be installed to set the game up.";
+        sError = std::string(Bt3Ui::T("Could not start python3: ")) + SDL_GetError() + Bt3Ui::T("\nPython 3 has to be installed to set the game up.");
         sPage = PAGE_FAILED;
         return;
     }
@@ -344,12 +347,21 @@ static void SDLCALL dialog_done(void *userdata, const char *const *files, int fi
 
 static void heading(const char *title, const char *sub) {
     ImGui::PushFont(NULL, 30.0f);
-    ImGui::TextUnformatted(title);
+    Bt3Ui::TextUnformatted(title);
     ImGui::PopFont();
     ImGui::PushStyleColor(ImGuiCol_Text, kDim);
-    ImGui::TextWrapped("%s", sub);
+    Bt3Ui::TextWrapped("%s", Bt3Ui::T(sub));
     ImGui::PopStyleColor();
     ImGui::Dummy(ImVec2(0.0f, 8.0f));
+}
+
+static void choose_iso(void *field) {
+    // SDL needs the filters until its asynchronous callback; retain a separate array for each language.
+    static SDL_DialogFileFilter filters[IM_ARRAYSIZE(kBt3UiLanguages)][2];
+    auto &current = filters[Bt3Ui::LanguageIndex().load()];
+    current[0] = {Bt3Ui::T("PS2 disc image"), "iso;bin;img"};
+    current[1] = {Bt3Ui::T("All files"), "*"};
+    SDL_ShowOpenFileDialog(dialog_done, field, sWindow, current, 2, NULL, false);
 }
 
 static bool big_button(const char *label, bool primary, bool enabled = true) {
@@ -360,7 +372,7 @@ static bool big_button(const char *label, bool primary, bool enabled = true) {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.08f, 0.06f, 0.03f, 1.0f));
     }
     ImGui::BeginDisabled(!enabled);
-    pressed = ImGui::Button(label, ImVec2(150.0f, 40.0f));
+    pressed = Bt3Ui::Button(label, ImVec2(150.0f, 40.0f));
     ImGui::EndDisabled();
     if (primary) {
         ImGui::PopStyleColor(3);
@@ -369,58 +381,60 @@ static bool big_button(const char *label, bool primary, bool enabled = true) {
 }
 
 // Buttons of a page sit on one line at the bottom right.
-static void bottom_row(int buttons) {
+static void bottom_row(std::initializer_list<const char *> labels) {
     ImVec2 avail = ImGui::GetContentRegionAvail();
-    float w = buttons * 150.0f + (buttons - 1) * ImGui::GetStyle().ItemSpacing.x;
-    ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX() + avail.x - w, ImGui::GetCursorPosY() + avail.y - 40.0f));
+    float w = (labels.size() - 1) * ImGui::GetStyle().ItemSpacing.x;
+    for (const char *label : labels) w += Bt3Ui::ButtonWidth(label, 150.0f);
+    ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX() + (avail.x > w ? avail.x - w : 0.0f),
+                             ImGui::GetCursorPosY() + (avail.y > 40.0f ? avail.y - 40.0f : 0.0f)));
 }
 
 // The European disc image's field (optional). Returns false when something is in it that is not a file.
 static bool eu_field() {
-    static const SDL_DialogFileFilter filters[] = {{"PS2 disc image", "iso;bin;img"}, {"All files", "*"}};
     ImGui::Dummy(ImVec2(0.0f, 6.0f));
-    ImGui::TextUnformatted("European disc image (optional)");
-    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 130.0f);
-    ImGui::InputTextWithHint("##isoeu", "the European release (SLES-54945)", sIsoEu, sizeof(sIsoEu));
+    Bt3Ui::TextUnformatted("European disc image (optional)");
+    float browseWidth = Bt3Ui::ButtonWidth("Browse...##eu", 120.0f);
+    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - browseWidth - ImGui::GetStyle().ItemSpacing.x);
+    Bt3Ui::InputTextWithHint("##isoeu", "the European release (SLES-54945)", sIsoEu, sizeof(sIsoEu));
     ImGui::SameLine();
-    if (ImGui::Button("Browse...##eu", ImVec2(120.0f, 0.0f))) {
-        SDL_ShowOpenFileDialog(dialog_done, (void *)1, sWindow, filters, 2, NULL, false);
+    if (Bt3Ui::Button("Browse...##eu", ImVec2(browseWidth, 0.0f))) {
+        choose_iso((void *)1);
     }
     if (sIsoEu[0] != '\0' && !file_exists(sIsoEu)) {
-        ImGui::TextColored(kRed, "That file does not exist.");
+        Bt3Ui::TextColored(kRed, "That file does not exist.");
         return false;
     }
     ImGui::PushStyleColor(ImGuiCol_Text, kDim);
-    ImGui::TextWrapped("Adds Spanish, German, French and Italian: menus, battle screen and text, as the European release has them. F1 > UI > Language picks one.");
+    Bt3Ui::TextWrapped("Adds Spanish, German, French and Italian: menus, battle screen and text, as the European release has them. F1 > UI > Language picks one.");
     ImGui::PopStyleColor();
     return true;
 }
 
 static void page_pick() {
-    static const SDL_DialogFileFilter filters[] = {{"PS2 disc image", "iso;bin;img"}, {"All files", "*"}};
     bool ok = file_exists(sIso);
 
     heading(GAME, "This sets the game up on your computer from your own PlayStation 2 disc.");
-    ImGui::TextWrapped("Choose your disc image of Dragon Ball Z: Budokai Tenkaichi 3, USA release (SLUS-21678), as an .iso file. "
+    Bt3Ui::TextWrapped("Choose your disc image of Dragon Ball Z: Budokai Tenkaichi 3, USA release (SLUS-21678), as an .iso file. "
                        "The game's data is taken from it and stays on this computer. %s",
-                       sRelease ? "Nothing is downloaded." : "Nothing is downloaded except one small tool.");
+                       Bt3Ui::T(sRelease ? "Nothing is downloaded." : "Nothing is downloaded except one small tool."));
     ImGui::Dummy(ImVec2(0.0f, 10.0f));
-    ImGui::TextUnformatted("Disc image");
-    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 130.0f);
-    ImGui::InputTextWithHint("##iso", "drop the file on this window, or browse", sIso, sizeof(sIso));
+    Bt3Ui::TextUnformatted("Disc image");
+    float browseWidth = Bt3Ui::ButtonWidth("Browse...", 120.0f);
+    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - browseWidth - ImGui::GetStyle().ItemSpacing.x);
+    Bt3Ui::InputTextWithHint("##iso", "drop the file on this window, or browse", sIso, sizeof(sIso));
     ImGui::SameLine();
-    if (ImGui::Button("Browse...", ImVec2(120.0f, 0.0f))) {
-        SDL_ShowOpenFileDialog(dialog_done, NULL, sWindow, filters, 2, NULL, false);
+    if (Bt3Ui::Button("Browse...", ImVec2(browseWidth, 0.0f))) {
+        choose_iso(NULL);
     }
     if (sIso[0] != '\0' && !ok) {
-        ImGui::TextColored(kRed, "That file does not exist.");
+        Bt3Ui::TextColored(kRed, "That file does not exist.");
     } else if (sRoot.empty()) {
-        ImGui::TextColored(kRed, "Neither the game (" GAME ", " GAME ".dat) nor install.py was found next to this program.");
+        Bt3Ui::TextColored(kRed, "Neither the game (" GAME ", " GAME ".dat) nor install.py was found next to this program.");
     } else {
-        ImGui::TextColored(kDim, sRelease ? "Needs about 4 GB of free space and takes a minute or two." : "Needs about 4 GB of free space and takes 5 to 10 minutes.");
+        Bt3Ui::TextColored(kDim, sRelease ? "Needs about 4 GB of free space and takes a minute or two." : "Needs about 4 GB of free space and takes 5 to 10 minutes.");
     }
     bool euOk = eu_field();
-    bottom_row(2);
+    bottom_row({"Close", "Install"});
     if (big_button("Close", false)) {
         sQuit = true;
     }
@@ -466,8 +480,8 @@ static void step_list() {
         ImGui::SameLine(0.0f, 14.0f);
         ImGui::BeginGroup();
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.0f, 1.0f));
-        ImGui::TextColored(r.state == PENDING ? kDim : ImGui::GetStyleColorVec4(ImGuiCol_Text), "%s", r.title.c_str());
-        ImGui::TextColored(kDim, "%s", !r.detail.empty() ? r.detail.c_str() : step_help(r.title));
+        Bt3Ui::TextColored(r.state == PENDING ? kDim : ImGui::GetStyleColorVec4(ImGuiCol_Text), "%s", Bt3Ui::T(r.title.c_str()));
+        Bt3Ui::TextColored(kDim, "%s", Bt3Ui::T(!r.detail.empty() ? r.detail.c_str() : step_help(r.title)));
         ImGui::PopStyleVar();
         ImGui::EndGroup();
         if (r.state == RUNNING) {
@@ -476,8 +490,8 @@ static void step_list() {
             snprintf(clock, sizeof(clock), "%d s", (int)((r.end - r.start) / 1000));
         }
         if (clock[0] != '\0') {
-            ImGui::SameLine(ImGui::GetWindowWidth() - ImGui::GetStyle().WindowPadding.x - ImGui::CalcTextSize(clock).x);
-            ImGui::TextColored(kDim, "%s", clock);
+            ImGui::SameLine(ImGui::GetWindowWidth() - ImGui::GetStyle().WindowPadding.x - Bt3Ui::CalcTextSize(clock).x);
+            Bt3Ui::TextColored(kDim, "%s", clock);
         }
     }
 }
@@ -491,7 +505,7 @@ static void page_run() {
     }
     ImGui::Dummy(ImVec2(0.0f, 4.0f));
     ImGui::ProgressBar((float)done / (float)(sRows.empty() ? 1 : sRows.size()), ImVec2(-FLT_MIN, 8.0f), "");
-    bottom_row(1);
+    bottom_row({"Cancel"});
     if (big_button("Cancel", false)) {
         if (sProc != NULL) {
             SDL_KillProcess(sProc, false);
@@ -504,42 +518,31 @@ static void page_run() {
 static void page_done() {
     char sub[128];
     if (sRunEnd > sRunStart) {
-        snprintf(sub, sizeof(sub), "The game is installed and its demo fight ran correctly.  (%d min %d s)", (int)((sRunEnd - sRunStart) / 60000),
+        snprintf(sub, sizeof(sub), Bt3Ui::T("The game is installed and its demo fight ran correctly.  (%d min %d s)"), (int)((sRunEnd - sRunStart) / 60000),
                  (int)((sRunEnd - sRunStart) / 1000 % 60));
     } else {
-        snprintf(sub, sizeof(sub), "The game is installed.");
+        snprintf(sub, sizeof(sub), Bt3Ui::T("The game is installed."));
     }
     heading("Ready to play", sub);
     step_list();
     ImGui::Dummy(ImVec2(0.0f, 4.0f));
-    ImGui::TextColored(kDim, "In the game, F1 opens the settings: resolution, widescreen, controls and sound.");
+    ImGui::PushStyleColor(ImGuiCol_Text, kDim);
+    Bt3Ui::TextWrapped("In the game, F1 opens the settings: resolution, widescreen, controls and sound.");
+    ImGui::PopStyleColor();
     if (sRelease && !Native_EuInstalled(sRoot)) { // the languages can be added at any time
-        static const SDL_DialogFileFilter filters[] = {{"PS2 disc image", "iso;bin;img"}, {"All files", "*"}};
         ImGui::Dummy(ImVec2(0.0f, 4.0f));
-        ImGui::TextWrapped("Spanish, German, French and Italian, plus the opening soundtrack: add a European disc image (SLES-54945).");
-        if (ImGui::Button("Add languages and music...")) {
-            SDL_ShowOpenFileDialog(dialog_done, (void *)1, sWindow, filters, 2, NULL, false);
+        Bt3Ui::TextWrapped("Spanish, German, French and Italian, plus the opening soundtrack: add a European disc image (SLES-54945).");
+        if (Bt3Ui::Button("Add languages and music...")) {
+            choose_iso((void *)1);
         }
     }
-    bottom_row(2);
+    bottom_row({"Close", "Play"});
     if (big_button("Close", false)) {
         sQuit = true;
     }
     ImGui::SameLine();
     if (big_button("Play", true)) {
-        const char *args[2] = {sLauncher.c_str(), NULL};
-        SDL_PropertiesID props = SDL_CreateProperties();
-        SDL_Environment *env = SDL_CreateEnvironment(true);
-        SDL_SetEnvironmentVariable(env, "BT3_GS", "gpu", true); // the window and the GPU renderer
-        SDL_UnsetEnvironmentVariable(env, "BT3_DEMO");
-        SDL_UnsetEnvironmentVariable(env, "BT3_REPLAY");
-        SDL_SetPointerProperty(props, SDL_PROP_PROCESS_CREATE_ARGS_POINTER, (void *)args);
-        SDL_SetPointerProperty(props, SDL_PROP_PROCESS_CREATE_ENVIRONMENT_POINTER, env);
-        SDL_SetStringProperty(props, SDL_PROP_PROCESS_CREATE_WORKING_DIRECTORY_STRING, sRoot.c_str());
-        SDL_SetBooleanProperty(props, SDL_PROP_PROCESS_CREATE_BACKGROUND_BOOLEAN, true);
-        SDL_Process *game = SDL_CreateProcessWithProperties(props);
-        SDL_DestroyProperties(props);
-        SDL_DestroyEnvironment(env);
+        SDL_Process *game = Bt3Setup::LaunchGame(sRoot, sLauncher);
         if (game != NULL) {
             SDL_DestroyProcess(game);
             sQuit = true;
@@ -551,23 +554,23 @@ static void page_failed() {
     heading("Setup stopped", "Nothing is broken: finished steps are kept, and Install continues from where it stopped.");
     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.93f, 0.36f, 0.33f, 0.10f));
     ImGui::BeginChild("why", ImVec2(0.0f, sMissing.empty() ? 150.0f : 90.0f), ImGuiChildFlags_AlwaysUseWindowPadding);
-    ImGui::TextWrapped("%s", sError.c_str());
+    Bt3Ui::TextWrapped("%s", Bt3Ui::T(sError.c_str()));
     ImGui::EndChild();
     ImGui::PopStyleColor();
     if (!sMissing.empty() && ImGui::BeginTable("missing", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV)) {
-        ImGui::TableSetupColumn("Missing");
-        ImGui::TableSetupColumn("Used for");
-        ImGui::TableSetupColumn("Package to install");
+        Bt3Ui::TableSetupColumn("Missing");
+        Bt3Ui::TableSetupColumn("Used for");
+        Bt3Ui::TableSetupColumn("Package to install");
         ImGui::TableHeadersRow();
         for (auto &m : sMissing) {
             ImGui::TableNextRow();
-            ImGui::TableNextColumn(); ImGui::TextUnformatted(m.name.c_str());
-            ImGui::TableNextColumn(); ImGui::TextWrapped("%s", m.why.c_str());
-            ImGui::TableNextColumn(); ImGui::TextWrapped("%s", m.pkg.c_str());
+            ImGui::TableNextColumn(); Bt3Ui::TextUnformatted(m.name.c_str());
+            ImGui::TableNextColumn(); Bt3Ui::TextWrapped("%s", Bt3Ui::T(m.why.c_str()));
+            ImGui::TableNextColumn(); Bt3Ui::TextWrapped("%s", m.pkg.c_str());
         }
         ImGui::EndTable();
     }
-    bottom_row(3);
+    bottom_row({"Open the log", "Close", "Back"});
     if (big_button("Open the log", false)) {
         SDL_OpenURL(("file://" + sRoot + "install.log").c_str());
     }
@@ -585,7 +588,21 @@ static void build_ui() {
     ImGuiIO &io = ImGui::GetIO();
     ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
     ImGui::SetNextWindowSize(io.DisplaySize);
-    ImGui::Begin("setup", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
+    Bt3Ui::Begin("setup", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
+    ImGui::SetNextItemWidth(200.0f);
+    int selectedLanguage = Bt3Ui::LanguageIndex().load();
+    if (ImGui::BeginCombo(Bt3Ui::Label("Language"), kBt3UiLanguages[selectedLanguage].name)) {
+        for (int i = 0; i < Bt3Ui::LanguageCount(); i++) {
+            if (ImGui::Selectable(kBt3UiLanguages[i].name, i == selectedLanguage)) Bt3Ui::SetLocale(kBt3UiLanguages[i].locale);
+        }
+        ImGui::EndCombo();
+    }
+    ImGui::Spacing();
+    static int titleLanguage = -1;
+    if (titleLanguage != Bt3Ui::LanguageIndex().load()) {
+        titleLanguage = Bt3Ui::LanguageIndex().load();
+        SDL_SetWindowTitle(sWindow, Bt3Ui::T(GAME " - Setup"));
+    }
     switch (sPage) {
     case PAGE_PICK: page_pick(); break;
     case PAGE_RUN: page_run(); break;
@@ -715,6 +732,7 @@ int main(int argc, char **argv) {
         }
     }
 #endif
+    Bt3Ui::SetLocale(getenv("BT3_MENU_LANG"));
     if (argc > 2 && strcmp(argv[1], "--install") == 0) {
         // Without a window: Tenkaichi3Decomp-setup --install <disc.iso> [<European disc.iso>] (an empty first one: only
         // the languages, for a folder set up before). A release folder only; prints the event lines.
@@ -749,7 +767,7 @@ int main(int argc, char **argv) {
         bool wantGl = api != NULL && (strcmp(api, "gl") == 0 || strcmp(api, "opengl") == 0);
         std::string why;
         if (!wantGl) {
-            sWindow = SDL_CreateWindow(GAME " - Setup", 760, 560, SDL_WINDOW_HIGH_PIXEL_DENSITY);
+            sWindow = SDL_CreateWindow(GAME " - Setup", 840, 640, SDL_WINDOW_HIGH_PIXEL_DENSITY);
             sDevice = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXIL | SDL_GPU_SHADERFORMAT_MSL, false, NULL);
             if (sWindow == NULL || sDevice == NULL || !SDL_ClaimWindowForGPUDevice(sDevice, sWindow)) {
                 why = SDL_GetError();
@@ -772,7 +790,7 @@ int main(int argc, char **argv) {
                 SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, attempt == 0 ? SDL_GL_CONTEXT_PROFILE_CORE : 0);
                 SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
                 glsl = attempt == 0 ? "#version 330" : "#version 130";
-                sWindow = SDL_CreateWindow(GAME " - Setup", 760, 560, SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_OPENGL);
+                sWindow = SDL_CreateWindow(GAME " - Setup", 840, 640, SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_OPENGL);
                 sGl = sWindow != NULL ? SDL_GL_CreateContext(sWindow) : NULL;
                 if (sGl == NULL && sWindow != NULL) {
                     SDL_DestroyWindow(sWindow);
@@ -819,6 +837,15 @@ int main(int argc, char **argv) {
         ImGui_ImplSDLGPU3_Init(&info);
     }
     sRoot = find_root();
+    if (!Bt3Ui::SetLocale(getenv("BT3_MENU_LANG"))) {
+        const char *settings = getenv("BT3_SETTINGS");
+        FILE *fp = fopen(settings != NULL ? settings : (sRoot + "bt3_settings.txt").c_str(), "r");
+        char line[256], locale[16];
+        while (fp != NULL && fgets(line, sizeof(line), fp)) {
+            if (sscanf(line, " menu_lang=\"%15[^\"]", locale) == 1) Bt3Ui::SetLocale(locale);
+        }
+        if (fp != NULL) fclose(fp);
+    }
     if (sRelease && Native_Installed(sRoot) && getenv("BT3_SETUP_ISO") == NULL) { // nothing left to do: offer Play
         reset_rows();
         for (auto &r : sRows) {

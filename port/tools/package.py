@@ -16,6 +16,7 @@ Contents:  Tenkaichi3Decomp, Tenkaichi3Decomp.dat   the game without the data ta
            translations/labels/   menu and battle language catalogs
            translations/ui/       optional bundled game UI catalogs
            translations/port/     text added by the PC port
+           translations/interface/ source catalogs compiled into the settings and setup windows
            tbo/ui/         the pictures of the Tenkaichi Budokai Online screens (port/tbo/ui), their credits in licenses/
            README.txt, licenses/
 The user needs nothing but their disc image. Nothing from the disc is in the zip."""
@@ -38,7 +39,10 @@ README = """Dragon Ball Z: Budokai Tenkaichi 3 - PC port (Linux, 64-bit)
 3. Press Play. Later, start  Tenkaichi3Decomp  itself (or the setup again, and press Play).
 
 In the game, F1 opens the settings: resolution, widescreen, controls and sound.
-With the European languages added, the first launch shows a language list in the game window before loading game or memory card data. Change it later with F1 > UI > Language.
+The setup, F1 settings, menu labels and online menus include English, Spanish, French, German, Italian and Catalan.
+The first launch shows a language list before loading game or memory card data. Change it later with F1 > UI > Language.
+The European disc adds the original game's Spanish, French, German and Italian text and artwork. Original dialogue
+without a Catalan translation remains in English. Settings switch immediately; game text switches on the next launch.
 Saves are kept in saves/. A file placed in gamedata/mods/<same path as the original> replaces the original.
 Texture packs (PCSX2 naming, .dds or .png) go into textures/, stages and music from outside the disc into
 stages/ and songs/: see the note in each folder.
@@ -142,7 +146,7 @@ def take_lang(out):
 def take_translations(out):
     """Bundled label, UI, and port-text catalogs."""
     target = out / "translations"
-    for kind in ("labels", "ui", "port"):
+    for kind in ("labels", "ui", "port", "interface"):
         (target / kind).mkdir(parents=True, exist_ok=True)
         for source in sorted((ROOT / "port/translations" / kind).glob("*.json")):
             if re.fullmatch(r"[a-z]{2,3}(?:-[A-Za-z]{2,3})?", source.stem):
