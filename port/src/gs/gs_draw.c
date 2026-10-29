@@ -177,8 +177,12 @@ static Tex sTex[MAX_TEX];
 static uint16_t sTexBucket[TEX_BUCKETS]; /* index + 1 of a cache entry, 0 = empty (open addressing) */
 static Tex *sLast; /* the entry the previous lookup returned */
 
-/* The 256-colour tables as textures, by hash of the palette entries they use (64 slots). */
+/* The 256-colour tables as textures, by their entries (64 slots): found by a hash, taken only if every entry is the
+   same. (By the hash alone two different tables were one: the object glow's table and the glare's ramp, which differ
+   only in alpha, came out the same with teen Gohan's third costume on Namek, and the glow of the fighters was drawn
+   through the glare's ramp, every pixel of the stage as if it glowed: a white picture, seen by a player.) */
 static struct { uint32_t hash, last; GsTex tex; } sCluts[MAX_CLUTS];
+static uint32_t sClutPx[MAX_CLUTS][256]; /* (apart: the slots the lookup goes through stay together) */
 
 static uint32_t tex_bucket(uint64_t t0, uint64_t texa, uint32_t gen) {
     uint64_t h = (t0 ^ (texa * 0x9E3779B97F4A7C15ull) ^ ((uint64_t)gen << 17)) * 0xD6E8FEB86659FD93ull;
@@ -407,6 +411,36 @@ static GsTex tbo_texture(uint32_t id) {
     return tex;
 }
 
+/* How much of a texture pack's pictures a frame takes in (BT3_PACK_FRAME_MB, 4 MB; 0: no limit). Each one in is
+   copied in the frame (pack_texture) and again into the upload at its end, and the driver then takes it over: with a
+   large pack (18 597 DXT5 pictures, mostly 512 x 512 and 1024 x 1024 with their smaller copies) a fight's new
+   effects brought 26 to 34 MB into one frame, 13 to 23 ms of uploading and as long again handing the frame over.
+   Past the budget a texture keeps the original for a frame or two more and its replacement comes in a following
+   frame, the way one whose file is still being read does (pack_arrived). At least one a frame comes in. */
+static int pack_budget_take(const TexPackImage *pack) {
+    static unsigned frame = ~0u;
+    static uint64_t used, budget = ~0ull;
+    uint64_t bytes = 0;
+    int level;
+
+    if (budget == ~0ull) {
+        const char *e = getenv("BT3_PACK_FRAME_MB");
+        budget = (uint64_t)(e != NULL ? atoi(e) : 4) * 1024 * 1024;
+    }
+    if (frame != gGsFrame) {
+        frame = gGsFrame;
+        used = 0;
+    }
+    for (level = 0; level < pack->levels; level++) {
+        bytes += pack->bytes[level];
+    }
+    if (budget != 0 && used != 0 && used + bytes > budget) {
+        return 0;
+    }
+    used += bytes;
+    return 1;
+}
+
 /* A pack's levels into a new texture (the back end takes a copy of each). */
 static GsTex pack_texture(const TexPackImage *pack) {
     GsTex tex = sBackend->texCreate(pack->w, pack->h, pack->format & 3, pack->levels);
@@ -438,7 +472,7 @@ static void pack_arrived(Tex *c) {
         c->pack = -1;
         return;
     }
-    if (got == 0 || oldHead - oldTail == 256 || sBackend->texSlotsLeft() < pack.levels) {
+    if (got == 0 || oldHead - oldTail == 256 || sBackend->texSlotsLeft() < pack.levels || !pack_budget_take(&pack)) {
         return; /* (not yet: asked again at the next frame's first use) */
     }
     tex = pack_texture(&pack);
@@ -638,13 +672,14 @@ static GsTex texture_get(int ctx) {
     if (sTexPackOn && TexPack_Count() != 0) {
         int id = TexPack_Lookup(tbp, tbw, psm, tw, th, (uint32_t)((t0 >> 34) & 1), cbp, cpsm, &packMaxAlpha);
         int got = id >= 0 ? TexPack_Get(id, &pack) : -1;
-        if (got > 0 && sBackend->texSlotsLeft() >= pack.levels) {
+        if (got > 0 && sBackend->texSlotsLeft() >= pack.levels && pack_budget_take(&pack)) {
             replaced = 1;
             gGpuTexReplaced++;
             rw = pack.w;
             rh = pack.h;
-        } else if (got == 0) {
-            packWait = id; /* still being read: the original until it is in (pack_arrived) */
+        } else if (got >= 0) {
+            packWait = id; /* still being read, or this frame's share of the pack is taken: the original until it comes
+                              in (pack_arrived) */
         }
     }
     /* A texture pack still uses the game's source pixels to identify Battle text for widescreen geometry. */
@@ -758,10 +793,10 @@ static GsTex clut_texture(uint32_t cbp) {
     for (i = 0; i < 256; i++) {
         uint32_t n = (i & 0xE7) | ((i & 8) << 1) | ((i & 0x10) >> 1);
         px[i] = Gs_VramRead(cbp, 1, 0, n & 15, n >> 4);
-        hash = (hash ^ px[i]) * 16777619u;
+        hash = (hash ^ px[i] ^ (px[i] >> 16)) * 16777619u; /* (the top bits folded in: the alpha is there) */
     }
     for (k = 0; k < MAX_CLUTS; k++) {
-        if (sCluts[k].tex != 0 && sCluts[k].hash == hash) {
+        if (sCluts[k].tex != 0 && sCluts[k].hash == hash && memcmp(sClutPx[k], px, sizeof(px)) == 0) {
             sCluts[k].last = gGsFrame;
             return sCluts[k].tex;
         }
@@ -785,6 +820,7 @@ static GsTex clut_texture(uint32_t cbp) {
     sBackend->texUpload(tex, 0, 256, 1, GS_TEXFMT_RGBA8, upload, sizeof(px));
     sCluts[old].tex = tex;
     sCluts[old].hash = hash;
+    memcpy(sClutPx[old], px, sizeof(px));
     sCluts[old].last = gGsFrame;
     return tex;
 }

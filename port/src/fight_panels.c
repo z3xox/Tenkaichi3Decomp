@@ -17,7 +17,7 @@
 
 #include "gs/fight_panels.h"
 
-#if defined(__x86_64__) && defined(__clang__)
+#if (defined(__x86_64__) || defined(__aarch64__)) && defined(__clang__)
 #undef __ptr32 /* the Windows headers of mingw define these two away */
 #undef __uptr
 #define GAME_PTR *__ptr32 __uptr

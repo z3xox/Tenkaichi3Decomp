@@ -2018,6 +2018,8 @@ static int ml_item_into(MlCtx *c, MlBuf screen, int part, MlTex *sheet, const un
    decoded pixels (what the renderer has when it decodes it, as the labels' hashes) and the European texture. */
 typedef struct MlArt {
     uint64_t hash;
+    uint64_t mid;            /* the hash of its middle row alone: a texture whose middle row is no art's is not one,
+                                and is turned away without the hash of all of it (MenuLabels_ArtSwap) */
     int w, h;
     uint32_t file;           /* the European texture file: sArtFile[file] */
     uint16_t index, palette; /* its texture and the texture whose colour table it is drawn with */
@@ -2029,13 +2031,31 @@ typedef struct MlArt {
 
 static struct { const uint8_t *p; size_t n; } *sArtFile;
 static MlArt *sArt;
-static int sArtCount, sArtReady;
+static uint64_t *sArtMid;                        /* the art's middle-row hashes, in order */
+static int sArtCount, sArtMidCount, sArtReady;
 static uint8_t sArtSize[10][10];                 /* the sizes (as powers of two) any of them has */
 static pthread_mutex_t sArtLock = PTHREAD_MUTEX_INITIALIZER;
 
 static int ml_art_order(const void *a, const void *b) {
     const MlArt *x = a, *y = b;
     return x->hash < y->hash ? -1 : x->hash > y->hash ? 1 : 0;
+}
+
+static int ml_mid_order(const void *a, const void *b) {
+    uint64_t x = *(const uint64_t *)a, y = *(const uint64_t *)b;
+    return x < y ? -1 : x > y ? 1 : 0;
+}
+
+/* The hash of row h / 2 (within the first ML_ART_TOP rows of a main menu sheet: the same in its "top" entry). */
+static uint64_t ml_mid_hash(const uint8_t *rgba, int w, int h) {
+    uint64_t hash = UINT64_C(14695981039346656037);
+    const uint8_t *row = rgba + (size_t)w * (size_t)(h / 2) * 4;
+    size_t i;
+
+    for (i = 0; i < (size_t)w * 4; i++) {
+        hash = (hash ^ row[i]) * UINT64_C(1099511628211);
+    }
+    return hash;
 }
 
 static int ml_log2(int v) {
@@ -2067,6 +2087,7 @@ static int ml_art_one(MlBuf usa, MlBuf eu, uint32_t file, uint32_t index, uint32
         r = memcmp(a.rgba, b.rgba, (size_t)a.w * a.h * 4) != 0;
         if (r) {
             out->hash = a.hash;
+            out->mid = ml_mid_hash(a.rgba, a.w, a.h);
             out->w = a.w;
             out->h = a.h;
             out->file = file;
@@ -2365,9 +2386,16 @@ int MenuLabels_Art(const char *dataDir, int bank, char *why, size_t whyLen) {
         free(eu);
     }
     qsort(b.art, (size_t)b.n, sizeof(*b.art), ml_art_order);
+    sArtMid = malloc((size_t)(b.n > 0 ? b.n : 1) * sizeof(*sArtMid));
+    if (sArtMid == NULL) {
+        goto done;
+    }
     for (k = 0; k < (uint32_t)b.n; k++) {
         sArtSize[ml_log2(b.art[k].w)][ml_log2(b.art[k].h)] = 1;
+        sArtMid[k] = b.art[k].mid;
     }
+    qsort(sArtMid, (size_t)b.n, sizeof(*sArtMid), ml_mid_order);
+    sArtMidCount = b.n;
     sArt = b.art;
     b.art = NULL;
     sArtCount = b.n;
@@ -2406,6 +2434,11 @@ int MenuLabels_ArtSwap(unsigned char *rgba, int w, int h) {
         !sArtSize[ml_log2(w)][ml_log2(h)]) {
         return 0;
     }
+    hash = ml_mid_hash(rgba, w, h); /* (most textures of a fight have an art's size: this turns them away cheaply) */
+    if (bsearch(&hash, sArtMid, (size_t)sArtMidCount, sizeof(*sArtMid), ml_mid_order) == NULL) {
+        return 0;
+    }
+    hash = UINT64_C(14695981039346656037);
     for (i = 0; i < bytes; i++) {
         hash = (hash ^ rgba[i]) * UINT64_C(1099511628211);
     }

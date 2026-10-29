@@ -36,3 +36,6 @@ port/build_release/
 /stages/
 /songs/
 /textures/
+
+# the private key that signs the releases for the automatic update (port/tools/update_key.py generate): never in the repository
+port/tools/update_signing_key.txt

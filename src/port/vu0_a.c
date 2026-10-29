@@ -837,6 +837,12 @@ static void seam_c(void *a0, void *a1, const void *a2, const void *a3) {
     op_vdiv(0, W, 9, W);                       /* 110158  Q = 1 / w */
     op_vmulq(M_XYZ, 9, 9);                     /* 110160 */
     op_vftoi(M_XYZW, 10, 9, 4);                /* 110164  vftoi4 */
+    {   /* (the port: the position before it is rounded to the GS's 1/16 pixel, for the triangles drawn from it) */
+        /* (the floats as their bits: this file is built with the game's software float, which passes a float
+           otherwise than the PC's code takes it) */
+        extern void Port_SeamExact(uint32_t x, uint32_t y, uint32_t z, uint32_t fx, uint32_t fy); /* port/src/gs/gs_core.c */
+        Port_SeamExact(gRefVu0.vf[10].u[0], gRefVu0.vf[10].u[1], gRefVu0.vf[10].u[2], gRefVu0.vf[9].u[0], gRefVu0.vf[9].u[1]);
+    }
     gRefVu0.status = 0;                        /* 110170  ctc2 $zero, vi16 */
     op_vsub(M_XYW, 0, 9, 0);                   /* 110174  flags only: x, y, w - 1 */
     op_vsub(M_XY, 0, 19, 9);                   /* 110178  flags only: 4096 - x, 4096 - y */

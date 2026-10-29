@@ -1778,3 +1778,21 @@ f70fa25b39f1a74f	%s: %s.
 ea3ccf82b4e57ae5	Escribe con el teclado: Retroceso borra, Intro termina, Escape vuelve.
 # Save loaded
 0a2ed49533198d05	Partida cargada
+# Your rival "%s" from %s is here! The match begins.
+70caaf1619ddb345	Llegó tu rival, "%s", desde %s. ¡Empieza la partida!
+# Round trip: about %d ms.
+7618f637c8f4dae0	Latencia de ida y vuelta: unos %d milisegundos.
+# North America
+9b2646330f37beb8	América del Norte
+# South America
+3068deb5848e4e9e	América del Sur
+# Europe
+0275e1d6bb363367	Europa
+# the Middle East
+1ae1da83b4ff664e	Medio Oriente
+# Africa
+17f7b586b1fe2567	África
+# Asia
+112a588b5b82efb7	Asia
+# Oceania
+187fcb65e9f393eb	Oceanía

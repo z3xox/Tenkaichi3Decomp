@@ -219,7 +219,8 @@ int PortTbo_TextRead(void) {
    puts it on the clipboard (PortInput_TboClipboard, from the overlay's frame: SDL wants the clipboard there). */
 static char sTboCopy[64];
 static int sTboCopyDue;
-static int sTboPasteDue; /* the keypad's PASTE (Join Room): the clipboard's room code, typed on the window's thread */
+static int sTboPasteDue; /* the keypad's PASTE: 1 the clipboard's code (Join), 2 its plain characters (Join
+                            by Address), typed on the window's thread */
 
 void PortTbo_Copy(const char *text) {
     SDL_LockSpinlock(&sTboLock);
@@ -232,6 +233,31 @@ void PortTbo_Paste(void) {
     SDL_LockSpinlock(&sTboLock);
     sTboPasteDue = 1;
     SDL_UnlockSpinlock(&sTboLock);
+}
+
+void PortTbo_PasteText(void) {
+    SDL_LockSpinlock(&sTboLock);
+    sTboPasteDue = 2;
+    SDL_UnlockSpinlock(&sTboLock);
+}
+
+/* An address in a copied text: its last word ("192.168.1.20:7000" of "My address: 192.168.1.20:7000"), typed as if
+   by hand; the page keeps the characters an address can have. */
+static void tbo_paste_text(const char *clip) {
+    const unsigned char *p = (const unsigned char *)clip, *from = p;
+    int n = 0;
+
+    for (; p != NULL && *p; p++) {
+        if (*p == ' ' && p[1] != '\0' && p[1] != ' ') {
+            from = p + 1; /* (the last word is the address) */
+        }
+    }
+    for (p = from; p != NULL && *p && *p != ' ' && *p != '\n' && *p != '\r' && n < 48; p++) {
+        if (*p > 32 && *p < 127) {
+            tbo_push(*p);
+            n++;
+        }
+    }
 }
 
 /* The room code in a copied text: the last run of exactly six letters and digits ("Room code: MFT8FD"); without
@@ -276,7 +302,11 @@ void PortInput_TboClipboard(void) {
     }
     if (paste) {
         char *clip = SDL_GetClipboardText();
-        tbo_paste_code(clip);
+        if (paste == 2) {
+            tbo_paste_text(clip);
+        } else {
+            tbo_paste_code(clip);
+        }
         SDL_free(clip);
     }
 }
@@ -1805,7 +1835,8 @@ void Port_PadVibrate(int socket, int small, int large) {
         return;
     }
     if (Port_NetActive()) {
-        if (socket != Port_NetMe()) {
+        extern int Port_NetSpectating(void);
+        if (socket != Port_NetMe() || Port_NetSpectating()) { /* (a spectator's controller plays nobody) */
             return;
         }
         player = 0;

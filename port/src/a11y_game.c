@@ -18,12 +18,20 @@
 #include "plat_songs.h"
 #include "plat_stages.h"
 
-#if defined(__x86_64__) && defined(__clang__)
+#if (defined(__x86_64__) || defined(__aarch64__)) && defined(__clang__)
 #undef __ptr32 /* the Windows headers of mingw define these two away */
 #undef __uptr
 #define GAME_PTR *__ptr32 __uptr
 #else
 #define GAME_PTR *
+#endif
+/* The game's layouts. On Apple arm64 only where its pointers are 4 bytes (not in ptr32.py's libclang 18 parse there,
+   which ignores __ptr32; the compile after it checks them); everywhere else always, so that a build whose game
+   pointers are not 4 bytes stops here instead of reading the game's structures wrongly */
+#if defined(__APPLE__) && defined(__aarch64__)
+#define LAYOUT_ASSERT(c, m) _Static_assert(sizeof(void GAME_PTR) != 4 || (c), m)
+#else
+#define LAYOUT_ASSERT(c, m) _Static_assert(c, m)
 #endif
 
 #define A11Y_INTERRUPT 1 /* gs/a11y.c */
@@ -49,6 +57,12 @@ extern struct { int unk0[2]; int loadPack, loadRes, loadSprites; int flags; int 
 #define MODE_HIST_SEL 6 /* the story mode's saga select */
 #define MODE_EPISODES 7 /* the saga's episode list */
 
+/* The game's progress mode, for the port's own lines over the picture (gs/ui.cpp: the update's line shows over the
+   main menu, 4, and the port's screens, 80, Tenkaichi Budokai Online); -1 before the menus exist. */
+int Port_GameMode(void) {
+    return gProgress != NULL ? gProgress->mode : -1;
+}
+
 /* include/menu/menu_a.h: Title (src/menu/menu_a_c.c) */
 typedef struct {
     char unk0[0xA8];
@@ -59,7 +73,7 @@ typedef struct {
     int state;     /* 0xB8: 0 intro, 1 "press start", 2 the two choices */
     int mcState;   /* 0xBC: not 0 while a memory card flow runs (its dialog speaks) */
 } A11yTitle;
-_Static_assert(offsetof(A11yTitle, mcState) == 0xBC, "Title");
+LAYOUT_ASSERT(offsetof(A11yTitle, mcState) == 0xBC, "Title");
 extern A11yTitle GAME_PTR gTitle;
 #define TITLE_CHOSEN 1
 #define TITLE_LEAVING 2
@@ -81,7 +95,7 @@ typedef struct {
     int unk80;
     int choices;                /* 0x84: not 0: "Yes" and "No" are shown */
 } A11yDialog;
-_Static_assert(offsetof(A11yDialog, choices) == 0x84, "Dialog");
+LAYOUT_ASSERT(offsetof(A11yDialog, choices) == 0x84, "Dialog");
 extern A11yDialog GAME_PTR gDialog;
 #define DIALOG_FLAG_OPEN 4
 
@@ -97,7 +111,7 @@ typedef struct {
     int itemCount;               /* 0x148 */
     int top;                     /* 0x14C: list index of the plate above the first row (a ring) */
 } A11yMainMenu;
-_Static_assert(offsetof(A11yMainMenu, top) == 0x14C, "MainMenu");
+LAYOUT_ASSERT(offsetof(A11yMainMenu, top) == 0x14C, "MainMenu");
 extern A11yMainMenu GAME_PTR gMainMenu;
 #define MAINMENU_CHOSEN 1
 #define MAINMENU_LEAVING 2
@@ -109,7 +123,7 @@ typedef struct {
     char unk04[0x98 - 0x04];
     uint16_t GAME_PTR str;   /* 0x98: box (0x44) .draw.str (+0x54), the line shown (TextBox_AttachLine) */
 } A11yMsgWin;
-_Static_assert(offsetof(A11yMsgWin, str) == 0x98, "MsgWin");
+LAYOUT_ASSERT(offsetof(A11yMsgWin, str) == 0x98, "MsgWin");
 extern A11yMsgWin GAME_PTR gMsgWin;
 
 /* include/menu/menu_d.h: CharSel (src/menu/menu_c_e.c), the character, stage and music select. */
@@ -127,8 +141,8 @@ typedef struct {
     int state;        /* 0x70: CHARSEL_ST_ */
     char unk74[0xF0 - 0x74];
 } A11yCharSide;
-_Static_assert(offsetof(A11yCharSide, chara) == 0x6C && offsetof(A11yCharSide, state) == 0x70, "CharSelSide");
-_Static_assert(sizeof(A11yCharSide) == 0xF0, "CharSelSide");
+LAYOUT_ASSERT(offsetof(A11yCharSide, chara) == 0x6C && offsetof(A11yCharSide, state) == 0x70, "CharSelSide");
+LAYOUT_ASSERT(sizeof(A11yCharSide) == 0xF0, "CharSelSide");
 #define CHARSEL_SIDE_CUSTOM 0x80
 #define CHARSEL_ST_GRID 0
 #define CHARSEL_ST_FORM 1
@@ -151,7 +165,7 @@ typedef struct {
     int bgm;          /* 0x4C: index in the music list */
     int bgmPlaying;   /* 0x50: index of the entry that plays */
 } A11yCharStage;
-_Static_assert(offsetof(A11yCharStage, state) == 0x40 && offsetof(A11yCharStage, bgmPlaying) == 0x50, "CharSelStage");
+LAYOUT_ASSERT(offsetof(A11yCharStage, state) == 0x40 && offsetof(A11yCharStage, bgmPlaying) == 0x50, "CharSelStage");
 #define CHARSEL_STAGE_BGM_COL 6
 
 typedef struct {
@@ -159,7 +173,7 @@ typedef struct {
     int formCount;    /* 0x04: forms on the reel, 0 = the cell is the one character */
     int form[7];
 } A11yChrCell;
-_Static_assert(sizeof(A11yChrCell) == 0x24, "MChrCell");
+LAYOUT_ASSERT(sizeof(A11yChrCell) == 0x24, "MChrCell");
 #define MCHR_COLS 7
 #define MCHR_RANDOM 0xA1 /* to MCHR_EMPTY 0xA4: random, locked, custom characters, empty */
 
@@ -191,11 +205,11 @@ typedef struct {
     int stageCount;                 /* 0x380C */
     int bgmCount;                   /* 0x3810 */
 } A11yCharSel;
-_Static_assert(offsetof(A11yCharSel, flags) == 0x2FC && offsetof(A11yCharSel, side) == 0x4F8, "CharSel");
-_Static_assert(offsetof(A11yCharSel, stage) == 0x554 && offsetof(A11yCharSel, cells) == 0x560, "CharSel");
-_Static_assert(offsetof(A11yCharSel, customCount) == 0x33D8 && offsetof(A11yCharSel, rows) == 0x37D0, "CharSel");
-_Static_assert(offsetof(A11yCharSel, players) == 0x37EC && offsetof(A11yCharSel, turn) == 0x3800, "CharSel");
-_Static_assert(offsetof(A11yCharSel, bgmIds) == 0x3808 && offsetof(A11yCharSel, bgmCount) == 0x3810, "CharSel");
+LAYOUT_ASSERT(offsetof(A11yCharSel, flags) == 0x2FC && offsetof(A11yCharSel, side) == 0x4F8, "CharSel");
+LAYOUT_ASSERT(offsetof(A11yCharSel, stage) == 0x554 && offsetof(A11yCharSel, cells) == 0x560, "CharSel");
+LAYOUT_ASSERT(offsetof(A11yCharSel, customCount) == 0x33D8 && offsetof(A11yCharSel, rows) == 0x37D0, "CharSel");
+LAYOUT_ASSERT(offsetof(A11yCharSel, players) == 0x37EC && offsetof(A11yCharSel, turn) == 0x3800, "CharSel");
+LAYOUT_ASSERT(offsetof(A11yCharSel, bgmIds) == 0x3808 && offsetof(A11yCharSel, bgmCount) == 0x3810, "CharSel");
 extern A11yCharSel GAME_PTR gCharSel;
 #define CHARSEL_STARTED 2
 #define CHARSEL_STAGE_PHASE 4
@@ -213,7 +227,7 @@ typedef struct {
     int costume;      /* 0x18 */
     char unk1C[0x30 - 0x1C];
 } A11ySelEntry;
-_Static_assert(offsetof(A11ySelEntry, custom) == 0x14 && sizeof(A11ySelEntry) == 0x30, "LSelEntry");
+LAYOUT_ASSERT(offsetof(A11ySelEntry, custom) == 0x14 && sizeof(A11ySelEntry) == 0x30, "LSelEntry");
 /* SOLOSEL_STEP_ = ESEL_STEP_ */
 #define PICK_STEP_CHARA 0
 #define PICK_STEP_FORM 1
@@ -242,9 +256,9 @@ typedef struct {
     int customCount;               /* 0x1964 */
     int colorCount;                /* 0x1968 */
 } A11ySoloSel;
-_Static_assert(offsetof(A11ySoloSel, flags) == 0x18C && offsetof(A11ySoloSel, entry) == 0x1A4, "SoloSel");
-_Static_assert(offsetof(A11ySoloSel, step) == 0x214 && offsetof(A11ySoloSel, grid) == 0x224, "SoloSel");
-_Static_assert(offsetof(A11ySoloSel, colorCount) == 0x1968, "SoloSel");
+LAYOUT_ASSERT(offsetof(A11ySoloSel, flags) == 0x18C && offsetof(A11ySoloSel, entry) == 0x1A4, "SoloSel");
+LAYOUT_ASSERT(offsetof(A11ySoloSel, step) == 0x214 && offsetof(A11ySoloSel, grid) == 0x224, "SoloSel");
+LAYOUT_ASSERT(offsetof(A11ySoloSel, colorCount) == 0x1968, "SoloSel");
 extern A11ySoloSel GAME_PTR gSoloSel; /* NULL outside the screen */
 #define SOLOSEL_STARTED 2
 #define SOLOSEL_LEAVING 0x10
@@ -270,9 +284,9 @@ typedef struct {
     int customCount;               /* 0x1B0C */
     int colorCount;                /* 0x1B10 */
 } A11yEntrySel;
-_Static_assert(offsetof(A11yEntrySel, flags) == 0x1D8 && offsetof(A11yEntrySel, entry) == 0x1F8, "ESel");
-_Static_assert(offsetof(A11yEntrySel, image) == 0x3B4 && offsetof(A11yEntrySel, step) == 0x3BC, "ESel");
-_Static_assert(offsetof(A11yEntrySel, grid) == 0x3CC && offsetof(A11yEntrySel, colorCount) == 0x1B10, "ESel");
+LAYOUT_ASSERT(offsetof(A11yEntrySel, flags) == 0x1D8 && offsetof(A11yEntrySel, entry) == 0x1F8, "ESel");
+LAYOUT_ASSERT(offsetof(A11yEntrySel, image) == 0x3B4 && offsetof(A11yEntrySel, step) == 0x3BC, "ESel");
+LAYOUT_ASSERT(offsetof(A11yEntrySel, grid) == 0x3CC && offsetof(A11yEntrySel, colorCount) == 0x1B10, "ESel");
 extern A11yEntrySel GAME_PTR gEntrySel; /* NULL outside the screen */
 #define ESEL_LEAVING 2
 #define ESEL_STARTED 4
@@ -294,8 +308,8 @@ typedef struct {
     char unk14C[0x184 - 0x14C];
     int resetState; /* 0x184: not 0 while the "restore the default settings?" question runs (a Dialog) */
 } A11yDuelMenu;
-_Static_assert(offsetof(A11yDuelMenu, level) == 0x128 && offsetof(A11yDuelMenu, valueCount) == 0x144, "DuelMenu");
-_Static_assert(offsetof(A11yDuelMenu, resetState) == 0x184, "DuelMenu");
+LAYOUT_ASSERT(offsetof(A11yDuelMenu, level) == 0x128 && offsetof(A11yDuelMenu, valueCount) == 0x144, "DuelMenu");
+LAYOUT_ASSERT(offsetof(A11yDuelMenu, resetState) == 0x184, "DuelMenu");
 extern A11yDuelMenu GAME_PTR gDuelMenu;
 #define DUELMENU_CHOSEN 1
 #define DUELMENU_LEAVING 2
@@ -357,7 +371,7 @@ typedef struct {
     char unk3026[0x3028 - 0x3026];
     int money;                    /* 0x3028 */
 } A11ySave;
-_Static_assert(sizeof(A11yMissionRecord) == 0xC && sizeof(A11ySaveSlot) == 0x10 && offsetof(A11ySave, slot) == 0x10 &&
+LAYOUT_ASSERT(sizeof(A11yMissionRecord) == 0xC && sizeof(A11ySaveSlot) == 0x10 && offsetof(A11ySave, slot) == 0x10 &&
                    offsetof(A11ySave, mission) == 0x28C && sizeof(A11ySurvRecord) == 0xC &&
                    offsetof(A11ySave, surv) == 0x73C && sizeof(A11ySimRank) == 0xC && offsetof(A11ySave, simRank) == 0x210 &&
                    offsetof(A11ySave, tourLevel) == 0xA10 && offsetof(A11ySave, rule) == 0xC34 &&
@@ -574,7 +588,7 @@ typedef struct {
     int flags; /* 0x84: UBMENU_ */
     int cur;   /* 0x88: plate, 0..3 */
 } A11yUbMenu;
-_Static_assert(offsetof(A11yUbMenu, cur) == 0x88, "UbMenu");
+LAYOUT_ASSERT(offsetof(A11yUbMenu, cur) == 0x88, "UbMenu");
 extern A11yUbMenu GAME_PTR gUbMenu;
 extern int gUbMenuPlate3Open; /* src/menu/menu_p_c.c: the third plate is open */
 #define UBMENU_CHOSEN 1
@@ -624,7 +638,7 @@ typedef struct {
     char unk208[0x25C - 0x208];
     int have[2];            /* 0x25C: that disc was read */
 } A11yDiscFusion;
-_Static_assert(offsetof(A11yDiscFusion, cursor) == 0x1E4 && offsetof(A11yDiscFusion, dlgStep) == 0x204 &&
+LAYOUT_ASSERT(offsetof(A11yDiscFusion, cursor) == 0x1E4 && offsetof(A11yDiscFusion, dlgStep) == 0x204 &&
                    offsetof(A11yDiscFusion, have) == 0x25C, "DiscFusion");
 extern A11yDiscFusion GAME_PTR gDiscFusion;
 #define DISCFUSION_DONE 1    /* UBRES_DONE */
@@ -665,13 +679,13 @@ typedef struct {
     int rule;   /* 0x1C: 0 none */
     int opp[5]; /* 0x20: indices into the opponents */
 } A11yMisDef;
-_Static_assert(sizeof(A11yMisDef) == 0x34, "MisSelDef");
+LAYOUT_ASSERT(sizeof(A11yMisDef) == 0x34, "MisSelDef");
 
 typedef struct {
     int chara; /* 0x00: MISSEL_NONE ends the team */
     char unk4[0x2C - 4];
 } A11yMisOpp;
-_Static_assert(sizeof(A11yMisOpp) == 0x2C, "MisSelOpp");
+LAYOUT_ASSERT(sizeof(A11yMisOpp) == 0x2C, "MisSelOpp");
 
 typedef struct {
     char unk0[0xC];
@@ -689,7 +703,7 @@ typedef struct {
     int page;                     /* 0x500 */
     int mission;                  /* 0x504: page * 5 + row, set when the window opens */
 } A11yMisSel;
-_Static_assert(offsetof(A11yMisSel, flags) == 0x4BC && offsetof(A11yMisSel, level) == 0x4DC &&
+LAYOUT_ASSERT(offsetof(A11yMisSel, flags) == 0x4BC && offsetof(A11yMisSel, level) == 0x4DC &&
                    offsetof(A11yMisSel, mission) == 0x504, "MisSel");
 extern A11yMisSel GAME_PTR gMisSel;
 #define MISSEL_CHOSEN 1
@@ -768,7 +782,7 @@ typedef struct {
     int prize[2][3]; /* 0x10: the two prize sums for each level */
     char unk28[0x64 - 0x28];
 } A11yTourInfo;
-_Static_assert(sizeof(A11yTourInfo) == 0x64, "TourInfo");
+LAYOUT_ASSERT(sizeof(A11yTourInfo) == 0x64, "TourInfo");
 
 typedef struct {
     char unk0[0x108];
@@ -779,7 +793,7 @@ typedef struct {
     char unk130[0x144 - 0x130];
     A11yTourInfo GAME_PTR info;  /* 0x144: one per tournament */
 } A11yTourMenu;
-_Static_assert(offsetof(A11yTourMenu, level) == 0x12C && offsetof(A11yTourMenu, info) == 0x144, "TourMenu");
+LAYOUT_ASSERT(offsetof(A11yTourMenu, level) == 0x12C && offsetof(A11yTourMenu, info) == 0x144, "TourMenu");
 extern A11yTourMenu GAME_PTR gTourMenu;
 #define TOURMENU_DONE 1
 #define TOURMENU_LEAVING 2
@@ -876,7 +890,7 @@ typedef struct {
     char unk21C[0x228 - 0x21C];
     int percent;         /* 0x228: cleared episodes, in percent */
 } A11yHistSel;
-_Static_assert(offsetof(A11yHistSel, focus) == 0x1EC && offsetof(A11yHistSel, percent) == 0x228, "HistSel");
+LAYOUT_ASSERT(offsetof(A11yHistSel, focus) == 0x1EC && offsetof(A11yHistSel, percent) == 0x228, "HistSel");
 extern A11yHistSel GAME_PTR gHistSel;
 #define HISTSEL_CHOSEN 1
 #define HISTSEL_LEAVING 2
@@ -999,7 +1013,7 @@ typedef struct {
     char unk16C[0x178 - 0x16C];
     int itemMax;         /* 0x178 */
 } A11yModeMenu;
-_Static_assert(offsetof(A11yModeMenu, step) == 0x114 && offsetof(A11yModeMenu, itemMax) == 0x178, "ModeMenu");
+LAYOUT_ASSERT(offsetof(A11yModeMenu, step) == 0x114 && offsetof(A11yModeMenu, itemMax) == 0x178, "ModeMenu");
 extern A11yModeMenu GAME_PTR gModeMenu;
 #define MODEMENU_CHOSEN 1
 #define MODEMENU_LEAVING 2
@@ -1066,7 +1080,7 @@ typedef struct {
     char unk1A48[0x1BB0 - 0x1A48];
     int count[3];            /* 0x1BB0: lessons listed per class */
 } A11yTrain;
-_Static_assert(offsetof(A11yTrain, level) == 0x458 && offsetof(A11yTrain, nameLine) == 0x1994 &&
+LAYOUT_ASSERT(offsetof(A11yTrain, level) == 0x458 && offsetof(A11yTrain, nameLine) == 0x1994 &&
                    offsetof(A11yTrain, count) == 0x1BB0, "Train");
 extern A11yTrain GAME_PTR gTrain;
 #define TRAIN_LEAVING 8
@@ -1144,7 +1158,7 @@ typedef struct {
     char unk2FC[0x308 - 0x2FC];
     int level;               /* 0x308: 0 choosing, 1 the course's window is open */
 } A11ySurvSel;
-_Static_assert(offsetof(A11ySurvSel, flags) == 0x2F0 && offsetof(A11ySurvSel, level) == 0x308, "SurvSel");
+LAYOUT_ASSERT(offsetof(A11ySurvSel, flags) == 0x2F0 && offsetof(A11ySurvSel, level) == 0x308, "SurvSel");
 extern A11ySurvSel GAME_PTR gSurvSel;
 #define SURVSEL_CHOSEN 1
 #define SURVSEL_LEAVING 2
@@ -1207,7 +1221,7 @@ typedef struct {
     int cursor;              /* 0x1BC */
     int page;                /* 0x1C0: help page, 0..10 */
 } A11ySimTop;
-_Static_assert(offsetof(A11ySimTop, flags) == 0x170 && offsetof(A11ySimTop, level) == 0x190 &&
+LAYOUT_ASSERT(offsetof(A11ySimTop, flags) == 0x170 && offsetof(A11ySimTop, level) == 0x190 &&
                offsetof(A11ySimTop, top) == 0x1B8 && offsetof(A11ySimTop, page) == 0x1C0, "SimTop");
 extern A11ySimTop GAME_PTR gSimTop;
 #define SIMTOP_CHOSEN 1
@@ -1387,8 +1401,8 @@ typedef struct {
     A11yBrkEntrant ent[17];      /* 0x1A68 */
     A11yTourMatch m[16];         /* 0x1D10 */
 } A11yBracket;
-_Static_assert(sizeof(A11yBrkEntrant) == 0x28 && sizeof(A11yTourMatch) == 0x10, "Bracket");
-_Static_assert(offsetof(A11yBracket, flags) == 0x2DC && offsetof(A11yBracket, round) == 0x1A44 &&
+LAYOUT_ASSERT(sizeof(A11yBrkEntrant) == 0x28 && sizeof(A11yTourMatch) == 0x10, "Bracket");
+LAYOUT_ASSERT(offsetof(A11yBracket, flags) == 0x2DC && offsetof(A11yBracket, round) == 0x1A44 &&
                offsetof(A11yBracket, ent) == 0x1A68 && offsetof(A11yBracket, m) == 0x1D10, "Bracket");
 extern A11yBracket GAME_PTR gBracket;
 #define BRK_INPUT 4
@@ -1837,7 +1851,7 @@ typedef struct {
     int chara;        /* 0x138: character under the cursor, line of the name files */
     int state;        /* 0x13C: TEAMSEL_ST_ */
 } A11yTeamSide;       /* include/menu/menu_e.h: TeamSelSide */
-_Static_assert(sizeof(A11yTsMember) == 0x30 && offsetof(A11yTeamSide, state) == 0x13C, "TeamSelSide");
+LAYOUT_ASSERT(sizeof(A11yTsMember) == 0x30 && offsetof(A11yTeamSide, state) == 0x13C, "TeamSelSide");
 
 typedef struct {
     char unk0[0x28];
@@ -1869,9 +1883,9 @@ typedef struct {
     int stageCount;                 /* 0x3C64 */
     int bgmCount;                   /* 0x3C68 */
 } A11yTeamSel;
-_Static_assert(offsetof(A11yTeamSel, flags) == 0x3BC && offsetof(A11yTeamSel, side) == 0x8E8 &&
+LAYOUT_ASSERT(offsetof(A11yTeamSel, flags) == 0x3BC && offsetof(A11yTeamSel, side) == 0x8E8 &&
                offsetof(A11yTeamSel, stage) == 0x9A4 && offsetof(A11yTeamSel, cells) == 0x9B0, "TeamSel");
-_Static_assert(offsetof(A11yTeamSel, customCount) == 0x3828 && offsetof(A11yTeamSel, rows) == 0x3C20 &&
+LAYOUT_ASSERT(offsetof(A11yTeamSel, customCount) == 0x3828 && offsetof(A11yTeamSel, rows) == 0x3C20 &&
                offsetof(A11yTeamSel, base) == 0x3C58 && offsetof(A11yTeamSel, bgmCount) == 0x3C68, "TeamSel");
 extern A11yTeamSel GAME_PTR gTeamSel;
 #define TEAMSEL_STARTED 2
@@ -2079,7 +2093,7 @@ typedef struct {
     int unkFC;
     int mcState;    /* 0x100: not 0 while a card flow runs */
 } A11yReplayMenu;
-_Static_assert(offsetof(A11yReplayMenu, busy) == 0xE8 && offsetof(A11yReplayMenu, mcState) == 0x100, "ReplayMenu");
+LAYOUT_ASSERT(offsetof(A11yReplayMenu, busy) == 0xE8 && offsetof(A11yReplayMenu, mcState) == 0x100, "ReplayMenu");
 extern A11yReplayMenu GAME_PTR gReplayMenu; /* NULL outside the screen */
 
 typedef struct {
@@ -2092,7 +2106,7 @@ typedef struct {
     char unk690[0x69C - 0x690];
     A11yReplaySlot replay[7];     /* 0x69C */
 } A11yZaProgress;                 /* include/menu/menu_za.h: ZaProgress, the view of gProgress */
-_Static_assert(sizeof(A11yReplaySlot) == 0x2C && offsetof(A11yZaProgress, replay) == 0x69C, "ZaProgress");
+LAYOUT_ASSERT(sizeof(A11yReplaySlot) == 0x2C && offsetof(A11yZaProgress, replay) == 0x69C, "ZaProgress");
 #define REPLAY_LEAVE 1
 #define REPLAY_STARTED 4
 #define REPLAY_BUSY_NONE 0
@@ -2183,8 +2197,8 @@ typedef struct {
     char unk1600[0x1628 - 0x1600];
     int state;                          /* 0x1628: CHARREF_ST_ */
 } A11yCharRef;
-_Static_assert(sizeof(A11yCharRefEntry) == 0x14 && offsetof(A11yCharRef, cursor) == 0x15DC, "CharRef");
-_Static_assert(offsetof(A11yCharRef, menuCursor) == 0x15FC && offsetof(A11yCharRef, state) == 0x1628, "CharRef");
+LAYOUT_ASSERT(sizeof(A11yCharRefEntry) == 0x14 && offsetof(A11yCharRef, cursor) == 0x15DC, "CharRef");
+LAYOUT_ASSERT(offsetof(A11yCharRef, menuCursor) == 0x15FC && offsetof(A11yCharRef, state) == 0x1628, "CharRef");
 extern A11yCharRef GAME_PTR gCharRef; /* NULL outside the screen */
 #define CHARREF_CHARA_MAX 161
 #define CHARREF_ITEMS 4
@@ -2388,8 +2402,8 @@ typedef struct {
     A11yShopList list[2];         /* 0x0284: [0] on sale, [1] every item */
     A11yShopItem GAME_PTR items;  /* 0x2EE4 */
 } A11yShop;
-_Static_assert(sizeof(A11yShopItem) == 0x28 && offsetof(A11yShopItem, flags) == 0x14 && sizeof(A11yShopList) == 0x1630, "ShopList");
-_Static_assert(offsetof(A11yShop, flags) == 0x230 && offsetof(A11yShop, level) == 0x250 &&
+LAYOUT_ASSERT(sizeof(A11yShopItem) == 0x28 && offsetof(A11yShopItem, flags) == 0x14 && sizeof(A11yShopList) == 0x1630, "ShopList");
+LAYOUT_ASSERT(offsetof(A11yShop, flags) == 0x230 && offsetof(A11yShop, level) == 0x250 &&
                offsetof(A11yShop, list) == 0x284 && offsetof(A11yShop, items) == 0x2EE4, "Shop");
 extern A11yShop GAME_PTR gShop; /* NULL outside the screen */
 #define SHOP_STARTED 4
@@ -2673,7 +2687,7 @@ typedef struct {
     int GAME_PTR bgmIds;     /* 0x19C: the sound test's list (values: kSongNames) */
     int bgmCount;            /* 0x1A0 */
 } A11yOption;
-_Static_assert(offsetof(A11yOption, cursor) == 0x104 && offsetof(A11yOption, value) == 0x128 &&
+LAYOUT_ASSERT(offsetof(A11yOption, cursor) == 0x104 && offsetof(A11yOption, value) == 0x128 &&
                    offsetof(A11yOption, type) == 0x14C && offsetof(A11yOption, bgmCount) == 0x1A0,
                "Option");
 extern A11yOption GAME_PTR gOption; /* NULL outside the screen */
@@ -2893,7 +2907,7 @@ typedef struct {
     int disabled;         /* 0x1C: the cursor steps over it (the menus' first item, their title) */
     char unk20[0x10];
 } A11yBtlMenuItem;
-_Static_assert(sizeof(A11yBtlMenuItem) == 0x30, "BtlMenuItem");
+LAYOUT_ASSERT(sizeof(A11yBtlMenuItem) == 0x30, "BtlMenuItem");
 typedef struct {
     A11yBtlMenuItem GAME_PTR items; /* 0x00 */
     int count;                      /* 0x04 */
@@ -2902,7 +2916,7 @@ typedef struct {
     int cursor;                     /* 0x18 */
     int state;                      /* 0x1C */
 } A11yBtlMenu;
-_Static_assert(sizeof(A11yBtlMenu) == 0x20, "BtlMenu");
+LAYOUT_ASSERT(sizeof(A11yBtlMenu) == 0x20, "BtlMenu");
 typedef struct {
     char unk0[8];
     int active;              /* 0x08: the menu is shown */
@@ -2910,7 +2924,7 @@ typedef struct {
     char unk10[4];
     A11yBtlMenu GAME_PTR top; /* 0x14: the tree being shown */
 } A11yBtlMenuWork;
-_Static_assert(sizeof(A11yBtlMenuWork) == 0x18, "BtlMenuWork");
+LAYOUT_ASSERT(sizeof(A11yBtlMenuWork) == 0x18, "BtlMenuWork");
 extern A11yBtlMenuWork GAME_PTR gBtlMenu; /* NULL outside a battle */
 extern int gPauseMenuWhich;              /* src/battle/hud_0.c: 0 the pause menu, 1 the result menu */
 #define BTL_MENU_ITEM_SKILLS 3   /* as the first item: the page is the skill list */
@@ -3089,7 +3103,7 @@ typedef struct {
     char unk0[0x10];
     void GAME_PTR adxt; /* 0x10 */
 } A11yAdxPlayer;
-_Static_assert(sizeof(A11yAdxPlayer) == 0x14, "AdxPlayer");
+LAYOUT_ASSERT(sizeof(A11yAdxPlayer) == 0x14, "AdxPlayer");
 extern A11yAdxPlayer gAdxPlayerTbl[6];
 #define ADX_CH_MUSIC 0 /* "BGM": the music */
 #define ADX_CH_STAGE 1 /* "MAP": a stage's background sound */

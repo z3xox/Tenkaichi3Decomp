@@ -29,6 +29,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <time.h>
+#include <pthread.h>
 #include "plat_fprint_tab.h"
 
 extern const char *Port_FileRoot(void);                              /* plat_file.c */
@@ -1226,18 +1227,69 @@ static void cache_save(void) {
 
 enum { FP_OFF = -1, FP_RUNNING = 0, FP_READY = 1 };
 static volatile int sState = FP_OFF;
+static volatile int sClaimed; /* PortFp_Run has begun (only the first caller computes) */
 static uint64_t sMain, sComp[COMPS];
 static int sOriginal;
 static char sText[512];
 
 /* 1: *out is the fingerprint. 0: not ready yet (it is being computed). -1: not computed in this run (no data
    check: BT3_GS=none without BT3_VERIFY=1). */
+/* The data check's thread is started and will compute the fingerprint (1), or could not be started (0): until then
+   the state is "being computed", not "off", so the online screens say to wait instead of refusing (a slow drive). */
+void PortFp_Pending(int on) {
+    if (on && sState == FP_OFF) {
+        sState = FP_RUNNING;
+    } else if (!on && sState == FP_RUNNING && !sClaimed) {
+        sState = FP_OFF;
+    }
+}
+
+/* BT3_TEST_FPRINT=<hex> (testing): this copy claims that fingerprint, as if its data were another's (the online
+   checks, the quick match's "original disc's data only" and the Tenkaichi Budokai Online screens all see it). "off"
+   is not a claim: gs/net.c then sends none, as 0.1.37 did. */
+static int test_claim(unsigned long long *fp) {
+    const char *t = getenv("BT3_TEST_FPRINT");
+    if (t == NULL || t[0] == '\0' || strcmp(t, "off") == 0) {
+        return 0;
+    }
+    *fp = strtoull(t, NULL, 16);
+    return 1;
+}
+
 int Port_DataFingerprint(unsigned long long *out) {
     int state = sState;
     if (state == FP_READY && out != NULL) {
         *out = sMain;
+        test_claim(out);
     }
     return state;
+}
+
+/* Online play never connects before this game's fingerprint is known (gs/net.c): where it is not computed in this
+   run (no data check: BT3_GS=none, or the data check's thread could not be started), the first online step starts
+   it here, on a thread of its own. Returns the state, as Port_DataFingerprint. */
+void PortFp_Run(int detail);
+
+static void *need_thread(void *arg) {
+    (void)arg;
+    PortFp_Run(0);
+    return NULL;
+}
+
+int Port_DataFingerprintNeed(void) {
+    if (sState == FP_OFF && !sClaimed) {
+        pthread_t th;
+        pthread_attr_t attr;
+        fprintf(stderr, "bt3: gameplay data: online play asked for the fingerprint before the data check began: computing it now\n");
+        sState = FP_RUNNING;
+        pthread_attr_init(&attr);
+        pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+        if (pthread_create(&th, &attr, need_thread, NULL) != 0) {
+            PortFp_Run(0); /* (no thread: here, the caller waits) */
+        }
+        pthread_attr_destroy(&attr);
+    }
+    return sState;
 }
 
 /* The same for one part (0 tables, 1 characters, 2 animations, 3 stages, 4 effects, 5 scripts, 6 menus), and
@@ -1249,7 +1301,13 @@ int Port_DataFingerprintPart(int part, unsigned long long *out) {
     *out = sComp[part];
     return FP_READY;
 }
-int Port_DataFingerprintOriginal(void) { return sState == FP_READY ? sOriginal : -1; }
+int Port_DataFingerprintOriginal(void) {
+    unsigned long long fp;
+    if (sState != FP_READY) {
+        return -1;
+    }
+    return test_claim(&fp) ? fp == kFpMain : sOriginal;
+}
 /* The log's line without its "bt3: " (for a crash report, a lobby window); "" until it is known. */
 const char *Port_DataFingerprintText(void) { return sState == FP_READY ? sText : ""; }
 
@@ -1444,6 +1502,9 @@ void PortFp_Run(int detail) {
     size_t used;
     struct timespec t0, t1;
 
+    if (__sync_lock_test_and_set(&sClaimed, 1)) {
+        return; /* (computed, or being computed, by the other caller: the data check's thread or Port_DataFingerprintNeed) */
+    }
     clock_gettime(CLOCK_MONOTONIC, &t0);
     sState = FP_RUNNING;
     list_build();
