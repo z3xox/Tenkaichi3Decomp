@@ -26,7 +26,7 @@ NOT_DRAWN = {"getenv", "SDL_getenv", "Port_Setting", "Port_SettingSave", "Port_S
              "ImGui::BeginTabBar", "ImGui::DockSpace", "ImGui::LoadIniSettingsFromDisk", "ImHashStr", "SDL_LoadFile",
              "MenuTranslation_SaveChoice", "load_strip", "Port_SettingsPath", "snprintf_path", "IM_ASSERT", "assert",
              "SDL_GetHint", "SDL_GetError", "SDL_SetClipboardText", "Ui_Note", "PortA11y_Note", "fputs", "strcpy", "strcat",
-             "SDL_strlcpy", "SDL_strlcat", "sscanf", "strtol", "atoi"}
+             "SDL_strlcpy", "SDL_strlcat", "sscanf", "strtol", "atoi", "SDL_strncmp", "tabFlags"}
 # texts said as they are in every language: names
 SAME = {"Vulkan", "OpenGL", "Direct3D 12", "Metal", "(F11)", "Tenkaichi Budokai Online"}
 # functions that draw what the reader does not say: the connection meter over the picture (a11y_ui.cpp: "##meter")

@@ -1796,3 +1796,121 @@ ea3ccf82b4e57ae5	Escribe con el teclado: Retroceso borra, Intro termina, Escape 
 112a588b5b82efb7	Asia
 # Oceania
 187fcb65e9f393eb	Oceanía
+# Checking your game data... The search begins when it is done.
+2701546d701d8bae	Revisando los datos de tu juego... La búsqueda empieza cuando termine.
+# Checking your game data...
+bc9735b2ba762584	Revisando los datos de tu juego...
+# F1 to update, or github.com/z3xox/Tenkaichi3Decomp/releases
+3f79b7e089bc4f63	F1 para actualizar, o github.com/z3xox/Tenkaichi3Decomp/releases
+# Fight players on other computers. One of you opens a lobby, the others join it with its code or the owner's address; its page (Tenkaichi Budokai Online) has the places, the rules and the matches.
+bd3f0f859e1582a6	Pelea contra jugadores de otras computadoras. Uno abre una sala y los demás entran con su código o con la dirección de quien la abrió; su página (Tenkaichi Budokai Online) tiene los lugares, las reglas y las partidas.
+# Use a code (no port forwarding needed)
+7ec5091e7765abf9	Usar un código (sin abrir puertos)
+# Your lobby gets a short code to tell the others, and the games find each other through a\nsmall matchmaking service. Works with most home routers. Without it the lobby is on a port,\nwhich must be reachable from the others (port forwarding or a virtual network).
+51035f7ed4012f5b	Tu sala recibe un código corto para pasarles a los demás, y los juegos se encuentran a través de un\npequeño servicio de emparejamiento. Funciona con la mayoría de los routers de casa. Sin él, la sala queda en un puerto,\nal que los demás tienen que poder llegar (abriendo el puerto o con una red virtual).
+# The lobby's first rules; its owner changes them on its page. Everyone needs the same game data.
+9ff732c066458c9f	Las primeras reglas de la sala; quien la abrió las cambia en su página. Todos necesitan los mismos datos del juego.
+# Checking your game data... Connecting begins when it is done.
+4a09e8917d6f3145	Revisando los datos de tu juego... La conexión empieza cuando termine.
+# Found the lobby. Connecting to its owner...
+b3d29839530cca2a	Se encontró la sala. Conectando con quien la abrió...
+# Open a lobby
+82133203e697e08a	Abrir una sala
+# Join the lobby
+449c8f453794ccaa	Entrar a la sala
+# The other game is a different version. Everyone needs the same release.
+0081c3e76b34e7dc	El otro juego es de otra versión. Todos necesitan la misma versión.
+# The search could not be started.
+ee8e42e2f663c99a	No se pudo empezar la búsqueda.
+# In a match both players get the same roster, with everything unlocked, and your own save is
+7ec38c0fa5bc756e	En una partida los dos jugadores tienen la misma lista de luchadores, con todo desbloqueado, y tu partida guardada
+# left alone. When the match ends everyone is back on the lobby's page.
+12704266a3259532	no se toca. Cuando termina la partida, todos vuelven a la página de la sala.
+# Update now
+5671fb95bc3d5b04	Actualizar ahora
+# Downloads the new version in the background and checks its signature; you go on playing\nmeanwhile (online play waits until it is installed). Then Restart now installs it.\nYour saves, settings, game data, mods and texture packs are not touched.
+eaf25dc1b7e8ef2a	Descarga la versión nueva en segundo plano y comprueba su firma; mientras tanto sigues\njugando (el juego en línea espera a que esté instalada). Después, Reiniciar ahora la instala.\nNo se tocan tus partidas guardadas, ajustes, datos del juego, mods ni paquetes de texturas.
+# Later
+b718fbf789a9f5c9	Más tarde
+# No reminder over the menus until the next start.
+422f82e6fa626b57	Sin recordatorio sobre los menús hasta el próximo inicio.
+# Restart now
+0586c6db55ce141c	Reiniciar ahora
+# Not during an online session: finish it first.
+9a8bc61fccfd1f3f	No durante una sesión en línea: termínala primero.
+# Installs the update over the game's folder and starts the new version (if anything\ngoes wrong, every file is put back). Your saves and settings are not touched.
+d94ca76767a60223	Instala la actualización sobre la carpeta del juego y abre la versión nueva (si algo\nsale mal, cada archivo vuelve a su lugar). No se tocan tus partidas guardadas ni tus ajustes.
+# Try again
+cd1dd6ff53d0d01a	Intentar de nuevo
+# Hide what's new
+d27cb8aadaafcd31	Ocultar las novedades
+# What's new
+58f6d68cf300bed3	Novedades
+# Release page
+8710fd1f348160c1	Página de la versión
+# Opens the release page in your browser. To update by hand, copy the new files over the old ones.
+c9a325ad2d46b04b	Abre la página de la versión en tu navegador. Para actualizar a mano, copia los archivos nuevos sobre los viejos.
+# (The release has no notes.)
+befd8f11ea314676	(La versión no tiene notas.)
+# Once per start, ask GitHub for the newest release and say so if it is newer than this one.\nNothing is downloaded until you press Update now (at the top of this window).
+67891bd688999bc4	Una vez por inicio, pregunta a GitHub por la última versión y avisa si es más nueva que esta.\nNo se descarga nada hasta que aprietes Actualizar ahora (arriba de esta ventana).
+# The version of Tenkaichi3Decomp currently running ("dev": built locally, never offered updates).
+86b8d6f924fdc136	La versión de Tenkaichi3Decomp que está corriendo ("dev": compilada en esta computadora, nunca se le ofrecen actualizaciones).
+# Dragon Net Battle is the first online window of this port. Tenkaichi Budokai Online (the main menu) does everything it does: lobbies by code or by address, and quick matches.
+700e4ab8c5bcbc6a	Dragon Net Battle es la primera ventana en línea de este port. Tenkaichi Budokai Online (el menú principal) hace todo lo que ella hace: salas por código o por dirección, y partidas rápidas.
+# Open Dragon Net Battle
+ff653cb0760f36b7	Abrir Dragon Net Battle
+# List Dragon Net Battle in the main menu
+d94bdd6e0e0b67f9	Mostrar Dragon Net Battle en el menú principal
+# Shows the entry beside Tenkaichi Budokai Online the next time the main menu is opened.
+e0a1130dd65624bd	Muestra la opción junto a Tenkaichi Budokai Online la próxima vez que se abra el menú principal.
+# Back to the lobby
+55aaaa5ce2e5ab58	Volver a la sala
+# Ends the match for everyone: all go back to the lobby window, where the rules can be changed.
+4e95eb1869e7dda9	Termina la partida para todos: todos vuelven a la ventana de la sala, donde se pueden cambiar las reglas.
+# Close the lobby
+94db1fcb802b5260	Cerrar la sala
+# Leave the lobby
+3134c8ec8ec7b317	Salir de la sala
+# Ends the match and the lobby for everyone.
+5988bd9528bfcd79	Termina la partida y la sala para todos.
+# Back to the main menu. A player leaving ends the match; a spectator leaving changes nothing for the others.
+d0adba2a39d96d2a	Vuelve al menú principal. Si sale un jugador, termina la partida; si sale un espectador, no cambia nada para los demás.
+# Change view
+86e168fdea38f4e2	Cambiar la vista
+# Player 1's view, player 2's, or both (split screen). Also V or R1 while watching.
+569726ca47a1d0ad	La vista del jugador 1, la del jugador 2 o las dos (pantalla dividida). También V o R1 mientras miras.
+# Stop watching
+9241f1191921699a	Dejar de mirar
+# Online
+eadeb3a807d7478a	En línea
+# player 1
+210212f859dd4b63	jugador 1
+# player 2
+210213f859dd4d16	jugador 2
+# both (split screen)
+af1cbab3ab081531	los dos (pantalla dividida)
+# Be matched with whoever is searching the same queue. All quick matches have no time limit and run at %d%% speed, between games with the original disc's data.
+72bf9d8817a8926d	Empareja con quien esté buscando en la misma cola. Todas las partidas rápidas son sin límite de tiempo y corren al %d%% de velocidad, entre juegos con los datos del disco original.
+# Updated to %s.
+6f2a4c14a01e509f	Actualizado a la %s.
+# Update %s available (this is %s).
+3c777dd2b88cd470	Hay una actualización: %s (esta es la %s).
+# Downloading %s: %d%% (%.1f of %.1f MB). You can go on playing.
+1779dfcd21d08d75	Descargando la %s: %d%% (%.1f de %.1f MB). Puedes seguir jugando.
+# Checking the download of %s (its signature)...
+fdae7abc0956e9f4	Comprobando la descarga de la %s (su firma)...
+# Update %s is downloaded and verified.
+117500193e278c22	La actualización %s está descargada y comprobada.
+# Installing %s...
+02be4708d8516c72	Instalando la %s...
+# The update to %s was not installed: %s
+d2ccf69a78be91b2	La actualización a la %s no se instaló: %s
+# (installed: %s)
+bb7d72fd1aa92f18	(instalada: %s)
+# Lobby%s%s
+e43aab370d3af713	Sala%s%s
+# Spectating %s vs %s
+a1de614b0dd56e12	Mirando %s contra %s
+# View: %s
+fb24a5aabc85fd92	Vista: %s

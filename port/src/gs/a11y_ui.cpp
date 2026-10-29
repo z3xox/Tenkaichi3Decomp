@@ -193,7 +193,8 @@ const char *const kPatterns[] = {
     "Update available: 0.%d.%d (this is 0.%d.%d).",
     "You have 0.%d.%d; 0.%d.%d or newer is needed. github.com/z3xox/Tenkaichi3Decomp/releases",
     "Update available: release 0.%d.%d.",
-    "Be matched with whoever is searching the same queue. All quick matches have no time limit and run at %d%% speed.",
+    "Be matched with whoever is searching the same queue. All quick matches have no time limit and run at %d%% speed, "
+    "between games with the original disc's data.",
     "%s (%d searching)",
     "Searching for %d:%02d more. Leave the window open.",
     "Up to %d frames",
@@ -206,6 +207,17 @@ const char *const kPatterns[] = {
     "Looking for %s...",
     "Waiting for the other player on port %s...",
     "Active GPU: %s",
+    "Updated to %s.",
+    "Update %s available (this is %s).",
+    "Downloading %s: %d%% (%.1f of %.1f MB). You can go on playing.",
+    "Checking the download of %s (its signature)...",
+    "Update %s is downloaded and verified.",
+    "Installing %s...",
+    "The update to %s was not installed: %s",
+    "(installed: %s)",
+    "Lobby%s%s",
+    "Spectating %s vs %s",
+    "View: %s",
 };
 // Texts one of them would take too, that have a line of their own
 const char *const kNotPatterns[] = {"Keypad Enter", "Looking for the room..."};
