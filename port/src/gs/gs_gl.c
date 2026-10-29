@@ -809,15 +809,13 @@ static void frame_end(void) {
         if (PortInput_Hotkey(&ev)) { Ui_Toggle(); continue; }
         if (Ui_Event(&ev)) { continue; }
         if (ev.type == SDL_EVENT_KEY_DOWN && ev.key.key == SDLK_ESCAPE) { if (!ev.key.repeat && !Ui_QuitAsk()) { exit(0); } /* (asks first) */ }
-        if (ev.type == SDL_EVENT_KEY_DOWN && !ev.key.repeat && ev.key.key == SDLK_F9) { /* in-between pictures on / off */
-            extern int gsInterp;
-            extern void Port_SettingSave(const char *name, int value);
+        if (ev.type == SDL_EVENT_KEY_DOWN && !ev.key.repeat && ev.key.key == SDLK_F9) { /* 30 or the chosen frame rate */
             extern void Port_SettingsWrite(void);
-            static int was = 1; /* (the same setting as F1, Video, Smooth motion: off, or back to what it was) */
-            if (gsInterp > 0) { was = gsInterp; gsInterp = 0; } else { gsInterp = was; }
-            Port_SettingSave("interp", gsInterp);
+            Port_FpsToggle();
             Port_SettingsWrite();
-            fprintf(stderr, "bt3: smooth motion %s\n", gsInterp == 0 ? "off" : gsInterp == 1 ? "60" : gsInterp == 2 ? "120" : "240");
+            fprintf(stderr, "bt3: fight fps limit %d%s (menus %d%s)\n",
+                    Port_FpsLimit(), Port_FpsLimit() == 0 ? " (unlimited)" : "",
+                    Port_MenuFpsLimit(), Port_MenuFpsLimit() == 0 ? " (unlimited)" : "");
         }
         if (ev.type == SDL_EVENT_KEY_DOWN && !ev.key.repeat && ev.key.key == SDLK_F11) { GsDraw_FullscreenToggle(); }
     }

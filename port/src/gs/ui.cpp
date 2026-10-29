@@ -72,7 +72,6 @@ int Port_ClashSquare(void);                    // gs_input.c: Square counts as a
 void Port_ClashSquareSet(int on);
 int Port_ClashSquareX(void);                   // what a press is worth, in quarters of a point (4, 6, 7, 8)
 void Port_ClashSquareXSet(int quarters);
-extern int gsInterp;                           // gs_draw.c: in-between pictures on (1) / off (0); -1 before the first frame
 void Port_SettingsWrite(void);
 int Port_LobbyStart(int host, const char *address, int port); // gs/net.c
 int Port_LobbyStartCode(int host, const char *code);         // the same with a room code (the matchmaking service)
@@ -1311,6 +1310,36 @@ static bool tab(const char *label, int index) {
     return on;
 }
 
+static void fps_limit_text(int fps, int menu, char *out, size_t size) {
+    if (fps == 0) {
+        snprintf(out, size, "Unlocked");
+    } else if (fps == (menu ? 60 : 30)) {
+        snprintf(out, size, "%d (console)", fps);
+    } else {
+        snprintf(out, size, "%d", fps);
+    }
+}
+
+static void fps_limit_combo(const char *label, int *value, int menu) {
+    static const int kLimit[] = { 30, 60, 90, 120, 144, 165, 180, 200, 240, 0 };
+    char shown[64];
+    int at = 0;
+
+    for (int i = 0; i < (int)(sizeof(kLimit) / sizeof(kLimit[0])); i++) {
+        if (kLimit[i] == *value) { at = i; }
+    }
+    fps_limit_text(kLimit[at], menu, shown, sizeof(shown));
+    ImGui::SetNextItemWidth(U(416.0f));
+    if (ImGui::BeginCombo(label, shown)) {
+        for (int i = 0; i < (int)(sizeof(kLimit) / sizeof(kLimit[0])); i++) {
+            char item[64];
+            fps_limit_text(kLimit[i], menu, item, sizeof(item));
+            if (ImGui::Selectable(item, i == at)) { *value = kLimit[i]; }
+        }
+        ImGui::EndCombo();
+    }
+}
+
 static void video_tab(PortVideo &v) {
     static const struct { const char *name; int milli; } aspects[] = {{"4:3 (original)", 1333}, {"16:10", 1600}, {"16:9", 1778}, {"21:9", 2389}, {"32:9", 3556}};
     char label[64];
@@ -1411,20 +1440,34 @@ static void video_tab(PortVideo &v) {
         ImGui::TextWrapped("Active GPU: %s", sGpuName);
     }
     {
-        // In-between pictures (gs_draw.c): the fight is computed 30 times a second, as on the console; with this
-        // on one more picture is drawn between each two. The game itself, its replays and online play are the same.
-        static const char *kSmooth[] = { "Off (30, as the console)", "60 pictures a second", "120 pictures a second", "240 pictures a second" };
-        int smooth = gsInterp < 0 ? 0 : gsInterp > 3 ? 3 : gsInterp;
+        // Frame rate (plat_fps.c, gs_draw.c). 30 is the console's own rate and the validated default. The hybrid
+        // keeps the simulation at 30 and draws pictures in between. The full-rate mode is only a saved choice for
+        // now: the game's own 30 Hz action frames and timers still have to be converted, so it uses the hybrid path.
+        static const char *kMode[] = { "Hybrid (30 Hz simulation)", "Full-rate simulation (not implemented yet)" };
+        int mode = v.fpsMode < 0 || v.fpsMode > 1 ? 0 : v.fpsMode;
         ImGui::SetNextItemWidth(U(416.0f));
-        if (ImGui::Combo("Smooth motion", &smooth, kSmooth, 4)) {
-            gsInterp = smooth;
-            Port_SettingSave("interp", gsInterp);
-            Port_SettingsWrite();
+        if (ImGui::Combo("Frame rate mode", &mode, kMode, 2)) {
+            v.fpsMode = mode;
         }
-        ImGui::SetItemTooltip("Experimental. The game computes a fight 30 times a second. With this, more pictures are\n"
-                              "drawn between each two. The fight itself does not change, and neither does online play.\n"
-                              "The newest picture reaches the screen later: 17 ms at 60, 25 ms at 120, 29 ms at 240.\n"
-                              "Choose what your screen can show. F9 switches it off and on.");
+        ImGui::SetItemTooltip("Hybrid: the fight is computed 30 times a second, as on the console, and the renderer draws\n"
+                              "pictures between them. Full-rate: the game itself would run at the frame rate below. That\n"
+                              "needs the game's own 30 Hz action frames and timers converted; this build does not do it yet,\n"
+                              "and keeps the hybrid path for that choice. Online play and replays always stay at 30 Hz.");
+        if (mode == 1) {
+            ImGui::TextColored(ImVec4(1.0f, 0.65f, 0.25f, 1.0f), "Full-rate simulation is not implemented yet; the hybrid path is used.");
+        }
+        fps_limit_combo("FPS limit (fights)", &v.fpsLimit, 0);
+        ImGui::SetItemTooltip("The most pictures a second a fight shows. 30 is the console's own rate. Higher values\n"
+                              "add in-between pictures in hybrid mode (the fight is still computed 30 times a second).\n"
+                              "A machine that cannot show that many leaves pictures out; it does not slow the game down.\n"
+                              "Unlocked shows as many as the machine can, whatever the display's refresh.\n"
+                              "F9 switches this between 30 and the last choice. Online play and replays stay at 30.");
+        fps_limit_combo("FPS limit (menus)", &v.menuFpsLimit, 1);
+        ImGui::SetItemTooltip("The same for menus, the character select and other 60 Hz screens. 60 is the console's\n"
+                              "rate. 30 shows every other menu picture; higher values add in-between pictures in hybrid\n"
+                              "mode, and Unlocked is the same as for fights. Online play and replays stay at 60.\n"
+                              "Separate from the fight limit on purpose.");
+        ImGui::TextDisabled("Display refresh: %d Hz (Unlocked does not use it)", GsDraw_DisplayHz());
     }
     {
         // The size of these windows, the chat and the notices: larger with a taller picture by itself (sUiScale)

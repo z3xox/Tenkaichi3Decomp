@@ -26,11 +26,28 @@ typedef struct PortVideo {
     int battleFont; /* 0 original battle artwork (default), otherwise a font listed for battle */
     int textFont;    /* separate font for dialogue and other shared Font_Print text */
     int smooth2d;    /* "2D filtering": 0 sharp (a PS2 pixel is a block), 1 smooth (sampled per output pixel) */
+    int fpsMode;     /* 0 hybrid (30 Hz simulation, pictures in between), 1 full-rate simulation (saved, not active yet) */
+    int fpsLimit;    /* fight pictures a second: 30, 60, ... 240, or 0 for no upper limit ("Unlocked") */
+    int menuFpsLimit; /* the same for menus and other 60 Hz scenes */
 } PortVideo;
 
 /* gs_draw.c */
 void GsGpu_GetSettings(PortVideo *v);
 void GsGpu_SetSettings(const PortVideo *v); /* applies what changed and saves it */
+void GsGpu_FpsReset(void);                    /* a rate change: drop pictures that belong to the old one */
+int GsDraw_DisplayHz(void);                   /* the display's refresh rate, shown for information only */
+
+/* plat_fps.c */
+int Port_FpsMode(void);
+void Port_FpsModeSet(int mode); /* 0 hybrid, 1 full-rate (saved; the renderer still uses hybrid) */
+int Port_FpsLimit(void);
+void Port_FpsLimitSet(int fps); /* 30..240, or 0 = unlocked */
+int Port_MenuFpsLimit(void);
+void Port_MenuFpsLimitSet(int fps);
+int Port_FpsTargetFor(int menu); /* the rate actually used now; 0 = no limit (online and replays: 30 fight, 60 menu) */
+int Port_FpsTarget(void);        /* the fight's target (0 = no limit) */
+int Port_FpsAllowed(void);       /* 0 while online or replaying */
+void Port_FpsToggle(void);      /* F9 */
 /* gs_draw.c: the one window both back ends share (created before the device / the GL context). */
 SDL_Window *GsDraw_WindowCreate(int opengl);
 SDL_Window *GsDraw_Window(void);

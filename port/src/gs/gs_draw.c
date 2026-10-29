@@ -141,6 +141,7 @@ unsigned gsSkipped;
 unsigned gGpuNewTex, gGpuNewTexPixels, gGpuNewPipes; /* created since the front end last cleared them (slow-frame report) */
 unsigned gGpuTexReplaced; /* textures taken from a texture pack so far */
 uint64_t gGpuTexNs, gGpuPipeNs, gGpuEndNs; /* time spent decoding textures, creating pipelines, in GsGpu_FrameEnd */
+uint64_t gGpuSwapWaitNs; /* the last picture's wait for a free swapchain image (Vulkan: the screen is behind) */
 /* The same for the picture being drawn only, where it is drawn (the render thread's, or the game's): BT3_DRAW_LOG
    (gs_gpu.c, draw_log). From the start of its list (GsGpu_ListStart). */
 uint64_t gDrawStartNs, gDrawTexNs, gDrawPipeNs, gDrawUpBytes, gDrawImgNs, gDrawLookNs, gDrawVuNs, gDrawXferNs;
@@ -152,6 +153,7 @@ void GsGpu_ListStart(void) {
     gDrawTexNs = gDrawPipeNs = gDrawUpBytes = gDrawImgNs = gDrawLookNs = gDrawVuNs = gDrawXferNs = 0;
     gDrawNewTex = gDrawImgMade = gDrawImgFreed = gDrawImgPooled = 0;
     gDrawLogged = 0;
+    (void)GsGpu_TakeLogNs(); /* (the diagnostics' time before this tick is no part of it) */
 }
 
 static uint64_t gpu_now(void) {
@@ -2056,6 +2058,48 @@ SDL_Window *GsDraw_WindowCreate(int opengl) {
 
 SDL_Window *GsDraw_Window(void) { return sWindow; }
 
+/* The fastest refresh the display reports, shown in the settings window for information. The rate setting does not
+   follow it ("Unlocked" is the machine's own speed: a limit that followed the display would show a different rate
+   on another monitor and hide what the machine can do). Looked up at most once a second (the window can move to
+   another display), and kept as an integer because the rest of the port's timing is. */
+int GsDraw_DisplayHz(void) {
+    static SDL_DisplayID cachedId;
+    static Uint64 cachedAt;
+    static int cachedHz;
+    SDL_Window *w = sWindow;
+    SDL_DisplayID id = w != NULL ? SDL_GetDisplayForWindow(w) : SDL_GetPrimaryDisplay();
+    const SDL_DisplayMode *mode;
+    Uint64 now = SDL_GetTicks();
+    float best = 0.0f;
+
+    if (id != 0 && id == cachedId && cachedHz > 0 && now - cachedAt < 1000) {
+        return cachedHz;
+    }
+    if (id != 0 && (mode = SDL_GetCurrentDisplayMode(id)) != NULL && mode->refresh_rate > best) {
+        best = mode->refresh_rate;
+    }
+    if (id != 0 && (mode = SDL_GetDesktopDisplayMode(id)) != NULL && mode->refresh_rate > best) {
+        best = mode->refresh_rate;
+    }
+    if (id != 0) {
+        int count = 0, i;
+        SDL_DisplayMode **modes = SDL_GetFullscreenDisplayModes(id, &count);
+        for (i = 0; modes != NULL && i < count; i++) {
+            if (modes[i] != NULL && modes[i]->refresh_rate > best) {
+                best = modes[i]->refresh_rate;
+            }
+        }
+        SDL_free(modes);
+    }
+    cachedId = id;
+    cachedAt = now;
+    cachedHz = best > 0.0f ? (int)(best + 0.5f) : 60;
+    if (cachedHz < 1) {
+        cachedHz = 60;
+    }
+    return cachedHz;
+}
+
 void GsDraw_WindowShape(void) {
     float want = (float)Port_AspectMilli() / 1000.0f;
     int w, h;
@@ -2113,6 +2157,9 @@ void GsGpu_GetSettings(PortVideo *v) {
     v->vsync = Port_Setting("vsync", 0) != 0;
     v->frameSkip = GsDraw_FrameSkip();
     v->hudLayout = sHudLayout;
+    v->fpsMode = Port_FpsMode();
+    v->fpsLimit = Port_FpsLimit();
+    v->menuFpsLimit = Port_MenuFpsLimit();
 }
 
 /* Applies what differs from the current state, all of it at once, and keeps it for the next run. */
@@ -2145,6 +2192,15 @@ void GsGpu_SetSettings(const PortVideo *v) {
     }
     if (v->frameSkip != now.frameSkip) {
         GsDraw_FrameSkipSet(v->frameSkip);
+    }
+    if (v->fpsMode != now.fpsMode) {
+        Port_FpsModeSet(v->fpsMode);
+    }
+    if (v->fpsLimit != now.fpsLimit) {
+        Port_FpsLimitSet(v->fpsLimit);
+    }
+    if (v->menuFpsLimit != now.menuFpsLimit) {
+        Port_MenuFpsLimitSet(v->menuFpsLimit);
     }
     if (v->vsync != now.vsync) { /* (whichever back end draws) */
         GsGpu_Vsync(v->vsync);
@@ -2245,19 +2301,22 @@ int GsGpu_Init(void) {
 }
 
 /* ---------------------------------------------------------------------------------- in-between pictures
- * The game computes 30 pictures a second (every loop waits for two vertical blanks). With BT3_INTERP=1 (setting
- * "interp") the renderer shows one more between each two: when the game has finished picture n, the list of n is
- * first replayed with the vertex programs' matrices (bones, pivots, the screen matrix: Vu0Uniform) half way from
- * those of n - 1, and the real n follows one vertical blank later (GsGpu_InterpFlush, from Port_VBlank). The
- * game itself is untouched: same simulation, same inputs, same online play. The cost is that picture n is seen
- * one vertical blank (16.7 ms) later than without.
+ * The game computes 30 pictures a second in a fight (every loop waits for two vertical blanks). In the hybrid mode
+ * the renderer shows the tick as several pictures: when the game has finished picture n, the list of n is replayed
+ * with the vertex programs' matrices (bones, pivots, the screen matrix: Vu0Uniform) part of the way from those of
+ * n - 1, and the real n follows later in the tick (GsGpu_InterpPump, from Port_VBlank's pictures and the render
+ * thread's own schedule). The game itself is untouched: same
+ * simulation, same inputs, same online play. The cost is that picture n is seen up to a tick later than without.
+ *
+ * The rate is "fps_limit" (plat_fps.c): 144 on a fight's 33.3 ms tick is 4.8 pictures, so ticks alternate 4 and 5.
+ * A 60 Hz menu has half the tick and therefore half the pictures. 30 is the old, picture-per-tick path.
  *
  * PROTOTYPE. Blended: what the vertex programs draw (fighters, stage, shadows, debris). Not blended: what the
  * game transforms itself (effects, HUD, 2D), which stays that of picture n. A draw of n is paired with the draw
  * of n - 1 at the same place in the list if it is the same kind of draw (signature below); a pair whose model
  * would jump far on screen (a camera cut, a teleport) is not blended, and when most are like that no in-between
  * picture is shown at all. */
-int gsInterp = -1;
+int gsInterp = -1; /* 1 while the scene is shown with in-between pictures (a target above its own 30/60 Hz); sources: plat_fps.c */
 static uint32_t sInterpBlkView[MAX_VU_UNIFORMS], sInterpPrevBlkView[MAX_VU_UNIFORMS]; /* the view each block is drawn in (a number made of its draws' scissor rectangle) */
 static float sInterpPrevRep[MAX_VU_UNIFORMS][3];
 static uint8_t sInterpFollow[MAX_VU_UNIFORMS]; /* the block is scenery that goes with the camera (the far backdrop) */
@@ -2277,16 +2336,60 @@ static uint32_t *sInterpPrevSig, *sInterpSig;
 static uint32_t sInterpPrevCount;
 static int sInterpNext;  /* the tick's next picture still to be shown (2..sInterpSteps), 0 = none */
 static int sInterpRepeat; /* the tick could not be blended (a camera cut): its pictures are its own, shown again */
+static int sInterpRemembered; /* the tick's list is the remembered one already (it was kept when its pictures were given up) */
 static int sInterpSteps = 2;
 static unsigned sInterpLastBlank;
+static unsigned sInterpTickBlanks = 2; /* vertical blanks the tick being shown lasts (a menu 1, a fight 2) */
 static uint64_t sInterpTickNs = 33366700ull; /* how long the tick being shown lasts */
 static unsigned gInterpTicks;
-static uint64_t sInterpBlendShown, sInterpBlendTook; /* when the in-between picture was handed to the screen; how long replaying its list took */
 static struct { uint32_t verts, vuVerts, vuIdx, vuUni, draws; int anchor; unsigned skipped, native; unsigned tdraws[MAX_TARGETS]; } sInterpSaved;
 unsigned gInterpShown, gInterpSkipped; /* in-between pictures shown / left out since the start */
+static unsigned sInterpDropped;       /* in-between pictures left out (no room before the tick's own picture; BT3_FPS_LOG) */
+static unsigned sPicturesShown;       /* the pictures handed to the screen (the rate BT3_FPS_LOG reports) */
 static unsigned gInterpCuts, gInterpStatic, gInterpNotMutual;
 static unsigned gInterpFollowed, gInterpThrough; /* ticks left without in-between pictures because the camera's way crossed the scenery */
 static unsigned gInterpPaired, gInterpUnpaired, gInterpCamera; /* blocks blended / without a partner / of those, moved by the camera's change (BT3_INTERP_LOG) */
+static double sInterpPhase;    /* the fraction of a picture left over from the last tick's rate */
+static double sInterpDownPhase; /* the same for a rate below the scene's own (a menu at 30) */
+static uint64_t sInterpCostNs; /* what showing one picture takes, smoothed; 0 until the first ones are measured */
+static uint64_t sInterpBuildNs;   /* of it: building the in-between picture (blending the list, the walls) */
+static uint64_t sInterpPresentNs; /* of it: handing it over (frameEnd: submitting, waiting for a swapchain image) */
+static uint64_t sInterpTickStart; /* the tick's start boundary (the last blank before it); the pictures are spread from it */
+static uint64_t sInterpBusyNs;    /* last tick: its start to when the game came to wait for a blank (its own work) */
+static int sInterpBusyMeasured;   /* the tick being shown has had its busy time taken */
+static int sInterpFit = 32;       /* pictures the tick can hold at the measured cost (interp_fit: throughput and the thread's hand-over) */
+static int sInterpBuffers;     /* the working lists have been made */
+static int sInterpWasMenu = -1; /* the scene and rate the history above belongs to */
+static int sInterpWasTarget = -1;
+
+/* Until a picture has been measured: a safe guess, so that an uncapped rate does not ask for more pictures than a
+   slow machine can show before the first measurements are in. */
+#define INTERP_COST_DEFAULT_NS 8000000ull
+
+/* A picture is finished this much before the tick's last vertical blank. That blank is the game's clock (input,
+   sound), and after it the game computes its next tick: a picture still going then would start that tick late,
+   which is what used to turn a chosen 120 into 90. */
+#define INTERP_BLANK_MARGIN_NS 500000ull
+
+/* A rate change: pictures still waiting belong to the old rate. The next tick starts a new count. */
+void GsGpu_FpsReset(void) {
+    extern unsigned gPortVBlanks;
+
+    sInterpPhase = 0.0;
+    sInterpDownPhase = 0.0;
+    sInterpNext = 0;
+    sInterpRepeat = 0;
+    sInterpRemembered = 0;
+    sInterpPrevCount = 0;
+    sInterpLastBlank = gPortVBlanks;
+    sInterpTickBlanks = 2;
+    sInterpBusyNs = 0;
+    sInterpBusyMeasured = 0;
+    sInterpFit = 32;
+    sInterpWasMenu = -1;
+    sInterpWasTarget = -1;
+    gsInterp = -1; /* (decided from the scene and the rate at the next frame end) */
+}
 
 #define INTERP_SCISSOR_ID(d) ((((uint32_t)(d)->scissor[0] * 73856093u) ^ ((uint32_t)(d)->scissor[1] * 19349663u) ^ ((uint32_t)(d)->scissor[2] * 83492791u) ^ ((uint32_t)(d)->scissor[3] * 2971215073u)) | 1u)
 /* What a uniform block draws, as a number that is the same in the next picture: the kind of each of its draws and
@@ -4430,10 +4533,24 @@ static void interp_present_log(char kind) {
     }
 }
 
-/* How many pictures a tick is shown as: 1 = the game's own (30 a second), 2 = one in-between picture (60), 4 = three
-   (120), 8 = seven (240). The setting "interp" is 0..3. */
-static int interp_steps(void) {
-    return gsInterp <= 0 ? 1 : gsInterp == 1 ? 2 : gsInterp == 2 ? 4 : 8;
+/* How many pictures a tick is shown as. The setting is a rate, not a fixed number of steps: at 144 on a fight's
+   33.3 ms tick that is 4.8 pictures, so ticks alternate 4 and 5 (and menus, at 16.7 ms, 2 and 3). The fraction is
+   kept in sInterpPhase so the total over a second is the asked rate. `want` is the same number (pictures a tick). */
+static int interp_steps_for(double want) {
+    double acc = sInterpPhase + want;
+    int steps = (int)acc;
+
+    sInterpPhase = acc - (double)steps;
+    if (sInterpPhase < 0.0) {
+        sInterpPhase = 0.0;
+    }
+    if (steps < 1) {
+        steps = 1; /* (the caller only comes here at or above the scene's own rate) */
+    } else if (steps > 32) {
+        steps = 32;
+        sInterpPhase = 0.0;
+    }
+    return steps;
 }
 
 static void interp_counts_restore(void) {
@@ -4452,47 +4569,229 @@ static void interp_counts_restore(void) {
     }
 }
 
-/* A machine that cannot show the asked number of pictures in the time of a tick gets fewer of them, or none: each
-   in-between picture costs what a real one does, so asking for more than fit made the whole game run slowly (on
-   an integrated GPU at 8x and "240": a picture every 186 ms, the fight at an eighth of its speed), and every
-   in-between picture, its faults included, then stood for that long. sInterpCostNs: what showing one picture
-   takes, smoothed; sInterpCap: the most pictures a 33 ms tick may have now (8, 4, 2 or 1). */
-static uint64_t sInterpCostNs;
-static int sInterpCap = 8;
+/* The picture cost to plan with: the measured one, or a safe guess until the first are in. */
+static uint64_t interp_cost_est(void) {
+    return sInterpCostNs != 0 ? sInterpCostNs : INTERP_COST_DEFAULT_NS;
+}
 
-static void interp_cost(uint64_t ns) {
-    static int said;
-    int was = sInterpCap;
+/* How many of the tick's blanks are done: those waited for since its list was handed over (after_blank: and the
+   one being waited for now). The tick's own list is worked on right after its last blank, so the blanks that
+   follow it are the window its pictures have. */
+static int interp_blanks_done(int after_blank) {
+    extern unsigned gPortVBlanks;
+    int done = (int)(gPortVBlanks - sInterpLastBlank);
 
-    {   /* Not the first pictures of a run: they create the pipelines and load what the first screens need, and
-           took long enough on any machine to switch the in-between pictures off for a moment and say so (seen in
-           the user's log on a fast graphics card: "shows a picture in 12.0 ms" at the logos). */
-        static unsigned seen;
-        if (seen < 300) {
-            seen++;
-            return;
-        }
+    return after_blank ? done + 1 : done;
+}
+
+/* When the tick's last vertical blank is due, in gpu_now()'s clock; 0 once it has passed. The pictures are shown
+   only while the game waits for a blank. After the tick's last one it computes the next tick on this very thread,
+   so a picture then would put that tick back (the old 90 a second: the tick's own picture was shown there). */
+static uint64_t interp_tick_deadline(int after_blank) {
+    extern int Port_VBlankUsLeft(void);
+    extern int Port_PaceBehindUs(void);
+    extern unsigned long long Port_BlankNs(void);
+    int done = interp_blanks_done(after_blank);
+    int n = sInterpTickBlanks > 0 ? sInterpTickBlanks : 1;
+    uint64_t blank = Port_BlankNs();
+    uint64_t now = gpu_now(), left, at;
+
+    if (done >= n) {
+        return 0;
     }
-    if (ns > 100000000ull) { /* (one long pause, a load or a stall, does not count for more than this) */
-        ns = 100000000ull;
+    left = (uint64_t)Port_VBlankUsLeft() * 1000ull; /* (0: the coming blank is due or already past) */
+    at = now + left;
+    if (left == 0) { /* (late: the coming blank has gone by; take back the time it is late by) */
+        int behind = Port_PaceBehindUs();
+        uint64_t late = (uint64_t)behind * 1000ull;
+        at = late < at ? at - late : now;
     }
-    sInterpCostNs = sInterpCostNs == 0 ? ns : (sInterpCostNs * 7 + ns) / 8;
-    if (getenv("BT3_INTERP_NOCAP") != NULL) {
+    return at + (uint64_t)(n - 1 - done) * blank;
+}
+
+/* The tick's last blank by the clock alone (the render thread shows pictures while the game computes, so it does
+   not go through the blanks' bookkeeping). */
+static uint64_t interp_time_deadline(void) {
+    uint64_t end = sInterpTickStart + sInterpTickNs - INTERP_BLANK_MARGIN_NS;
+
+    return end > sInterpTickStart ? end : sInterpTickStart;
+}
+
+/* A stretch of the tick without the diagnostics' own writing in it (gs_gpu.c: GsGpu_TakeLogNs). A line written to a
+   console can take milliseconds; timed as the game's work, it made the schedule show one picture a tick. */
+static uint64_t interp_without_log(uint64_t ns) {
+    uint64_t log = GsGpu_TakeLogNs();
+    return ns > log ? ns - log : 0;
+}
+
+/* Takes the tick's own work: from its start boundary to when the game first came to wait for a blank (the first
+   picture and the game's own code). It is what the log prints (BT3_FPS_LOG, "tick busy") and the blocked part of the
+   hand-over limit (interp_fit): the pictures after the first can only be built and handed over once the game is
+   waiting for a blank. The graphics chip still works through the pictures handed over before it while the game does
+   this; the game's own thread does not. */
+static void interp_measure_busy(uint64_t now) {
+    static int seen;
+    uint64_t busy;
+
+    if (sInterpBusyMeasured) {
         return;
     }
-    /* down when the pictures take more than 70% of the tick (the rest is the game's own work), up again when one
-       step more would take less than half of it */
-    while (sInterpCap > 1 && sInterpCostNs * (uint64_t)sInterpCap > 33366700ull * 7 / 10) {
-        sInterpCap /= 2;
+    sInterpBusyMeasured = 1;
+    busy = now > sInterpTickStart ? now - sInterpTickStart : 0;
+    busy = interp_without_log(busy);
+    if (busy > sInterpTickNs) {
+        busy = sInterpTickNs;
     }
-    if (sInterpCap == was && sInterpCap < 8 && sInterpCostNs * (uint64_t)sInterpCap * 2 < 33366700ull / 2) {
-        sInterpCap *= 2;
+    if (!seen) {
+        seen = 1;
+        sInterpBusyNs = busy;
+    } else {
+        sInterpBusyNs = (sInterpBusyNs * 7 + busy) / 8;
     }
-    if (sInterpCap < was && sInterpCap < interp_steps() && !said) {
+}
+
+/* What the tick's own (last) picture costs: the list as the game made it, replayed and handed over, with no blend
+   built for it (interp_show builds nothing for that step). Until the first pictures are measured, the safe default
+   stands in for both. */
+static uint64_t interp_cost_real(void) {
+    if (sInterpCostNs == 0) {
+        return INTERP_COST_DEFAULT_NS;
+    }
+    return sInterpCostNs > sInterpBuildNs ? sInterpCostNs - sInterpBuildNs : sInterpCostNs;
+}
+
+/* How many pictures a tick can show. Two things limit it, and the smaller wins:
+     - the machine's throughput: as many pictures as the measured cost fits in the tick, one after another (the
+       graphics chip works through the pictures handed over before it while the game computes the next tick).
+     - the game's thread handing them over: the tick's first picture is already part of sInterpBusyNs (the game's
+       own work from the tick's start boundary to its first blank). Every picture after it is built and handed over
+       on this same thread, one after the other: there is no second thread recording them, so only the idle time
+       before the tick's last blank is left for them. The tick's own (last) picture needs no blend built, so it is
+       charged its hand-over only. That is at most `2 + (idle - real) / cost` pictures (the first one, the
+       in-betweens the idle time holds, and the real one).
+   This is the highest rate the machine can hold ("Unlocked") and the ceiling a chosen rate above it comes down to.
+   It is measured, never guessed, and never sets a rate below what the machine can hold. */
+static int interp_fit(void) {
+    uint64_t cost = interp_cost_est();
+    uint64_t real = interp_cost_real();
+    uint64_t margin = INTERP_BLANK_MARGIN_NS;
+    uint64_t budget = sInterpTickNs > margin ? sInterpTickNs - margin : 0;
+    uint64_t through = cost != 0 ? budget / cost : 32;
+    uint64_t idle = sInterpTickNs > sInterpBusyNs + margin ? sInterpTickNs - sInterpBusyNs - margin : 0;
+    uint64_t handed = idle < real ? 1 : 2 + (cost != 0 ? (idle - real) / cost : 31);
+    uint64_t fit = through < handed ? through : handed;
+
+    if (fit < 1) {
+        fit = 1; /* (the tick's own picture at least; the game keeps its speed either way) */
+    }
+    return fit > 32 ? 32 : (int)fit;
+}
+
+/* The pictures left are the tick's own one (every in-between picture was given up) and it has not been shown yet:
+   keep the tick now, while its list is still the one in gsVerts. That is what the next tick's in-between pictures
+   are made from; without it they would be made from the tick before this one, and everything would move twice as
+   far in a single picture. If the game comes back with its next list before it is shown, the pictures left are
+   dropped but the history is still one tick back, and the tick's own picture can still be shown from the kept
+   counts: interp_show does not remember it a second time. */
+static void interp_hold_real(void) {
+    int i;
+
+    if (sInterpNext != sInterpSteps || sInterpRepeat || sInterpRemembered) {
+        return;
+    }
+    interp_counts_restore();
+    interp_remember();
+    sInterpRemembered = 1;
+    /* the game's next list writes the same buffers from the start (the counts were put back only to copy them), as
+       it does after a picture is shown */
+    gsVertCount = gsVuVertCount = gsVuIdxCount = gsVuUniCount = gsDrawCount = 0;
+    gsAnchor = 0;
+    gsSkipped = 0;
+    gsNative = 0;
+    for (i = 0; i < gsTargetCount && i < MAX_TARGETS; i++) {
+        gsTargets[i].draws = 0;
+    }
+}
+
+/* The tick's last blank has come and pictures are still waiting: keep the tick's list, which is what the next
+   tick's in-between pictures are made from, and give them up. They are never shown after that blank, where the
+   game computes its next tick (that is what made the picture rate fall to 90 and the odd 60). The next tick's
+   first picture already shows this moment, blended on from it. */
+static void interp_keep_tick(void) {
+    int i;
+
+    if (sInterpNext == 0 || sInterpRepeat || sInterpRemembered) {
+        return;
+    }
+    if (sInterpNext < sInterpSteps) {
+        sInterpDropped += (unsigned)(sInterpSteps - sInterpNext);
+    }
+    interp_counts_restore();
+    interp_remember();
+    sInterpRemembered = 1;
+    sInterpNext = 0;
+    gsVertCount = gsVuVertCount = gsVuIdxCount = gsVuUniCount = gsDrawCount = 0;
+    gsAnchor = 0;
+    gsSkipped = 0;
+    gsNative = 0;
+    for (i = 0; i < gsTargetCount && i < MAX_TARGETS; i++) {
+        gsTargets[i].draws = 0;
+    }
+}
+
+/* What showing one picture takes, smoothed (sInterpCostNs), and how much of it was spent building the in-between
+   picture (`build`) and handing it over (`present`, the frameEnd: submitting the list and waiting for a swapchain
+   image). The split says which of the two holds the rate back: the blend's own work, or the screen's back pressure.
+   It is the renderer's own work, not the time spent waiting for the picture's moment: the wait is the idle time
+   between the game's ticks, and spending it is free. It is used to time the pictures (start one that much before its
+   moment; see interp_due) and to say how many fit in a tick at all (interp_fit: the rate the machine can hold). A
+   machine that cannot show them all leaves pictures out; the game keeps its speed either way. */
+static void interp_cost(uint64_t build, uint64_t present) {
+    static unsigned seen;
+    static int said;
+    uint64_t ns;
+
+    /* The first pictures of a run create the pipelines and load what the first screens need. Measured after those,
+       but not after 300 of them: a rate chosen at the title screen should settle before the fight starts. */
+    if (seen < 60) {
+        seen++;
+        return;
+    }
+    if (build > 100000000ull) { /* (one long pause, a load or a stall, does not count for more than this) */
+        build = 100000000ull;
+    }
+    if (present > 100000000ull) {
+        present = 100000000ull;
+    }
+    ns = build + present;
+    if (sInterpCostNs == 0) {
+        sInterpCostNs = ns;
+        sInterpBuildNs = build;
+        sInterpPresentNs = present;
+    } else {
+        sInterpCostNs = (sInterpCostNs * 7 + ns) / 8;
+        sInterpBuildNs = (sInterpBuildNs * 7 + build) / 8;
+        sInterpPresentNs = (sInterpPresentNs * 7 + present) / 8;
+    }
+    if (!said && sInterpSteps > 1 && sInterpCostNs * (uint64_t)sInterpSteps > sInterpTickNs && getenv("BT3_FPS_LOG") != NULL) {
         said = 1;
-        fprintf(stderr, "bt3: smooth motion: this machine shows a picture in %.1f ms; fewer in-between pictures are shown while that lasts\n",
-                (double)sInterpCostNs / 1000000.0);
+        fprintf(stderr, "bt3: fps: a picture takes %.1f ms (building it %.1f, showing it %.1f); %d of them would not fit the tick's %.1f ms. Fewer are shown; the game keeps its speed.\n",
+                (double)sInterpCostNs / 1000000.0, (double)sInterpBuildNs / 1000000.0, (double)sInterpPresentNs / 1000000.0,
+                sInterpSteps, (double)sInterpTickNs / 1000000.0);
     }
+}
+
+/* How many pictures this tick may have, from the rate asked for alone; the caller then brings it down to what the
+   machine can hold at the measured picture cost (interp_fit). A lower ceiling of that kind used to sit here, taken
+   from the cost with a 15/16 factor and an eighth for variance, and it was a cap of its own: a fight whose pictures
+   took 7 to 9 ms came out at 3 a tick, 90 a second, whatever the setting (Unlocked included), while the same machine
+   without the enemy in view reached 4 or 5. The measure now is the machine's real speed: its throughput, and the
+   hand-over on the game's own thread (the first picture and the game's work, then the in-between pictures that the
+   idle time before the last blank holds). Which of those fit can still be decided per picture, from the time left
+   before the tick's own picture (interp_drop_late and the pre-blank check in GsGpu_InterpPump); the rest are left
+   out. */
+static int interp_step_cap(int want) {
+    return want < 32 ? want : 32;
 }
 
 /* Shows picture `step` of the tick's sInterpSteps: the list replayed `step / steps` of the way from the previous
@@ -4505,7 +4804,8 @@ static void interp_show(int step) {
            rate (G-Sync, FreeSync), no longer see a tick's worth of nothing at every cut. */
         uint64_t t0 = gpu_now();
         sBackend->frameEnd();
-        interp_cost(gpu_now() - t0);
+        sPicturesShown++;
+        interp_cost(0, interp_without_log(gpu_now() - t0));
         interp_present_log(step < sInterpSteps ? 'D' : 'R');
         if (step >= sInterpSteps) {
             sInterpRepeat = 0;
@@ -4515,6 +4815,7 @@ static void interp_show(int step) {
     if (step < sInterpSteps) {
         Vu0Uniform *real = gsVuUni;
         Vtx *realVerts = gsVerts;
+        uint64_t t0 = gpu_now(); /* (the picture's whole work: building it and handing it over) */
         float t = getenv("BT3_INTERP_T") != NULL ? (float)atof(getenv("BT3_INTERP_T")) : (float)step / (float)sInterpSteps;
 
         if (step > 1) {
@@ -4529,12 +4830,16 @@ static void interp_show(int step) {
             gsVerts = sInterpBlendVerts;
         }
         gsVuUni = sInterpBlend;
-        if (getenv("BT3_INTERP_REALONLY") == NULL) { /* (testing: only the ticks' real pictures are shown, numbered as without in-between pictures) */
-            uint64_t t0 = gpu_now();
-            sBackend->frameEnd();
-            interp_cost(gpu_now() - t0);
-        } else {
-            gsVertCount = gsVuVertCount = gsVuIdxCount = gsVuUniCount = gsDrawCount = 0; /* (as the back end leaves them) */
+        {
+            uint64_t build = gpu_now() - t0; /* (building the blend: pairing, the vertices, the walls) */
+            uint64_t t1 = gpu_now();
+            if (getenv("BT3_INTERP_REALONLY") == NULL) { /* (testing: only the ticks' real pictures are shown, numbered as without in-between pictures) */
+                sBackend->frameEnd();
+                sPicturesShown++;
+            } else {
+                gsVertCount = gsVuVertCount = gsVuIdxCount = gsVuUniCount = gsDrawCount = 0; /* (as the back end leaves them) */
+            }
+            interp_cost(build, interp_without_log(gpu_now() - t1));
         }
         interp_wall_restore();
         gsVuUni = real;
@@ -4542,12 +4847,15 @@ static void interp_show(int step) {
         interp_present_log('B');
         gInterpShown++;
     } else {
-        interp_remember(); /* (only now: the in-between pictures were built from the previous tick's copy) */
+        if (!sInterpRemembered) {
+            interp_remember(); /* (only now: the in-between pictures were built from the previous tick's copy) */
+        }
         interp_wall_real();
         {
             uint64_t t0 = gpu_now();
             sBackend->frameEnd();
-            interp_cost(gpu_now() - t0);
+            sPicturesShown++;
+            interp_cost(0, interp_without_log(gpu_now() - t0));
         }
         interp_wall_restore();
         interp_present_log('R');
@@ -4556,12 +4864,6 @@ static void interp_show(int step) {
     }
 }
 
-/* The tick's pictures after the first. They are due at even distances over the tick (33.4 ms / steps), counted from
-   when the first was shown: that is when the game had finished computing the tick, a millisecond or two after a
-   vertical blank, so "at the next blank" came too early (measured with one in-between picture: 15 ms after it, then
-   18 ms to the next). Called from Port_VBlank before it waits for the blank (`ahead` = what may be waited for here:
-   the pictures that fall before the blank) and after (those at it).
-   all = 1: the game is back with a new tick: what is left is dropped, except the tick's real picture. */
 /* The next of the tick's pictures (the in-between ones, then the real one). 0: BT3_INTERP_ONLY ended them there. */
 static int interp_show_next(void) {
     if (sInterpNext == sInterpSteps && getenv("BT3_INTERP_ONLY") != NULL) {
@@ -4581,15 +4883,54 @@ static int interp_show_next(void) {
     return 1;
 }
 
-/* When the tick's next picture is due. */
+/* When the tick's next picture is due. The tick's pictures are spread evenly from its start boundary to the last
+   blank that ends it, so the tick's own picture falls one step before the next tick's in-between picture instead of
+   on top of it. The counted moment is when the picture is *finished*: building it takes sInterpCostNs (the tick's own
+   picture builds nothing, interp_cost_real), so it is started that much earlier. sInterpTickStart is the tick's start
+   boundary. */
 static uint64_t interp_due(void) {
-    uint64_t due = sInterpBlendShown + (uint64_t)(sInterpNext - 1) * (sInterpTickNs / (uint64_t)sInterpSteps);
-    return due > sInterpBlendTook ? due - sInterpBlendTook : 0; /* (replaying the list takes that long again) */
+    uint64_t cost = sInterpNext >= sInterpSteps ? interp_cost_real() : interp_cost_est();
+    uint64_t span = sInterpTickNs > INTERP_BLANK_MARGIN_NS ? sInterpTickNs - INTERP_BLANK_MARGIN_NS : sInterpTickNs;
+    uint64_t at = sInterpTickStart + (uint64_t)(sInterpNext - 1) * (span / (uint64_t)sInterpSteps);
+
+    return at > sInterpTickStart + cost ? at - cost : sInterpTickStart;
+}
+
+/* Gives up the in-between pictures that can no longer be handed over before the tick's last vertical blank. That
+   blank is the only deadline there is: a picture whose own moment has gone by is still shown when there is room for
+   it, and the idle time before the blank is used to the full (that is how a chosen 120 used to come out at 90: the
+   pump gave up at the mid-tick blank). After the last blank nothing is shown at all. This is a safety net for a cost
+   that rose mid-tick: a rate above the machine's own was already brought down to what fits, with even spacing
+   (FrameEnd, interp_fit), so it does not normally fire. Only in-between pictures are given up; the tick's own picture
+   is kept for the next tick if even it cannot be handed over in time (interp_keep_tick), never shown after the blank.
+   Cheap repeated pictures (sInterpRepeat) are kept: they cost little and keep the picture rate steady at a cut.
+
+   The game's thread builds and hands over every picture itself, one after the other (the render thread records them
+   only when it is on): what has to fit before the blank is the in-between pictures still to come plus the tick's own
+   picture, which builds no blend. The pictures the graphics chip can take at once do not make the recording faster,
+   so they are not counted here. */
+static void interp_drop_late(uint64_t now, uint64_t deadline) {
+    uint64_t cost = interp_cost_est();
+    uint64_t real = interp_cost_real();
+
+    if (sInterpRepeat || sInterpNext <= 1 || sInterpNext >= sInterpSteps || deadline == 0) {
+        return;
+    }
+    while (sInterpNext < sInterpSteps) {
+        uint64_t inb = (uint64_t)(sInterpSteps - sInterpNext); /* this one and the in-between pictures after it */
+        uint64_t need = inb * cost + real;                      /* then the tick's own picture */
+
+        if (now + need + INTERP_BLANK_MARGIN_NS <= deadline) {
+            break;
+        }
+        sInterpNext++;
+        sInterpDropped++;
+    }
 }
 
 /* With the render thread (BT3_GS_THREAD) the tick's pictures after the first are its: it shows each when it is due,
    right after the list, while the game computes the next tick (the game's thread does not call the pump then).
-   When the game hands its next list over early, GsGpu_InterpHurry: the real picture at once, as the pump's `all`. */
+   When the game hands its next list over early, GsGpu_InterpHurry: what is left is given up, not waited for. */
 static volatile int sInterpHurry;
 void GsGpu_InterpHurry(int on) { /* (1 from the game's thread; 0 by the render thread as it starts a list: a hurry is for
                                     the list it is running, not one that comes after it) */
@@ -4598,7 +4939,29 @@ void GsGpu_InterpHurry(int on) { /* (1 from the game's thread; 0 by the render t
 void GsGpu_InterpRun(void) {
     extern void PortInput_Pump(void); /* gs_input.c: the window's events (the window is this thread's) */
     while (sInterpNext != 0 && sBackend != NULL) {
-        uint64_t due = interp_due(), now;
+        uint64_t deadline, due, now;
+        if (__atomic_load_n(&sInterpHurry, __ATOMIC_ACQUIRE)) {
+            /* The game is back with its next tick: the pictures left are dropped instead of making it wait for
+               them. The tick is still remembered, so the next tick's in-between pictures are made from it (not from
+               the one before, which would show a still of an older moment at every such tick). */
+            interp_keep_tick();
+            break;
+        }
+        now = gpu_now();
+        deadline = interp_time_deadline();
+        if (now >= deadline) {
+            interp_keep_tick(); /* (the tick's last blank is here: nothing more before the next list) */
+            break;
+        }
+        interp_drop_late(now, deadline);
+        if (sInterpNext == 0) {
+            break;
+        }
+        if (sInterpNext >= sInterpSteps && now + interp_cost_real() + INTERP_BLANK_MARGIN_NS > deadline) {
+            interp_keep_tick();
+            break;
+        }
+        due = interp_due();
         if (getenv("BT3_UNCAPPED") == NULL) {
             while ((now = gpu_now()) < due && !__atomic_load_n(&sInterpHurry, __ATOMIC_ACQUIRE)) {
                 SDL_DelayPrecise(due - now < 1000000ull ? due - now : 1000000ull); /* (a millisecond at a time: a hurry is seen) */
@@ -4606,13 +4969,15 @@ void GsGpu_InterpRun(void) {
             }
         }
         if (__atomic_load_n(&sInterpHurry, __ATOMIC_ACQUIRE)) {
-            sInterpNext = sInterpSteps; /* the game is back with its next tick: what is left is dropped, but the real picture */
+            continue; /* (the top of the loop gives up the rest and remembers the tick) */
         }
         if (!interp_show_next()) {
             break;
         }
     }
-    __atomic_store_n(&sInterpHurry, 0, __ATOMIC_RELEASE);
+    /* (a hurry request is not cleared here: the game's thread sets it just before it waits for this thread, and
+       this store could land after that request, losing it. The next list's start clears it (gs_core.c: render_thread
+       calls GsGpu_InterpHurry(0) before it runs a list).) */
 }
 
 void GsGpu_InterpPump(int ahead_ms, int all) {
@@ -4629,26 +4994,87 @@ void GsGpu_InterpPump(int ahead_ms, int all) {
         sInterpNext = 0;
         return;
     }
+    if (all) {
+        /* The game is back with its next tick: the in-between pictures left are given up, the tick's own picture
+           is shown once (its list is still the kept one). */
+        sInterpNext = sInterpSteps;
+        while (sInterpNext != 0) {
+            if (!interp_show_next()) {
+                return;
+            }
+        }
+        return;
+    }
+    if (getenv("BT3_UNCAPPED") != NULL) { /* (testing: no pacing, so nothing is waited for) */
+        while (sInterpNext != 0) {
+            if (!interp_show_next()) {
+                return;
+            }
+        }
+        return;
+    }
+    if (!sInterpBusyMeasured) {
+        interp_measure_busy(gpu_now());
+    }
     while (sInterpNext != 0) {
-        uint64_t due = interp_due(), now = gpu_now();
+        uint64_t due, now, deadline;
+        uint64_t cost = interp_cost_est();
+        uint64_t real = interp_cost_real();
 
-        if (all) {
-            sInterpNext = sInterpSteps;
-        } else if (getenv("BT3_UNCAPPED") == NULL) {
-            if (ahead_ms < 0) {
-                /* before a vertical blank: only a picture that is shown and done with before the blank is due,
-                   so that the blank (the game's clock: input, sound) is never made late */
-                extern int Port_VBlankUsLeft(void);
-                uint64_t left = (uint64_t)Port_VBlankUsLeft() * 1000ull, wait = now < due ? due - now : 0;
-                if (wait + sInterpBlendTook + 700000ull > left) {
-                    return;
+        /* Where the tick's pictures stop: the last blank it lasts. Before that one the game is only waiting for a
+           blank, so all of that idle time belongs to the pictures (the mid-tick blank of a fight is crossed, not a
+           wall: the old check against it left a whole half-tick unused). */
+        deadline = interp_tick_deadline(ahead_ms >= 0);
+        if (deadline == 0) {
+            /* The tick's last blank has passed and the game is computing its next tick now. Nothing more is
+               shown; the tick is kept, so the next one's in-between pictures are made from it. */
+            interp_keep_tick();
+            return;
+        }
+        now = gpu_now();
+        interp_drop_late(now, deadline);
+        if (sInterpNext == 0) {
+            break;
+        }
+        if (sInterpNext >= sInterpSteps && now + real + INTERP_BLANK_MARGIN_NS > deadline) {
+            /* Even the tick's own picture cannot be finished before the last blank: keep it for the next tick
+               rather than show it after the blank, where it would put the next tick back. */
+            interp_keep_tick();
+            return;
+        }
+        due = interp_due();
+        if (ahead_ms >= 0 && now < due) {
+            /* after a blank: only the pictures whose moment has come; the game's own work comes first */
+            interp_hold_real();
+            return;
+        }
+        if (now < due) {
+            uint64_t wait = due - now;
+            uint64_t thisCost = sInterpNext >= sInterpSteps ? real : cost;
+            if (now + wait + thisCost + INTERP_BLANK_MARGIN_NS > deadline) {
+                /* waiting for its moment would take it past the tick's last blank: leave this in-between out */
+                if (sInterpNext < sInterpSteps) {
+                    sInterpNext++;
+                    sInterpDropped++;
+                    continue;
                 }
-            } else if (now < due && due - now > (uint64_t)ahead_ms * 1000000ull) {
-                return; /* not yet: at the next blank */
+                interp_keep_tick();
+                return;
             }
-            if (now < due) {
-                SDL_DelayPrecise(due - now);
+            SDL_DelayPrecise(wait); /* (the idle time before the blank, not the game's) */
+            now = gpu_now();
+        }
+        if (now + (sInterpNext >= sInterpSteps ? real : cost) + INTERP_BLANK_MARGIN_NS > deadline) {
+            /* Even at this moment the picture would be finished after the tick's last blank (it was late
+               already): an in-between is left out, the tick's own picture is kept for the next tick. It is never
+               shown after the blank, where the game computes its next tick. */
+            if (sInterpNext < sInterpSteps) {
+                sInterpNext++;
+                sInterpDropped++;
+                continue;
             }
+            interp_keep_tick();
+            return;
         }
         if (!interp_show_next()) {
             return;
@@ -4660,17 +5086,14 @@ int GsGpu_BackendIsGl(void) {
     return sBackend == &sGlBackend;
 }
 
-void GsGpu_InterpFlush(void) { /* (the name Port_VBlank knew it by) */
-    GsGpu_InterpPump(6, 0);
-}
-
 /* ---- frame skipping ------------------------------------------------------------------------------------------
  * The game advances one step per picture and knows no other clock, so a machine that needs longer than a tick
- * to show a picture ran the game itself slowly. When the game is more than a vertical blank behind its grid as a
- * picture is finished, the NEXT tick is computed without being drawn (its drawing is left out the way a re-run
- * frame's is: GS_NO_PICTURE) and nothing is shown for it; the grid (plat_stub.c: a blank that is already due is
- * not waited for) then catches up. At most kSkipMax ticks in a row, so that something is shown at least every
- * fifth tick; a machine too slow for that slows down as before. Setting "frame_skip" (F1, Video), on by default.
+ * to show a picture ran the game itself slowly. When the game is more than a whole tick behind its grid as a
+ * picture is finished (two blanks in a fight: being one blank late is what a frame that merely ran a little long
+ * looks like, and it catches up by itself at the next blank), the NEXT tick is computed without being drawn (its
+ * drawing is left out the way a re-run frame's is: GS_NO_PICTURE) and nothing is shown for it; the grid (plat_stub.c:
+ * a blank that is already due is not waited for) then catches up. At most 3 ticks in a row, so that something is
+ * shown regularly; a machine too slow for that slows down as before. Setting "frame_skip" (F1, Video), on by default.
  * Only helps where the showing is what takes the time (a weak graphics chip), not the computing. */
 int gsSkipFrame;
 static int sSkipOn = -1, sSkipRun;
@@ -4694,7 +5117,7 @@ static void skip_decide(void) {
     extern int gPortOverlayOpen;
     int behind = Port_PaceBehindUs();
     int skip = GsDraw_FrameSkip() && getenv("BT3_UNCAPPED") == NULL && getenv("BT3_SHOT") == NULL && !gPortOverlayOpen &&
-               behind > (int)(Port_BlankNs() / 1000ull) && sSkipRun < 4;
+               behind > (int)(2ull * Port_BlankNs() / 1000ull) && sSkipRun < 3;
 
     if (getenv("BT3_SKIP_FORCE") != NULL) { /* testing: every other tick is left out, whatever the clock says */
         skip = sSkipRun == 0;
@@ -4708,6 +5131,22 @@ static void skip_decide(void) {
         fprintf(stderr, "skip: %u ticks were not shown in the last 120 pictures (the game was %d.%d ms behind just now)\n", sSkipped, behind / 1000, behind / 100 % 10);
         sSkipped = 0;
     }
+}
+
+static void interp_buffers_init(void) {
+    if (sInterpBuffers) {
+        return;
+    }
+    sInterpBuffers = 1;
+    sInterpPrev = malloc(MAX_VU_UNIFORMS * sizeof(Vu0Uniform));
+    sInterpBlend = malloc(MAX_VU_UNIFORMS * sizeof(Vu0Uniform));
+    sInterpPrevSig = malloc(MAX_VU_UNIFORMS * sizeof(uint32_t));
+    sInterpSig = malloc(MAX_VU_UNIFORMS * sizeof(uint32_t));
+    sInterpPrevVerts = malloc(MAX_VERTS * sizeof(Vtx));
+    sInterpBlendVerts = malloc(MAX_VERTS * sizeof(Vtx));
+    sInterpPrevPrims = malloc(INTERP_MAX_PRIMS * sizeof(InterpPrim));
+    sInterpPrims = malloc(INTERP_MAX_PRIMS * sizeof(InterpPrim));
+    sInterpPrimUsed = malloc(INTERP_MAX_PRIMS);
 }
 
 void GsGpu_FrameEnd(void) {
@@ -4730,47 +5169,168 @@ void GsGpu_FrameEnd(void) {
     }
     uint64_t t0 = gpu_now();
     if (sBackend != NULL) {
-        int i;
+        int i, menu, target, native;
+        double want;
 
         if (sInterpNext != 0) { /* (pictures still waiting: the game did not reach its vertical blanks in between) */
             uint32_t verts = gsVertCount, vuVerts = gsVuVertCount, vuIdx = gsVuIdxCount, vuUni = gsVuUniCount, draws = gsDrawCount;
             /* cannot happen in the order the game works in (the list of the new tick is complete here); if it does,
                the old tick's pictures are gone with its list */
             if (verts != 0 || vuVerts != 0 || vuIdx != 0 || vuUni != 0 || draws != 0) {
-                sInterpNext = 0;
+                if (sInterpRepeat || sInterpRemembered) {
+                    /* The tick was kept already (a cut is remembered as it is shown, and interp_hold_real keeps a
+                       tick whose own picture was given up), so the next tick has its proper previous one: only the
+                       pictures left are dropped. */
+                    sInterpNext = 0;
+                    sInterpRepeat = 0;
+                } else {
+                    /* The old tick's list has been drawn over by this one, so its real picture (and the in-between
+                       pictures after it) can no longer be shown, and it was never remembered either (that happens
+                       with the real picture, which never came). The history is therefore two ticks back, not one:
+                       blending this tick with it would move everything twice as far in one picture, and a cut would
+                       be missed. Forget it. This tick is shown as it is and repeated at the pictures' moments
+                       (sInterpRepeat), and the repeat path remembers it, so the next tick has a proper previous one
+                       again. */
+                    if (sInterpSteps > sInterpNext) {
+                        sInterpDropped += (unsigned)(sInterpSteps - sInterpNext);
+                    }
+                    sInterpNext = 0;
+                    sInterpRepeat = 0;
+                    sInterpPrevCount = 0;
+                    sInterpPrevPrimCount = 0;
+                }
             }
         }
-        if (gsInterp < 0) {
-            gsInterp = getenv("BT3_INTERP") != NULL ? atoi(getenv("BT3_INTERP")) : Port_Setting("interp", 0);
-            gsInterp = gsInterp < 0 ? 0 : gsInterp > 3 ? 3 : gsInterp;
-            sInterpPrev = malloc(MAX_VU_UNIFORMS * sizeof(Vu0Uniform));
-            sInterpBlend = malloc(MAX_VU_UNIFORMS * sizeof(Vu0Uniform));
-            sInterpPrevSig = malloc(MAX_VU_UNIFORMS * sizeof(uint32_t));
-            sInterpSig = malloc(MAX_VU_UNIFORMS * sizeof(uint32_t));
-            sInterpPrevVerts = malloc(MAX_VERTS * sizeof(Vtx));
-            sInterpBlendVerts = malloc(MAX_VERTS * sizeof(Vtx));
-            sInterpPrevPrims = malloc(INTERP_MAX_PRIMS * sizeof(InterpPrim));
-            sInterpPrims = malloc(INTERP_MAX_PRIMS * sizeof(InterpPrim));
-            sInterpPrimUsed = malloc(INTERP_MAX_PRIMS);
+        if (sInterpNext == 0) {
+            sInterpRemembered = 0; /* (a new tick; the tick before's kept flag was used above) */
         }
         {
             /* A scene the game shows at 60 a second (one vertical blank per picture: menus, the character select) has
-               half the time per tick and needs half the pictures: none at "60", one at "120". How many blanks this
-               tick will last is taken from the last one. */
+               half the time per tick. How many blanks this tick will last is taken from the last one. The target rate
+               is turned into pictures per tick here; the remainder is kept for the next tick. */
             extern unsigned gPortVBlanks;
+            extern unsigned long long gPortLastBlankNs;
             unsigned blanks = gPortVBlanks - sInterpLastBlank;
+            uint64_t now = gpu_now();
             sInterpLastBlank = gPortVBlanks;
             blanks = blanks < 1 ? 1 : blanks > 2 ? 2 : blanks;
-            sInterpSteps = (interp_steps() < sInterpCap ? interp_steps() : sInterpCap) * (int)blanks / 2;
+            menu = blanks <= 1;
+            native = menu ? 60 : 30;
+            sInterpTickBlanks = blanks;
             sInterpTickNs = (uint64_t)blanks * Port_BlankNs();
+            /* The tick starts at the boundary where its last blank ended (the game began computing then, after this
+               list was handed over). Counting the pictures from there spreads them over the whole tick. */
+            sInterpTickStart = gPortLastBlankNs != 0 && now > gPortLastBlankNs && now - gPortLastBlankNs < 3 * Port_BlankNs() ? gPortLastBlankNs : now;
+            sInterpBusyMeasured = 0;
+        }
+        target = Port_FpsTargetFor(menu); /* 0: no upper limit of its own ("Unlocked") */
+        if (menu != sInterpWasMenu || target != sInterpWasTarget) {
+            /* A new scene or rate: the kept list belongs to the old one. (A fight uses 33 ms ticks and a menu 17 ms.) */
+            sInterpNext = 0;
+            sInterpRepeat = 0;
+            sInterpPrevCount = 0;
+            sInterpPrevPrimCount = 0;
+            sInterpPhase = 0.0;
+            sInterpDownPhase = 0.0;
+            sInterpBusyNs = 0; /* (the old scene's work says nothing of this one's) */
+            /* The old scene's picture cost says nothing of this one's either: a menu's picture takes under a
+               millisecond and a fight's with the enemy in view several. Measured again from the first picture of the
+               new scene (interp_cost: a zero estimate takes the first measurement as it is; until then the safe
+               default, 8 ms, is used for this tick's fit). Without this, the first fight ticks were planned with the
+               menu's cost and asked for far more pictures than the machine can hold. */
+            sInterpCostNs = 0;
+            sInterpBuildNs = 0;
+            sInterpPresentNs = 0;
+            sInterpWasMenu = menu;
+            sInterpWasTarget = target;
+        }
+        {
+            /* What the tick can hold: the smaller of the machine's throughput (the measured picture cost, one picture
+               after another; the graphics chip shows the pictures handed over before it while the game computes the
+               next tick) and the game thread's hand-over (the tick's first picture and the game's work take busy, then
+               the idle time before the tick's last blank holds the in-between pictures and the tick's own one, which
+               builds no blend) - interp_fit. "Unlocked" asks for exactly that many; a chosen rate above it is brought
+               down to it, because the pictures beyond it would push the next tick back and slow the game. A chosen
+               rate at or below it is asked for in full. */
+            sInterpFit = interp_fit();
+        }
+        want = target > 0 ? (double)target * (double)sInterpTickNs / 1000000000.0 : (double)sInterpFit;
+        if (target > 0 && target < native) {
+            /* Below the scene's own rate: leave some of its pictures out (a menu at 30 on a 60 Hz scene). The game
+               still runs its 60 ticks a second; only the picture rate changes. */
+            sInterpDownPhase += want;
+            sInterpPhase = 0.0;
+            if (sInterpDownPhase + 1e-9 < 1.0) {
+                sInterpNext = 0;
+                sInterpRepeat = 0;
+                sInterpPrevCount = 0;
+                sInterpPrevPrimCount = 0;
+                gsInterp = 0;
+                gsVertCount = gsVuVertCount = gsVuIdxCount = gsVuUniCount = gsDrawCount = 0;
+                skip_decide();
+                gGpuEndNs += gpu_now() - t0;
+                return;
+            }
+            sInterpDownPhase -= 1.0;
+            if (sInterpDownPhase < 0.0) {
+                sInterpDownPhase = 0.0;
+            }
+            gsInterp = 0;
+            sInterpSteps = 1;
+        } else {
+            sInterpDownPhase = 0.0;
+            /* The scene's own rate is exactly 1 picture a tick even though the blank is 1/59.94 s, so compare the
+               rates, not the fractional picture count. Otherwise 30 on a fight and 60 on a menu would take the
+               interpolation path and keep lists they never use. "Unlocked" is above every scene's own rate. */
+            gsInterp = target == 0 || target > native ? 1 : 0;
+            if (gsInterp > 0) {
+                /* The rate asked for, as pictures in this tick, but no more than the machine can hold (sInterpFit:
+                   the pictures beyond that would not all be finished within the tick, so they would push the next
+                   one back and slow the game). Which of the ones that fit can really be shown is still decided as
+                   they come due (interp_drop_late, GsGpu_InterpPump). */
+                sInterpSteps = interp_step_cap(interp_steps_for(want));
+                if (sInterpSteps > sInterpFit) {
+                    sInterpSteps = sInterpFit;
+                }
+                if (sInterpSteps < 2) {
+                    /* Not even one in-between picture a tick fits: show the tick's own picture, as without
+                       interpolation (and let the wall hook and the rest of the path know there is none). */
+                    gsInterp = 0;
+                    sInterpSteps = 1;
+                    sInterpPhase = 0.0;
+                }
+            } else {
+                sInterpSteps = 1;
+                sInterpPhase = 0.0;
+            }
+        }
+        if (getenv("BT3_FPS_LOG") != NULL) {
+            static uint64_t next;
+            static unsigned lastPictures;
+            uint64_t now = gpu_now();
+            if (now >= next) {
+                if (next != 0) { /* (the first window starts with the count: no line from the startup frames) */
+                    fprintf(stderr, "bt3: fps: %s target %d%s (native %d), tick %.2f ms, want %.2f pictures in %d, shown %u/s, "
+                                    "picture cost %.2f ms (build %.2f, show %.2f), fit %d, tick busy %.2f ms, "
+                                    "last swap wait %.2f ms, %u dropped\n",
+                            menu ? "menu" : "fight", target, target == 0 ? " = unlimited" : "", native,
+                            (double)sInterpTickNs / 1000000.0, want, sInterpSteps,
+                            sPicturesShown - lastPictures, (double)sInterpCostNs / 1000000.0,
+                            (double)sInterpBuildNs / 1000000.0, (double)sInterpPresentNs / 1000000.0,
+                            sInterpFit, (double)sInterpBusyNs / 1000000.0,
+                            (double)gGpuSwapWaitNs / 1000000.0, sInterpDropped);
+                    sInterpDropped = 0;
+                }
+                lastPictures = sPicturesShown;
+                next = now + 1000000000ull;
+            }
         }
         if (gsInterp > 0) {
+            interp_buffers_init();
             interp_signatures(sInterpSig);
             sInterpPrimCount = interp_prims(sInterpPrims);
         }
         if (gsInterp > 0 && sInterpSteps > 1 && interp_build(getenv("BT3_INTERP_T") != NULL ? (float)atof(getenv("BT3_INTERP_T")) : 1.0f / (float)sInterpSteps, 1)) {
-            uint64_t before;
-
             sInterpSaved.verts = gsVertCount;
             sInterpSaved.vuVerts = gsVuVertCount;
             sInterpSaved.vuIdx = gsVuIdxCount;
@@ -4782,14 +5342,9 @@ void GsGpu_FrameEnd(void) {
             for (i = 0; i < gsTargetCount && i < MAX_TARGETS; i++) {
                 sInterpSaved.tdraws[i] = gsTargets[i].draws;
             }
-            before = gpu_now();
             sInterpRepeat = 0; /* (a blendable tick: its pictures are blends) */
+            sInterpRemembered = 0; /* (its list is remembered with its real picture, or when that is given up) */
             interp_show(1); /* the first in-between picture; the others and the real one follow (GsGpu_InterpPump) */
-            sInterpBlendShown = gpu_now();
-            sInterpBlendTook = sInterpBlendShown - before;
-            if (sInterpBlendTook > 4000000ull) {
-                sInterpBlendTook = 4000000ull;
-            }
             sInterpNext = 2;
             if (getenv("BT3_INTERP_LOG") != NULL && (gInterpTicks++ % 300) == 299) {
                 fprintf(stderr, "interp: %u in-between pictures shown, %u ticks without; blocks: %u blended, %u not\n", gInterpShown, gInterpSkipped, gInterpPaired, gInterpUnpaired);
@@ -4811,7 +5366,10 @@ void GsGpu_FrameEnd(void) {
             int repeat = gsInterp > 0 && sInterpSteps > 1 && !GS_NO_PICTURE && gsDrawCount != 0 && getenv("BT3_INTERP_REALONLY") == NULL &&
                          getenv("BT3_INTERP_NOREPEAT") == NULL;
             if (gsInterp > 0) {
-                interp_remember();
+                if (!sInterpRemembered) { /* (a held tick whose own picture is still to come: its list is the kept one) */
+                    interp_remember();
+                    sInterpRemembered = 1; /* (a non-blended tick is kept as it is, so the next tick blends from it) */
+                }
                 gInterpSkipped++;
             }
             if (repeat) {
@@ -4829,13 +5387,12 @@ void GsGpu_FrameEnd(void) {
             }
             t1 = gpu_now();
             sBackend->frameEnd();
-            interp_cost(gpu_now() - t1);
+            sPicturesShown++;
+            interp_cost(0, interp_without_log(gpu_now() - t1));
             interp_present_log('S');
             scale_apply();
             menu_labels_apply();
             if (repeat) {
-                sInterpBlendShown = gpu_now();
-                sInterpBlendTook = sInterpBlendShown - t1 < 4000000ull ? sInterpBlendShown - t1 : 4000000ull;
                 sInterpRepeat = 1;
                 sInterpNext = 2;
             }

@@ -1012,8 +1012,66 @@ static int pipe_no_aux(int p) {
     return sPipes[p].noAux - 1;
 }
 
+/* Whether draw `b` can go out in the same call as draw `a` (which has `acount` vertices or indices so far): the two
+   must want the same everything the replay sets (pipeline, target, texture, sampler, the fragment and blend state, the
+   scissor) and their ranges must be next to each other in the same buffer. A frame has some two thousand draws, many
+   of them small pieces of one thing (the HUD's digits, particles of one effect); drawing them one after the other was
+   a driver call and a draw command each, and the hand-over of a picture is what holds the picture rate back. Merging
+   only neighbours with exactly the same state cannot change the picture: the same triangles go out in the same order.
+   The alpha-byte plan (sAuxNeed) has to match too, since a draw that splits its scissor into bands would otherwise
+   take its neighbour with it. Not while BT3_FX_SKIP / BT3_FX_STAT count the draws (merging would hide some). */
+static int draw_mergeable(const GsDraw *a, uint32_t acount, const GsDraw *b, uint32_t na, uint32_t nb) {
+    static int fxOn = -1;
+    float z;
+
+    if (fxOn < 0) {
+        fxOn = getenv("BT3_FX_SKIP") != NULL || getenv("BT3_FX_STAT") != NULL;
+    }
+    if (fxOn || a->native || b->native || b->count == 0) {
+        return 0;
+    }
+    if (a->vu != b->vu || a->uniform != b->uniform) {
+        return 0;
+    }
+    if (a->pipeline != b->pipeline || a->target != b->target) {
+        return 0;
+    }
+    if (a->tex != b->tex || a->tex_is_target != b->tex_is_target || a->sampler != b->sampler) {
+        return 0;
+    }
+    if (a->blendc != b->blendc) {
+        return 0;
+    }
+    if (memcmp(a->mode, b->mode, sizeof(a->mode)) != 0 || memcmp(a->misc, b->misc, sizeof(a->misc)) != 0 ||
+        memcmp(a->rect, b->rect, sizeof(a->rect)) != 0 || memcmp(a->orig, b->orig, sizeof(a->orig)) != 0 ||
+        memcmp(a->scissor, b->scissor, sizeof(a->scissor)) != 0) {
+        return 0;
+    }
+    if (a->first + acount != b->first) {
+        return 0;
+    }
+    if (clear_draw(b, &z)) { /* (a clear begins a pass of its own) */
+        return 0;
+    }
+    if (aux_plan_on() && memcmp(sAuxNeed[na], sAuxNeed[nb], sizeof(sAuxNeed[na])) != 0) {
+        return 0;
+    }
+    return 1;
+}
+static unsigned sMergedDraws; /* draws saved by merging in the picture just replayed */
+unsigned GsGpu_MergedDraws(void) { return sMergedDraws; }
+
+/* The time the diagnostics themselves take (BT3_DRAW_LOG, BT3_GS_VERBOSE), of the tick being drawn. Writing a line
+   can take milliseconds (a console window especially: a line a frame made the pictures read as 35 ms instead of 6,
+   and the schedule it feeds came down to one picture a tick, 15 a second). gs_draw.c takes this back out of what it
+   measures (interp_cost, interp_measure_busy); the lists and the pictures are timed as if nothing were logged. */
+static uint64_t sLogNs;
+void GsGpu_AddLogNs(uint64_t ns) { sLogNs += ns; }
+uint64_t GsGpu_TakeLogNs(void) { uint64_t ns = sLogNs; sLogNs = 0; return ns; }
+
 static void vk_frame_end(void) {
     fx_frame();
+    sMergedDraws = 0;
     SDL_GPUCommandBuffer *cmd;
     SDL_GPUCopyPass *copy;
     SDL_GPURenderPass *pass = NULL;
@@ -1063,23 +1121,23 @@ static void vk_frame_end(void) {
         if (ev.type == SDL_EVENT_KEY_DOWN && ev.key.key == SDLK_ESCAPE) {
             if (!ev.key.repeat && !Ui_QuitAsk()) { exit(0); } /* (asks first) */
         }
-        if (ev.type == SDL_EVENT_KEY_DOWN && !ev.key.repeat && ev.key.key == SDLK_F9) { /* in-between pictures on / off */
-            extern int gsInterp;
-            extern void Port_SettingSave(const char *name, int value);
+        if (ev.type == SDL_EVENT_KEY_DOWN && !ev.key.repeat && ev.key.key == SDLK_F9) { /* 30 or the chosen frame rate */
             extern void Port_SettingsWrite(void);
-            static int was = 1; /* (the same setting as F1, Video, Smooth motion: off, or back to what it was) */
-            if (gsInterp > 0) { was = gsInterp; gsInterp = 0; } else { gsInterp = was; }
-            Port_SettingSave("interp", gsInterp);
+            Port_FpsToggle();
             Port_SettingsWrite();
-            fprintf(stderr, "bt3: smooth motion %s\n", gsInterp == 0 ? "off" : gsInterp == 1 ? "60" : gsInterp == 2 ? "120" : "240");
+            fprintf(stderr, "bt3: fight fps limit %d%s (menus %d%s)\n",
+                    Port_FpsLimit(), Port_FpsLimit() == 0 ? " (unlimited)" : "",
+                    Port_MenuFpsLimit(), Port_MenuFpsLimit() == 0 ? " (unlimited)" : "");
         }
         if (ev.type == SDL_EVENT_KEY_DOWN && !ev.key.repeat && ev.key.key == SDLK_F11) {
             GsDraw_FullscreenToggle();
         }
     }
     if (getenv("BT3_GS_VERBOSE") != NULL && gGsFrame % 30 == 0) {
+        uint64_t lt = gpu_now();
         fprintf(stderr, "gpu: frame %u: %u draws, %u vertices, %d targets, %d textures, %d pipelines, %u primitives of PS2-only passes dropped, %u native effects\n",
                 gGsFrame, gsDrawCount, gsVertCount + gsVuVertCount, gsTargetCount, gsTexCount, sPipeCount, gsSkipped, gsNative);
+        GsGpu_AddLogNs(gpu_now() - lt);
     }
     if (getenv("BT3_GPU_CUT") != NULL && (int)gGsFrame == atoi(getenv("BT3_GPU_CUT")) && strchr(getenv("BT3_GPU_CUT"), ':') != NULL) {
         /* BT3_GPU_CUT=<frame>:<n>: only the first n draws of that frame (finding the draw that spoils a picture) */
@@ -1124,44 +1182,63 @@ static void vk_frame_end(void) {
     cmd = SDL_AcquireGPUCommandBuffer(sDev);
     /* uploads: this frame's vertices and the textures decoded for it */
     copy = SDL_BeginGPUCopyPass(cmd);
-    if (gsVertCount != 0) {
-        SDL_GPUTransferBufferLocation src;
-        SDL_GPUBufferRegion dst;
-        void *p = SDL_MapGPUTransferBuffer(sDev, sVxfer, true);
-        memcpy(p, gsVerts, gsVertCount * sizeof(Vtx));
-        SDL_UnmapGPUTransferBuffer(sDev, sVxfer);
-        src.transfer_buffer = sVxfer;
-        src.offset = 0;
-        dst.buffer = sVbuf;
-        dst.offset = 0;
-        dst.size = gsVertCount * sizeof(Vtx);
-        SDL_UploadToGPUBuffer(copy, &src, &dst, true);
-    }
-    if (gsVuVertCount != 0) {
-        SDL_GPUTransferBufferLocation src;
-        SDL_GPUBufferRegion dst;
-        void *p = SDL_MapGPUTransferBuffer(sDev, sVuXfer, true);
-        memcpy(p, gsVuVerts, gsVuVertCount * 48);
-        SDL_UnmapGPUTransferBuffer(sDev, sVuXfer);
-        src.transfer_buffer = sVuXfer;
-        src.offset = 0;
-        dst.buffer = sVuVbuf;
-        dst.offset = 0;
-        dst.size = gsVuVertCount * 48;
-        SDL_UploadToGPUBuffer(copy, &src, &dst, true);
-    }
-    if (gsVuIdxCount != 0) {
-        SDL_GPUTransferBufferLocation src;
-        SDL_GPUBufferRegion dst;
-        void *p = SDL_MapGPUTransferBuffer(sDev, sVuIXfer, true);
-        memcpy(p, gsVuIdx, gsVuIdxCount * sizeof(uint32_t));
-        SDL_UnmapGPUTransferBuffer(sDev, sVuIXfer);
-        src.transfer_buffer = sVuIXfer;
-        src.offset = 0;
-        dst.buffer = sVuIbuf;
-        dst.offset = 0;
-        dst.size = gsVuIdxCount * sizeof(uint32_t);
-        SDL_UploadToGPUBuffer(copy, &src, &dst, true);
+    /* The vertex programs' vertices and indices are the list's own, and a tick's pictures after its first (the
+       in-between ones and its last) replay that same list: what the card already holds is what they need. Only the
+       GS vertices change from picture to picture (the blend). Copying and uploading them again for every picture of a
+       tick was megabytes a picture of nothing: a tick with four pictures sent the program's vertices four times. */
+    {   extern uint64_t gDrawStartNs;
+        static uint64_t uploadedList;
+        static uint32_t uploadedVerts, uploadedIdx;
+        static SDL_GPUBuffer *uploadedVbuf, *uploadedIbuf;
+        int same = gDrawStartNs != 0 && uploadedList == gDrawStartNs && uploadedVerts == gsVuVertCount &&
+                   uploadedIdx == gsVuIdxCount && uploadedVbuf == sVuVbuf && uploadedIbuf == sVuIbuf;
+
+        if (gsVertCount != 0) {
+            SDL_GPUTransferBufferLocation src;
+            SDL_GPUBufferRegion dst;
+            void *p = SDL_MapGPUTransferBuffer(sDev, sVxfer, true);
+            memcpy(p, gsVerts, gsVertCount * sizeof(Vtx));
+            SDL_UnmapGPUTransferBuffer(sDev, sVxfer);
+            src.transfer_buffer = sVxfer;
+            src.offset = 0;
+            dst.buffer = sVbuf;
+            dst.offset = 0;
+            dst.size = gsVertCount * sizeof(Vtx);
+            SDL_UploadToGPUBuffer(copy, &src, &dst, true);
+        }
+        if (gsVuVertCount != 0 && !same) {
+            SDL_GPUTransferBufferLocation src;
+            SDL_GPUBufferRegion dst;
+            void *p = SDL_MapGPUTransferBuffer(sDev, sVuXfer, true);
+            memcpy(p, gsVuVerts, gsVuVertCount * 48);
+            SDL_UnmapGPUTransferBuffer(sDev, sVuXfer);
+            src.transfer_buffer = sVuXfer;
+            src.offset = 0;
+            dst.buffer = sVuVbuf;
+            dst.offset = 0;
+            dst.size = gsVuVertCount * 48;
+            SDL_UploadToGPUBuffer(copy, &src, &dst, true);
+        }
+        if (gsVuIdxCount != 0 && !same) {
+            SDL_GPUTransferBufferLocation src;
+            SDL_GPUBufferRegion dst;
+            void *p = SDL_MapGPUTransferBuffer(sDev, sVuIXfer, true);
+            memcpy(p, gsVuIdx, gsVuIdxCount * sizeof(uint32_t));
+            SDL_UnmapGPUTransferBuffer(sDev, sVuIXfer);
+            src.transfer_buffer = sVuIXfer;
+            src.offset = 0;
+            dst.buffer = sVuIbuf;
+            dst.offset = 0;
+            dst.size = gsVuIdxCount * sizeof(uint32_t);
+            SDL_UploadToGPUBuffer(copy, &src, &dst, true);
+        }
+        if (!same) {
+            uploadedList = gDrawStartNs;
+            uploadedVerts = gsVuVertCount;
+            uploadedIdx = gsVuIdxCount;
+            uploadedVbuf = sVuVbuf;
+            uploadedIbuf = sVuIbuf;
+        }
     }
     if (sPendingCount != 0) {
         /* The frame's textures through one upload buffer, each level at its own offset (16-byte aligned), mapped
@@ -1475,7 +1552,10 @@ static void vk_frame_end(void) {
             ct.store_op = SDL_GPU_STOREOP_STORE;
             cts[1] = ct;
             cts[1].texture = sTgAux[d->target];
-            if (getenv("BT3_GPU_MAGENTA") != NULL) { ct.clear_color.r = 1.0f; ct.clear_color.b = 1.0f; ct.clear_color.a = 1.0f; }
+            {   static int magenta = -1; /* (read once: this runs at every pass of the picture) */
+                if (magenta < 0) { magenta = getenv("BT3_GPU_MAGENTA") != NULL; }
+                if (magenta) { ct.clear_color.r = 1.0f; ct.clear_color.b = 1.0f; ct.clear_color.a = 1.0f; }
+            }
             dt.texture = sTgDep[d->target];
             dt.load_op = gsTargets[d->target].cleared ? SDL_GPU_LOADOP_LOAD : SDL_GPU_LOADOP_CLEAR;
             dt.store_op = SDL_GPU_STOREOP_STORE;
@@ -1539,13 +1619,13 @@ static void vk_frame_end(void) {
             two[1].sampler = sSamplers[6];
             SDL_BindGPUFragmentSamplers(pass, 0, two, 2);
         }
-        memset(&fu, 0, sizeof(fu));
-        memcpy(fu.mode, d->mode, sizeof(fu.mode));
-        memcpy(fu.misc, d->misc, sizeof(fu.misc));
-        memcpy(fu.rect, d->rect, sizeof(fu.rect));
-        memcpy(fu.orig, d->orig, sizeof(fu.orig));
+        fu.mode[0] = d->mode[0]; fu.mode[1] = d->mode[1]; fu.mode[2] = d->mode[2]; fu.mode[3] = d->mode[3];
+        fu.misc[0] = d->misc[0]; fu.misc[1] = d->misc[1]; fu.misc[2] = d->misc[2]; fu.misc[3] = d->misc[3];
+        fu.rect[0] = d->rect[0]; fu.rect[1] = d->rect[1]; fu.rect[2] = d->rect[2]; fu.rect[3] = d->rect[3];
+        fu.orig[0] = d->orig[0]; fu.orig[1] = d->orig[1]; fu.orig[2] = d->orig[2]; fu.orig[3] = d->orig[3];
         fu.extra[0] = d->vu ? (gsVuUni[d->uniform].misc[2] > 0.0f ? gsVuUni[d->uniform].misc[2] : 0.0f) : gsZMax;
         fu.extra[1] = (sPipes[d->pipeline].key & (1u << 9)) ? 1.0f : 0.0f; /* the source scaled by its alpha */
+        fu.extra[2] = fu.extra[3] = 0.0f;
         if (!haveFu || memcmp(&fu, &lastFu, sizeof(fu)) != 0) {
             SDL_PushGPUFragmentUniformData(cmd, 0, &fu, sizeof(fu));
             memcpy(&lastFu, &fu, sizeof(fu));
@@ -1565,8 +1645,16 @@ static void vk_frame_end(void) {
         if (fx_measure(d)) {
             continue;
         }
+        /* Neighbouring draws with the same state and the next range in the same buffer go out together (draw_mergeable):
+           one draw command and one driver call instead of several. */
+        acount = d->count;
+        extra = 0;
+        while (n + 1 + extra < gsDrawCount && draw_mergeable(d, acount, &gsDraws[n + 1 + extra], n, n + 1 + extra)) {
+            acount += gsDraws[n + 1 + extra].count;
+            extra++;
+        }
         if (d->vu) {
-            SDL_DrawGPUIndexedPrimitives(pass, d->count, 1, d->first, 0, 0);
+            SDL_DrawGPUIndexedPrimitives(pass, acount, 1, d->first, 0, 0);
         } else if (split) {
             /* inside the part read later with the byte, the rest of its scissor without: four bands around it */
             const int16_t *r = sAuxNeed[n];
@@ -1577,19 +1665,21 @@ static void vk_frame_end(void) {
             out[2] = (SDL_Rect){ sx0, r[1], r[0] - sx0, r[3] - r[1] };
             out[3] = (SDL_Rect){ r[2], r[1], sx1 - r[2], r[3] - r[1] };
             SDL_SetGPUScissor(pass, &in);
-            SDL_DrawGPUPrimitives(pass, d->count, 1, d->first, 0);
+            SDL_DrawGPUPrimitives(pass, acount, 1, d->first, 0);
             lastPipe = pipe_no_aux(pipe);
             SDL_BindGPUGraphicsPipeline(pass, sPipes[lastPipe].p);
             for (b = 0; b < 4; b++) {
                 if (out[b].w > 0 && out[b].h > 0) {
                     SDL_SetGPUScissor(pass, &out[b]);
-                    SDL_DrawGPUPrimitives(pass, d->count, 1, d->first, 0);
+                    SDL_DrawGPUPrimitives(pass, acount, 1, d->first, 0);
                 }
             }
             haveScissor = 0;
         } else {
-            SDL_DrawGPUPrimitives(pass, d->count, 1, d->first, 0);
+            SDL_DrawGPUPrimitives(pass, acount, 1, d->first, 0);
         }
+        n += extra;
+        sMergedDraws += extra;
     }
     if (pass != NULL) {
         SDL_EndGPURenderPass(pass);
@@ -1603,6 +1693,7 @@ static void vk_frame_end(void) {
     sEndT[2] = gpu_now();
     acquired = SDL_WaitAndAcquireGPUSwapchainTexture(cmd, sWindow, &swap, &sw, &sh);
     sEndT[3] = gpu_now();
+    gGpuSwapWaitNs = sEndT[3] - sEndT[2]; /* (the screen has no image free: the graphics chip is behind) */
     if (acquired && swap != NULL && best >= 0 && gsTargets[best].cleared) {
         SDL_GPUBlitInfo bl;
         SDL_zero(bl);
@@ -1721,28 +1812,58 @@ static void vk_frame_end(void) {
     } else {
         SDL_SubmitGPUCommandBuffer(cmd); { extern void Port_LagMark(int what); Port_LagMark('S'); }
     }
-    {   /* BT3_DRAW_LOG=<ms>: each picture whose drawing took longer, from the start of its list to the driver, in parts:
-           to find what makes a drawing slow now and then (a laptop: 1 in 10 took 10 to 20 ms instead of 2) */
+    {   /* BT3_DRAW_LOG=<ms>: the pictures whose drawing took longer than that, in parts: the tick's first one from
+           the start of its list (which holds the game's own compute too), then up to three more of the same tick (the
+           in-between pictures and its own one) with just what the end of the frame took. To find what makes a
+           drawing slow now and then (a laptop: 1 in 10 took 10 to 20 ms instead of 2), and which of the two limits
+           the picture rate is up against (the list work or the hand-over, gs_draw.c's interp_fit).
+           One tick a second is written (the lines of its pictures together), so a slow write cannot take the
+           machine away from the game; the time a write does take is taken out of the picture's own measure
+           (GsGpu_AddLogNs), so the schedule is the one it would have without the log. */
         static int limit = -1;
+        static int thisTick; /* (this tick's pictures are the ones being written) */
+        static uint64_t window;
         extern uint64_t gDrawStartNs, gDrawTexNs, gDrawPipeNs, gDrawUpBytes, gDrawImgNs, gDrawLookNs, gDrawVuNs, gDrawXferNs;
         extern unsigned gDrawNewTex, gDrawImgMade, gDrawImgFreed, gDrawImgPooled, gGsFrame;
         extern int gDrawLogged;
         if (limit < 0) {
             limit = getenv("BT3_DRAW_LOG") != NULL ? atoi(getenv("BT3_DRAW_LOG")) : 0;
         }
-        if (limit > 0 && !gDrawLogged && gDrawStartNs != 0) {
-            uint64_t now = gpu_now(), total = now - gDrawStartNs;
-            gDrawLogged = 1;
-            if (total >= (uint64_t)limit * 1000000ull) {
-                uint64_t walk = sEndT[0] > gDrawStartNs ? sEndT[0] - gDrawStartNs : 0;
-                fprintf(stderr, "draw: frame %u: %.1f ms: the list %.1f (of it vertex programs %.1f, pictures into GS memory %.1f, texture lookups %.1f, %u new textures decoded %.1f, pipelines made %.1f), "
-                                "uploads %.1f, issuing the draws %.1f, waiting for the screen's buffer %.1f, showing %.1f, handing over %.1f; "
-                                "images made %u (%.1f ms) and %u spares taken, released %u, uploaded %u KB\n",
-                        gGsFrame, (double)total / 1e6, (double)walk / 1e6, (double)gDrawVuNs / 1e6, (double)gDrawXferNs / 1e6, (double)gDrawLookNs / 1e6, gDrawNewTex, (double)gDrawTexNs / 1e6, (double)gDrawPipeNs / 1e6,
-                        (double)(sEndT[1] - sEndT[0]) / 1e6, (double)(sEndT[2] - sEndT[1]) / 1e6, (double)(sEndT[3] - sEndT[2]) / 1e6,
-                        (double)(sEndT[4] - sEndT[3]) / 1e6, (double)(now - sEndT[4]) / 1e6, gDrawImgMade, (double)gDrawImgNs / 1e6, gDrawImgPooled, gDrawImgFreed,
-                        (unsigned)(gDrawUpBytes / 1024));
+        if (limit > 0 && gDrawStartNs != 0 && gDrawLogged == 0) {
+            uint64_t now = gpu_now();
+            thisTick = now - window >= 1000000000ull;
+            if (thisTick) {
+                window = now;
             }
+        }
+        if (limit > 0 && thisTick && gDrawLogged < 4 && gDrawStartNs != 0) {
+            int first = gDrawLogged == 0;
+            uint64_t now = gpu_now(), spent = now - sEndT[0], total = now - gDrawStartNs;
+            uint64_t lt;
+            gDrawLogged++;
+            lt = gpu_now();
+            if (spent >= (uint64_t)limit * 1000000ull) {
+                if (first) {
+                    /* the tick's first picture: the list work before the end of the frame belongs to it (the game's
+                       own compute is in it too: it is what the tick is busy with, sInterpBusyNs) */
+                    uint64_t walk = sEndT[0] > gDrawStartNs ? sEndT[0] - gDrawStartNs : 0;
+                    fprintf(stderr, "draw: frame %u, the tick's first picture: %.1f ms from the start of its list: the list %.1f (of it vertex programs %.1f, pictures into GS memory %.1f, texture lookups %.1f, %u new textures decoded %.1f, pipelines made %.1f), "
+                                    "uploads %.1f, issuing the draws %.1f, waiting for the screen's buffer %.1f, showing %.1f, handing over %.1f; "
+                                    "images made %u (%.1f ms) and %u spares taken, released %u, uploaded %u KB\n",
+                            gGsFrame, (double)total / 1e6, (double)walk / 1e6, (double)gDrawVuNs / 1e6, (double)gDrawXferNs / 1e6, (double)gDrawLookNs / 1e6, gDrawNewTex, (double)gDrawTexNs / 1e6, (double)gDrawPipeNs / 1e6,
+                            (double)(sEndT[1] - sEndT[0]) / 1e6, (double)(sEndT[2] - sEndT[1]) / 1e6, (double)(sEndT[3] - sEndT[2]) / 1e6,
+                            (double)(sEndT[4] - sEndT[3]) / 1e6, (double)(now - sEndT[4]) / 1e6, gDrawImgMade, (double)gDrawImgNs / 1e6, gDrawImgPooled, gDrawImgFreed,
+                            (unsigned)(gDrawUpBytes / 1024));
+                } else {
+                    /* a picture after it (Smooth motion's in-between pictures and the tick's own one): nothing of the
+                       list work is its, only what the end of the frame took. This is the cost the scheduler plans with. */
+                    fprintf(stderr, "draw: frame %u, picture %d of the tick: %.1f ms: uploads %.1f, issuing the draws %.1f, waiting for the screen's buffer %.1f, showing %.1f, handing over %.1f\n",
+                            gGsFrame, gDrawLogged, (double)spent / 1e6,
+                            (double)(sEndT[1] - sEndT[0]) / 1e6, (double)(sEndT[2] - sEndT[1]) / 1e6, (double)(sEndT[3] - sEndT[2]) / 1e6,
+                            (double)(sEndT[4] - sEndT[3]) / 1e6, (double)(now - sEndT[4]) / 1e6);
+                }
+            }
+            GsGpu_AddLogNs(gpu_now() - lt);
         }
     }
     {   /* spare images for coming bursts, when this picture left time (the drawing from its list's start) */
@@ -1761,9 +1882,11 @@ static void vk_frame_end(void) {
         sum[4] += now - sEndT[4];
         if (++count == 60) {
             if (getenv("BT3_GS_VERBOSE") != NULL) {
+                uint64_t lt = gpu_now();
                 fprintf(stderr, "time:   of ending the frame: uploads %.2f ms, issuing the draws %.2f, waiting for the screen's buffer %.2f, "
                                 "showing %.2f, handing over to the driver %.2f\n",
                         (double)sum[0] / 60e6, (double)sum[1] / 60e6, (double)sum[2] / 60e6, (double)sum[3] / 60e6, (double)sum[4] / 60e6);
+                GsGpu_AddLogNs(gpu_now() - lt);
             }
             count = 0;
             memset(sum, 0, sizeof(sum));

@@ -85,6 +85,10 @@ PORT_HOST unsigned gPortPaceShiftNs = 0;
 PORT_HOST unsigned gPortLiveBlanks = 0;
 
 PORT_HOST static unsigned long long sPaceNext = 0; /* when the coming vertical blank is due */
+/* When the last vertical blank was reached (the return of vblank_wait), in now_ns()'s clock (the same CLOCK_MONOTONIC
+   as the renderer's gpu_now()). gs/gs_draw.c takes it as the start boundary of the tick whose list is handed over
+   right after it. */
+PORT_HOST unsigned long long gPortLastBlankNs = 0;
 #define next sPaceNext
 /* How long until the coming vertical blank, in microseconds (0: it is due or past, or there is no grid yet). For
    what wants to do something before it without making it late (gs/gs_draw.c: in-between pictures). */
@@ -270,6 +274,7 @@ static void vblank_wait(void) {
         next = t + BLANK_NS; /* the first one, or more than a tenth of a second behind: a new grid from now */
         sPaceReset++;
     }
+    gPortLastBlankNs = after; /* (the boundary gs/gs_draw.c counts a tick's pictures from) */
     /* BT3_GS_VERBOSE: once a second, how evenly the vertical blanks came (they should be 16.68 ms apart) */
     if (sPacePrev != 0) {
         unsigned long long d = after - sPacePrev;
@@ -339,7 +344,7 @@ static void late_wait(void) {
         }
         vblank_wait();
         if (GsGpu_Enabled()) {
-            GsGpu_InterpPump(6, 0); /* (those at it) */
+            GsGpu_InterpPump(0, 0); /* (those already due; the next one's moment is after the game's work) */
         }
     }
     Port_LagMark('L');
@@ -371,7 +376,7 @@ void Port_VBlank(void) {
         }
         {
             /* gs/gs_draw.c: the pictures of the tick that follow its first (in-between pictures and the real one):
-               those due before this blank now, those due at it after the wait */
+               those due before this blank now, those already due after the wait */
             extern void GsGpu_InterpPump(int ahead_ms, int all);
             extern int gsInterp; /* gs/gs_draw.c: in-between pictures (their timing counts from the blanks) */
             int timed = (GsGpu_Enabled() || getenv("BT3_PACED") != NULL) && getenv("BT3_UNCAPPED") == NULL && !warp && !again;
@@ -392,7 +397,7 @@ void Port_VBlank(void) {
             }
             }
             if (GsGpu_Enabled() && !warp && !again) {
-                GsGpu_InterpPump(6, 0);
+                GsGpu_InterpPump(0, 0); /* (those already due: the game's work comes first, not a wait for a picture) */
             }
         }
     }

@@ -50,6 +50,11 @@ void Port_MenuScene3D(int on) {
         gPortMenuMode = !on;
     }
 }
+/* gs/gs_draw.c: whether the screen running now is such a scene (the model viewer). It is drawn from the battle's
+   code but shown by a menu loop: one vertical blank per frame, so 60 a second, and no in-between pictures above that. */
+int Port_MenuScene3DOn(void) {
+    return sMenuScene3D;
+}
 
 volatile int gPortUnlockAll, gPortUnlockDone;
 extern struct SaveData GAME_PTR gSaveData;

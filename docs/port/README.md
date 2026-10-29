@@ -3995,3 +3995,128 @@ region chosen from elsewhere taking an Auto room there at 25 s, two different re
 with the local Worker: Dubai on Auto and São Paulo choosing South America both waited, São Paulo's screen saying
 "PLAYERS IN SOUTH AMERICA FIRST, EVERYONE AFTER 40 S", and were put together by Dubai's search at 40 s; both reached
 the character select. No change to the database.
+
+## Frame rate: real caps, "Unlocked", and the fight's own speed (2026-10-27)
+
+Asked by the user: on a machine that can show more than 60, a chosen 120 or 240 made the fight skip aggressively and
+run slowly, "Unlocked" was whatever the display reported, and the fight's speed appeared to follow the chosen cap.
+
+What was wrong: the pictures after a tick's first were handed out at the tick's vertical blanks, with a 4 ms guess at
+what showing one takes and a wait of up to 6 ms after a blank. On a machine whose picture took 6 ms that pushed the
+blanks (the game's clock: input, sound) back a little every tick, and the cap that was meant to protect the game
+halved 8 pictures to 4 to 2, so a 144 fight came out at 60. "Unlocked" took the display's fastest mode, so the same
+machine showed a different rate on another monitor.
+
+Now (port/src/plat_fps.c, gs/gs_draw.c):
+
+- "FPS limit (fights)" and "FPS limit (menus)" (own settings: "fps_limit", "menu_fps_limit"); 30, 60, 90, 120, 144,
+  165, 180, 200, 240 and Unlocked. The old "Smooth motion" setting ("interp") carries over the first time this
+  version runs. F9 switches the fight limit between 30 and the last other choice. Online play and replays stay at the
+  console's 30 in a fight and 60 in a menu, whatever is chosen.
+- Unlocked is no upper limit of its own. It is not the display's refresh: the settings window shows the refresh for
+  information only. Each tick asks for the most pictures the machine can hold (interp_fit), between one and 32. Two
+  measured limits decide it, and the smaller wins: the machine's throughput (the tick's length divided by the measured
+  picture cost, one picture after another: the graphics chip works through the pictures handed over before it while the
+  game computes the next tick) and the game thread's hand-over of them (the tick's first picture is part of the game's
+  own work; every picture after it is built and recorded on that same thread, so only the idle time before the tick's
+  last blank is left for them, and the tick's own picture needs no blend built).
+  A chosen rate above that count comes down to it (the pictures beyond it would each push the next tick back and slow
+  the game); a chosen rate at or below it is asked for in full. Nothing is lowered to a rate below what the machine
+  has measured itself able to hold.
+- The simulation is not attached to the cap at all: a fight still computes 30 ticks a second and a menu 60, whatever
+  the picture rate. Above the scene's own rate the tick is shown as several pictures (the same hybrid path), and when
+  the machine cannot show them all it leaves pictures in-between out; it does not slow the game down.
+- The tick's pictures are spread evenly from its start boundary (the vertical blank at which the game began computing
+  it) to the last blank that ends it. The mid-tick blank of a fight is crossed, not treated as a wall: all of the time
+  the game spends waiting for blanks belongs to the pictures. A picture is started its measured cost early so that it
+  is finished on its moment; the tick's real picture falls one step before the next tick's first in-between picture
+  instead of on top of it. A picture whose moment has gone by is still shown when there is room for it. Only
+  in-between pictures are given up, and only when the in-between pictures still to come and the tick's own one could
+  not all be handed over before the tick's last blank (interp_drop_late, with a 0.5 ms margin). Nothing is shown after
+  that last blank (the game computes its next tick then, and a picture there used to be what turned a chosen 120 into
+  90, and sometimes 60). If even the tick's own picture cannot be handed over in time it is kept for the next tick's
+  blends rather than shown late
+  (interp_keep_tick). With the render thread, a hurry (the game is back with its next tick) drops what is left and
+  keeps the tick the same way. If the game is back with a new tick before the old one could be kept, the old tick's
+  list has been drawn over: it is forgotten (rather than blending the new tick with the one before the old one) and the
+  new tick is shown as it is, repeated at the pictures' moments, until the next tick.
+- All of that waiting is the game's idle time, so a picture is shown before a blank only if the wait for it plus its
+  measured cost and the 0.5 ms margin fit before the tick's last blank. After a blank, only pictures already due are
+  shown; the game's own work comes first, no wait for an upcoming picture.
+- Menu 30 stays a real 30 pictures a second (every other picture of a 60 Hz scene shown; the scene still ticks at 60).
+- Frame skipping ("frame_skip", F1 > Video) now waits until the game is more than a whole tick behind (two blanks in
+  a fight; one blank late is a frame that merely ran a little long, which catches up at the next blank) and does at
+  most 3 ticks in a row.
+
+Follow-up (2026-10-29): a fight whose pictures took 7 to 9 ms (the enemy in view) came out at 90 a second whatever the
+choice, Unlocked included, while the same machine without the enemy (5 to 7 ms) reached 120 to 150. The cause was a
+second cap in gs_draw.c: the number of pictures a tick might have was the largest whose measured cost fit in 15/16 of
+the tick, with an eighth added for variance. At 8 ms that is 3 pictures, 90 a second; at 5 ms, 4 or 5, 120 or 150
+(exactly the cap that was reported). It is gone: the tick now asks for the rate that was chosen and the pictures that
+can be made are shown, as described above. The picture cost is still measured and logged (BT3_FPS_LOG: its split into
+building and showing, and the wait for a swapchain image), because that is what tells which pictures the machine can
+show, but it no longer sets a rate of its own. (The third follow-up below refines this: the measured cost does set the
+tick's picture count, but only at the machine's measured speed, never below it and never from a guess.)
+
+Second follow-up (2026-10-29): at Unlocked and 120 the fight still showed about 88 to 108 pictures a second with the
+enemy in view, and Unlocked felt less fluid than 90. A log put a picture at 5 to 8 ms (building under 0.5, showing
+about 6.6; the swapchain was not waiting). The pictures are only made while the game waits for a blank, and the old
+pump stopped before the mid-tick blank: on a tick whose own work ended around there, the second half of the tick went
+unused, and the tick's real picture was shown late enough to belong to the next tick. The pump now fills the whole
+idle window up to the tick's last blank, crosses the mid-tick blank, and shows nothing after that blank. Unlocked
+takes its picture count from the measured cost (interp_fit) instead of a fixed 32, so it schedules the same
+pictures a chosen rate would get, evenly. A 60 a second result is now only what the machine really fits (two pictures
+a tick: the tick's own and one in-between); where one more fits (four a tick), the rate reaches 120 again.
+`BT3_FPS_LOG` now also prints `fit` (the pictures the tick had room for) and `tick busy` (the game's own work, from the
+tick's start boundary to its first blank).
+
+Third follow-up (2026-10-29): with the changes above, Unlocked felt right but a chosen 120 still came out at about 85
+to 89 pictures a second in a fight with the enemy in view, and 144 and above did not go past it (a little more load
+and it fell to 60). The log showed why: the picture cost was 6.8 to 7.5 ms, and 28 to 30 pictures a second were being
+dropped, exactly one per tick, while 4 x 7 ms = 28 ms of the tick's 33.4 ms was free. Two of my own sums were too
+strict. The picture count (interp_fit) subtracted the game's own work from the tick before dividing by the cost, and
+the drop test (interp_drop_late) counted every remaining picture's whole cost one after another from the moment the
+game came to wait. Both treated the pictures as if they ran only after the compute: in truth the graphics chip shows
+the ones handed over before it while the game computes the next tick, and two can be handed over at once (one with
+"Low input lag"), the rest waiting for an earlier picture. The count now takes both measured limits, the smaller of
+them: that throughput (the tick's length divided by the measured cost: 7 ms gives 4 a tick, 120 a second, where it
+used to give 3) and the game thread's hand-over (after the game's work, the idle time before the last blank plus the
+two the chip can take at once). A chosen rate above that count is brought down to it, since the pictures beyond it
+would not be finished within the tick and would push the game back (that is the only ceiling left, and it is the
+machine's own measured speed, not a guess). The drop test counts only the waits after the ones in flight. A 60 a
+second result is now only what the machine really fits: 2 pictures a tick, which needs a picture cost above about
+11 ms; above about 16 ms only the tick's own picture fits and the fight shows its own 30. `BT3_FPS_LOG`'s `fit` is now
+that measured count, and `tick busy` (the hand-over limit's other half, printed but no longer subtracted from a
+throughput figure) is printed to show what the game itself takes. The measured cost is also cleared when the scene or
+the chosen rate changes: a menu's picture takes under a millisecond and a fight's with the enemy in view several, and
+the first fight ticks used to be planned with the menu's cost (a safe 8 ms is used until the new scene's first picture
+is measured).
+
+Fourth follow-up (2026-10-29): the third follow-up's hand-over limit was still too high, and that is why a chosen
+120 or 144 (and Unlocked) kept landing at about 90 with the enemy in view, and sometimes 60. `depth + idle / cost`
+assumed the graphics chip showing a picture is what makes the next one wait, so two could be handed over at once and
+each further one only waited for the chip. But without the render thread every picture is *built and recorded on the
+game's own thread*: the chip working through one overlaps the game's compute, the recording does not. Only the idle
+time before the tick's last blank is left for the pictures after the first (which is part of `tick busy`), so the
+hand-over holds `2 + (idle - real) / cost` pictures: the tick's first picture, the in-between pictures that window
+holds, and the tick's own picture, which needs no blend built and is charged its measured hand-over only (`real`: the
+picture cost without its building part). The per-picture drop test now counts the same way: every in-between picture
+still to come plus the real one, not just the waits past the frames in flight. On the logged fight (33.37 ms tick,
+`tick busy` 14.5 to 15.6 ms, picture 6.2 ms of which 0.4 is building) that window holds 4 pictures only by a tenth of
+a millisecond, so a 7 ms picture gives 3 (a steady 90, where 4 used to be asked for and the real one then had to be
+kept for the next tick: the 60 dips); at 5.9 ms it holds 4, 120. Reaching a stable 120 at 7 ms needs the recording
+about half a millisecond cheaper per picture, or the render thread (`BT3_GS_THREAD`, still deferred): with it the
+recording is off the game's thread, `tick busy` no longer blocks it, and the throughput limit is the one that applies.
+
+Test switches: `BT3_FPS_LOG=1` (a line a second: scene, target, tick, pictures a tick, pictures shown a second, the
+picture cost and its split into building the in-between picture and showing it, the pictures the tick can hold
+(`fit`), the game's own work (`tick busy`), the last wait for a swapchain image, pictures dropped), `BT3_FPS_LIMIT=<n|0>`,
+`BT3_MENU_FPS_LIMIT=<n|0>`, `BT3_INTERP=0..3` (the old setting's numbers),
+`BT3_UNCAPPED=1` (no pacing waits: the pictures are made as fast as the machine can), `BT3_FRAMES_IN_FLIGHT=1..3`
+(how many pictures the graphics chip may hold at once; 2 unless "Low input lag" is on, which uses 1).
+`BT3_INTERP_NOCAP` and the old adaptive cap are gone. BT3_INTERP_LOG, BT3_INTERP_DUMP and the other picture-testing
+switches are unchanged.
+
+Not checked yet: on a display, by the user (the build and its test are his); Windows with V-sync on; a machine fast
+enough for the renderer's own limit to be the only cap (above 240 pictures a second); online and replays at a chosen
+rate higher than 30 (they should stay at 30 / 60).

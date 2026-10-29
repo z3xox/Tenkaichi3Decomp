@@ -125,6 +125,7 @@ extern int gGsMainFbp;          /* the frame buffer the game shows (gs_sony.c), 
 extern unsigned gGpuNewTex, gGpuNewTexPixels, gGpuNewPipes;
 extern unsigned gGpuTexReplaced; /* textures taken from a texture pack so far */
 extern uint64_t gGpuTexNs, gGpuPipeNs, gGpuEndNs;
+extern uint64_t gGpuSwapWaitNs; /* the last picture's wait for a swapchain image (0 when the back end has none) */
 
 /* The colour write mask FRAME.FBMSK turns into, in the bit values every back end's masks use (R=1, G=2,
    B=4, A=8: the SDL_GPU_COLORCOMPONENT_* values, and the same bits behind GL's glColorMask). */
@@ -165,5 +166,11 @@ int GsDraw_TargetGet(uint32_t fbp, int create);
 int GsDraw_DateRegion(uint32_t k, int *x, int *y, int *w, int *h); /* what the snapshot at draw k has to cover (0: nothing) */
 
 void GsGpu_TitlePoll(void); /* gs_draw.c */
+
+/* gs_gpu.c: the time the diagnostics themselves took (BT3_DRAW_LOG, BT3_GS_VERBOSE) and how much of it, taken back
+   out of what the schedule measures (writing a line can take milliseconds: timed as the picture's work, the log made
+   the game itself show one picture a tick). Reset when a tick's list starts (GsGpu_ListStart); taken as it is read. */
+void GsGpu_AddLogNs(uint64_t ns);
+uint64_t GsGpu_TakeLogNs(void);
 
 #endif
