@@ -4560,3 +4560,61 @@ converted for it has its 2D at its true shape across the whole width, the way th
 - `BT3_CLIP_LOG=1` (testing) lists each clip a converted screen draws, once: the names the table goes by.
 - Checked: the recording at 16:9 with the layout chosen, by picture (title, main menu, character select, stage
   select, VS); with it not chosen, the 28 screenshots as before, both with "4:3" and with "Stretched".
+
+## Screen reader: the settings window and Dragon Net Battle (2026-10-30)
+
+The settings window (F1, START + SELECT) and Dragon Net Battle are Dear ImGui's windows, drawn over the picture,
+so a11y_game.c cannot see them: until now only the question before the game closes was said (`build_quit`), and
+the window said nothing, on Linux and on Windows. Now the item under the
+keyboard's or the controller's focus is said as the window shows it: its label, its value and its state, and the
+window's name and its tab when they change. File: `port/src/gs/ui_a11y.cpp`; calls from ui.cpp (`UiA11y_Frame`,
+`UiA11y_End`, `UiA11y_Radio` after the three radio buttons).
+
+What is said: on opening, "Settings, Video tab" and the focused item; a tab ("Effects, tab", "Audio, tab,
+selected"; "Controls tab" when the shoulder buttons change it); a list ("Aspect ratio, 16:9, combo box", its
+choices when it is open, the new choice when it closes); a checkbox ("V-sync, not checked", then "checked" when it
+is changed); a slider ("Music, 100%", "editing" once it is taken with Cross / Space, then each new value); a
+radio button ("Player 2, not selected"); a collapsing header ("Sticks, triggers and vibration, expanded"); a
+button ("Reset to defaults, button"); "unavailable" for a disabled item. A list or field whose label is hidden
+("##name") is named by the text before it on its line, or after it. The item's tooltip (SetItemTooltip, 58 of them)
+is said after it, queued, when the tooltip comes up for the focused item: the description a seeing player gets,
+after the same moment; long ones in pieces of at most 900 bytes ending with a sentence (a message of a11y.c holds
+1024). Closing the window says "Back to the game", as the exit question does. A new focus interrupts what was
+being said. Nothing is said while the speaker is off (`PortA11y_On`, new in a11y.c).
+
+**How it sees the items.** Dear ImGui has hooks for its test engine: with `IMGUI_ENABLE_TEST_ENGINE` it calls
+`ImGuiTestEngineHook_ItemAdd` for each item (its id and place) and `ImGuiTestEngineHook_ItemInfo` with its label and,
+for a checkbox or a tree node, whether it is checked or open. The define changes no structure of the library (the
+context's `TestEngineHookItems` is there either way; the define adds enum values and the calls), and the hooks are
+called only while `TestEngineHookItems` is on, which `UiA11y_Frame` sets while one of the two windows is open and the
+speaker is on. `port/tools/undefined.py` gives the define to the game's C++ (the library and gs/*.cpp); the setup's
+copy of the library (port/setup/build.sh) is built without it. A library object built before the define has no
+hooks: delete `port/build/obj/cxx_imgui*.o` once (a release build starts clean).
+
+What an item shows besides its label (a slider's number, a combo's choice) reaches no hook. One change to the
+library gives it: `ImDrawList::AddText` (imgui_draw.cpp, marked "BT3 port", inside `#ifdef IMGUI_ENABLE_TEST_ENGINE`)
+hands each text it draws to `ImGuiA11yHook_Text`, and the text drawn while the focused item is the last item
+(`g.LastItemData.ID`) is that item's: its label and its value, in their order; the label (ItemInfo's, up to "##")
+is told from the value by being equal to it, and a combo, which has no ItemInfo, draws its choice and then its
+label. A text that is no item of its own (`ImGui::Text`) is kept for the item after it on its line, or the one before
+it. A tooltip's text is told by its window (`ImGuiWindowFlags_Tooltip`) and said only while the navigation cursor
+is shown (`g.NavCursorVisible`), never for the mouse. Two orders of the library are allowed for: a tab says its
+label (ItemInfo) before it is added (`TabItemEx`), so a focused tab starts in ItemInfo; and the radio button gives
+no checked state, so ui.cpp tells it (`UiA11y_Radio`).
+
+Not in it: a field or slider is not called one (ImGui's hooks give both only "inputable"); "editing" is said when
+one is taken. Typed letters in a field are not echoed. Text that is no item (the update panel's line, "Active GPU",
+"View: ...") cannot be focused and is said only as a label of the item beside it. No position ("3 of 12"). The
+Spanish file has no lines for the new words (tab, selected, checked, not checked, combo box, editing, button,
+expanded, collapsed, unavailable, "%s tab"): they are said in English until a11y_es.txt has them
+(`a11y_missing=1` lists them).
+
+Tests (Windows 11, the release container's build of this tree, a copy without prism.dll so that only the log took
+the speech: `BT3_A11Y_LOG`; its own settings and saves; keys sent to the window as a keyboard's, with their scan
+codes): opening and closing; the Video tab's combo boxes, a list opened and a choice taken ("4:3 (original)",
+"16:10", then "Aspect ratio, 16:10, combo box"), a checkbox checked and unchecked; the tab bar walked and the Audio
+and Controls tabs chosen; a volume slider taken and moved (100%, 98%, 96%); the Controls tab's checkbox, the
+Player 2 radio button chosen ("selected"), the controller combo, the collapsing header, a tooltip of 600 bytes
+whole. Screenshots matched what was said. Then the build in a player's own game folder with Prism 0.18.3 and
+NVDA on Windows: the window spoken, by the player's report. Not tested: a controller; Dragon Net Battle's window (the same code: its tabs, fields and radio buttons); Linux and macOS
+(the change is the same C++; not built here).

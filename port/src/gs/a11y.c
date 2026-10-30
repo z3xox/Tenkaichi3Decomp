@@ -659,6 +659,11 @@ int PortA11y_Begin(void) {
     return sOn;
 }
 
+/* 1 while the speaker is on (gs/ui_a11y.cpp: the settings window is read only then). */
+int PortA11y_On(void) {
+    return sOn;
+}
+
 /* Says a message (UTF-8). flags: A11Y_INTERRUPT, or 0 to queue it after the one before. */
 void PortA11y_Say(const char *text, int flags) {
     size_t len;

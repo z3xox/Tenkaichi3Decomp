@@ -967,6 +967,7 @@ static void build_net(void) {
                         snprintf(label, sizeof(label), "%s   (%d searching)###q%d", kQueue[i], n, i);
                     }
                     ImGui::RadioButton(label, &sQueue, i);
+                    UiA11y_Radio(sQueue == i);
                 }
                 ImGui::EndDisabled();
                 ImGui::TextDisabled("The two games connect to each other directly when they can, as in most online fighting");
@@ -2145,8 +2146,10 @@ static void controls_tab(void) {
     int count = 0;
 
     ImGui::RadioButton("Player 1", &player, 0);
+    UiA11y_Radio(player == 0);
     ImGui::SameLine();
     ImGui::RadioButton("Player 2", &player, 1);
+    UiA11y_Radio(player == 1);
     int *slot = PortInput_PadSlot(player), *keys = PortInput_Keys(player), *pads = PortInput_PadButtons(player);
     SDL_JoystickID *ids = SDL_GetGamepads(&count);
     if (*slot < 0) {
@@ -2908,6 +2911,7 @@ static bool frame_build(void) {
     meter_count();
     sBuilt = false;
     bool upd = updLine[0] != '\0';
+    UiA11y_Frame(sReady && sOpen && !sQuit, !sQuit); // (the screen reader in the windows: ui_a11y.cpp)
     if (!sReady || (!sOpen && !sQuit && !notice && !overlay && !meter && !names && !bars && !chat && !banner && !saving && !watched && !upd)) {
         return false;
     }
@@ -2957,6 +2961,7 @@ static bool frame_build(void) {
             build();
         }
     }
+    UiA11y_End(); // (what the window's focus is on, said; the windows after this one are not read)
     if (sQuit && PortQuit_Failed()) {
         build_quit();
     }

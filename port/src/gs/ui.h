@@ -28,6 +28,11 @@ typedef struct PortVideo {
     int smooth2d;    /* "2D filtering": 0 sharp (a PS2 pixel is a block), 1 smooth (sampled per output pixel) */
 } PortVideo;
 
+/* ui_a11y.cpp: the screen reader in ui.cpp's windows (the settings window, Dragon Net Battle) */
+void UiA11y_Frame(int windowOpen, int sayClosed); /* each frame, before the windows: on while one is open */
+void UiA11y_End(void);                            /* after them: says what the focus is on, or what changed of it */
+void UiA11y_Radio(int selected);                  /* after ImGui::RadioButton: whether it is the one chosen */
+
 /* gs_draw.c */
 void GsGpu_GetSettings(PortVideo *v);
 void GsGpu_SetSettings(const PortVideo *v); /* applies what changed and saves it */
