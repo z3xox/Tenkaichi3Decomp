@@ -4,6 +4,9 @@
 #include "battle/battle.h"
 #include "sys/pad.h"
 #include "sys/save.h"
+#ifdef PORT
+#include "port_control_mode.h"
+#endif
 
 /*
  * Per-fighter battle input: 0x1D3B40..0x1D60A0.
@@ -90,6 +93,33 @@ u32 BtlInput_RemapButtons(u32 rawHeld, u32 *mask) {
     return out;
 }
 
+#ifdef PORT
+/* Face actions keep the key config. Camera and teammate inputs remain separate battle bits. */
+static u32 BtlInput_WiiButtons(u32 raw, u32 buttons, const u8 *data) {
+    buttons &= ~(BTLB_ASCEND | BTLB_DESCEND | BTLB_R3 | BTLB_L3R3 | BTLB_LOCKON | BTLB_CHARGE |
+                 BTLB_RS_UP | BTLB_RS_DOWN | BTLB_RS_UP2 | BTLB_RS_DOWN2);
+    buttons |= PORT_BTL_WII;
+    if (raw & PAD_RSTICK_UP) { buttons |= BTLB_L3R3; }
+    if (raw & PAD_RSTICK_DOWN) { buttons |= BTLB_R3; }
+    if (data[PORT_CONTROL_MODE_BYTE] == PORT_CONTROL_MODE_SPLIT) {
+        buttons |= PORT_BTL_SPLIT;
+        if (data[PORT_CONTROL_EXTRA_BYTE] & PORT_CONTROL_PREV) { buttons |= BTLB_RS_UP2; }
+        if (data[PORT_CONTROL_EXTRA_BYTE] & PORT_CONTROL_NEXT) { buttons |= BTLB_RS_DOWN2; }
+        if (data[PORT_CONTROL_EXTRA_BYTE] & PORT_CONTROL_BURST) { buttons |= BTLB_LOCKON; }
+    } else {
+        if (raw & PAD_RSTICK_LEFT) { buttons |= BTLB_RS_UP2; }
+        if (raw & PAD_RSTICK_RIGHT) { buttons |= BTLB_RS_DOWN2; }
+    }
+    if (raw & PAD_R3) { buttons |= BTLB_CHARGE; }
+    if (raw & PAD_R1) { buttons |= BTLB_ASCEND; }
+    if (raw & PAD_L1) { buttons |= BTLB_DESCEND; }
+    /* Fast flight also needs its held direction; releasing the trigger ends it. */
+    if (raw & PAD_R2) { buttons |= BTLB_ASCEND | BTLB_ASCEND_TAP2; }
+    if (raw & PAD_L2) { buttons |= BTLB_DESCEND | BTLB_DESCEND_TAP2; }
+    return buttons;
+}
+#endif
+
 /* Resets a frame counter when cond is 0, otherwise counts it up to BTL_COUNT_MAX. */
 void BtlInput_TickCounter(s32 cond, s8 *count) {
     if (cond) {
@@ -163,6 +193,11 @@ u32 BtlInput_AddDoubleTaps(BtlInputChr *chr, u32 buttons, u32 prev, s32 padStatu
     BtlCharInput *in = &chr->input;
     u32 pressed = buttons & ~prev;
 
+#ifdef PORT
+    if (buttons & PORT_BTL_WII) {
+        return buttons; /* Wii fast flight has dedicated buttons, rather than shoulder double taps. */
+    }
+#endif
     switch (padStatus) {
         case 0:
         case 1:
@@ -406,6 +441,11 @@ void BtlInput_BuildRecord(BtlInputChr *chr) {
 
         if (raw != NULL) {
             buttons = BtlInput_RemapButtons(raw->rawHeld, raw->mask);
+#ifdef PORT
+            if (PORT_CONTROL_IS_WII(BtlChar_GetPad(chr)->data)) {
+                buttons = BtlInput_WiiButtons(raw->rawHeld, buttons, BtlChar_GetPad(chr)->data);
+            }
+#endif
             stick[0] = raw->rawStickX;
             stick[1] = raw->rawStickY;
         }
@@ -1015,6 +1055,20 @@ s32 BtlInput_TestAction(BtlInputChr *chr, s32 id, s32 want) {
         }
         break;
     case 46:
+#ifdef PORT
+        if (BtlInput_IsHeld(chr, PORT_BTL_WII) && BtlInput_IsHeld(chr, PORT_BTL_SPLIT)) {
+            result = BtlInput_IsCmdPressed(chr, BTLC_LOCKON_P) &&
+                     BtlInput_GetCmdPrevFramesSincePress(chr, 22) < BTL_TAP_FRAMES;
+            break;
+        }
+        if (BtlInput_IsHeld(chr, PORT_BTL_WII)) {
+            result = (BtlInput_IsPressed(chr, BTLB_RS_LEFT) &&
+                      BtlInput_GetPrevFramesSincePress(chr, 8) < BTL_TAP_FRAMES) ||
+                     (BtlInput_IsPressed(chr, BTLB_RS_RIGHT) &&
+                      BtlInput_GetPrevFramesSincePress(chr, 10) < BTL_TAP_FRAMES);
+            break;
+        }
+#endif
         if (BtlInput_IsCmdPressed(chr, BTLC_LOCKON_P)) {
             if (BtlInput_GetCmdPrevFramesSincePress(chr, 22) < BTL_TAP_FRAMES) {
                 result = 1;

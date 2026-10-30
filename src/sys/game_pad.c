@@ -1,6 +1,11 @@
 #include "common.h"
 #include "sys/pad.h"
 #include "sys/game_pad.h"
+#ifdef PORT
+#include "battle/battle.h"
+#include "battle/btl_seq.h"
+#include "port_control_mode.h"
+#endif
 
 /* Translates gPad[pad].held (PAD_*) into the game button word (PADG_*), derives pressed/repeat, copies the sticks. */
 void Pad_UpdateGameButtons(s32 pad) {
@@ -83,6 +88,20 @@ void Pad_UpdateGameButtons(s32 pad) {
         btn |= PADG_UP2;
     }
 
+#ifdef PORT
+    /* Swap menu actions only, including pause and results; battle buttons stay physical. */
+    if (PORT_CONTROL_IS_WII(p->data) &&
+        (!Battle_GetWork()->running || (Battle_GetWork()->flags & BATTLE_FLAG_PAUSE_MENU) ||
+         (gBtlSeq != NULL && gBtlSeq->state == BTL_SEQ_END))) {
+        u32 face = btn & (PADG_CROSS | PADG_SQUARE | PADG_CIRCLE | PADG_TRIANGLE);
+
+        btn &= ~(PADG_CROSS | PADG_SQUARE | PADG_CIRCLE | PADG_TRIANGLE);
+        if (face & PADG_SQUARE) { btn |= PADG_CROSS; }
+        if (face & PADG_CROSS) { btn |= PADG_TRIANGLE; }
+        if (face & PADG_CIRCLE) { btn |= PADG_CIRCLE; }
+        if (face & PADG_TRIANGLE) { btn |= PADG_SQUARE; }
+    }
+#endif
     p->gamePressed = btn & ~p->gameHeld;
     p->gameHeld = btn;
     gPad[pad].gameRepeat = Pad_CalcRepeat(btn, p->gamePressed, &p->gameRepeatTimer, &p->gameRepeatLast,
