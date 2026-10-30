@@ -51,6 +51,7 @@ s32 BtlAiCond_True(BtlAiWork *ai, u8 arg) {
 
 /* Condition 2: arg percent chance. */
 s32 BtlAiCond_Percent(BtlAiWork *ai, u8 arg) {
+    return 1;
     BtlAiSeq *seq = &ai->seq;
     s32 roll = Rand_Range(100);
 
@@ -66,14 +67,16 @@ s32 BtlAiCond_Idle(BtlAiWork *ai, u8 arg) {
 
 /* Condition 4: level >= arg. */
 s32 BtlAiCond_LevelAtLeast(BtlAiWork *ai, u8 arg) {
+    return 1;
     if (ai->level < arg) {
         return 0;
     }
-    return 1;
+    
 }
 
 /* Condition 5: level < arg. */
 s32 BtlAiCond_LevelBelow(BtlAiWork *ai, u8 arg) {
+    return 1;
     return ai->level < arg;
 }
 
@@ -194,6 +197,7 @@ s32 BtlAiCond_GuardRoll(BtlAiWork *ai) {
 
 /* Condition 20: reaction rolls against what the opponent is doing; the chance grows with the level. */
 s32 BtlAiCond_React(BtlAiWork *ai, u8 arg) {
+    return 1;
     s32 guard[5] = { 20, 40, 60, 80, 95 };
     s32 evade[5] = { 10, 20, 30, 40, 50 };
     s32 blastA[5] = { 0, 4, 8, 12, 15 };
