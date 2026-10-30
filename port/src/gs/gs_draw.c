@@ -2282,6 +2282,7 @@ void GsGpu_SetSettings(const PortVideo *v) {
     if (v->vsync != now.vsync) { /* (whichever back end draws) */
         GsGpu_Vsync(v->vsync);
         GsGl_Vsync(v->vsync);
+        GsD3d11_Vsync(v->vsync);
         Port_SettingSave("vsync", v->vsync);
     }
     sDisplaySetting = v->display;
@@ -2323,37 +2324,47 @@ int GsGpu_Init(void) {
     gsVuIdx = malloc(MAX_VU_IDX * sizeof(uint32_t));
     gsVuUni = malloc(MAX_VU_UNIFORMS * sizeof(Vu0Uniform));
     gsDraws = malloc(MAX_DRAWS * sizeof(GsDraw));
-    /* BT3_GPU_API=vulkan|gl|auto picks the back end. Both are complete renderers of the same list, so a
-       picture from either should be the same (see the frame-by-frame compare in the port's docs). */
+    /* BT3_GPU_API=vulkan|gl|d3d11|auto picks the back end. All are complete renderers of the same list, so a
+       picture from any should be the same (see the frame-by-frame compare in the port's docs). */
     if (api == NULL || strcmp(api, "auto") == 0) {
-        /* the settings window's choice (Renderer; Vulkan unless OpenGL was picked there) */
-        sb = Port_Setting("gpu_api", 0) == 1 ? &sGlBackend : &sVulkanBackend;
+        /* the settings window's choice (Renderer: 0 Vulkan, the default, 1 OpenGL, 2 Direct3D 11) */
+        int pick = Port_Setting("gpu_api", 0);
+        sb = pick == 2 ? &sD3d11Backend : pick == 1 ? &sGlBackend : &sVulkanBackend;
         api = NULL;
     } else if (strcmp(api, "vk") == 0 || strcmp(api, "vulkan") == 0) {
         sb = &sVulkanBackend;
     } else if (strcmp(api, "gl") == 0 || strcmp(api, "opengl") == 0) {
         sb = &sGlBackend;
+    } else if (strcmp(api, "d3d11") == 0 || strcmp(api, "dx11") == 0 || strcmp(api, "d3d") == 0) {
+        sb = &sD3d11Backend;
     } else {
-        fprintf(stderr, "bt3: unknown BT3_GPU_API=%s (try vulkan, gl or auto)\n", api);
+        fprintf(stderr, "bt3: unknown BT3_GPU_API=%s (try vulkan, gl, d3d11 or auto)\n", api);
         return 0;
     }
     sBackend = sb;
     if (!sb->init()) {
-        /* The chosen renderer cannot start (no Vulkan driver, an old graphics card): the other one is tried,
+        /* The chosen renderer cannot start (no Vulkan driver, an old graphics card): the others are tried in turn,
            unless one was asked for by name. */
-        GsBackend *other = sb == &sVulkanBackend ? &sGlBackend : &sVulkanBackend;
+        GsBackend *list[3] = {&sVulkanBackend, &sGlBackend, &sD3d11Backend};
+        int k;
         sBackend = NULL;
         if (api != NULL) {
             return 0;
         }
-        fprintf(stderr, "bt3: the %s renderer could not start; trying %s\n", sb == &sVulkanBackend ? "Vulkan" : "OpenGL",
-                other == &sVulkanBackend ? "Vulkan" : "OpenGL");
-        sb = other;
-        sBackend = sb;
-        if (!sb->init()) {
-            sBackend = NULL;
+        for (k = 0; k < 3 && sBackend == NULL; k++) {
+            if (list[k] == sb) {
+                continue;
+            }
+            fprintf(stderr, "bt3: the %s renderer could not start; trying %s\n", sb->name, list[k]->name);
+            sBackend = list[k];
+            if (!list[k]->init()) {
+                sBackend = NULL;
+            }
+        }
+        if (sBackend == NULL) {
             return 0;
         }
+        sb = sBackend;
     }
     gsWhite = sb->whiteTex();
     gsFxOff = (unsigned)(getenv("BT3_FX_OFF") != NULL ? atoi(getenv("BT3_FX_OFF")) : Port_Setting("fx_off", 0)) & 255;
@@ -4790,7 +4801,12 @@ void GsGpu_InterpPump(int ahead_ms, int all) {
 }
 
 int GsGpu_BackendIsGl(void) {
-    return sBackend == &sGlBackend;
+    /* (a back end whose device belongs to the thread that made it: the Direct3D 11 one is that too) */
+    return sBackend == &sGlBackend || sBackend == &sD3d11Backend;
+}
+
+const char *GsGpu_BackendName(void) {
+    return sBackend != NULL ? sBackend->name : "none";
 }
 
 void GsGpu_InterpFlush(void) { /* (the name Port_VBlank knew it by) */

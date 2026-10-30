@@ -82,6 +82,8 @@ int GsDraw_FrameSkip(void);       /* gs_draw.c */
 void GsDraw_FrameSkipSet(int on);
 void GsGpu_Vsync(int on); /* gs_gpu.c */
 void GsGl_Vsync(int on);  /* gs_gl.c */
+void GsD3d11_Vsync(int on); /* gs_d3d11.cpp */
+int Ui_InitD3D11(SDL_Window *window, void *device, void *context, const char *gpu_name); /* the Direct3D 11 back end: ID3D11Device and its immediate context */
 int Port_Setting(const char *name, int def); /* plat_settings.c */
 void Ui_Toggle(void);
 int Ui_QuitAsk(void); /* Esc outside the window: asks before the game closes. 0 = there is no window to ask in */

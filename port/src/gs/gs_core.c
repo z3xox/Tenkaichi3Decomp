@@ -1450,7 +1450,7 @@ static int gs_on(void) {
                 sGpu = sInitResult;
                 atexit(render_stop);
                 if (sGpu && GsGpu_BackendIsGl()) {
-                    fprintf(stderr, "bt3: render thread: the Vulkan renderer did not start; OpenGL on the thread (the game's own reads of the picture are left out)\n");
+                    fprintf(stderr, "bt3: render thread: %s on the thread (the game's own reads of the picture are left out)\n", GsGpu_BackendName());
                 }
             } else {
                 sGpu = GsGpu_Init();
