@@ -1728,7 +1728,9 @@ void GsGpu_Draw(int type, int ctx, const GsVertex *v) {
             int corner = gsAnchor == 16 || gsAnchor == 17 || gsAnchor == 18 || (gsAnchor == 13 && x1 - x0 <= 260.0f && y1 <= 140.0f);
             /* (13, character select: only a sprite the size of a corner's cloud, not the big pictures from the top) */
             if ((corner && y0 <= 8.0f && x0 >= 256.0f && x1 >= 511.5f) ||
-                (gsAnchor == 17 && y1 <= 120.0f && x0 >= 256.0f)) {
+                (gsAnchor == 17 && y1 <= 114.0f && x0 >= 256.0f)) {
+                /* (17: the counters' frames and icons end by line 113; an item explanation's count badge, a page piece
+                   just below them at 117, stays with its window) */
                 pivot = 512.0f; /* (a page's piece from the top edge, in the right half against the edge: the corner's clouds;
                                    17: any in the top 120 lines starting in the right half, the shop's counters with their
                                    icons and frames) */

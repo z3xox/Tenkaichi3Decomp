@@ -220,8 +220,14 @@ static int clip_part(const char *name, int x, int top) {
             return name[n - 1] == 'l' ? PORT_MENU_LEFT : PORT_MENU_RIGHT;
         }
     }
+    if (sMenuScreen == 38 && top && (starts(name, "mc_item_details") || starts(name, "mc_reconfir_plate_") || starts(name, "mc_list_plate_") ||
+                                     starts(name, "mc_dammy_text_") || starts(name, "mc_font_get"))) {
+        /* (the item shop's windows: the purchase question, the explanation, the list's rows, at their true shape
+           whatever their size, with their shadows and text; only the room fills) */
+        return PORT_MENU_CENTER_ALL;
+    }
     if (sMenuScreen == 38 && top && (starts(name, "mc_pay_num_") || starts(name, "mc_item_num_"))) {
-        /* (mc_shop_num_*: an item's price, in the list's bar in the middle, not a counter) */
+        /* (mc_shop_num_*: an item's price, in the list's bar in the middle: not a counter) */
         return PORT_MENU_RIGHT; /* (the item shop: the digits of its counters of zenni and of the share collected; their
                                    frames are the page's own pieces, PORT_MENU_PAGE_TOP) */
     }
