@@ -6,6 +6,7 @@
 extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
 extern void Port_MenuFill(int on);
 extern int Port_MenuPart(int part);
+extern void Port_MenuDuelSettings(int on);
 #endif
 
 DuelMenu *gDuelMenu = NULL; /* 0x3B38E8 */
@@ -481,9 +482,18 @@ void DuelMenu_Draw(void) {
         }
     }
 #ifdef PORT
-    {   /* widescreen menus: the movie's own shapes, the bodies of the windows of modes and of the battle settings,
-           against the left edge with their rows (its named clips as before: port/src/gs_marker.c) */
-        int prev = Port_MenuPart(5 /* PORT_MENU_LEFT_ALL */);
+    {   /* widescreen menus: the movie's own shapes, the bodies of its windows, with their rows: the window of modes
+           against the left edge under its plate, the battle settings' in the middle (port/src/gs_marker.c). The
+           last of the two that was open is kept while the menu is back at its plates (its window going away). */
+        static int settings;
+        int prev;
+        if (DM->level == DUEL_LEVEL_TYPE || DM->level == DUEL_LEVEL_DP) {
+            settings = 0;
+        } else if (DM->level == DUEL_LEVEL_SETTING || DM->level == DUEL_LEVEL_VALUE) {
+            settings = 1;
+        }
+        Port_MenuDuelSettings(settings);
+        prev = Port_MenuPart(settings ? 4 /* PORT_MENU_CENTER_ALL */ : 5 /* PORT_MENU_LEFT_ALL */);
         for (i = 0; i < DUELMENU_FLASH_NUM; i++) {
             Flash_Draw(&DM->flash[i]);
         }

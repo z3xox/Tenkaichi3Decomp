@@ -122,6 +122,11 @@ static int sGlowIsGlare; /* the glow chain under way is the sky's glare (gfxm_a.
 static int sBlockSample; /* the draw being set up reads a work buffer at the GS's 1x (orig.x): pipeline_get, key bit 25 */
 static int sTexPackOn = 1; /* the setting: use the texture pack (if one was found) */
 int gsAnchor;
+static int sEdgeTop; /* widescreen menus, part 18: 1, only pieces starting in the page's top 200 lines go to an edge (gs_marker.c,
+                         PORT_MENU_PAGE_EDGE_TOP: Character Reference's pages of a character, their window below in the middle);
+                         2, the pieces right of x 100 above line 400 against the right edge (PORT_MENU_PAGE_LIST: its list) */
+static int sFillWide; /* widescreen menus: in parts 13..15 too, pieces as wide as the 4:3 screen reaching its bottom fill (the
+                          versus menu's scenery; its windows, as wide, end above it) */
 static int sMenuFree; /* widescreen menus: the clip being drawn moves (markers 0x2D / 0x2E, gs_marker.c): not cut */
 /* A fight's HUD in a picture wider than 4:3 (setting hud_layout, BT3_HUD=<n> for a test):
      0  the side panels at the screen's edges (as since widescreen)
@@ -1712,7 +1717,7 @@ void GsGpu_Draw(int type, int ctx, const GsVertex *v) {
         if (type == 6 && !d.mode[0] && y1 - y0 >= 400.0f && !battleText) {
             pivot = -1.0f;
         } else if ((gsAnchor == 9 || gsAnchor == 11 || gsAnchor == 12 || gsAnchor == 16 || gsAnchor == 17 || gsAnchor == 18 ||
-                    (gsAnchor >= 13 && gsAnchor <= 15 && (!d.mode[0] || (y0 <= 0.5f && y1 >= 447.5f)))) && x0 <= 0.5f && x1 >= 511.5f) {
+                    (gsAnchor >= 13 && gsAnchor <= 15 && (!d.mode[0] || (sFillWide && y1 >= 447.5f) || (y0 <= 0.5f && y1 >= 447.5f)))) && x0 <= 0.5f && x1 >= 511.5f) {
             /* (in the parts that keep the 4:3 screen's full-width pieces at their true shape, 13..15, one covering the
                whole screen, all its height too, still fills: a popup's dimming of what is behind it) */
             /* (in a widescreen menu page, a piece as wide as the whole 4:3 screen is scenery or a tint over all of
@@ -1739,6 +1744,10 @@ void GsGpu_Draw(int type, int ctx, const GsVertex *v) {
             } else if (gsAnchor == 17 && y1 - y0 > 100.0f) {
                 pivot = -1.0f; /* (17, the item shop: its room, scenery in big pieces, fills the width; its list's rows,
                                   tabs and price bar, short pieces, keep their true shape in the middle with their text) */
+            } else if (gsAnchor == 18 && sEdgeTop == 1 && y0 >= 200.0f) {
+                pivot = 256.0f;
+            } else if (gsAnchor == 18 && sEdgeTop == 2 && x0 >= 100.0f && y1 <= 400.0f) {
+                pivot = 512.0f; /* (Character Reference's list: its window, body, scroll bar and frame, together) */
             } else if (gsAnchor == 18 && x1 >= 511.5f && x0 >= 200.0f) {
                 pivot = 512.0f; /* (18: a page's piece cut off at the right edge: a frame whose art is cut there) */
             } else if (gsAnchor == 18 && x0 <= 0.5f && x1 <= 312.0f) {
@@ -2079,6 +2088,8 @@ void GsGpu_Native(int effect) {
        own table. */
     if (effect >= 0x22 && effect <= 0x2C) { /* widescreen menus: centre / fill / left / right; centre, left, right, bars too; page; top; edge */
         gsAnchor = effect - 0x22 + 9;
+        sEdgeTop = 0;
+        sFillWide = 0;
         return;
     }
     if (effect >= 0x15 && effect <= 0x18) {
@@ -2096,6 +2107,16 @@ void GsGpu_Native(int effect) {
     }
     if (effect == 0x2F) { /* widescreen menus: a split page (gs_marker.c, PORT_MENU_SPLIT) */
         gsAnchor = 21;
+        return;
+    }
+    if (effect == 0x32) { /* widescreen menus: in this part too, a piece as wide as the 4:3 screen fills (gs_marker.c) */
+        sFillWide = 1;
+        return;
+    }
+    if (effect == 0x30 || effect == 0x31) { /* widescreen menus: PORT_MENU_PAGE_EDGE, the lower part of the page in the
+                                                middle (0x30) / the page's list window against the right edge (0x31) */
+        gsAnchor = 18;
+        sEdgeTop = effect == 0x30 ? 1 : 2;
         return;
     }
     if (effect == 0x2D || effect == 0x2E) {

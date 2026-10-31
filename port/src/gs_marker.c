@@ -39,13 +39,24 @@ void Port_GsMarker(int effect) {
                        cut there (World Tour's timer, Character Reference's list)
      PORT_MENU_SPLIT   each piece against the edge of the half it starts in, at its true shape (wide ones too): a screen
                        whose left half is one thing and its right half another, frames and text alike (marker 0x2F)
+     PORT_MENU_PAGE_EDGE_TOP  as PAGE_EDGE for the pieces in the page's top 200 lines, the ones below in the middle
+                       (Character Reference's pages of a character: the panels at the edges, the introduction's window
+                       below whole; marker 0x30)
+     PORT_MENU_PAGE_LIST  as PAGE_EDGE, and the page's pieces right of x 100 above line 400 against the right edge
+                       (Character Reference's list: its window's body and scroll bar with its frame; marker 0x31)
      PORT_MENU_CENTER_FREE  as CENTER, not cut at the 4:3 screen's edges: a picture that flies across the whole of
                        the wide picture (World Tour's announcer poster)
    Which clip of a screen's movie goes where is the table in Port_MenuClipPart, by the clips' names. A screen that
    marks nothing is stretched as before. The renderer acts on the markers only with that layout chosen. */
 enum { PORT_MENU_NONE = -1, PORT_MENU_CENTER, PORT_MENU_FILL, PORT_MENU_LEFT, PORT_MENU_RIGHT, PORT_MENU_CENTER_ALL, PORT_MENU_LEFT_ALL,
-       PORT_MENU_RIGHT_ALL, PORT_MENU_PAGE, PORT_MENU_PAGE_TOP, PORT_MENU_PAGE_EDGE, PORT_MENU_CENTER_FREE, PORT_MENU_SPLIT };
+       PORT_MENU_RIGHT_ALL, PORT_MENU_PAGE, PORT_MENU_PAGE_TOP, PORT_MENU_PAGE_EDGE, PORT_MENU_CENTER_FREE, PORT_MENU_SPLIT,
+       PORT_MENU_PAGE_EDGE_TOP, PORT_MENU_PAGE_LIST };
 static int sMenuPart = PORT_MENU_NONE;
+static int sDuelSettings; /* the versus menu's battle settings are open (or the last of its windows): in the middle */
+
+void Port_MenuDuelSettings(int on) {
+    sDuelSettings = on;
+}
 static int sMenuMovie;               /* which of the screen's movies is being drawn (Port_MenuMovie) */
 static int sMenuScreen;              /* PORT_MENU_SCREEN_* of the page being drawn, 0: none */
 
@@ -65,7 +76,12 @@ int Port_MenuPart(int part) {
     int prev = sMenuPart;
     if (part != sMenuPart) {
         sMenuPart = part;
-        Port_GsMarker(part == PORT_MENU_NONE ? 0x13 : part == PORT_MENU_SPLIT ? 0x2F : 0x22 + part); /* (0x13: the HUD's "end") */
+        Port_GsMarker(part == PORT_MENU_NONE ? 0x13 : part == PORT_MENU_SPLIT ? 0x2F : part == PORT_MENU_PAGE_EDGE_TOP ? 0x30 :
+                      part == PORT_MENU_PAGE_LIST ? 0x31 : 0x22 + part);
+        if (sMenuScreen == 16 && part != PORT_MENU_NONE) {
+            Port_GsMarker(0x32); /* (the versus menu: its scenery, pieces as wide as the 4:3 screen, fills in any part) */
+        }
+        /* (0x13: the HUD's "end") */
     }
     return prev;
 }
@@ -104,17 +120,17 @@ void Port_MenuPage(int screen) {
        by their own markers)
        (Evolution Z's character customising, 37, is laid out as character select: its bars at their true shape too;
        the Data Center's password, 44: its keyboard is one picture as wide as the 4:3 screen, its letters on it)
-       (Character Reference's pages of a character, 53: the 4:3 page whole in the middle, the picture, the panel
-       behind the lines and the window of the introduction together, its voice's play button in the middle) */
+       (Character Reference's pages of a character, 53: the picture on the left, the name and the choices on the right
+       (the user's choice), the introduction's window and the voice's button in the middle) */
     /* (the character selects of Ultimate Battle and the World Tournament, 15, 19, 23, 24, 25, as character select) */
     Port_MenuPart(screen == 0 ? PORT_MENU_NONE : screen == 2 ? PORT_MENU_LEFT
                   : screen == 52 ? PORT_MENU_FILL /* (Tenkaichi Budokai Online: its page stretched as before) */
                   : screen == 51 ? PORT_MENU_CENTER_FREE /* (the logo page before the title: a picture of the whole 4:3 screen) */
                   : screen == 37 ? PORT_MENU_SPLIT /* (Evolution Z's customising: the player's side left, the points right) */
-                  : screen == 1 || screen == 3 || screen == 44 || screen == 50 || screen == 53 ? PORT_MENU_CENTER_ALL
+                  : screen == 1 || screen == 3 || screen == 44 || screen == 50 ? PORT_MENU_CENTER_ALL
                                                 : screen == 14 ? PORT_MENU_LEFT_ALL
                                                 : screen == 13 || screen == 42 || screen == 18 ? PORT_MENU_FILL : screen == 38 ? PORT_MENU_PAGE_TOP
-                                                : screen == 17 || screen == 20 ? PORT_MENU_PAGE_EDGE
+                                                : screen == 53 ? PORT_MENU_PAGE_EDGE_TOP : screen == 17 ? PORT_MENU_PAGE_LIST : screen == 20 ? PORT_MENU_PAGE_EDGE
                                                 : screen >= 10 ? PORT_MENU_PAGE : PORT_MENU_CENTER);
 }
 
@@ -255,12 +271,28 @@ static int clip_part(const char *name, int x, int top) {
                                      starts(name, "mc_yajirusi_"))) {
         return PORT_MENU_RIGHT; /* (World Tour: the timer and the list of tournaments, their art cut at the right edge) */
     }
-    if (sMenuScreen == 17 && top && (starts(name, "mc_menu_plate") || strcmp(name, "mc_scroll_bar_point") == 0 || starts(name, "mc_yajirusi_") ||
+    if (sMenuScreen == 53 && top && starts(name, "mc_window_up_")) {
+        return PORT_MENU_FILL; /* (a character's page: the band behind its title, in two halves, across the width) */
+    }
+    if (sMenuScreen == 53 && top && (strcmp(name, "mc_dammy_text") == 0 || strcmp(name, "mc_icon_voice_play") == 0)) {
+        return PORT_MENU_CENTER; /* (a character's page: the introduction's text in its window, the voice's button, in
+                                    the middle) */
+    }
+    if ((sMenuScreen == 17 || sMenuScreen == 53) && top && starts(name, "mc_ch_base_")) {
+        return -2; /* (Character Reference's panels, each a clip at the corner: placed by the edge it touches, measured) */
+    }
+    if (sMenuScreen == 53 && top && (strcmp(name, "mc_yajirusi_left") == 0 || strcmp(name, "mc_yajirusi_right") == 0)) {
+        return PORT_MENU_LEFT; /* (the arrows to the next character, on the picture's frame) */
+    }
+    if (sMenuScreen == 53 && top && starts(name, "mc_guide_")) {
+        return PORT_MENU_RIGHT; /* (Chi-Chi, commenting, against the right edge) */
+    }
+    if ((sMenuScreen == 17 || sMenuScreen == 53) && top && (starts(name, "mc_menu_plate") || strcmp(name, "mc_scroll_bar_point") == 0 || starts(name, "mc_yajirusi_") ||
                                      starts(name, "mc_name_text_") || starts(name, "mc_form_text_") || starts(name, "mc_voice_text_") ||
                                      strcmp(name, "mc_dammy_text") == 0 || strcmp(name, "mc_icon_voice_play") == 0)) {
         return PORT_MENU_RIGHT; /* (Character Reference: its list and a character's page, cut at the right edge) */
     }
-    if (sMenuScreen == 17 && top && strcmp(name, "mc_single_chara_l") == 0) {
+    if ((sMenuScreen == 17 || sMenuScreen == 53) && top && strcmp(name, "mc_single_chara_l") == 0) {
         return PORT_MENU_LEFT; /* (and the character's picture there, on the left) */
     }
     if (sMenuScreen == 52) { /* (Tenkaichi Budokai Online: only its message window's text) */
@@ -268,6 +300,13 @@ static int clip_part(const char *name, int x, int top) {
     }
     if (sMenuScreen >= 10 && top && strcmp(name, "mc_message_text") == 0) {
         return PORT_MENU_LEFT; /* (the message window's text from its left, as on the main menu: its window fills) */
+    }
+    if (sMenuScreen == 16 && top && (strcmp(name, "mc_kumo") == 0 || starts(name, "mc_kemuri_"))) {
+        return PORT_MENU_FILL; /* (the versus menu: its scrolling clouds and smoke, scenery across the width) */
+    }
+    if (sMenuScreen == 16 && top && (starts(name, "mc_battle_set_text_") || starts(name, "mc_set_"))) {
+        return sDuelSettings ? PORT_MENU_CENTER_ALL : PORT_MENU_LEFT_ALL; /* (the battle settings' names and values, with
+                                                                            their window: Port_MenuDuelSettings) */
     }
     if (sMenuScreen == 16 && top && starts(name, "mc_mode_")) {
         return PORT_MENU_LEFT; /* (and the window of its modes, Single, Team, DP, under the chosen plate) */
