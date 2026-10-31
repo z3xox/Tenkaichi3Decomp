@@ -353,7 +353,8 @@ void step_test(const std::string &root) {
     SDL_SetEnvironmentVariable(env, "BT3_SETTINGS", "", true);
     SDL_SetEnvironmentVariable(env, "BT3_SAVES", saves.c_str(), true);
     SDL_SetEnvironmentVariable(env, "BT3_GS", "none", true); // no window: a release program opens one by default
-    for (const char *name : {"BT3_REPLAY", "BT3_PAD_PLAY", "BT3_PAD_REC", "BT3_DATA"}) {
+    // (BT3_A11Y_LOG: the setup's own speech log, which the demo fight would start over)
+    for (const char *name : {"BT3_REPLAY", "BT3_PAD_PLAY", "BT3_PAD_REC", "BT3_DATA", "BT3_A11Y_LOG"}) {
         SDL_UnsetEnvironmentVariable(env, name);
     }
     SDL_PropertiesID props = SDL_CreateProperties();

@@ -4588,7 +4588,7 @@ for a checkbox or a tree node, whether it is checked or open. The define changes
 context's `TestEngineHookItems` is there either way; the define adds enum values and the calls), and the hooks are
 called only while `TestEngineHookItems` is on, which `UiA11y_Frame` sets while one of the two windows is open and the
 speaker is on. `port/tools/undefined.py` gives the define to the game's C++ (the library and gs/*.cpp); the setup's
-copy of the library (port/setup/build.sh) is built without it. A library object built before the define has no
+copy of the library (port/setup/build.sh) has it too since the section below. A library object built before the define has no
 hooks: delete `port/build/obj/cxx_imgui*.o` once (a release build starts clean).
 
 What an item shows besides its label (a slider's number, a combo's choice) reaches no hook. One change to the
@@ -4618,3 +4618,41 @@ Player 2 radio button chosen ("selected"), the controller combo, the collapsing 
 whole. Screenshots matched what was said. Then the build in a player's own game folder with Prism 0.18.3 and
 NVDA on Windows: the window spoken, by the player's report. Not tested: a controller; Dragon Net Battle's window (the same code: its tabs, fields and radio buttons); Linux and macOS
 (the change is the same C++; not built here).
+
+## Screen reader: the setup window (2026-10-30)
+
+The setup window (`Tenkaichi3Decomp-setup`, port/setup/setup.cpp) said nothing to a screen reader: the first thing a
+player meets, before the game's own speech. It speaks now, through the same speaker as the game (Prism, when
+prism.dll is beside the program; `a11y=0` in a bt3_settings.txt beside it turns it off; `BT3_A11Y_LOG` for tests).
+port/setup/build.sh builds gs/a11y.c, gs/ui_a11y.cpp and plat_settings.c into it and gives Dear ImGui's item hooks
+(`IMGUI_ENABLE_TEST_ENGINE`) to its C++, so the focused control is said as in the settings window above. setup.cpp
+says the rest:
+
+- a page as it comes up, interrupting: its heading and its text ("Tenkaichi3Decomp. This sets the game up ...
+  Choose your disc image ... Needs about 4 GB of free space ..."; "Setting up. You can leave this running ...";
+  "Ready to play. The game is installed and its demo fight ran correctly ..."; "Setup stopped. ...", its reason and
+  any missing tools with their packages). The focused control is said after it, queued (`UiA11y_QueueNext`).
+- each step as it starts and ends ("Game data, step 2 of 3", "Disc image done: the USA release, checksums match"),
+  and the unpacking's progress every 10% (its note comes for every percent), queued.
+- a disc image chosen with Browse (the system's own file dialog, which the screen reader reads) or dropped on the
+  window: "Disc image: <file name>"; "Disc image: that file does not exist." under the field, once the field is left.
+- the two text fields by name and text ("Disc image, D:\...\disc.iso, text field"): a field's text is drawn with
+  `ImFont::RenderText`, not `ImDrawList::AddText`, so the hook above never sees it; `UiA11y_Field(name, text)`
+  after the field gives both. While a field is being typed in its text is not said at every letter.
+- F2 says the last words again (`PortA11y_Event`).
+
+Two changes a keyboard user sees too: when the page changes, the keyboard's focus goes to the new page's first
+control (`ImGui::NavInitWindow`). Before, it stayed on the button pressed on the page before (Install, Cancel), which
+the new page does not have, and Tab did nothing until the mouse was used. And the window is begun as "###setup"
+(no name; it has no title bar, so nothing visible changes) so that the page's heading is said instead of "setup".
+The self-test's game is started without `BT3_A11Y_LOG` (native.cpp), which would have started the setup's log over.
+
+The command line way stays: `Tenkaichi3Decomp-setup --install <disc image>` prints its steps as text.
+
+Tests (Windows 11, the release container's setup build in a fresh copy of the v0.1.39.2 release folder without
+prism.dll, speech to `BT3_A11Y_LOG`, keys sent as a keyboard's): the first page and its fields; a path that does not
+exist; Tab through every control to Install; the whole installation from a USA disc image (every step, progress,
+"Ready to play" after 15 s); Cancel during the unpacking ("Setup stopped ... Cancelled ..."), the stopped page's
+buttons; Tab on the "Ready to play" page after an installation and when the setup is started again on a folder set
+up before; F2. Linux build: compiled and linked in the container, not run. Not tested: real speech through Prism,
+a controller, the European disc's field with a real image, the Linux and macOS windows.

@@ -1,5 +1,5 @@
 #!/bin/sh
-# Builds the setup window (port/setup/setup.cpp, native.cpp).
+# Builds the setup window (port/setup/setup.cpp, native.cpp) and the game's screen reader code it speaks through.
 #   port/setup/build.sh        -> ./Tenkaichi3Decomp-setup            (needs g++ and SDL3; Dear ImGui is in the repository)
 #   port/setup/build.sh win    -> port/build/Tenkaichi3Decomp-setup.exe
 #        on Linux: cross-compiled with mingw-w64 (x86_64-w64-mingw32-g++) and SDL3's mingw development package
@@ -24,13 +24,22 @@ elif [ "$(uname -s)" = Darwin ]; then
     O=port/build/setup_mac; OUT=Tenkaichi3Decomp-setup; CXX=clang++; SDL="-I$S/include -L$S/lib"
     LIBS="-L$S/lib -lSDL3 -Wl,-rpath,@executable_path/lib -Wl,-rpath,$S/lib"
 else
-    O=port/build/setup; OUT=Tenkaichi3Decomp-setup; CXX=g++; SDL=""; LIBS="-lSDL3 -lpthread -ldl -static-libstdc++ -static-libgcc -Wl,-rpath,\$ORIGIN/lib"
+    O=port/build/setup; OUT=Tenkaichi3Decomp-setup; CXX=g++; SDL=""; LIBS="-lSDL3 -lpthread -ldl -lm -static-libstdc++ -static-libgcc -Wl,-rpath,\$ORIGIN/lib"
 fi
+case $CXX in *g++) CC=${CXX%g++}gcc ;; *) CC=${CXX%++} ;; esac # (the C compiler beside it: gcc, clang)
 mkdir -p $O
-for f in $I/imgui.cpp $I/imgui_draw.cpp $I/imgui_tables.cpp $I/imgui_widgets.cpp $I/imgui_impl_sdl3.cpp $I/imgui_impl_sdlgpu3.cpp $I/imgui_impl_opengl3.cpp port/setup/native.cpp port/setup/setup.cpp; do
+# The screen reader (port/src/gs/ui_a11y.cpp, a11y.c, plat_settings.c) needs Dear ImGui's item hooks:
+# IMGUI_ENABLE_TEST_ENGINE. An object older than this script is built again (one from before lacks them).
+for f in $I/imgui.cpp $I/imgui_draw.cpp $I/imgui_tables.cpp $I/imgui_widgets.cpp $I/imgui_impl_sdl3.cpp $I/imgui_impl_sdlgpu3.cpp $I/imgui_impl_opengl3.cpp port/setup/native.cpp port/setup/setup.cpp port/src/gs/ui_a11y.cpp; do
     o=$O/$(basename "$f" .cpp).o
-    if [ ! -f "$o" ] || [ "$f" -nt "$o" ] || [ port/setup/native.h -nt "$o" ]; then
-        $CXX -std=c++17 -O2 -w -I$I $SDL -c "$f" -o "$o" || exit 1
+    if [ ! -f "$o" ] || [ "$f" -nt "$o" ] || [ port/setup/native.h -nt "$o" ] || [ port/src/gs/ui.h -nt "$o" ] || [ port/setup/build.sh -nt "$o" ]; then
+        $CXX -std=c++17 -O2 -w -DIMGUI_ENABLE_TEST_ENGINE -I$I -Iport/src/gs $SDL -c "$f" -o "$o" || exit 1
+    fi
+done
+for f in port/src/gs/a11y.c port/src/plat_settings.c; do
+    o=$O/$(basename "$f" .c).o
+    if [ ! -f "$o" ] || [ "$f" -nt "$o" ] || [ port/setup/build.sh -nt "$o" ]; then
+        $CC -O2 -w $SDL -c "$f" -o "$o" || exit 1
     fi
 done
 # -Wl,-Bdynamic for SDL3 only: the rest (C++ runtime, threads) is linked in

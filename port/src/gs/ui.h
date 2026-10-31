@@ -32,6 +32,8 @@ typedef struct PortVideo {
 void UiA11y_Frame(int windowOpen, int sayClosed); /* each frame, before the windows: on while one is open */
 void UiA11y_End(void);                            /* after them: says what the focus is on, or what changed of it */
 void UiA11y_Radio(int selected);                  /* after ImGui::RadioButton: whether it is the one chosen */
+void UiA11y_Field(const char *name, const char *text); /* after ImGui::InputText: its name (when its label is hidden) and text */
+void UiA11y_QueueNext(void);                      /* the next item said waits for what is being said (a page that came up) */
 
 /* gs_draw.c */
 void GsGpu_GetSettings(PortVideo *v);

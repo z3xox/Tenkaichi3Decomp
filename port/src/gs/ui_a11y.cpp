@@ -4,8 +4,11 @@
 // or the controller's focus is said as the window shows it: its label, its value (a slider's number, a list's choice)
 // and its state (checked, a tab, a combo box), and the window's name and tab when they change.
 //
+// The setup window (port/setup/setup.cpp) is read the same way: port/setup/build.sh builds this file, gs/a11y.c and
+// plat_settings.c into it, and setup.cpp says its pages and the steps of the installation itself.
+//
 // How it sees the items: Dear ImGui calls a test engine's hooks for every item it adds (IMGUI_ENABLE_TEST_ENGINE,
-// given by port/tools/undefined.py to the game's C++ only; the setup's copy of the library is built without it).
+// given by port/tools/undefined.py to the game's C++ and by port/setup/build.sh to the setup's).
 // ImGuiTestEngineHook_ItemAdd says an item is there this frame; ImGuiTestEngineHook_ItemInfo gives its label and, for
 // a checkbox or a collapsing header, whether it is checked or open. What an item shows besides its label (a slider's
 // value, a list's choice) reaches no hook, so one line of ours in ImDrawList::AddText (imgui_draw.cpp, marked "BT3
@@ -38,6 +41,9 @@ struct UiA11yItem {
     bool tab, tabSelected;      // an item of a tab bar, and the bar's selected tab
     bool popup;                 // in a popup (the list of a combo): no "button"
     int radio;                  // UiA11y_Radio: 0 none, 1 not selected, 2 selected
+    bool field;                 // UiA11y_Field: a text field, with its name and its text below
+    char name[160];
+    char fieldText[512];
     char label[160];            // ItemInfo's label, without its "##" part
     char text[512];             // the texts it drew, in their order, separated by '\n'
     char before[160];           // the text drawn before it on its line (ImGui::Text)
@@ -205,6 +211,22 @@ extern "C" void UiA11y_Radio(int selected) {
     }
 }
 
+// A text field's text reaches no hook (InputText draws it with ImFont::RenderText, not ImDrawList::AddText): its caller
+// gives it, and the field's name when its label is hidden.
+extern "C" void UiA11y_Field(const char *name, const char *text) {
+    if (sOn && sNow.id != 0 && GImGui->LastItemData.ID == sNow.id) {
+        sNow.field = true;
+        snprintf(sNow.name, sizeof(sNow.name), "%s", name);
+        snprintf(sNow.fieldText, sizeof(sNow.fieldText), "%s", text);
+    }
+}
+
+static bool sQueueNext; // UiA11y_QueueNext: the next item said waits for what is being said
+
+extern "C" void UiA11y_QueueNext(void) {
+    sQueueNext = true;
+}
+
 extern "C" int PortA11y_On(void); // gs/a11y.c
 
 extern "C" void UiA11y_Frame(int windowOpen, int sayClosed) {
@@ -256,6 +278,21 @@ static void describe(const UiA11yItem &it, char *label, size_t labelCap, char *v
         snprintf(label, labelCap, "%s", pieces[skip]);
     }
     bool afterUsed = false;
+    if (label[0] == '\0' && it.name[0] != '\0') { // a hidden label named by the caller (UiA11y_Field)
+        snprintf(label, labelCap, "%s", it.name);
+    }
+    if (it.field) { // (what it drew is only its hint: its text is the caller's)
+        snprintf(value, valueCap, "%s", it.fieldText);
+        state[0] = '\0';
+        add(state, stateCap, PortA11y_Label("text field"), NULL, ", ");
+        if (GImGui->ActiveId == it.id) {
+            add(state, stateCap, PortA11y_Label("editing"), NULL, ", ");
+        }
+        if (it.disabled) {
+            add(state, stateCap, PortA11y_Label("unavailable"), NULL, ", ");
+        }
+        return;
+    }
     if (label[0] == '\0') { // a hidden label: the text beside it names it
         if (it.before[0] != '\0') {
             snprintf(label, labelCap, "%s", it.before);
@@ -330,8 +367,13 @@ extern "C" void UiA11y_End(void) {
     if (sNow.id != 0) {
         char label[160], value[640], state[96];
         describe(sNow, label, sizeof(label), value, sizeof(value), state, sizeof(state));
+        // a field's text while it is typed is not said at every letter: once the field is left (Enter, Escape)
+        bool typing = sNow.field && g.ActiveId == sNow.id && sNow.id == sSaidId && !newWindow;
         if (sNow.id != sSaidId || newWindow) { // another item: all of it
             char item[1024] = "";
+            if (sQueueNext) {
+                flags = 0; // (after the page that came up)
+            }
             add(item, sizeof(item), label, NULL, ", ");
             add(item, sizeof(item), value, NULL, ", ");
             add(item, sizeof(item), state, NULL, ", ");
@@ -343,7 +385,7 @@ extern "C" void UiA11y_End(void) {
             add(line, sizeof(line), item, NULL, ", ");
             sSaidTip[0] = '\0';
         } else { // the same item: what changed of it (a slider moved, a box checked)
-            if (strcmp(value, sSaidValue) != 0) {
+            if (strcmp(value, sSaidValue) != 0 && !typing) {
                 add(line, sizeof(line), value, NULL, ", ");
             }
             if (strcmp(state, sSaidState) != 0) {
@@ -351,8 +393,11 @@ extern "C" void UiA11y_End(void) {
             }
         }
         sSaidId = sNow.id;
-        snprintf(sSaidValue, sizeof(sSaidValue), "%s", value);
+        if (!typing) {
+            snprintf(sSaidValue, sizeof(sSaidValue), "%s", value);
+        }
         snprintf(sSaidState, sizeof(sSaidState), "%s", state);
+        sQueueNext = false;
     }
     if (line[0] != '\0') {
         PortA11y_Say(line, flags);

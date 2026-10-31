@@ -16,13 +16,29 @@
 #include <vector>
 #include <SDL3/SDL.h>
 #include "imgui.h"
+#include "imgui_internal.h" // ImGui::NavInitWindow
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_sdlgpu3.h"
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_opengl3_loader.h" // glViewport, glClear for the OpenGL window (set up by ImGui_ImplOpenGL3_Init)
 #include "native.h"
+#include "ui.h" // UiA11y_*: the focused control said to the screen reader (port/src/gs/ui_a11y.cpp)
 
 #define GAME "Tenkaichi3Decomp" /* the program this sets up: GAME, GAME.dat; this program is GAME-setup */
+
+// The screen reader, as in the game: through Prism when prism.dll is beside this program (port/src/gs/a11y.c, with
+// its settings in bt3_settings.txt when there is one: a11y=0 turns it off). ui_a11y.cpp says the focused control;
+// said here are each page as it comes up (its heading and text), a disc image chosen, a problem under a field, and
+// the installation's steps as they start and end.
+extern "C" {
+int PortA11y_Begin(void);
+void PortA11y_Say(const char *text, int flags);
+void PortA11y_Event(const SDL_Event *ev);
+// a11y.c's links to the game's sound, which the setup never uses (it plays no cue and no voice)
+SDL_AudioDeviceID Port_AudioDevice(void) { return 0; }
+int PortA11y_VoicePercent(const void *player) { (void)player; return -1; }
+}
+#define A11Y_INTERRUPT 1 // (gs/a11y.c)
 
 enum Page { PAGE_PICK, PAGE_RUN, PAGE_DONE, PAGE_FAILED };
 enum State { PENDING, RUNNING, OK, SKIPPED, FAILED };
@@ -75,6 +91,29 @@ static bool sDialogReady, sQuit;
 static Uint64 sRunStart, sRunEnd;
 static const ImVec4 kAccent(0.96f, 0.55f, 0.13f, 1.0f), kGreen(0.36f, 0.80f, 0.45f, 1.0f), kRed(0.93f, 0.36f, 0.33f, 1.0f),
     kDim(0.60f, 0.63f, 0.70f, 1.0f);
+// For the screen reader (see the top): the page's words as this frame drew them, the problem shown under a field, and
+// what happened since the last frame (steps, a file chosen), said after the page so that the page does not cut it.
+static std::string sPageWords, sProblem, sSaidProblem, sNews;
+static int sSaidPage = -1, sNotePercent;
+
+static void page_words(const std::string &text) {
+    if (!text.empty()) {
+        sPageWords += (sPageWords.empty() ? "" : " ") + text;
+    }
+}
+
+static void news(const std::string &text) {
+    if (!text.empty()) {
+        sNews += (sNews.empty() ? "" : ". ") + text;
+    }
+}
+
+// A file name without its folder (what is said of a disc image chosen).
+static std::string file_name(const char *path) {
+    const char *slash = strrchr(path, '/'), *back = strrchr(path, '\\');
+    const char *p = slash > back ? slash : back;
+    return p != NULL ? p + 1 : path;
+}
 
 static bool file_exists(const char *path) {
     SDL_PathInfo info;
@@ -236,13 +275,26 @@ static void event(const std::string &line) {
             sRows[i - 1].state = RUNNING;
             sRows[i - 1].start = SDL_GetTicks();
             sRows[i - 1].detail.clear();
+            news(sRows[i - 1].title + ", step " + std::to_string(i) + " of " + std::to_string(sRows.size()));
+            sNotePercent = 0;
         }
     } else if (cur != NULL && kind == "note") {
         cur->detail = text;
+        // a progress note ("37%, 1200 files") comes for every percent: said every 10
+        int percent = text.find('%') != std::string::npos ? atoi(text.c_str()) : -1;
+        if (percent < 0) {
+            news(text);
+        } else if (percent / 10 > sNotePercent / 10) {
+            news(text);
+            sNotePercent = percent;
+        }
     } else if (cur != NULL && (kind == "ok" || kind == "skip" || kind == "fail")) {
         cur->state = kind == "ok" ? OK : kind == "skip" ? SKIPPED : FAILED;
         cur->end = SDL_GetTicks();
         cur->detail = kind == "fail" ? "" : text;
+        if (kind != "fail") { // (a failure is said by the page that comes up)
+            news(cur->title + (kind == "ok" ? " done" : " skipped") + (text.empty() ? "" : ": " + text));
+        }
     } else if (kind == "missing") {
         Missing m;
         size_t a = text.find('|'), b = text.find('|', a == std::string::npos ? 0 : a + 1);
@@ -343,6 +395,8 @@ static void SDLCALL dialog_done(void *userdata, const char *const *files, int fi
 }
 
 static void heading(const char *title, const char *sub) {
+    page_words(std::string(title) + ".");
+    page_words(sub);
     ImGui::PushFont(NULL, 30.0f);
     ImGui::TextUnformatted(title);
     ImGui::PopFont();
@@ -382,12 +436,14 @@ static bool eu_field() {
     ImGui::TextUnformatted("European disc image (optional)");
     ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 130.0f);
     ImGui::InputTextWithHint("##isoeu", "the European release (SLES-54945)", sIsoEu, sizeof(sIsoEu));
+    UiA11y_Field("European disc image (optional)", sIsoEu);
     ImGui::SameLine();
     if (ImGui::Button("Browse...##eu", ImVec2(120.0f, 0.0f))) {
         SDL_ShowOpenFileDialog(dialog_done, (void *)1, sWindow, filters, 2, NULL, false);
     }
     if (sIsoEu[0] != '\0' && !file_exists(sIsoEu)) {
         ImGui::TextColored(kRed, "That file does not exist.");
+        sProblem += "European disc image: that file does not exist. ";
         return false;
     }
     ImGui::PushStyleColor(ImGuiCol_Text, kDim);
@@ -401,23 +457,31 @@ static void page_pick() {
     bool ok = file_exists(sIso);
 
     heading(GAME, "This sets the game up on your computer from your own PlayStation 2 disc.");
-    ImGui::TextWrapped("Choose your disc image of Dragon Ball Z: Budokai Tenkaichi 3, USA release (SLUS-21678), as an .iso file. "
-                       "The game's data is taken from it and stays on this computer. %s",
-                       sRelease ? "Nothing is downloaded." : "Nothing is downloaded except one small tool.");
+    std::string intro = std::string("Choose your disc image of Dragon Ball Z: Budokai Tenkaichi 3, USA release (SLUS-21678), as an .iso file. "
+                                    "The game's data is taken from it and stays on this computer. ") +
+                        (sRelease ? "Nothing is downloaded." : "Nothing is downloaded except one small tool.");
+    ImGui::TextWrapped("%s", intro.c_str());
+    page_words(intro);
     ImGui::Dummy(ImVec2(0.0f, 10.0f));
     ImGui::TextUnformatted("Disc image");
     ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 130.0f);
     ImGui::InputTextWithHint("##iso", "drop the file on this window, or browse", sIso, sizeof(sIso));
+    UiA11y_Field("Disc image", sIso);
     ImGui::SameLine();
     if (ImGui::Button("Browse...", ImVec2(120.0f, 0.0f))) {
         SDL_ShowOpenFileDialog(dialog_done, NULL, sWindow, filters, 2, NULL, false);
     }
     if (sIso[0] != '\0' && !ok) {
         ImGui::TextColored(kRed, "That file does not exist.");
+        sProblem += "Disc image: that file does not exist. ";
     } else if (sRoot.empty()) {
-        ImGui::TextColored(kRed, "Neither the game (" GAME ", " GAME ".dat) nor install.py was found next to this program.");
+        static const char *none = "Neither the game (" GAME ", " GAME ".dat) nor install.py was found next to this program.";
+        ImGui::TextColored(kRed, "%s", none);
+        sProblem += none;
     } else {
-        ImGui::TextColored(kDim, sRelease ? "Needs about 4 GB of free space and takes a minute or two." : "Needs about 4 GB of free space and takes 5 to 10 minutes.");
+        const char *need = sRelease ? "Needs about 4 GB of free space and takes a minute or two." : "Needs about 4 GB of free space and takes 5 to 10 minutes.";
+        ImGui::TextColored(kDim, "%s", need);
+        page_words(need);
     }
     bool euOk = eu_field();
     bottom_row(2);
@@ -513,6 +577,7 @@ static void page_done() {
     step_list();
     ImGui::Dummy(ImVec2(0.0f, 4.0f));
     ImGui::TextColored(kDim, "In the game, F1 opens the settings: resolution, widescreen, controls and sound.");
+    page_words("In the game, F1 opens the settings: resolution, widescreen, controls and sound.");
     if (sRelease && !Native_EuInstalled(sRoot)) { // the languages can be added at any time
         static const SDL_DialogFileFilter filters[] = {{"PS2 disc image", "iso;bin;img"}, {"All files", "*"}};
         ImGui::Dummy(ImVec2(0.0f, 4.0f));
@@ -558,6 +623,10 @@ static void page_failed() {
     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.93f, 0.36f, 0.33f, 0.10f));
     ImGui::BeginChild("why", ImVec2(0.0f, sMissing.empty() ? 150.0f : 90.0f), ImGuiChildFlags_AlwaysUseWindowPadding);
     ImGui::TextWrapped("%s", sError.c_str());
+    page_words(sError);
+    for (auto &m : sMissing) {
+        page_words("Missing: " + m.name + ", used for " + m.why + ", package to install: " + m.pkg + ".");
+    }
     ImGui::EndChild();
     ImGui::PopStyleColor();
     if (!sMissing.empty() && ImGui::BeginTable("missing", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV)) {
@@ -589,9 +658,19 @@ static void page_failed() {
 
 static void build_ui() {
     ImGuiIO &io = ImGui::GetIO();
+    int drawn = sPage; // (a button can change the page while it is drawn: its words are this one's)
+    sPageWords.clear();
+    sProblem.clear();
+    UiA11y_Frame(1, 0);
     ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
     ImGui::SetNextWindowSize(io.DisplaySize);
-    ImGui::Begin("setup", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
+    // (no name before "###": the screen reader says the page's heading, not the window's name)
+    ImGui::Begin("###setup", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
+    static int navPage = -1;
+    if (sPage != navPage) { // the keyboard's focus to the new page's first control (it was on one of the page before: Tab
+        navPage = sPage;    // and the arrows then went nowhere)
+        ImGui::NavInitWindow(ImGui::GetCurrentWindow(), true);
+    }
     switch (sPage) {
     case PAGE_PICK: page_pick(); break;
     case PAGE_RUN: page_run(); break;
@@ -599,6 +678,26 @@ static void build_ui() {
     case PAGE_FAILED: page_failed(); break;
     }
     ImGui::End();
+    UiA11y_End();
+    // a page that came up: all its words, interrupting; then what happened (queued), then a new problem under a field
+    // once the field is left (not while a path is typed into it)
+    if (drawn != sSaidPage && drawn == sPage) {
+        sSaidPage = drawn;
+        sSaidProblem.clear();
+        PortA11y_Say(sPageWords.c_str(), A11Y_INTERRUPT);
+        UiA11y_QueueNext(); // (the control the focus comes to is said after the page, not over it)
+        if (drawn != PAGE_RUN) {
+            sNews.clear(); // (the last step's end: "Ready to play" or "Setup stopped" says how it went)
+        }
+    }
+    if (!sNews.empty()) {
+        PortA11y_Say(sNews.c_str(), 0);
+        sNews.clear();
+    }
+    if (sProblem != sSaidProblem && !ImGui::IsAnyItemActive()) {
+        sSaidProblem = sProblem;
+        PortA11y_Say(sProblem.c_str(), 0);
+    }
 }
 
 // ---------------------------------------------------------------------------------------------------- the window
@@ -879,16 +978,20 @@ int main(int argc, char **argv) {
     }
     while (!sQuit) {
         SDL_Event ev;
+        PortA11y_Begin(); // (the first call starts the speaker, when prism.dll is there)
         while (SDL_PollEvent(&ev)) {
             ImGui_ImplSDL3_ProcessEvent(&ev);
+            PortA11y_Event(&ev); // (F2 says the last words again)
             if (ev.type == SDL_EVENT_QUIT || ev.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED) {
                 sQuit = true;
             } else if (ev.type == SDL_EVENT_DROP_FILE && sPage == PAGE_PICK && ev.drop.data != NULL) {
                 // (into the USA image's field, unless that one is filled already: then into the European one's)
                 if (file_exists(sIso) && strcmp(sIso, ev.drop.data) != 0) {
                     SDL_strlcpy(sIsoEu, ev.drop.data, sizeof(sIsoEu));
+                    news("European disc image: " + file_name(ev.drop.data));
                 } else {
                     SDL_strlcpy(sIso, ev.drop.data, sizeof(sIso));
+                    news("Disc image: " + file_name(ev.drop.data));
                 }
             }
         }
@@ -897,6 +1000,7 @@ int main(int argc, char **argv) {
             if (sDialogReady) {
                 SDL_strlcpy(sDialogFor ? sIsoEu : sIso, sDialogResult.c_str(), sDialogFor ? sizeof(sIsoEu) : sizeof(sIso));
                 sDialogReady = false;
+                news((sDialogFor ? "European disc image: " : "Disc image: ") + file_name(sDialogResult.c_str()));
                 if (sDialogFor && sPage == PAGE_DONE && sRelease && !Native_Running()) { // "Add languages...": only that step
                     sEuOnly = true;
                     start_install();
