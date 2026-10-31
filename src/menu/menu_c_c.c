@@ -3,7 +3,8 @@
 #include "sys/pad.h"
 #include "sys/save.h"
 #ifdef PORT
-extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
+extern void Port_MenuPage(int screen);
+extern int Port_MenuPart(int part); /* port/src/gs_marker.c: widescreen menus */
 extern void Port_MenuFill(int on);
 #endif
 
@@ -341,7 +342,15 @@ void HistResult_Draw(void) {
     for (i = 0; i < HISTRESULT_FLASH_NUM; i++) {
         Flash_Draw(&gHistResult->flash[i]);
     }
+#ifdef PORT
+    {   /* widescreen menus: the window of what was won (a battle unlocked) in the middle at its true shape */
+        Port_MenuPage(54); /* (its own page: its rows and text in it too, not the result's rules) */
+        GetWin_Draw();
+        Port_MenuPage(0);
+    }
+#else
     GetWin_Draw();
+#endif
 #ifdef PORT
     Port_MenuPage(0);
 #endif

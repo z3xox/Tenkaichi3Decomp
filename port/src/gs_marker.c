@@ -134,7 +134,7 @@ void Port_MenuPage(int screen) {
                   : screen == 1 ? PORT_MENU_CENTER_FREE /* (the title: its characters' art goes on past the 4:3 screen's edges,
                                                     Piccolo's cape at the top right: not cut there; its plates, parked off
                                                     the screen, are by their own rule) */
-                  : screen == 3 || screen == 44 || screen == 50 ? PORT_MENU_CENTER_ALL
+                  : screen == 3 || screen == 44 || screen == 50 || screen == 54 ? PORT_MENU_CENTER_ALL
                                                 : screen == 14 ? PORT_MENU_LEFT_ALL
                                                 : screen == 13 || screen == 42 || screen == 18 ? PORT_MENU_FILL : screen == 38 ? PORT_MENU_PAGE_TOP
                                                 : screen == 53 ? PORT_MENU_PAGE_EDGE_TOP : screen == 17 ? PORT_MENU_PAGE_LIST : screen == 20 ? PORT_MENU_PAGE_EDGE
@@ -341,15 +341,18 @@ static int clip_part(const char *name, int x, int top) {
     if (sMenuScreen == 14 && top) { /* Dragon History's result: its panels and their text and digits slide in from the
                                         left (as wide as the 4:3 screen at rest, narrower while sliding: kept at their
                                         true shape throughout, or they changed size every frame); its lines fill */
-        if (starts(name, "mc_line_") || strcmp(name, "mc_noise") == 0) {
+        if (starts(name, "mc_line_")) {
             return PORT_MENU_FILL;
+        }
+        if (strcmp(name, "mc_noise") == 0) {
+            return PORT_MENU_CENTER_ALL; /* (the static over the window of what was won, 54: with it, in the middle) */
         }
         if (starts(name, "mc_chara_")) {
             return PORT_MENU_RIGHT; /* (the guide, Mr. Satan: he comes to rest against the right edge) */
         }
         if (starts(name, "mc_text_base_") || starts(name, "mc_point_text_") || starts(name, "mc_get_point_") ||
             starts(name, "mc_total_point_") || strcmp(name, "mc_battle_text") == 0 || starts(name, "mc_result_text_") ||
-            starts(name, "mc_title_get") || starts(name, "mc_icon_get") || starts(name, "mc_dammy_text_")) {
+            starts(name, "mc_dammy_text_") || starts(name, "mc_title_get") || starts(name, "mc_icon_get")) {
             return PORT_MENU_LEFT;
         }
     }
@@ -402,7 +405,7 @@ static int clip_part(const char *name, int x, int top) {
     if (sMenuScreen == 39 && top && starts(name, "mc_bottom_plate_")) {
         return PORT_MENU_LEFT; /* (Options: "EXIT" below them, from the left) */
     }
-    if ((sMenuScreen >= 10 || sMenuScreen == 3) && top && (starts(name, "mc_title") || strcmp(name, "mc_icon") == 0)) {
+    if ((sMenuScreen >= 10 || sMenuScreen == 3) && sMenuScreen != 54 && top && (starts(name, "mc_title") || strcmp(name, "mc_icon") == 0)) {
         return PORT_MENU_LEFT; /* (the title row against the left edge, as on the main menu) */
     }
     if (sMenuScreen == 13 && (starts(name, "mc_yuragi_") || starts(name, "mc_taki") || starts(name, "mc_sakana"))) {
