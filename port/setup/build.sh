@@ -26,7 +26,7 @@ elif [ "$(uname -s)" = Darwin ]; then
 else
     O=port/build/setup; OUT=Tenkaichi3Decomp-setup; CXX=g++; SDL=""; LIBS="-lSDL3 -lpthread -ldl -lm -static-libstdc++ -static-libgcc -Wl,-rpath,\$ORIGIN/lib"
 fi
-case $CXX in *g++) CC=${CXX%g++}gcc ;; *) CC=${CXX%++} ;; esac # (the C compiler beside it: gcc, clang)
+CC=$(echo "$CXX" | sed 's/clang++/clang/; s/g++/gcc/') # (the C compiler beside it, same flags: gcc, clang)
 mkdir -p $O
 # The screen reader (port/src/gs/ui_a11y.cpp, a11y.c, plat_settings.c) needs Dear ImGui's item hooks:
 # IMGUI_ENABLE_TEST_ENGINE. An object older than this script is built again (one from before lacks them).
