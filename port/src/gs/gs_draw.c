@@ -1734,7 +1734,16 @@ void GsGpu_Draw(int type, int ctx, const GsVertex *v) {
             }
             int corner = gsAnchor == 16 || gsAnchor == 17 || gsAnchor == 18 || (gsAnchor == 13 && x1 - x0 <= 260.0f && y1 <= 140.0f);
             /* (13, character select: only a sprite the size of a corner's cloud, not the big pictures from the top) */
-            if ((corner && y0 <= 8.0f && x0 >= 256.0f && x1 >= 511.5f) ||
+            if (gsAnchor == 18 && sEdgeTop == 1 && x0 >= 200.0f && x1 >= 511.5f && y1 - y0 >= 440.0f) {
+                /* (a character's page: the dark veil over the right of the 4:3 screen, the whole height, behind the introduction and the commentary: from the picture's right edge, against the left
+                   edge at its true shape, to the right edge, the picture left bright as on the 4:3 screen. Before the corner clouds' rule below,
+                   which took it while it fades in) */
+                float from = 256.0f * 1333.333f / (float)Port_AspectMilli();
+                for (k = d.first; k < gsVertCount; k++) {
+                    gsVerts[k].x = from + (gsVerts[k].x - x0) * (512.0f - from) / (x1 - x0);
+                }
+                pivot = -1.0f;
+            } else if ((corner && y0 <= 8.0f && x0 >= 256.0f && x1 >= 511.5f) ||
                 (gsAnchor == 17 && y1 <= 114.0f && x0 >= 256.0f)) {
                 /* (17: the counters' frames and icons end by line 113; an item explanation's count badge, a page piece
                    just below them at 117, stays with its window) */
@@ -1744,15 +1753,6 @@ void GsGpu_Draw(int type, int ctx, const GsVertex *v) {
             } else if (gsAnchor == 17 && y1 - y0 > 100.0f) {
                 pivot = -1.0f; /* (17, the item shop: its room, scenery in big pieces, fills the width; its list's rows,
                                   tabs and price bar, short pieces, keep their true shape in the middle with their text) */
-            } else if (gsAnchor == 18 && sEdgeTop == 1 && x0 >= 200.0f && x1 >= 511.5f && y1 - y0 >= 440.0f) {
-                /* (a character's page: the dark veil over the right of the 4:3 screen, the whole height (sliding in
-                   too), behind the introduction and the commentary: from the picture's right edge, against the left
-                   edge at its true shape, to the right edge, the picture left bright as on the 4:3 screen) */
-                float from = 256.0f * 1333.333f / (float)Port_AspectMilli();
-                for (k = d.first; k < gsVertCount; k++) {
-                    gsVerts[k].x = from + (gsVerts[k].x - x0) * (512.0f - from) / (x1 - x0);
-                }
-                pivot = -1.0f;
             } else if (gsAnchor == 18 && sEdgeTop == 1 && y1 <= 70.0f && (x0 <= 0.5f || x1 >= 511.5f)) {
                 pivot = -1.0f; /* (a character's page: the two halves of the band behind its title, across the width; they
                                   parted at its middle, the more the wider the picture) */
