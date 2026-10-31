@@ -27,9 +27,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # SDL3 from source for macOS 11, the oldest any Apple Silicon Mac runs (Homebrew's is built for the runner's
+      # own macOS, 15, and the release carries it); the same version as the Linux and Windows releases. Cached.
+      - name: SDL3 for macOS 11 (cache)
+        id: sdl
+        uses: actions/cache@v4
+        with:
+          path: sdl3-mac11
+          key: sdl3-3.4.12-macos11-arm64
+
+      - name: SDL3 for macOS 11 (build)
+        if: steps.sdl.outputs.cache-hit != 'true'
+        run: |
+          curl -fsSL -o sdl.tar.gz https://github.com/libsdl-org/SDL/releases/download/release-3.4.12/SDL3-3.4.12.tar.gz
+          tar -xzf sdl.tar.gz
+          cmake -S SDL3-3.4.12 -B sdl-build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$PWD/sdl3-mac11" \
+                -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 \
+                -DSDL_SHARED=ON -DSDL_STATIC=OFF -DSDL_TEST_LIBRARY=OFF -DSDL_TESTS=OFF -DSDL_EXAMPLES=OFF
+          cmake --build sdl-build -j 4 && cmake --install sdl-build
+          rm -rf sdl.tar.gz SDL3-3.4.12 sdl-build
+
       - name: Tools
         run: |
-          brew install llvm sdl3 shaderc spirv-cross
+          echo "BT3_SDL3=$PWD/sdl3-mac11" >> "$GITHUB_ENV"
+          brew install llvm shaderc spirv-cross
           python3 -m venv --system-site-packages .venv
           .venv/bin/python -m pip install --quiet libclang==18.1.1
           /opt/homebrew/opt/llvm/bin/clang --version | head -1
@@ -54,6 +75,10 @@ jobs:
           sh port/setup/build.sh
           file Tenkaichi3Decomp-setup
           otool -L Tenkaichi3Decomp-setup | grep -i sdl
+          # every program and library of the Mac zip starts on macOS 11 (the oldest of Apple Silicon)
+          for f in port/build/bt3_mac Tenkaichi3Decomp-setup "$BT3_SDL3/lib/libSDL3.0.dylib"; do
+            v=$(otool -l "$f" | awk '/minos/ {print $2; exit}'); echo "$f: macOS $v or later"; [ "$v" = "11.0" ]
+          done
 
       # The experimental Mac download, as the Linux and Windows zips (not published: a run artifact, for testers)
       - name: Package
