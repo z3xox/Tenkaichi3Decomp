@@ -4560,3 +4560,15 @@ converted for it has its 2D at its true shape across the whole width, the way th
 - `BT3_CLIP_LOG=1` (testing) lists each clip a converted screen draws, once: the names the table goes by.
 - Checked: the recording at 16:9 with the layout chosen, by picture (title, main menu, character select, stage
   select, VS); with it not chosen, the 28 screenshots as before, both with "4:3" and with "Stretched".
+
+## Widescreen menus: the user's second round (2026-10-31)
+
+- The main menu's selected plate's streak: a piece as wide as the 4:3 screen at some places of the column, it was
+  stretched across the picture when scrolling up; the main menu's edge-anchored clips now keep such pieces at their
+  true shape too, as the other screens' do.
+- The message windows' text (`mc_message_text`) against the left edge on every screen, as on the main menu.
+- The game's dialogs (save, load, quit, overwrite: `Dialog_Draw`, src/sys/dialog.c) a page of their own (50) at
+  their true shape, in the menus only. A piece covering the whole screen, all its width and height, fills in the
+  parts that keep wide pieces at their true shape (a popup's dimming of what is behind it).
+- The title (1) keeps its wide pieces at their true shape: its logo was stretched. The copyright page before it
+  (51) at its true shape with black beside it.

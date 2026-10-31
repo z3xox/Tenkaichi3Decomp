@@ -98,11 +98,14 @@ void Port_MenuPage(int screen) {
     /* (what a page draws itself, not in a clip, stays in the middle: on most screens its windows and plates. On
        Dragon History, 13, it is the scenery, which fills the width. Character Reference's shelves are such pieces
        too, but so is its window of rows: in the middle, the shelves meet the backdrop at the 4:3 page's edges.) */
-    /* (Evolution Z's character customising, 37, is laid out as character select: its bars at their true shape too;
+    /* (the title, 1: its logo is a picture as wide as the 4:3 screen, kept at its true shape; its sky and clouds fill
+       by their own markers)
+       (Evolution Z's character customising, 37, is laid out as character select: its bars at their true shape too;
        the Data Center's password, 44: its keyboard is one picture as wide as the 4:3 screen, its letters on it) */
     /* (the character selects of Ultimate Battle and the World Tournament, 15, 19, 23, 24, 25, as character select) */
     Port_MenuPart(screen == 0 ? PORT_MENU_NONE : screen == 2 ? PORT_MENU_LEFT
-                  : screen == 3 || screen == 37 || screen == 44 ? PORT_MENU_CENTER_ALL
+                  : screen == 51 ? PORT_MENU_CENTER_FREE /* (the logo page before the title: a picture of the whole 4:3 screen) */
+                  : screen == 1 || screen == 3 || screen == 37 || screen == 44 || screen == 50 ? PORT_MENU_CENTER_ALL
                                                 : screen == 14 ? PORT_MENU_LEFT_ALL
                                                 : screen == 13 || screen == 42 || screen == 18 ? PORT_MENU_FILL : screen == 38 ? PORT_MENU_PAGE_TOP
                                                 : screen == 17 || screen == 20 ? PORT_MENU_PAGE_EDGE
@@ -156,9 +159,11 @@ static int clip_part(const char *name, int x, int top);
    plate's sprite sliding in is that wide for a frame, and would be taken for scenery and stretched. */
 int Port_MenuClipPart(const char *name, int x, int top) {
     int part = clip_part(name, x, top);
-    if (sMenuScreen < 10) { /* (the main menu keeps its look as approved: its selected plate's streak fills the width) */
+    if (sMenuScreen < 2) {
         return part;
     }
+    /* (the main menu too: its selected plate's streak is a piece as wide as the 4:3 screen at some places of the
+       column, and was then stretched across the screen, scrolling up) */
     return part == PORT_MENU_LEFT ? PORT_MENU_LEFT_ALL : part == PORT_MENU_RIGHT ? PORT_MENU_RIGHT_ALL : part;
 }
 
@@ -236,6 +241,9 @@ static int clip_part(const char *name, int x, int top) {
     }
     if (sMenuScreen == 17 && top && strcmp(name, "mc_single_chara_l") == 0) {
         return PORT_MENU_LEFT; /* (and the character's picture there, on the left) */
+    }
+    if (sMenuScreen >= 10 && top && strcmp(name, "mc_message_text") == 0) {
+        return PORT_MENU_LEFT; /* (the message window's text from its left, as on the main menu: its window fills) */
     }
     if (sMenuScreen == 16 && top && starts(name, "mc_mode_")) {
         return PORT_MENU_LEFT; /* (and the window of its modes, Single, Team, DP, under the chosen plate) */

@@ -341,7 +341,13 @@ s32 Title_Run(s32 section) {
         Pad_Update();
         Snd_Update();
         ColorFade_Update();
+#ifdef PORT
+        Port_MenuPage(51); /* widescreen menus: the logo page at its true shape, black beside it (port/src/gs_marker.c) */
         Sprite_DrawPicture(gTitle->logo, 0, 0, 0x80);
+        Port_MenuPage(0);
+#else
+        Sprite_DrawPicture(gTitle->logo, 0, 0, 0x80);
+#endif
         ColorFade_Draw();
         Gfx_EndFrame(1);
         Dma_Flush();
