@@ -203,8 +203,10 @@ static int menu_piece_moving(const Vtx *v, const Vtx *last, float x0, float x1, 
         m->seen = gGsFrame;
         return 0;
     }
-    if (x0 - m->x0 > 0.25f || m->x0 - x0 > 0.25f || x1 - m->x1 > 0.25f || m->x1 - x1 > 0.25f) {
-        m->moved = gGsFrame;
+    if ((x0 - m->x0 > 0.25f || m->x0 - x0 > 0.25f || x1 - m->x1 > 0.25f || m->x1 - x1 > 0.25f) &&
+        x0 - m->x0 < 128.0f && m->x0 - x0 < 128.0f) {
+        m->moved = gGsFrame; /* (a jump of more than 128 in a frame is a piece put in its place, not sliding: the versus
+                                menu's window of values, put off the 4:3 screen as the settings open) */
     }
     m->x0 = x0;
     m->x1 = x1;

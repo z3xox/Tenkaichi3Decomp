@@ -103,13 +103,15 @@ void Port_MenuPage(int screen) {
     /* (the title, 1: its logo is a picture as wide as the 4:3 screen, kept at its true shape; its sky and clouds fill
        by their own markers)
        (Evolution Z's character customising, 37, is laid out as character select: its bars at their true shape too;
-       the Data Center's password, 44: its keyboard is one picture as wide as the 4:3 screen, its letters on it) */
+       the Data Center's password, 44: its keyboard is one picture as wide as the 4:3 screen, its letters on it)
+       (Character Reference's pages of a character, 53: the 4:3 page whole in the middle, the picture, the panel
+       behind the lines and the window of the introduction together, its voice's play button in the middle) */
     /* (the character selects of Ultimate Battle and the World Tournament, 15, 19, 23, 24, 25, as character select) */
     Port_MenuPart(screen == 0 ? PORT_MENU_NONE : screen == 2 ? PORT_MENU_LEFT
                   : screen == 52 ? PORT_MENU_FILL /* (Tenkaichi Budokai Online: its page stretched as before) */
                   : screen == 51 ? PORT_MENU_CENTER_FREE /* (the logo page before the title: a picture of the whole 4:3 screen) */
                   : screen == 37 ? PORT_MENU_SPLIT /* (Evolution Z's customising: the player's side left, the points right) */
-                  : screen == 1 || screen == 3 || screen == 44 || screen == 50 ? PORT_MENU_CENTER_ALL
+                  : screen == 1 || screen == 3 || screen == 44 || screen == 50 || screen == 53 ? PORT_MENU_CENTER_ALL
                                                 : screen == 14 ? PORT_MENU_LEFT_ALL
                                                 : screen == 13 || screen == 42 || screen == 18 ? PORT_MENU_FILL : screen == 38 ? PORT_MENU_PAGE_TOP
                                                 : screen == 17 || screen == 20 ? PORT_MENU_PAGE_EDGE
@@ -166,6 +168,10 @@ int Port_MenuClipPart(const char *name, int x, int top) {
     if (sMenuScreen < 2) {
         return part;
     }
+    if (sMenuScreen == 16 && top && part == PORT_MENU_NONE) {
+        part = PORT_MENU_PAGE; /* (the versus menu: its movie is drawn against the left edge for its windows' bodies, which
+                                  are its own shapes; its named clips with no place of their own as the page's) */
+    }
     /* (the main menu too: its selected plate's streak is a piece as wide as the 4:3 screen at some places of the
        column, and was then stretched across the screen, scrolling up) */
     return part == PORT_MENU_LEFT ? PORT_MENU_LEFT_ALL : part == PORT_MENU_RIGHT ? PORT_MENU_RIGHT_ALL : part;
@@ -220,6 +226,10 @@ static int clip_part(const char *name, int x, int top) {
             !starts(name, "mc_face_mask_")) {
             return name[n - 1] == 'l' ? PORT_MENU_LEFT : PORT_MENU_RIGHT;
         }
+    }
+    if (sMenuScreen == 31 && top && starts(name, "mc_menu_plate_")) {
+        return PORT_MENU_CENTER_ALL; /* (Ultimate Battle: its plates and their labels, pieces as wide as the 4:3 screen that
+                                        slide by a pixel: exactly as wide, one was taken for scenery and stretched) */
     }
     if (sMenuScreen == 38 && top && (starts(name, "mc_item_details") || starts(name, "mc_reconfir_plate_") || starts(name, "mc_list_plate_") ||
                                      starts(name, "mc_dammy_text_") || starts(name, "mc_font_get"))) {
