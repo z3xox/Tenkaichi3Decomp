@@ -106,6 +106,7 @@ void Port_MenuPage(int screen) {
        the Data Center's password, 44: its keyboard is one picture as wide as the 4:3 screen, its letters on it) */
     /* (the character selects of Ultimate Battle and the World Tournament, 15, 19, 23, 24, 25, as character select) */
     Port_MenuPart(screen == 0 ? PORT_MENU_NONE : screen == 2 ? PORT_MENU_LEFT
+                  : screen == 52 ? PORT_MENU_FILL /* (Tenkaichi Budokai Online: its page stretched as before) */
                   : screen == 51 ? PORT_MENU_CENTER_FREE /* (the logo page before the title: a picture of the whole 4:3 screen) */
                   : screen == 37 ? PORT_MENU_SPLIT /* (Evolution Z's customising: the player's side left, the points right) */
                   : screen == 1 || screen == 3 || screen == 44 || screen == 50 ? PORT_MENU_CENTER_ALL
@@ -251,6 +252,9 @@ static int clip_part(const char *name, int x, int top) {
     }
     if (sMenuScreen == 17 && top && strcmp(name, "mc_single_chara_l") == 0) {
         return PORT_MENU_LEFT; /* (and the character's picture there, on the left) */
+    }
+    if (sMenuScreen == 52) { /* (Tenkaichi Budokai Online: only its message window's text) */
+        return top && strcmp(name, "mc_message_text") == 0 ? PORT_MENU_LEFT : PORT_MENU_NONE;
     }
     if (sMenuScreen >= 10 && top && strcmp(name, "mc_message_text") == 0) {
         return PORT_MENU_LEFT; /* (the message window's text from its left, as on the main menu: its window fills) */
