@@ -639,12 +639,14 @@ void Port_Menus43Set(int on) {
 }
 /* The menu layout "Widescreen" (setting menus_wide; BT3_MENU_WIDE=0/1 over it): the screens converted for it
    (Port_MenuPage, port/src/gs_marker.c) have their 2D at its true shape and their backdrops across the whole width;
-   the others are stretched as before. Not with "Menus in 4:3". */
+   the others are stretched as before. Not with "Menus in 4:3". The default since 0.1.39.3: a player who never chose a
+   layout has it; one who chose Stretched or 4:3 keeps that (the choice saves both settings; an older "Menus in 4:3"
+   saved menus_43 alone, which still wins). */
 PORT_HOST static int sMenusWide = -1;
 int Port_MenusWide(void) {
     if (sMenusWide < 0) {
         const char *env = getenv("BT3_MENU_WIDE");
-        sMenusWide = env != NULL && env[0] != '\0' ? atoi(env) != 0 : Port_Setting("menus_wide", 0) != 0;
+        sMenusWide = env != NULL && env[0] != '\0' ? atoi(env) != 0 : Port_Setting("menus_wide", 1) != 0;
     }
     return sMenusWide && !Port_Menus43();
 }
