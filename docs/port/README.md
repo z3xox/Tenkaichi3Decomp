@@ -4573,3 +4573,4 @@ converted for it has its 2D at its true shape across the whole width, the way th
 - The title (1) keeps its wide pieces at their true shape: its logo was stretched. The copyright page before it
   (51) at its true shape with black beside it.
 - Evolution Z's character customising (37): the roster, the name plates, the picture and the type and stats panel against the left edge, the zenni, Ability Limit and Character Z Points against the right (the user's choice), by clip name; the page's own pieces (the panels' frames) against the edge of the half they start in (part `PORT_MENU_SPLIT`, marker 0x2F, anchor 21).
+- The item shop's Item Exchange: its list's rows, tabs and price bar at their true shape with their text (only pieces taller than 100 lines of its page fill: its room); the price's digits (`mc_shop_num_*`) in the bar, the counters' digits (`mc_pay_num_*`, `mc_item_num_*`) against the right edge. Seen on the user's recording of a new game.

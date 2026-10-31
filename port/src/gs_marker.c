@@ -220,7 +220,8 @@ static int clip_part(const char *name, int x, int top) {
             return name[n - 1] == 'l' ? PORT_MENU_LEFT : PORT_MENU_RIGHT;
         }
     }
-    if (sMenuScreen == 38 && top && (starts(name, "mc_pay_num_") || starts(name, "mc_shop_num_") || starts(name, "mc_item_num_"))) {
+    if (sMenuScreen == 38 && top && (starts(name, "mc_pay_num_") || starts(name, "mc_item_num_"))) {
+        /* (mc_shop_num_*: an item's price, in the list's bar in the middle, not a counter) */
         return PORT_MENU_RIGHT; /* (the item shop: the digits of its counters of zenni and of the share collected; their
                                    frames are the page's own pieces, PORT_MENU_PAGE_TOP) */
     }

@@ -1732,8 +1732,9 @@ void GsGpu_Draw(int type, int ctx, const GsVertex *v) {
                 pivot = 512.0f; /* (a page's piece from the top edge, in the right half against the edge: the corner's clouds;
                                    17: any in the top 120 lines starting in the right half, the shop's counters with their
                                    icons and frames) */
-            } else if (gsAnchor == 17) {
-                pivot = -1.0f; /* (17, the item shop: the rest of the page is its room, scenery that fills the width) */
+            } else if (gsAnchor == 17 && y1 - y0 > 100.0f) {
+                pivot = -1.0f; /* (17, the item shop: its room, scenery in big pieces, fills the width; its list's rows,
+                                  tabs and price bar, short pieces, keep their true shape in the middle with their text) */
             } else if (gsAnchor == 18 && x1 >= 511.5f && x0 >= 200.0f) {
                 pivot = 512.0f; /* (18: a page's piece cut off at the right edge: a frame whose art is cut there) */
             } else if (gsAnchor == 18 && x0 <= 0.5f && x1 <= 312.0f) {
