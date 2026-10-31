@@ -127,7 +127,10 @@ void Port_MenuPage(int screen) {
                   : screen == 52 ? PORT_MENU_FILL /* (Tenkaichi Budokai Online: its page stretched as before) */
                   : screen == 51 ? PORT_MENU_CENTER_FREE /* (the logo page before the title: a picture of the whole 4:3 screen) */
                   : screen == 37 ? PORT_MENU_SPLIT /* (Evolution Z's customising: the player's side left, the points right) */
-                  : screen == 1 || screen == 3 || screen == 44 || screen == 50 ? PORT_MENU_CENTER_ALL
+                  : screen == 1 ? PORT_MENU_CENTER_FREE /* (the title: its characters' art goes on past the 4:3 screen's edges,
+                                                    Piccolo's cape at the top right: not cut there; its plates, parked off
+                                                    the screen, are by their own rule) */
+                  : screen == 3 || screen == 44 || screen == 50 ? PORT_MENU_CENTER_ALL
                                                 : screen == 14 ? PORT_MENU_LEFT_ALL
                                                 : screen == 13 || screen == 42 || screen == 18 ? PORT_MENU_FILL : screen == 38 ? PORT_MENU_PAGE_TOP
                                                 : screen == 53 ? PORT_MENU_PAGE_EDGE_TOP : screen == 17 ? PORT_MENU_PAGE_LIST : screen == 20 ? PORT_MENU_PAGE_EDGE
