@@ -255,7 +255,9 @@ void CharRef_Draw(void) {
 
     Job_Run();
 #ifdef PORT
-    Port_MenuPage(17); /* widescreen menus: this screen's page, its backdrop filling the width */
+    /* widescreen menus: this screen's page, its backdrop filling the width; a character's own pages (53) as one
+       page in the middle, the picture, the panel and the window of the introduction together */
+    Port_MenuPage(state == CHARREF_ST_INTRO || state == CHARREF_ST_LIST || state == CHARREF_ST_LEAVE ? 17 : 53);
     Port_MenuFill(1);
     Sprite_DrawPicture(gCharRef->bg, 0, 0, 0x80);
     Port_MenuFill(0);

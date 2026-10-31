@@ -651,6 +651,11 @@ int Port_MenusWide(void) {
 void Port_MenusWideSet(int on) {
     sMenusWide = on != 0;
 }
+/* The Tenkaichi Budokai Online screens' letters across: 3/4 at 16:9 with the menu layout "Widescreen" (their page is
+   stretched, the letters then keep their shape), else 1 */
+float Port_MenuTextNarrow(void) {
+    return Port_MenusWide() && Port_IsWide() ? 1333.333f / (float)Port_AspectMilli() : 1.0f;
+}
 int Port_PageAspectMilli(void) {
     return gPortMenuMode && Port_Menus43() ? 1333 : Port_AspectMilli();
 }

@@ -304,6 +304,46 @@ static void McFlow_QuickWindow(void) {
     }
 }
 
+/* Flow 7 (the Data Center's replays: the headers of the seven files read into the list): without the window and its
+   waits; a card error, or a damaged file's question, opens the window as the game has it. */
+static s32 McFlow_QuickReplayScan(void) {
+    switch (gMcFlow->state) {
+    case 0x23: /* (no window) */
+        gMcFlow->choice = 0;
+        gMcFlow->index = 0;
+        gMcFlow->state = gMcFlow->next;
+        return 1;
+    case 4:
+    case 0x13:
+        McFlow_QuickTimer(1, 0);
+        return 0;
+    case 6:
+    case 0x27:
+    case 0x28:
+        return 0;
+    case 0x25:
+        if (gMcFlow->flags & 8) {
+            McCard_Probe(0);
+            if (McCard_IsFatalError(MCF_CARD.result)) {
+                break; /* (card removed: the game's own way, below) */
+            }
+        }
+        gMcFlow->state = 0;
+        sMcQuick = 0;
+        McCard_ResetStep();
+        McFlow_CallModeDone();
+        return 1;
+    default:
+        break;
+    }
+    sMcQuick = 0; /* the player has to see this one */
+    Dialog_SetLayout(1);
+    Dialog_SetCursor(1);
+    Dialog_SetTitle(0);
+    Dialog_Start(0);
+    return 0;
+}
+
 /* Before the flow's own frame. Returns 1 when that frame is done here. */
 static s32 McFlow_QuickStep(void) {
     s32 boot = gMcFlow->mode == MCFLOW_MODE_BOOT_LOAD;
@@ -313,6 +353,9 @@ static s32 McFlow_QuickStep(void) {
     if (sMcQuick == 2) {
         McFlow_QuickWindow();
         return 0;
+    }
+    if (sMcQuick == 3) {
+        return McFlow_QuickReplayScan();
     }
     switch (gMcFlow->state) {
     case 0x23: /* (no window) */
@@ -1993,6 +2036,11 @@ void McFlow_UpdateReplayScan(void) {
         break;
     }
     Dialog_SetMsg(gMcFlow->msg);
+#ifdef PORT
+    if (sMcQuick == 3) {
+        return;
+    }
+#endif
     Dialog_Draw(1);
 }
 
@@ -2847,6 +2895,9 @@ void McFlow_Start(s32 mode) {
                Port_Setting("save_quick", 1) != 0;
     if (sMcQuick && (mode == MCFLOW_MODE_LOAD || (mode == MCFLOW_MODE_NEW_SAVE && (gProgress->flags & 8)))) {
         sMcQuick = 2;
+    }
+    if (mode == MCFLOW_MODE_REPLAY_SCAN && !Port_NetActive() && Port_Setting("save_quick", 1) != 0) {
+        sMcQuick = 3; /* the Data Center's replays: their list read without the window */
     }
     sMcQuickState = -1;
     if (sMcQuick == 1 && mode != MCFLOW_MODE_BOOT_LOAD) {

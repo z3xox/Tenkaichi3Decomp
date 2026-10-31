@@ -225,6 +225,7 @@ static const char *const sTbNames[] = {
 extern void Job_Run(void);
 extern void Gfx_BeginFrame(void);
 extern void Gfx_EndFrame(s32 arg);
+extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
 extern void Dma_Flush(void);
 extern void Dma_ResetBuffers(void);
 extern void File_Stub264D90(void);
@@ -4138,6 +4139,8 @@ s32 PortTbo_Run(void) {
             Tb_BracketUpdate(live);
             break;
         }
+        Port_MenuPage(52); /* widescreen menus: the page stretched as before, the message window's text from its left at
+                              its true shape (port/src/gs_marker.c) */
         Tb_Speak();
         Ps_PageSet();
         Tb_Backdrop();
@@ -4146,6 +4149,7 @@ s32 PortTbo_Run(void) {
         Tb_DrawText();
         Ps_PromptsDraw();
         ColorFade_Draw();
+        Port_MenuPage(0);
         File_Stub264D90();
         Gfx_EndFrame(1);
         Dma_Flush();
