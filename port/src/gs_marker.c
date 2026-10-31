@@ -271,7 +271,7 @@ static int clip_part(const char *name, int x, int top) {
                                      starts(name, "mc_yajirusi_"))) {
         return PORT_MENU_RIGHT; /* (World Tour: the timer and the list of tournaments, their art cut at the right edge) */
     }
-    if (sMenuScreen == 53 && top && starts(name, "mc_window_up_")) {
+    if ((sMenuScreen == 17 || sMenuScreen == 53) && top && starts(name, "mc_window_up_")) {
         return PORT_MENU_FILL; /* (a character's page: the band behind its title, in two halves, across the width) */
     }
     if (sMenuScreen == 53 && top && (strcmp(name, "mc_dammy_text") == 0 || strcmp(name, "mc_icon_voice_play") == 0)) {

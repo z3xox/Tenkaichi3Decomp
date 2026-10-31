@@ -1744,6 +1744,13 @@ void GsGpu_Draw(int type, int ctx, const GsVertex *v) {
             } else if (gsAnchor == 17 && y1 - y0 > 100.0f) {
                 pivot = -1.0f; /* (17, the item shop: its room, scenery in big pieces, fills the width; its list's rows,
                                   tabs and price bar, short pieces, keep their true shape in the middle with their text) */
+            } else if (gsAnchor == 18 && sEdgeTop == 1 && x0 >= 200.0f && x1 >= 511.5f && y0 <= 0.5f && y1 >= 447.5f) {
+                /* (a character's page: the dark veil over the right of the 4:3 screen, the whole height, behind the
+                   introduction and the commentary: across the whole picture, as nothing beside it is left bright) */
+                for (k = d.first; k < gsVertCount; k++) {
+                    gsVerts[k].x = (gsVerts[k].x - x0) * 512.0f / (x1 - x0);
+                }
+                pivot = -1.0f;
             } else if (gsAnchor == 18 && sEdgeTop == 1 && y0 >= 200.0f) {
                 pivot = 256.0f;
             } else if (gsAnchor == 18 && sEdgeTop == 2 && x0 >= 100.0f && y1 <= 400.0f) {
