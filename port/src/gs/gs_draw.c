@@ -125,6 +125,8 @@ int gsAnchor;
 static int sEdgeTop; /* widescreen menus, part 18: 1, only pieces starting in the page's top 200 lines go to an edge (gs_marker.c,
                          PORT_MENU_PAGE_EDGE_TOP: Character Reference's pages of a character, their window below in the middle);
                          2, the pieces right of x 100 above line 400 against the right edge (PORT_MENU_PAGE_LIST: its list) */
+static float sNudgeY; /* and this far down (PORT_MENU_LEFT_UP: up) */
+static float sNudge; /* widescreen menus: moved this far across after the narrowing (PORT_MENU_CENTER_NUDGE) */
 static int sFillWide; /* widescreen menus: in parts 13..15 too, pieces as wide as the 4:3 screen reaching its bottom fill (the
                           versus menu's scenery; its windows, as wide, end above it) */
 static int sMenuFree; /* widescreen menus: the clip being drawn moves (markers 0x2D / 0x2E, gs_marker.c): not cut */
@@ -1799,7 +1801,8 @@ void GsGpu_Draw(int type, int ctx, const GsVertex *v) {
         if (pivot >= 0.0f) {
             float narrow = 1333.333f / (float)Port_AspectMilli(); /* 3/4 at 16:9, 9/16 at 21:9 */
             for (k = d.first; k < gsVertCount; k++) {
-                gsVerts[k].x = pivot + (gsVerts[k].x - pivot) * narrow;
+                gsVerts[k].x = pivot + (gsVerts[k].x - pivot) * narrow + sNudge;
+                gsVerts[k].y += sNudgeY;
             }
             static int noclip = -1;
             if (noclip < 0) {
@@ -2102,6 +2105,8 @@ void GsGpu_Native(int effect) {
         gsAnchor = effect - 0x22 + 9;
         sEdgeTop = 0;
         sFillWide = 0;
+        sNudge = 0.0f;
+        sNudgeY = 0.0f;
         return;
     }
     if (effect >= 0x15 && effect <= 0x18) {
@@ -2119,6 +2124,18 @@ void GsGpu_Native(int effect) {
     }
     if (effect == 0x2F) { /* widescreen menus: a split page (gs_marker.c, PORT_MENU_SPLIT) */
         gsAnchor = 21;
+        return;
+    }
+    if (effect == 0x34) { /* widescreen menus: LEFT_ALL moved up (gs_marker.c, PORT_MENU_LEFT_UP) */
+        gsAnchor = 14;
+        sNudge = 0.0f;
+        sNudgeY = -24.0f; /* (Sim Dragon: the health bar level with the Z points counter's digits) */
+        return;
+    }
+    if (effect == 0x33) { /* widescreen menus: CENTER_ALL moved 18 to the right (gs_marker.c, PORT_MENU_CENTER_NUDGE) */
+        gsAnchor = 13;
+        sNudge = 18.0f;
+        sNudgeY = 0.0f;
         return;
     }
     if (effect == 0x32) { /* widescreen menus: in this part too, a piece as wide as the 4:3 screen fills (gs_marker.c) */

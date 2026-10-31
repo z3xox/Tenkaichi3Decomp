@@ -44,13 +44,16 @@ void Port_GsMarker(int effect) {
                        below whole; marker 0x30)
      PORT_MENU_PAGE_LIST  as PAGE_EDGE, and the page's pieces right of x 100 above line 400 against the right edge
                        (Character Reference's list: its window's body and scroll bar with its frame; marker 0x31)
+     PORT_MENU_CENTER_NUDGE  as CENTER_ALL, moved 18 to the right after (Sim Dragon's Z points counter over the
+                       monitor's middle; marker 0x33)
+     PORT_MENU_LEFT_UP  as LEFT_ALL, moved up (Sim Dragon's portrait and health bar, into the counter's row; 0x34)
      PORT_MENU_CENTER_FREE  as CENTER, not cut at the 4:3 screen's edges: a picture that flies across the whole of
                        the wide picture (World Tour's announcer poster)
    Which clip of a screen's movie goes where is the table in Port_MenuClipPart, by the clips' names. A screen that
    marks nothing is stretched as before. The renderer acts on the markers only with that layout chosen. */
 enum { PORT_MENU_NONE = -1, PORT_MENU_CENTER, PORT_MENU_FILL, PORT_MENU_LEFT, PORT_MENU_RIGHT, PORT_MENU_CENTER_ALL, PORT_MENU_LEFT_ALL,
        PORT_MENU_RIGHT_ALL, PORT_MENU_PAGE, PORT_MENU_PAGE_TOP, PORT_MENU_PAGE_EDGE, PORT_MENU_CENTER_FREE, PORT_MENU_SPLIT,
-       PORT_MENU_PAGE_EDGE_TOP, PORT_MENU_PAGE_LIST };
+       PORT_MENU_PAGE_EDGE_TOP, PORT_MENU_PAGE_LIST, PORT_MENU_CENTER_NUDGE, PORT_MENU_LEFT_UP };
 static int sMenuPart = PORT_MENU_NONE;
 static int sDuelSettings; /* the versus menu's battle settings are open (or the last of its windows): in the middle */
 
@@ -77,7 +80,8 @@ int Port_MenuPart(int part) {
     if (part != sMenuPart) {
         sMenuPart = part;
         Port_GsMarker(part == PORT_MENU_NONE ? 0x13 : part == PORT_MENU_SPLIT ? 0x2F : part == PORT_MENU_PAGE_EDGE_TOP ? 0x30 :
-                      part == PORT_MENU_PAGE_LIST ? 0x31 : 0x22 + part);
+                      part == PORT_MENU_PAGE_LIST ? 0x31 : part == PORT_MENU_CENTER_NUDGE ? 0x33 :
+                      part == PORT_MENU_LEFT_UP ? 0x34 : 0x22 + part);
         if (sMenuScreen == 16 && part != PORT_MENU_NONE) {
             Port_GsMarker(0x32); /* (the versus menu: its scenery, pieces as wide as the 4:3 screen, fills in any part) */
         }
@@ -249,6 +253,23 @@ static int clip_part(const char *name, int x, int top) {
     if (sMenuScreen == 31 && top && starts(name, "mc_menu_plate_")) {
         return PORT_MENU_CENTER_ALL; /* (Ultimate Battle: its plates and their labels, pieces as wide as the 4:3 screen that
                                         slide by a pixel: exactly as wide, one was taken for scenery and stretched) */
+    }
+    if (sMenuScreen == 32 && top) { /* Sim Dragon's day: the fighter's panels against the left edge (cut there on the 4:3
+                                        screen), the commands and the turn timer against the right */
+        if (strcmp(name, "mc_at_plate") == 0 || strcmp(name, "mc_df_plate") == 0 || starts(name, "mc_plate_potara")) {
+            return PORT_MENU_LEFT_ALL;
+        }
+        if (strcmp(name, "mc_chara_pt_plate") == 0) {
+            return PORT_MENU_LEFT_UP; /* (the fighter's portrait and health bar, up into the Z points counter's row: the
+                                         user's choice) */
+        }
+        if (strcmp(name, "mc_point_plate") == 0) {
+            return PORT_MENU_CENTER_NUDGE; /* (the Z points counter, centred above the monitor: the user's choice; on the
+                                              4:3 screen it is 18 to the left of the monitor's middle) */
+        }
+        if (starts(name, "mc_sim_botan") || strcmp(name, "mc_icon_timer") == 0) {
+            return PORT_MENU_RIGHT_ALL;
+        }
     }
     if (sMenuScreen == 38 && top && (starts(name, "mc_item_details") || starts(name, "mc_reconfir_plate_") || starts(name, "mc_list_plate_") ||
                                      starts(name, "mc_dammy_text_") || starts(name, "mc_font_get"))) {
