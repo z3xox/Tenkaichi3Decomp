@@ -37,8 +37,10 @@ game installs anything by itself.
    updates that every game installs. Never commit it.
 3. In `port/src/update_key.h`, replace the zeros of `PORT_UPDATE_KEY_RELEASE` with the printed public key, and commit.
    (`python3 port/tools/update_key.py public --key-file update_signing_key.txt` prints it again.)
-4. Tag the next release. The workflow signs both zips (`update_key.py sign`), checks the signatures, and attaches
-   `Tenkaichi3Decomp-linux-x64.zip.sig` and `Tenkaichi3Decomp-windows-x64.zip.sig` to the draft. If the secret does
+4. Tag the next release. The workflow signs the three zips (`update_key.py sign`), checks the signatures, and
+   attaches `Tenkaichi3Decomp-linux-x64.zip.sig`, `Tenkaichi3Decomp-windows-x64.zip.sig` and
+   `Tenkaichi3Decomp-macos-arm64.zip.sig` to the draft (the Mac zip is built on GitHub's Mac by macos.yml, which
+   release.yml calls for a tag, with the release's key and number). If the secret does
    not match the key in update_key.h the job stops: no game could check those signatures.
 
 Games built before step 3 cannot update themselves (they have no key): their players update by hand once, to the

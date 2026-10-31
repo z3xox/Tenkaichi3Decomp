@@ -67,6 +67,9 @@ int UpdCrypto_Check(const uint8_t sig[64], const uint8_t pub[32], const uint8_t 
 #ifdef _WIN32
 #define ASSET GAME "-windows-x64.zip"
 #define GAME_EXE GAME ".exe"
+#elif defined(__APPLE__)
+#define ASSET GAME "-macos-arm64.zip" /* (the release's Mac zip, Apple Silicon) */
+#define GAME_EXE GAME
 #else
 #define ASSET GAME "-linux-x64.zip"
 #define GAME_EXE GAME
@@ -669,10 +672,6 @@ static int SDLCALL check_thread(void *arg) {
     js_asset(json, ASSET, &zip);
     js_asset(json, ASSET ".sig", &sig);
     can = 1;
-#ifdef __APPLE__
-    can = 0;
-    SDL_strlcpy(cannot, "There is no release for macOS: build the new version from its source.", sizeof(cannot));
-#endif
     if (can && !key_set(key)) {
         can = 0;
         SDL_strlcpy(cannot, "This build has no update key: it cannot install updates itself. Download the release by hand.", sizeof(cannot));
@@ -1127,7 +1126,7 @@ static int SDLCALL install_thread(void *arg) {
         items[count].index = (unsigned)i;
         unixMode = (st.m_version_made_by >> 8) == 3 ? (unsigned)(st.m_external_attr >> 16) & 07777 : 0;
         items[count].mode = unixMode != 0 ? unixMode : 0644;
-        if (strcmp(rel, GAME_EXE) == 0 || strcmp(rel, GAME "-setup") == 0 || strstr(rel, ".so") != NULL) {
+        if (strcmp(rel, GAME_EXE) == 0 || strcmp(rel, GAME "-setup") == 0 || strstr(rel, ".so") != NULL || strstr(rel, ".dylib") != NULL) {
             items[count].mode |= 0755; /* (the programs stay programs, whatever the archive says) */
         }
         haveGame = haveGame || strcmp(rel, GAME_EXE) == 0;

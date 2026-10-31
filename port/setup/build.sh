@@ -21,7 +21,7 @@ if [ "$1" = win ]; then
 elif [ "$(uname -s)" = Darwin ]; then
     S=${BT3_SDL3:-/opt/homebrew/opt/sdl3}
     [ -f "$S/include/SDL3/SDL.h" ] || { echo "SDL3 not found in $S: brew install sdl3"; exit 1; }
-    O=port/build/setup_mac; OUT=Tenkaichi3Decomp-setup; CXX=clang++; SDL="-I$S/include -L$S/lib"
+    O=port/build/setup_mac; OUT=Tenkaichi3Decomp-setup; CXX="clang++ -mmacosx-version-min=11.0"; SDL="-I$S/include -L$S/lib"
     LIBS="-L$S/lib -lSDL3 -Wl,-rpath,@executable_path/lib -Wl,-rpath,$S/lib"
 else
     O=port/build/setup; OUT=Tenkaichi3Decomp-setup; CXX=g++; SDL=""; LIBS="-lSDL3 -lpthread -ldl -lm -static-libstdc++ -static-libgcc -Wl,-rpath,\$ORIGIN/lib"
