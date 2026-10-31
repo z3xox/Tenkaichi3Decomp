@@ -12,20 +12,20 @@ ItemHelp *gItemHelp = NULL;
 
 /* Allocates the page and builds its movie from the caller's pack (sections 1 / 3 textures, 2 movie, 5 / 6 text). */
 void ItemHelp_Init(u32 *pack) {
-    MTexRes *res = NULL;
-    MTextBox *box;
+    FlashTexRes *res = NULL;
+    TextBox *box;
 
     gItemHelp = Heap_Alloc(sizeof(ItemHelp), 0x20, 0, 2);
     memset(gItemHelp, 0, sizeof(ItemHelp));
 
-    res = (MTexRes *)MPACK_AT(pack, 1);
+    res = (FlashTexRes *)MPACK_AT(pack, 1);
     Res_RelocateOffsets(&res, res, res);
     gItemHelp->tex[1] = MTEX(res, 0);
     gItemHelp->tex[2] = MTEX(res, 4);
     gItemHelp->tex[3] = MTEX(res, 8);
     gItemHelp->tex[0] = MTEX(res, 9);
 
-    res = (MTexRes *)MPACK_AT(pack, 3);
+    res = (FlashTexRes *)MPACK_AT(pack, 3);
     Res_RelocateOffsets(&res, res, res);
     gItemHelp->tex[6] = MTEX(res, 0);
     gItemHelp->tex[5] = MTEX(res, 1);
@@ -62,9 +62,9 @@ void ItemHelp_Term(void) {
 
 /* Advances and draws the page for one item (0-based index into the item table). */
 void ItemHelp_Draw(s32 item) {
-    MFlashRef ref;
-    MFlashUv uv;
-    MFlash *flash;
+    FlashRef ref;
+    FlashUv uv;
+    Flash *flash;
     s32 i;
 
     for (i = 0; i < ITEMHELP_FLASH_NUM; i++) {
@@ -77,29 +77,29 @@ void ItemHelp_Draw(s32 item) {
     Flash_FindLabel(flash, NULL, "mc_dammy_text_2", &ref);
     TextBox_AttachLine(flash, &ref, 0, 0, item, &gItemHelp->desc);
 
-    uv.x0 = gItemHelp->items[item].type * 0x40;
-    uv.y0 = 0;
-    uv.x1 = uv.x0 + 0x40;
-    uv.y1 = 0x40;
+    uv.u0 = gItemHelp->items[item].type * 0x40;
+    uv.v0 = 0;
+    uv.u1 = uv.u0 + 0x40;
+    uv.v1 = 0x40;
     Flash_FindLabel(flash, NULL, "mc_icon_item_potara", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
 
     Flash_FindLabel(flash, NULL, "mc_icon_item_cost", &ref);
     if (gItemHelp->items[item].slots != 0) {
-        uv.x0 = gItemHelp->items[item].slots * 0x20 - 0x20;
-        uv.y0 = ItemTbl_GetClass(item, gItemHelp->items) * 0x2A;
-        uv.x1 = uv.x0 + 0x20;
-        uv.y1 = uv.y0 + 0x2A;
+        uv.u0 = gItemHelp->items[item].slots * 0x20 - 0x20;
+        uv.v0 = ItemTbl_GetClass(item, gItemHelp->items) * 0x2A;
+        uv.u1 = uv.u0 + 0x20;
+        uv.v1 = uv.v0 + 0x2A;
         Flash_ClipSetUv(flash, &ref, &uv);
         Flash_ClipSetFlags(flash, &ref, 2, 1);
     } else {
         Flash_ClipSetFlags(flash, &ref, 2, 0);
     }
 
-    uv.x0 = (gItemHelp->items[item].picture & 1) * 0x40;
-    uv.y0 = (gItemHelp->items[item].picture >> 1) * 0x40;
-    uv.x1 = uv.x0 + 0x40;
-    uv.y1 = uv.y0 + 0x40;
+    uv.u0 = (gItemHelp->items[item].picture & 1) * 0x40;
+    uv.v0 = (gItemHelp->items[item].picture >> 1) * 0x40;
+    uv.u1 = uv.u0 + 0x40;
+    uv.v1 = uv.v0 + 0x40;
     Flash_FindLabel(flash, NULL, "mc_item_details_icon", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
 

@@ -60,8 +60,7 @@
 
 /* Vec4 and Mtx44 come from sys/math3d.h. Matrices here are m[row][col] with the translation in row 3, as there. */
 
-/* A view: matrices, scissor and projection parameters. 0x260 bytes.
-   (main.h's ViewScissor is the part of this that View_ApplyScissor reads.) */
+/* A view: matrices, scissor and projection parameters. 0x260 bytes. */
 typedef struct View {
     /* 0x000 */ Mtx44 world2view;   /* View_SetTransform writes the same matrix to both of these; */
     /* 0x040 */ Mtx44 world2view2;  /*   only the second is read again */

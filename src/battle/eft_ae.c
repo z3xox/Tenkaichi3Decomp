@@ -1,4 +1,5 @@
 #include "common.h"
+#include "battle/btl_cam.h"
 #include "battle/eft_ae.h"
 #include "sys/gfx_ot.h"
 
@@ -34,12 +35,6 @@ typedef struct EftAeScr {
 } EftAeScr;
 
 /* The view being drawn (include/battle/btl_cam.h). */
-typedef struct EftAeView {
-    /* 0x000 */ u8 unk0[0x40];
-    /* 0x040 */ EftAeMtx view;
-    /* 0x080 */ u8 unk80[0xC0];
-    /* 0x140 */ EftAeMtx world2screen;
-} EftAeView;
 
 /* Head of a packet in the ordering table: DMA tag, two VIF codes, GIF tag. */
 typedef struct EftAePktHead {
@@ -105,8 +100,6 @@ extern f32 gEftSprGridUv4x2[8][4];
 extern f32 gEftSprGridUv3x3[9][4];
 extern f32 gEftSprGridUv4x4[16][4];
 extern s32 gEftSprSubdivCorner[4][4];
-
-extern EftAeView *gBtlCamView;
 extern EftSprSlot *gEftSprAnimPool;
 extern BtlTaskList *gBtlTaskRoot;
 extern BtlTask *gBtlTaskCur;
@@ -568,7 +561,7 @@ s32 EftSprAnim_BuildMatrices(EftSprAnim *anim, EftAeMtx *oriented, EftAeMtx *bil
     Mtx_Mul(&m, &dirM, &scaleM);
     *oriented = m;
     oriented->m[3][0] = oriented->m[3][1] = oriented->m[3][2] = 0.0f;
-    Mtx_InverseRT(billboard, &gBtlCamView->view);
+    Mtx_InverseRT(billboard, &gBtlCamView->world2view2);
     billboard->m[3][0] = billboard->m[3][1] = billboard->m[3][2] = 0.0f;
     Mtx_Mul(billboard, billboard, &scaleM);
     return 1;
@@ -1471,7 +1464,7 @@ void BtlTask_Init(BtlTask *task, BtlTaskCls *cls, void *arg) {
     task->child = NULL;
     task->cls = cls;
     task->tag = 0;
-    task->unk8 = 0;
+    task->hit = 0;
     task->unkA = 0;
     task->unkB = 0;
     task->pos.x = task->pos.y = task->pos.z = 0.0f;

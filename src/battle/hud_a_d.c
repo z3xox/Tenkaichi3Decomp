@@ -1,4 +1,5 @@
 #include "common.h"
+#include "battle/hud_types.h"
 #include "battle/hud_a.h"
 #include "sys/dma.h"
 #include "sys/gfx.h"
@@ -12,7 +13,7 @@ extern void HudSprite_Show(HudSprite *spr, s32 show);
 extern void HudSprite_SetTex(HudSprite *spr, s32 tex, s32 sub);
 extern void HudSprite_Move(HudSprite *spr, s32 dx, s32 dy);
 
-/* The gauge work (full layout: HudBWork in src/battle/hud_b.c). Defined here: this object's .sdata (0x2FEB48). */
+/* The gauge work (full layout: HudGauge in src/battle/hud_b.c). Defined here: this object's .sdata (0x2FEB48). */
 HudGauge *gHudGauge = NULL;
 
 /* GS state before a mask is drawn (the same packet as HudTeam_GsBeginMask). */

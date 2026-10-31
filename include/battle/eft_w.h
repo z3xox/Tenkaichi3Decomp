@@ -2,6 +2,7 @@
 #define BATTLE_EFT_W_H
 
 #include "types.h"
+#include "battle/btl_cam.h"
 #include "sys/math3d.h"
 
 /*
@@ -388,13 +389,5 @@ typedef struct EftPart10Mgr {
 } EftPart10Mgr; /* 0xD0F0 */
 
 /* The part of the camera view (gBtlCamView) the draw code reads. */
-typedef struct EftWView {
-    /* 0x000 */ u8 unk0[0x40];
-    /* 0x040 */ Mtx44 unk40;
-    /* 0x080 */ u8 unk80[0xC0];
-    /* 0x140 */ Mtx44 unk140;
-    /* 0x180 */ u8 unk180[0xB4];
-    /* 0x234 */ f32 screenDist;
-} EftWView;
 
 #endif

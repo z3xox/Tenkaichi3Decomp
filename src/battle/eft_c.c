@@ -1,9 +1,12 @@
 #include "common.h"
+#include "sys/vector_types.h"
+#include "sys/math3d.h"
 #include "battle/eft_c.h"
 #include "battle/battle.h"
 #include "battle/btl_cam.h"
 #include "battle/btl_pool.h"
 #include "battle/btl_scene.h"
+#include "battle/stg_b.h"
 #include "sys/common.h"
 #include "sys/dma.h"
 #include "sys/gfx.h"
@@ -45,9 +48,6 @@ extern void BtlTask_DestroyChildList(void *task);
 extern s32 BtlStage_IsReady(void);
 
 /* Stage records (stg_b.c). */
-extern u8 *BtlStage_GetFxResA2(void);
-extern u8 *BtlStage_GetFxResB2(void);
-extern u8 *BtlStage_GetFxResC2(void);
 extern u32 *BtlStage_GetList90(void);
 extern StgWeatherRec *BtlStage_GetList60(void);
 extern StgSurfRec *BtlStage_GetList58(void);
@@ -77,11 +77,10 @@ extern void EftPrim_DrawQuadDepth(Vec4 *pos, Vec4 *color, f32 w, f32 h, f32 u0, 
 #endif
 
 /* The geyser (eft_b.c) and the emitters it starts (eft_g.c smoke, eft_e.c steam). */
-extern void EftGeyser_Update(EftTask *task);
-extern s32 EftSmoke_Create(EftGeyserSmokeArg *arg);
+extern void EftGeyser_Update(BtlTask *task);
+extern void *EftSmoke_Create(EftSmokeArg *arg);
 extern s32 EftSmoke_GetPos(s32 handle);
-extern s32 EftSteam_Create(EftGeyserSteamArg *arg);
-extern void EftSteam_SetPaused(s32 handle, s32 on);
+extern void *EftSteam_Create(EftSteamArg *arg);
 extern s32 EftSteam_GetWork(s32 handle);
 
 extern void EftGndDust_InitTemplate(void);
@@ -91,7 +90,7 @@ extern void EftGfx_UpdateClipPlanes(void);
 extern Vec4 *EftGfx_GetClipPlanes(void);
 extern s32 ClipPoly_ClipPlane(EftSurfVtx *poly, Vec4 *plane, s32 count); /* clips in place, returns the new count */
 extern void ClipPoly_ProjectCur(s32 (*xyz)[4], Vec4 *st, EftSurfVtx *poly, s32 count); /* projects count vertices */
-extern void EftMath_CalcTangentFrame(Mtx44 *out, EftVec *a, EftVec *b);
+extern void EftMath_CalcTangentFrame(Mtx44 *out, Vec4Packed *a, Vec4Packed *b);
 #ifdef PORT /* PC build: by value, as the definition takes it (the PS2 passes a struct of this size by address) */
 extern void EftGfx_LightClutDiffuse(EftSurfClut *dst, EftSurfClut *src, Vec4 light, u8 r, u8 g, u8 b);
 #define EftGfx_LightClutDiffuse(dst, src, light, r, g, b) EftGfx_LightClutDiffuse(dst, src, *(Vec4 *)(light), r, g, b)
@@ -112,12 +111,6 @@ extern void EftSurf_DrawPolyOtClipped(EftSurfVtx *poly, s32 unused, u64 *tex, Ve
 extern void EftSurf_DrawTriDirect(s32 *xyz0, s32 *xyz1, s32 *xyz2, Vec4 *rgba0, Vec4 *rgba1, Vec4 *rgba2, Vec4 *st0,
                                   Vec4 *st1, Vec4 *st2, s32 a, u64 *tex, Vec4 *fog, s32 b);
 
-/* Stage manager (stg_b.c); only the flag word is used here. */
-typedef struct EftStageMgrView {
-    /* 0x00 */ s32 unk0[2];
-    /* 0x08 */ s32 flags; /* bit 0: the stage is not drawn */
-} EftStageMgrView;
-extern EftStageMgrView *gBtlStage;
 
 /* Battle resources at gCommonRes + 0x20: only the stage pack. */
 typedef struct EftCommonResView {
@@ -126,15 +119,15 @@ typedef struct EftCommonResView {
 } EftCommonResView;
 #define STAGE_PACK() (((EftCommonResView *)gCommonRes)->stage)
 
-extern EftTaskClass gEftWeatherPtclClass;
+extern BtlTaskCls gEftWeatherPtclClass;
 extern EftStageKind gEftStageKinds[10];
 
-static inline u8 EftTask_IsDead(EftTask *task) {
-    return task->flags & 1;
+static inline u8 EftTask_IsDead(BtlTask *task) {
+    return task->bits & 1;
 }
 
 /* Returns EftSmoke_GetPos of a live geyser's smoke emitter, 0 when the task is not a geyser or has none. */
-s32 EftGeyser_GetSmokePos(EftTask *task) {
+s32 EftGeyser_GetSmokePos(BtlTask *task) {
     s32 fx;
 
     if (task == NULL) {
@@ -146,7 +139,7 @@ s32 EftGeyser_GetSmokePos(EftTask *task) {
     if (EftTask_IsDead(task)) {
         return 0;
     }
-    fx = ((EftGeyserView *)task->work)->smoke;
+    fx = (s32)((EftGeyser *)task->work)->emitterA;
     if (fx == 0) {
         return 0;
     }
@@ -154,7 +147,7 @@ s32 EftGeyser_GetSmokePos(EftTask *task) {
 }
 
 /* Returns EftSteam_GetWork of a live geyser's steam emitter, 0 when the task is not a geyser or has none. */
-s32 EftGeyser_GetSteamWork(EftTask *task) {
+s32 EftGeyser_GetSteamWork(BtlTask *task) {
     s32 fx;
 
     if (task == NULL) {
@@ -166,7 +159,7 @@ s32 EftGeyser_GetSteamWork(EftTask *task) {
     if (EftTask_IsDead(task)) {
         return 0;
     }
-    fx = ((EftGeyserView *)task->work)->steam;
+    fx = (s32)((EftGeyser *)task->work)->emitterB;
     if (fx == 0) {
         return 0;
     }
@@ -175,128 +168,81 @@ s32 EftGeyser_GetSteamWork(EftTask *task) {
 
 /* Starts the geyser's smoke emitter with the colours of the stage's record. Two rand() calls (the
    description's unk38 and unk48). */
-#if 0
-/* Not matching: 17 of 162 instructions, all in the block that fills `init`. Same instructions and constants,
- * but the stores are scheduled in another order: the original emits them in field order except colorA.y (after
- * colorA.z) and colorB.y (last), this emits the last store of each shared constant first and the others at the
- * end; 2.0 and 0.985 then swap $f4 / $f5. Tried: field order permutations, chained assignments, an inline
- * setter, float-array fields, an initializer list.
- * Second pass (cleanup 2): the order is the first scheduling pass's, and it follows a simple rule that the natural
- * code obeys elsewhere (EftPrim_DrawBillboard's UV stores): among stores that are ready together, those whose
- * source register DIES there go first in source order, then the others in source order. With one register per
- * constant (which is what CSE makes of any spelling tried) that rule cannot give the original order: it would
- * need the x store of each vector (colorA.x, colorB.x, and pos.w / colorA.w) to be the last use of its own value.
- * So in the original the first component of each vector did not share its value with the others at that point.
- * A hill-climb over all orders of the 19 statements (build/scratch_cleanup2_A/search.py) stops at 11 differing
- * instructions, with an order that is not credible as source; the field-order attempt is kept. */
-void EftGeyser_StartSmoke(EftTask *task) {
-    EftGeyserSmokeArg arg;
-    EftGeyserSmokeArg init;
-    EftGeyserView *w = task->work;
-    u8 *rec;
-    f32 r = 0.0f;
-    Vec4 *pos = &w->pos;
 
-    init.pos.x = pos->x;
-    init.pos.y = pos->y;
-    init.pos.z = pos->z;
-    init.pos.w = 1.0f;
-    init.colorA.x = 32.0f;
-    init.colorA.y = 32.0f;
-    init.colorA.z = 32.0f;
-    init.colorA.w = r;
-    init.colorB.x = 192.0f;
-    init.colorB.y = 192.0f;
-    init.colorB.z = 192.0f;
-    init.colorB.w = r;
-    init.unk30 = 2.0f;
-    init.unk34 = 64.0f;
-    init.unk38 = 1.0f;
-    init.unk3C = 0.985f;
-    init.unk40 = 90;
-    init.unk44 = 30;
-    init.unk48 = 3;
-    arg = init;
+void EftGeyser_StartSmoke(BtlTask *task) {
+    EftGeyser *w = task->work;
+    f32 r = 0.0f;
+    Vec4 *pos = &w->cur.pos;
+    EftSmokeArg arg = { { { pos->x, pos->y, pos->z, 1.0f } },
+                               { { 32.0f, 32.0f, 32.0f, r } },
+                               { { 192.0f, 192.0f, 192.0f, r } },
+                               2.0f,
+                               64.0f,
+                               1.0f,
+                               0.985f,
+                               90,
+                               30,
+                               3 };
+    EftSmokeSrc *rec;
+
     rec = BtlStage_GetFxResB2();
     if (rec != NULL) {
-        arg.colorA.x = rec[0x1C];
-        arg.colorA.y = rec[0x1D];
-        arg.colorA.z = rec[0x1E];
-        arg.colorA.w = rec[0x1F];
-        arg.colorB.x = rec[0x20];
-        arg.colorB.y = rec[0x21];
-        arg.colorB.z = rec[0x22];
-        arg.colorB.w = rec[0x23];
+        arg.ambient.x = rec->ambient[0];
+        arg.ambient.y = rec->ambient[1];
+        arg.ambient.z = rec->ambient[2];
+        arg.ambient.w = rec->ambient[3];
+        arg.diffuse.x = rec->diffuse[0];
+        arg.diffuse.y = rec->diffuse[1];
+        arg.diffuse.z = rec->diffuse[2];
+        arg.diffuse.w = rec->diffuse[3];
         r = (f32)rand() / 2147483647.0f * 5.0f - 2.5f;
-        arg.unk48 = rand() % 2 + 2;
-        arg.unk38 = w->unkB4 / 150.0f + r;
-        arg.unk30 = w->unkB0 / 10.0f * 2.0f;
-        arg.unk40 = w->unkB4 / 150.0f + 90.0f;
-        if (arg.unk38 < 0.0f) {
-            arg.unk38 = -arg.unk38;
+        arg.rate = rand() % 2 + 2;
+        arg.speed = w->cur.height / 150.0f + r;
+        arg.size = w->cur.width / 10.0f * 2.0f;
+        arg.lifeBase = w->cur.height / 150.0f + 90.0f;
+        if (arg.speed < 0.0f) {
+            arg.speed = -arg.speed;
         }
-        if (w->smoke == 0) {
-            w->smoke = EftSmoke_Create(&arg);
+        if (w->emitterA == 0) {
+            w->emitterA = EftSmoke_Create(&arg);
         }
     }
 }
-#endif
-INCLUDE_ASM("asm/nonmatchings/battle/eft_c", EftGeyser_StartSmoke);
 
 /* Starts the geyser's steam emitter with the colour of the stage's record, and pauses it. */
-#if 0
-/* Not matching: 19 of 126 instructions, the same store-order problem as EftGeyser_StartSmoke: the original stores
- * color.x right after unk10.w and color.y / color.z / unk44 last; this stores color.x with them. The three
- * position loads then alternate $f1 / $f0 the other way round.
- * Second pass: see EftGeyser_StartSmoke. Here the original order is exactly "color.x has a value of its own,
- * color.y / z / w share another": then x and w are both last uses and go first, y / z / unk44 wait. No spelling
- * found gives two values (chained assignments in every grouping, copies of color.x, a brace initialiser: that one
- * also clears the tail and is 19 instructions longer). The memset + unk10.w pair does look like the compiler's
- * own expansion of a mostly-zero `{ 0, 0, 0, 1 }` constructor. The search over statement orders stops at 12. */
-void EftGeyser_StartSteam(EftTask *task) {
-    EftGeyserSteamArg arg;
-    EftGeyserSteamArg init;
-    EftGeyserView *w = task->work;
-    u8 *rec;
-    Vec4 *pos = &w->pos;
 
-    init.pos.x = pos->x;
-    init.pos.y = pos->y;
-    init.pos.z = pos->z;
-    init.pos.w = 1.0f;
-    memset(&init.unk10, 0, sizeof(init.unk10));
-    init.unk10.w = 1.0f;
-    init.color.x = 128.0f;
-    init.color.y = 128.0f;
-    init.color.z = 128.0f;
-    init.color.w = 128.0f;
-    init.unk30 = 8.0f;
-    init.gravity = 9.8f / 30.0f;
-    init.unk38 = 4.8f;
-    init.unk3C = 25;
-    init.unk40 = 15.0f;
-    init.unk44 = 0.5f;
-    init.unk48 = 2.0f;
-    init.unk4C = 0.5f;
-    init.unk50 = 5;
-    arg = init;
+void EftGeyser_StartSteam(BtlTask *task) {
+    EftGeyser *w = task->work;
+    Vec4 *pos = &w->cur.pos;
+    EftSteamArg arg = { { { pos->x, pos->y, pos->z, 1.0f } },
+                               { { 0.0f, 0.0f, 0.0f, 1.0f } },
+                               { { 128.0f, 128.0f, 128.0f, 128.0f } },
+                               8.0f,
+                               9.8f / 30.0f,
+                               4.8f,
+                               25,
+                               15.0f,
+                               0.5f,
+                               2.0f,
+                               0.5f,
+                               5 };
+    EftStageMarker *rec;
+
     rec = BtlStage_GetFxResC2();
     if (rec != NULL) {
-        arg.color.x = rec[0x1A];
-        arg.color.y = rec[0x1B];
-        arg.color.z = rec[0x1C];
-        arg.color.w = rec[0x1D];
-        arg.unk30 = w->unkB4 / 150.0f + 8.0f;
-        arg.unk38 = w->unkB0 / 10.0f * 4.8f;
-        arg.unk3C = w->unkB4 / 150.0f + 25.0f;
-        if (w->steam == 0) {
-            w->steam = EftSteam_Create(&arg);
-            EftSteam_SetPaused(w->steam, 1);
+        arg.color.x = rec->color[0];
+        arg.color.y = rec->color[1];
+        arg.color.z = rec->color[2];
+        arg.color.w = rec->color[3];
+        arg.speed = w->cur.height / 150.0f + 8.0f;
+        arg.size = w->cur.width / 10.0f * 4.8f;
+        arg.life = w->cur.height / 150.0f + 25.0f;
+        if (w->emitterB == 0) {
+            w->emitterB = EftSteam_Create(&arg);
+            EftSteam_SetPaused(w->emitterB, 1);
         }
     }
 }
-#endif
-INCLUDE_ASM("asm/nonmatchings/battle/eft_c", EftGeyser_StartSteam);
 
 /* Outcode of a clip-space point: which of the six planes +-w it is outside of. */
 s32 EftWeather_ClipCode(Vec4 *v) {
@@ -324,7 +270,7 @@ s32 EftWeather_ClipCode(Vec4 *v) {
 }
 
 /* Task init: when the stage's weather record is on, allocates the state and adds the particle task. */
-void EftWeather_Init(EftTask *task) {
+void EftWeather_Init(BtlTask *task) {
     s32 *pack = (s32 *)BtlScene_GetStageData();
     StgWeatherRec *rec = BtlStage_GetList60();
 
@@ -371,7 +317,7 @@ void EftWeather_Update(void) {
 }
 
 /* Particle task init: scatters the particles. */
-void EftWeatherPtcl_Init(EftTask *task) {
+void EftWeatherPtcl_Init(BtlTask *task) {
     EftWeatherPtcl_Reset(task);
 }
 
@@ -582,7 +528,7 @@ void EftWeatherPtcl_PostUpdate(void) {
 }
 
 /* Particle task reset: random position within +-51 units of the camera, random texture (4 rand() each). */
-void EftWeatherPtcl_Reset(EftTask *task) {
+void EftWeatherPtcl_Reset(BtlTask *task) {
     EftWeatherPtcl *p = task->work;
     s32 i;
 
@@ -620,7 +566,7 @@ void EftWeather_DrawPtcls(EftWeatherPtcl *p, s32 count) {
 
 /* Particle task draw: moves this view's particles (unless paused), then draws them. In split-screen each
    view owns half of the particles. */
-void EftWeatherPtcl_Draw(EftTask *task) {
+void EftWeatherPtcl_Draw(BtlTask *task) {
     s32 second = BtlScene_IsSecondView();
     EftWeatherPtcl *p = task->work;
     s32 count = gEftWeather->count;
@@ -817,7 +763,7 @@ void EftStage_SetDrawOn(s32 on) {
 }
 
 /* Layer-0 task init: state from pool slot 2, one child task per stage effect kind, drawing on. */
-void EftStage_Init(EftTask *task) {
+void EftStage_Init(BtlTask *task) {
     BtlPool_SetCurrent(2);
     gEftStage = BtlPool_Alloc(BtlPool_GetCurrent(), sizeof(EftStage));
     memset(gEftStage, 0, sizeof(EftStage));
@@ -978,7 +924,7 @@ void EftStage_UpdateSprite(void) {
 /* Draws the sprite, 16 units wide, at a world position. */
 void EftStage_DrawSprite(Vec4 *pos) {
     if (BtlStage_IsReady() && (gEftStage->flags & EFT_STAGE_FLAG_SUN)) {
-        EftVec color = { 128.0f, 128.0f, 128.0f, 128.0f };
+        Vec4Packed color = { 128.0f, 128.0f, 128.0f, 128.0f };
         f32 size = 16.0f;
 
         Vu0Cur_Push();
@@ -1275,12 +1221,12 @@ static inline EftTexEntry *EftSurfRt_GetTex(EftSurfRt *rt, s32 idx) {
    the draw routine its flags select. */
 void EftSurf_DrawMeshes(void) {
     EftSurfVtx out[9];
-    EftFVec diff;
-    EftFVec cam;
+    FVec4 diff;
+    FVec4 cam;
     u64 tex[2];
     f32 dist[3];
-    EftFVec fog[3];
-    EftFVec light;
+    FVec4 fog[3];
+    FVec4 light;
     f32 height;
     EftSurf *w = gEftSurf;
     EftSurfRt *rt = &w->rt;
@@ -1880,17 +1826,17 @@ void EftSurf_StepAnim(void) {
     EftSurfRt *rt = &w->rt;
     Mtx44 *frame = &w->rt.frame;
     f32 step = (f32)rt->param.animSpeed / (f32)rt->animCount;
-    EftFVec a[3] = { { 0.0f, 0.0f, 0.0f, 1.0f }, { 10.0f, 0.0f, 0.0f, 1.0f }, { 0.0f, 0.0f, 10.0f, 1.0f } };
-    EftFVec b[3] = { { 0.0f, 0.0f, 0.0f, 1.0f }, { 10.0f, 0.0f, 0.0f, 1.0f }, { 0.0f, 10.0f, 0.0f, 1.0f } };
-    EftFVec dir;
-    EftFVec tmp;
+    FVec4 a[3] = { { 0.0f, 0.0f, 0.0f, 1.0f }, { 10.0f, 0.0f, 0.0f, 1.0f }, { 0.0f, 0.0f, 10.0f, 1.0f } };
+    FVec4 b[3] = { { 0.0f, 0.0f, 0.0f, 1.0f }, { 10.0f, 0.0f, 0.0f, 1.0f }, { 0.0f, 10.0f, 0.0f, 1.0f } };
+    FVec4 dir;
+    FVec4 tmp;
 
     tmp[0] = rt->param.lightDir.x;
     tmp[1] = rt->param.lightDir.y;
     tmp[2] = rt->param.lightDir.z;
     tmp[3] = 1.0f;
-    *(EftVec *)dir = *(EftVec *)tmp;
-    EftMath_CalcTangentFrame(frame, (EftVec *)a, (EftVec *)b);
+    *(Vec4Packed *)dir = *(Vec4Packed *)tmp;
+    EftMath_CalcTangentFrame(frame, (Vec4Packed *)a, (Vec4Packed *)b);
     rt->light.x = Vec3_Dot((Vec4 *)dir, (Vec4 *)frame->m[0]);
     rt->light.y = Vec3_Dot((Vec4 *)dir, (Vec4 *)w->rt.frame.m[1]);
     rt->light.z = Vec3_Dot((Vec4 *)dir, (Vec4 *)w->rt.frame.m[2]);

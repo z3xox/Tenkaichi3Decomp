@@ -12,6 +12,14 @@ typedef struct Vec4 {
     /* 0x0C */ float w;
 } Vec4; /* size 0x10 */
 
+/* An aligned float vector with named and indexed component access. */
+typedef union Vec4Array {
+    struct {
+        f32 x, y, z, w;
+    };
+    f32 v[4];
+} __attribute__((aligned(16))) Vec4Array;
+
 /* Unit quaternion, vector part first. Copied with Vec4_Copy. */
 typedef struct Quat {
     /* 0x00 */ float x;
@@ -48,5 +56,7 @@ void Quat_FromEuler(Quat *out, Vec4 *angles);
 void Mtx_ToEuler(Vec4 *out, Mtx44 *m);
 void Quat_ToEuler(Vec4 *out, Quat *q);
 void Quat_FromMtx(Quat *out, Mtx44 *m);
+
+s32 Mtx_ProjectPointStq(s32 *scr, f32 *st, Mtx44 *m, f32 *pos, f32 *nrm); /* projects and returns visibility */
 
 #endif

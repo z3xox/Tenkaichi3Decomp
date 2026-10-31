@@ -2,6 +2,8 @@
 #define BATTLE_EFT_Y_H
 
 #include "types.h"
+#include "sys/math3d.h"
+#include "battle/btl_task.h"
 
 /*
  * src/battle/eft_y.c = 0x191D28..0x195EE8 (41 functions). Two effect pack part modules, both visual only:
@@ -22,15 +24,6 @@
  */
 
 /* The effect code's vector: 16-byte aligned, passed by value with a callee copy (ld / sd pairs). */
-typedef union EftYVec {
-    struct {
-        /* 0x0 */ f32 x;
-        /* 0x4 */ f32 y;
-        /* 0x8 */ f32 z;
-        /* 0xC */ f32 w;
-    };
-    f32 v[4];
-} __attribute__((aligned(16))) EftYVec;
 
 typedef union EftYVec3 {
     struct {
@@ -47,9 +40,6 @@ typedef union EftYPair {
 } EftYPair;
 
 /* Four floats without the alignment, for members of blocks that do not start on a 16-byte boundary. */
-typedef struct EftYVecU {
-    f32 x, y, z, w;
-} EftYVecU;
 
 typedef union EftYUv {
     struct {
@@ -79,11 +69,6 @@ typedef struct EftYTex16 {
 } EftYTex16; /* size 0x108 */
 
 /* The task fields used here (0x40 bytes, see eft_g.h). */
-typedef struct EftYTask {
-    /* 0x00 */ u8 unk0[0x34];
-    /* 0x34 */ void *unk34;
-    /* 0x38 */ void *work;
-} EftYTask;
 
 /* ---- quad emitter (part kind 9) ------------------------------------------------------------------------ */
 
@@ -138,10 +123,10 @@ typedef struct EftQuadDef {
 
 /* Second parameter block (pack resource word 1), same three keys. */
 typedef struct EftQuadDef2 {
-    /* 0x000 */ EftYVec v0[3];
-    /* 0x030 */ EftYVec v1[3];
-    /* 0x060 */ EftYVec v2[3];
-    /* 0x090 */ EftYVec v3[3];
+    /* 0x000 */ Vec4Array v0[3];
+    /* 0x030 */ Vec4Array v1[3];
+    /* 0x060 */ Vec4Array v2[3];
+    /* 0x090 */ Vec4Array v3[3];
     /* 0x0C0 */ f32 c0[3];
     /* 0x0CC */ f32 c1[3];
     /* 0x0D8 */ EftYPair p0[3];
@@ -165,18 +150,18 @@ typedef struct EftQuadDef2 {
 
 /* One quad of the shared pool. */
 typedef struct EftQuad {
-    /* 0x000 */ EftYVec pos;     /* relative to the emitter position, or to `origin` (emitter flag 0x100) */
-    /* 0x010 */ EftYVec origin;  /* emitter position when the quad was created */
-    /* 0x020 */ EftYVec vel;
-    /* 0x030 */ EftYVec accel;
-    /* 0x040 */ EftYVec color;   /* 0..255; w = alpha */
+    /* 0x000 */ Vec4Array pos;     /* relative to the emitter position, or to `origin` (emitter flag 0x100) */
+    /* 0x010 */ Vec4Array origin;  /* emitter position when the quad was created */
+    /* 0x020 */ Vec4Array vel;
+    /* 0x030 */ Vec4Array accel;
+    /* 0x040 */ Vec4Array color;   /* 0..255; w = alpha */
     /* 0x050 */ EftYVec3 colorRamp; /* added to colorBase, scaled by the ramp progress */
     /* 0x05C */ f32 unk5C;
     /* 0x060 */ EftYVec3 colorBase;
     /* 0x06C */ f32 alphaBase;
     /* 0x070 */ EftYVec3 rot;    /* radians, wrapped every frame */
     /* 0x07C */ f32 unk7C;
-    /* 0x080 */ EftYVec corner[4]; /* view space */
+    /* 0x080 */ Vec4Array corner[4]; /* view space */
     /* 0x0C0 */ EftYUv uv[4];    /* per corner: (u0, v0), (u1, v0), (u0, v1), (u1, v1) */
     /* 0x0E0 */ EftYVec3 rotVel;
     /* 0x0EC */ f32 fadeIn;      /* frames */
@@ -260,10 +245,10 @@ typedef struct EftQuadDelta {
     /* 0x218 */ EftYPair k;
     /* 0x220 */ f32 l;
     /* 0x224 */ f32 unk224[3];
-    /* 0x230 */ EftYVecU v0;
-    /* 0x240 */ EftYVecU v1;
-    /* 0x250 */ EftYVecU v2;
-    /* 0x260 */ EftYVecU v3;
+    /* 0x230 */ Vec4 v0;
+    /* 0x240 */ Vec4 v1;
+    /* 0x250 */ Vec4 v2;
+    /* 0x260 */ Vec4 v3;
     /* 0x270 */ f32 c0;
     /* 0x274 */ f32 c1;
     /* 0x278 */ f32 p0a;
@@ -301,10 +286,10 @@ typedef struct EftQuadCur {
     /* 0x340 */ EftYPair k;
     /* 0x348 */ f32 l;
     /* 0x34C */ f32 unk34C;
-    /* 0x350 */ EftYVecU v0;
-    /* 0x360 */ EftYVecU v1;
-    /* 0x370 */ EftYVecU v2;
-    /* 0x380 */ EftYVecU v3;
+    /* 0x350 */ Vec4 v0;
+    /* 0x360 */ Vec4 v1;
+    /* 0x370 */ Vec4 v2;
+    /* 0x380 */ Vec4 v3;
     /* 0x390 */ f32 c0;
     /* 0x394 */ f32 c1;
     /* 0x398 */ f32 p0a;
@@ -326,8 +311,8 @@ typedef struct EftQuadWork {
     /* 0x00C */ s32 unkC;
     /* 0x010 */ EftYTex tex0;    /* copies of tex->e[texA] and tex->e[texB] */
     /* 0x020 */ EftYTex tex1;
-    /* 0x030 */ EftYVec pos;
-    /* 0x040 */ EftYVec dir;     /* unit */
+    /* 0x030 */ Vec4Array pos;
+    /* 0x040 */ Vec4Array dir;     /* unit */
     /* 0x050 */ EftYVec3 angle;  /* advanced by cur.g per emitted quad */
     /* 0x05C */ f32 size;
     /* 0x060 */ f32 life;        /* frames left before it stops by itself; 0 = no limit */
@@ -358,8 +343,8 @@ typedef struct EftQuadArg {
     /* 0x04 */ EftQuadDef2 *def2;
     /* 0x08 */ EftYTex8 *tex;
     /* 0x0C */ s32 padC;
-    /* 0x10 */ EftYVec pos;
-    /* 0x20 */ EftYVec dir;
+    /* 0x10 */ Vec4Array pos;
+    /* 0x20 */ Vec4Array dir;
     /* 0x30 */ f32 size;
     /* 0x34 */ f32 life;         /* seconds */
     /* 0x38 */ s32 objId;
@@ -450,7 +435,7 @@ typedef struct EftLineDef {
 
 /* Second parameter block (pack resource word 1), three keys each. */
 typedef struct EftLineDef2 {
-    /* 0x00 */ EftYVec color[3];
+    /* 0x00 */ Vec4Array color[3];
     /* 0x30 */ f32 u[3][2];      /* texture window: [0] at one edge, [1] at the other */
     /* 0x48 */ f32 v[3][2];
     /* 0x60 */ f32 q[3][2];
@@ -459,7 +444,7 @@ typedef struct EftLineDef2 {
 
 /* The animated values of a line. */
 typedef struct EftLineCur {
-    /* 0x00 */ EftYVec color;
+    /* 0x00 */ Vec4Array color;
     /* 0x10 */ f32 u0;
     /* 0x14 */ f32 v0;
     /* 0x18 */ f32 q0;
@@ -480,8 +465,8 @@ typedef struct EftLineCur {
 
 /* Argument of the line's init callback; the work starts with a copy of it. */
 typedef struct EftLineArg {
-    /* 0x00 */ EftYVec pos;
-    /* 0x10 */ EftYVec dir;
+    /* 0x00 */ Vec4Array pos;
+    /* 0x10 */ Vec4Array dir;
     /* 0x20 */ s32 objId;
     /* 0x24 */ s32 texIdx;       /* entry of `tex` that receives the built TEX0 */
     /* 0x28 */ f32 life;         /* seconds */
@@ -496,7 +481,7 @@ typedef struct EftLineArg {
 typedef struct EftLineWork {
     /* 0x000 */ EftLineArg arg;
     /* 0x040 */ EftLineCur cur;   /* EftLine_SetKey / EftLine_Animate */
-    /* 0x090 */ EftYVec color;    /* drawn colour */
+    /* 0x090 */ Vec4Array color;    /* drawn colour */
     /* 0x0A0 */ f32 u0;
     /* 0x0A4 */ f32 unkA4;
     /* 0x0A8 */ f32 v0;
@@ -519,49 +504,49 @@ typedef struct EftLineWork {
 } EftLineWork; /* size 0x140 */
 
 void EftQuad_StepAll(EftQuadWork *w);
-void EftQuad_BuildCorners(EftQuad *q, EftQuadWork *w, EftYVec pos, f32 pitch, f32 yaw);
+void EftQuad_BuildCorners(EftQuad *q, EftQuadWork *w, Vec4Array pos, f32 pitch, f32 yaw);
 void EftQuad_DrawAllFacing(EftQuadWork *w, s32 layer);
 void EftQuad_DrawAllSprite(EftQuadWork *w, s32 layer);
 s32 EftQuad_Emit(EftQuadWork *w);
 void EftQuad_ListAppend(EftQuad **head, EftQuad **tail, EftQuad *q);
 void EftQuad_ListRemove(EftQuad **head, EftQuad **tail, EftQuad *q);
-void EftQuad_CalcKeyDeltas(EftYTask *task);
-void EftQuad_Animate(EftYTask *task);
-void EftQuad_DrawSprite(EftYVec *corner, EftYVec uv0, EftYVec uv1, EftYVec color, s32 layer, s32 texIdx, s32 flip,
+void EftQuad_CalcKeyDeltas(BtlTask *task);
+void EftQuad_Animate(BtlTask *task);
+void EftQuad_DrawSprite(Vec4Array *corner, Vec4Array uv0, Vec4Array uv1, Vec4Array color, s32 layer, s32 texIdx, s32 flip,
                         EftYTex8 *tex);
-void EftQuad_DrawFacing(EftYVec *corner, EftYVec uv0, EftYVec uv1, EftYVec color, s32 layer, s32 texIdx, s32 arg6,
+void EftQuad_DrawFacing(Vec4Array *corner, Vec4Array uv0, Vec4Array uv1, Vec4Array color, s32 layer, s32 texIdx, s32 arg6,
                         s32 flip, EftYTex8 *tex);
 void EftQuad_SetSheet(EftQuadWork *w, u8 cols, u8 rows);
 void EftQuad_SetTex(EftQuadWork *w, EftYTex8 *tex, s32 a, s32 b);
 void EftQuad_LoadTex(EftQuadWork *w, EftYTex8 *tex);
 void EftQuad_SetLastKey(EftQuadWork *w);
-EftYTask *EftQuad_CreateEx(EftQuadDef *def, EftQuadDef2 *def2, EftYTex8 *tex, EftYVec pos, EftYVec dir, f32 size,
+BtlTask *EftQuad_CreateEx(EftQuadDef *def, EftQuadDef2 *def2, EftYTex8 *tex, Vec4Array pos, Vec4Array dir, f32 size,
                            f32 life);
-EftYTask *EftQuad_Create(EftQuadArg *arg);
-void EftQuad_StopAlias(EftYTask *task);
-void EftQuad_Stop(EftYTask *task);
-void EftQuad_SetFade(EftYTask *task, s32 frames);
-void EftQuad_SetPosDir(EftYTask *task, EftYVec pos, EftYVec dir);
-void EftQuad_Kill(EftYTask *task);
-void EftQuad_SetPos(EftYTask *task, EftYVec pos);
-void EftQuad_Warp(EftYTask *task, EftYVec pos);
-void EftQuad_SetDir(EftYTask *task, EftYVec dir);
-void EftQuad_SetSize(EftYTask *task, f32 size);
-void EftQuad_SetLife(EftYTask *task, f32 seconds);
-void EftQuad_SetTexTable(EftYTask *task, EftYTex8 *tex);
-void EftQuad_SetTexPair(EftYTask *task, EftYTex8 *tex, s32 a, s32 b);
-void EftQuad_SetDelay(EftYTask *task, s32 frames);
-void EftQuad_SetStopDelay(EftYTask *task, s32 frames);
-s32 EftQuad_SetViewOnly(EftYTask *task);
-s32 EftQuad_IsAlive(EftYTask *task);
-void EftQuad_SetOwnOrigin(EftYTask *task, s32 on);
-void EftQuad_SetCut(EftYTask *task, s32 cut);
+BtlTask *EftQuad_Create(EftQuadArg *arg);
+void EftQuad_StopAlias(BtlTask *task);
+void EftQuad_Stop(BtlTask *task);
+void EftQuad_SetFade(BtlTask *task, s32 frames);
+void EftQuad_SetPosDir(BtlTask *task, Vec4Array pos, Vec4Array dir);
+void EftQuad_Kill(BtlTask *task);
+void EftQuad_SetPos(BtlTask *task, Vec4Array pos);
+void EftQuad_Warp(BtlTask *task, Vec4Array pos);
+void EftQuad_SetDir(BtlTask *task, Vec4Array dir);
+void EftQuad_SetSize(BtlTask *task, f32 size);
+void EftQuad_SetLife(BtlTask *task, f32 seconds);
+void EftQuad_SetTexTable(BtlTask *task, EftYTex8 *tex);
+void EftQuad_SetTexPair(BtlTask *task, EftYTex8 *tex, s32 a, s32 b);
+void EftQuad_SetDelay(BtlTask *task, s32 frames);
+void EftQuad_SetStopDelay(BtlTask *task, s32 frames);
+s32 EftQuad_SetViewOnly(BtlTask *task);
+s32 EftQuad_IsAlive(BtlTask *task);
+void EftQuad_SetOwnOrigin(BtlTask *task, s32 on);
+void EftQuad_SetCut(BtlTask *task, s32 cut);
 
 void EftLine_SetTex(EftLineWork *w, EftYTex16 *tex, s32 a, s32 b);
 void EftLine_LoadTex(EftLineWork *w, EftLineArg *arg);
 void EftLine_SetKey(EftLineCur *out, EftLineArg *arg, s32 key);
 void EftLine_Animate(EftLineWork *w);
-void EftLine_DrawSprite(EftYTask *task);
-void EftLine_DrawClipped(EftYTask *task);
+void EftLine_DrawSprite(BtlTask *task);
+void EftLine_DrawClipped(BtlTask *task);
 
 #endif

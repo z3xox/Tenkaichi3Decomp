@@ -30,6 +30,9 @@
 
 #define SAVE_MONEY_MAX 9999999
 #define SAVE_MONEY_UNLOCK_ALL 4850000
+#define SAVE_SOUND_MODE 0
+#define SAVE_SOUND_BGM 1
+#define SAVE_SOUND_SE 2
 #define SAVE_VOLUME_DEFAULT 9 /* volumes are 0..9 */
 
 /* SaveData.flags (0x1608). Defaults: bits 0-2 set. */
@@ -67,6 +70,40 @@ typedef struct SaveRec {
     /* 0x18 */ s32 chara;  /* character id, -1 = empty (defaults; ChrGrid_Build appends the non-empty ones to the character list) */
 } SaveRec;
 
+typedef struct SaveRank {
+    /* 0x00 */ s32 chara;
+    /* 0x04 */ s32 score;
+    /* 0x08 */ u8 cleared;      /* 1 = the ladder was finished */
+} SaveRank;
+
+typedef struct SaveMission {
+    /* 0x0 */ u8 unk0;
+    /* 0x1 */ u8 rank;
+    /* 0x2 */ u8 time0;         /* best time, shown as three two-digit groups (separate members, not an array:
+                                   the code's address arithmetic shows it) */
+    /* 0x3 */ u8 time1;
+    /* 0x4 */ u8 time2;
+    /* 0x5 */ u8 unk5[3];
+    /* 0x8 */ s32 score;        /* shown * 100 */
+} SaveMission;
+
+typedef struct SaveCourse {
+    /* 0x0 */ u8 cleared;
+    /* 0x1 */ u8 rank;          /* frame of the rank letter strip */
+    /* 0x2 */ u8 time[3];       /* best time: three two-digit groups, most significant first */
+    /* 0x5 */ u8 unk5[3];
+    /* 0x8 */ s32 score;        /* best score / 100 */
+} SaveCourse;
+
+typedef struct SaveSurvival {
+    /* 0x00 */ s32 defeated;    /* opponents beaten: the score sheet's fourth line */
+    /* 0x04 */ s32 score;       /* shown * 100 */
+    /* 0x08 */ u8 rank;
+    /* 0x09 */ u8 hours;
+    /* 0x0A */ u8 minutes;
+    /* 0x0B */ u8 seconds;
+} SaveSurvival;
+
 typedef struct SaveData {
     /* 0x0000 */ s32 unk0;
     /* 0x0004 */ s32 unk4;
@@ -76,9 +113,13 @@ typedef struct SaveData {
     /* 0x00A0 */ u8 unkA0[0x208 - 0xA0];
     /* 0x0208 */ s32 unk208;        /* bit 0 set by Save_UnlockAll */
     /* 0x020C */ s32 unk20C;        /* 5 by default, 20 after Save_UnlockAll: a capacity, guess */
-    /* 0x0210 */ u8 unk210[0x77C - 0x210]; /* menu 0x37F5F8 / 0x385268 / 0x387F90 use 0x210-0x28D */
+    /* 0x0210 */ SaveRank ranking[10];
+    /* 0x0288 */ s32 unk288;
+    /* 0x028C */ SaveMission mission[100];
+    /* 0x073C */ SaveSurvival surv[5];
+    /* 0x0778 */ s32 unk778;
     /* 0x077C */ s32 unk77C;        /* 99 by default */
-    /* 0x0780 */ u8 unk780[0xA08 - 0x780]; /* byte records at 0x780.. (menu 0x372E98 / 0x3760C8) */
+    /* 0x0780 */ SaveCourse course[54];
     /* 0x0A08 */ s32 unkA08;        /* flag bits (0x20, 0x40, 1 << n), menu 0x362160..0x364B18 */
     /* 0x0A0C */ s32 unkA0C;        /* counter kept in 0..23 by menu Tour_Main */
     /* 0x0A10 */ s32 unkA10;
@@ -101,9 +142,7 @@ typedef struct SaveData {
     /* 0x1698 */ s32 unk1698;       /* same, to +0x38 and +0x3C */
     /* 0x169C */ s32 screenX;       /* display offset, Gfx_SetDisplayRegs */
     /* 0x16A0 */ s32 screenY;
-    /* 0x16A4 */ s32 soundMode;     /* 0 stereo, 1 mono: SndOpt_Apply calls Snd_SetStereo(soundMode ^ 1), which ends in Adx_SetMono(soundMode) */
-    /* 0x16A8 */ s32 bgmVolume;     /* 0..9; sys/adx.c channels 0-1 */
-    /* 0x16AC */ s32 seVolume;      /* 0..9; sys/adx.c channels 2-5 (stream SE, voice) and Snd_ScaleVolume (sound effects) */
+    /* 0x16A4 */ s32 sound[3]; /* SAVE_SOUND_MODE/BGM/SE; ADX indexes this array by channel kind. */
     /* 0x16B0 */ u8 unk16B0[0x1808 - 0x16B0];
     /* 0x1808 */ SaveCustom custom[SAVE_CUSTOM_COUNT];
     /* 0x2D40 */ SaveRec rec[SAVE_REC_COUNT];

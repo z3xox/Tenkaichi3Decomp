@@ -1,4 +1,6 @@
 #include "common.h"
+#include "battle/btl_cam.h"
+#include "sys/math3d.h"
 #include "battle/battle.h"
 #include "battle/btl_pool.h"
 #include "battle/eft_a.h"
@@ -19,50 +21,49 @@ extern f32 sqrtf(f32 x);
 
 extern s32 BtlScene_IsTimeStopped(void);
 
-extern void Vec4_Copy(EftVec *dst, EftVec *src);
-extern void Vec4_Sub(EftVec *dst, EftVec *a, EftVec *b);
-extern f32 Vec3_Dot(EftVec *a, EftVec *b);
-extern void Vec3_Normalize(EftVec *dst, EftVec *src);
-extern void Vec4_Set(EftVec *dst, f32 x, f32 y, f32 z, f32 w);
-extern void Vec4_Add(EftVec *dst, EftVec *a, EftVec *b);
-extern void Vec4_Scale(EftVec *dst, EftVec *src, f32 scale);
-extern void Vec3_Add(EftVec *dst, EftVec *a, EftVec *b);
-extern void Vec3_Scale(EftVec *dst, EftVec *src, f32 scale);
-extern void Vec3_Cross(EftVec *dst, EftVec *a, EftVec *b);
-extern void Mtx_MulVec4(EftVec *dst, EftMtx *m, EftVec *src);
+extern void Vec4_Copy(Vec4Array *dst, Vec4Array *src);
+extern void Vec4_Sub(Vec4Array *dst, Vec4Array *a, Vec4Array *b);
+extern f32 Vec3_Dot(Vec4Array *a, Vec4Array *b);
+extern void Vec3_Normalize(Vec4Array *dst, Vec4Array *src);
+extern void Vec4_Set(Vec4Array *dst, f32 x, f32 y, f32 z, f32 w);
+extern void Vec4_Add(Vec4Array *dst, Vec4Array *a, Vec4Array *b);
+extern void Vec4_Scale(Vec4Array *dst, Vec4Array *src, f32 scale);
+extern void Vec3_Add(Vec4Array *dst, Vec4Array *a, Vec4Array *b);
+extern void Vec3_Scale(Vec4Array *dst, Vec4Array *src, f32 scale);
+extern void Vec3_Cross(Vec4Array *dst, Vec4Array *a, Vec4Array *b);
+extern void Mtx_MulVec4(Vec4Array *dst, EftMtx *m, Vec4Array *src);
 extern void Mtx_StoreIdentity(EftMtx *m);
 extern void Mtx_InverseRT(EftMtx *dst, EftMtx *src);            /* inverse of a rigid transform (view -> world) */
 extern void Mtx_RotateZ(EftMtx *dst, EftMtx *src, f32 angle); /* rotation about Z */
 extern void Mtx_Mul(EftMtx *dst, EftMtx *a, EftMtx *b);   /* matrix product */
-extern void Vec4_Div(EftVec *dst, EftVec *src, f32 div);   /* dst = src / div */
-extern void Vec4_Lerp(EftVec *dst, EftVec *a, EftVec *b, f32 t); /* dst = a * t + b * (1 - t) */
-extern s32 ClipPoly_ClipPlane(EftGfxVert *verts, EftVec *plane, s32 count); /* clips a polygon against a plane, new count */
-extern void ClipPoly_ProjectCur(s32 (*scr)[4], EftVec *col, EftGfxVert *verts, s32 count); /* projects a polygon */
-extern void EftPrim_DrawTriangle(s32 *p0, s32 *p1, s32 *p2, EftVec *uv0, EftVec *uv1, EftVec *uv2,
-                          EftVec *col0, EftVec *col1, EftVec *col2, s32 arg9, s32 arg10, s32 arg11, s32 z, u64 tex);
+extern void Vec4_Div(Vec4Array *dst, Vec4Array *src, f32 div);   /* dst = src / div */
+extern void Vec4_Lerp(Vec4Array *dst, Vec4Array *a, Vec4Array *b, f32 t); /* dst = a * t + b * (1 - t) */
+extern s32 ClipPoly_ClipPlane(EftGfxVert *verts, Vec4Array *plane, s32 count); /* clips a polygon against a plane, new count */
+extern void ClipPoly_ProjectCur(s32 (*scr)[4], Vec4Array *col, EftGfxVert *verts, s32 count); /* projects a polygon */
+extern void EftPrim_DrawTriangle(s32 *p0, s32 *p1, s32 *p2, Vec4Array *uv0, Vec4Array *uv1, Vec4Array *uv2,
+                          Vec4Array *col0, Vec4Array *col1, Vec4Array *col2, s32 arg9, s32 arg10, s32 arg11, s32 z, u64 tex);
 extern s32 abs(s32 x);
 extern f32 sinf(f32 x);
 extern f32 cosf(f32 x);
 extern f32 atanf(f32 x);
 extern f32 acosf(f32 x);
 extern s32 BtlCharApi_IsLockedOn(s32 objId);
-extern void BtlCharApi_CalcAimDir45(s32 objId, s32 arg, EftVec *out);
-extern void BtlCharApi_GetRot(s32 objId, EftVec *out);
-extern void BtlCharApi_GetFrameMove(s32 objId, EftVec *out);
-extern u8 *gBtlCamView;
-extern EftVec gEftClipPlanes[5];
+extern void BtlCharApi_CalcAimDir45(s32 objId, s32 arg, Vec4Array *out);
+extern void BtlCharApi_GetRot(s32 objId, Vec4Array *out);
+extern void BtlCharApi_GetFrameMove(s32 objId, Vec4Array *out);
+extern Vec4Array gEftClipPlanes[5];
 
 /* Argument block of the impact effect 0x187BE0. */
 typedef struct EftImpactArg {
-    /* 0x00 */ EftVec pos;
-    /* 0x10 */ EftVec dir;
+    /* 0x00 */ Vec4Array pos;
+    /* 0x10 */ Vec4Array dir;
     /* 0x20 */ s32 id;
     /* 0x24 */ s32 objId;
     /* 0x28 */ s32 unk28;
 } EftImpactArg; /* size 0x30 */
 
 extern void BtlTask_SetTagBits(EftHitTask *task, s32 bits);       /* task->flags |= bits */
-extern void BtlTask_SetPos(EftHitTask *task, EftVec pos);     /* task->pos = pos */
+extern void BtlTask_SetPos(EftHitTask *task, Vec4Array pos);     /* task->pos = pos */
 extern void EftTechEvt_RequestStop(s32 side);                         /* beam struggle: sets bit 2 in a per-side word */
 extern void EftKiBomb_SetContact(EftHitTask *task, void *mtx);    /* copies a 0x40-byte block into the blast task's work */
 extern f32 BtlStage_GetInnerRadius(void);                              /* stage radius - 100 */
@@ -72,9 +73,9 @@ extern s32 EftImpact_SpawnBlast(EftImpactArg *arg, f32 scale, f32 unk);
 #else
 extern s32 EftImpact_SpawnBlast(EftImpactArg arg, f32 scale, f32 unk); /* adds an impact effect task (class 0x2C3F20) */
 #endif
-extern void EftGndDust_SpawnImpact(s32 objId, EftVec *pos, f32 scale);
+extern void EftGndDust_SpawnImpact(s32 objId, Vec4Array *pos, f32 scale);
 extern s32 BtlCharApi_GetOpponentObjId(s32 objId);
-extern void BtlCharApi_GetNodePos(s32 objId, s32 node, EftVec *out);
+extern void BtlCharApi_GetNodePos(s32 objId, s32 node, Vec4Array *out);
 extern s32 BtlCharApi_TestFlagA4(s32 objId);
 extern s32 BtlStage_HasFeature(s32 kind);                          /* stage query (0..13) */
 extern void *BtlObj_Get(s32 objId);
@@ -190,7 +191,7 @@ s32 EftHit_GetTaskFlags(u32 idx) {
 /* Reports an event of record idx to its task: ors bits into the task's flags and stores where it happened. */
 /* (Matches only with the two tests nested, the global used directly and `rec` assigned inside: a local for the list
  * or `rec` computed up front changes the order of the by-value vector's entry copy.) */
-void EftHit_SetTaskFlag(u32 idx, s32 bits, EftVec pos) {
+void EftHit_SetTaskFlag(u32 idx, s32 bits, Vec4Array pos) {
     EftHitRec *rec;
 
     if (idx < (u32)gEftHitList->count) {
@@ -332,9 +333,9 @@ s32 EftHit_RearmImpact(EftHitRec *rec) {
 s32 EftHit_ClashTech(EftHitRec *a, EftHitRec *b) {
     EftHitDef *defA = a->src->def;
     EftHitDef *defB = b->src->def;
-    EftVec moveA;
-    EftVec moveB;
-    EftVec d;
+    Vec4Array moveA;
+    Vec4Array moveB;
+    Vec4Array d;
     f32 t;
     s32 result;
 
@@ -922,7 +923,7 @@ void EftHit_SpawnBlastImpact(EftHitRec *rec) {
 
 /* Spawns the impact effect of a technique: on a fighter (definition impactFx) or on the stage (groundFx). */
 void EftHit_SpawnTechImpact(EftHitRec *rec) {
-    EftVec dir;
+    Vec4Array dir;
     EftHitSrc *src;
     s32 spawn = 0;
 
@@ -931,7 +932,7 @@ void EftHit_SpawnTechImpact(EftHitRec *rec) {
     Vec4_Sub(&dir, &rec->prevPos, &rec->pos);
     Vec3_Normalize(&dir, &dir);
     if (rec->task->flags & 3) {
-        EftVec pos;
+        Vec4Array pos;
         EftImpactArg arg;
 
         if (src->def->impactFx >= 0) {
@@ -1066,8 +1067,8 @@ void EftCam_Update(void) {
  * Lights a 256-entry palette (RGBA bytes) from a 256-entry table of normals (bytes, 128 = 0): adds the colour
  * (r, g, b) to every entry and puts the diffuse term (N.L * 64 + 32, at most 128) into alpha.
  */
-void EftGfx_LightClutDiffuse(u8 *dst, u8 *nrm, EftVec light, u8 r, u8 g, u8 b) {
-    EftVec n;
+void EftGfx_LightClutDiffuse(u8 *dst, u8 *nrm, Vec4Array light, u8 r, u8 g, u8 b) {
+    Vec4Array n;
     s32 i;
     s32 v;
 
@@ -1093,12 +1094,12 @@ void EftGfx_LightClutDiffuse(u8 *dst, u8 *nrm, EftVec light, u8 r, u8 g, u8 b) {
 }
 
 /* Adds a specular highlight to a 256-entry palette from the table of normals: view matrix, light matrix, eye vector. */
-void EftGfx_LightClutSpecular(u8 *dst, u8 *nrm, EftMtx view, EftMtx light, EftVec eye, f32 power) {
-    EftVec h;
-    EftVec r;
-    EftVec n;
-    EftVec c;
-    EftVec z = { 0.0f, 0.0f, 0.0f, 0.0f };
+void EftGfx_LightClutSpecular(u8 *dst, u8 *nrm, EftMtx view, EftMtx light, Vec4Array eye, f32 power) {
+    Vec4Array h;
+    Vec4Array r;
+    Vec4Array n;
+    Vec4Array c;
+    Vec4Array z = { 0.0f, 0.0f, 0.0f, 0.0f };
     EftMtx inv;
     s32 i;
     s32 v;
@@ -1143,9 +1144,9 @@ void EftGfx_LightClutSpecular(u8 *dst, u8 *nrm, EftMtx view, EftMtx light, EftVe
 
 /* Blends two 256-entry palettes: dst = a * t + b * (1 - t), t clamped to 0..1 (no caller). */
 void EftGfx_LerpClut(u8 *dst, u8 *a, u8 *b, f32 t) {
-    EftVec va;
-    EftVec vb;
-    EftVec out;
+    Vec4Array va;
+    Vec4Array vb;
+    Vec4Array out;
     s32 i;
 
     if (t < 0.0f) {
@@ -1166,11 +1167,11 @@ void EftGfx_LerpClut(u8 *dst, u8 *a, u8 *b, f32 t) {
 }
 
 /* Builds the tangent frame of a triangle from its three positions and three texture coordinates. */
-void EftMath_CalcTangentFrame(EftMtx *out, EftVec *pos, EftVec *uv) {
-    EftVec n;
-    EftVec c;
-    EftVec e1;
-    EftVec e2;
+void EftMath_CalcTangentFrame(EftMtx *out, Vec4Array *pos, Vec4Array *uv) {
+    Vec4Array n;
+    Vec4Array c;
+    Vec4Array e1;
+    Vec4Array e2;
 
     Vec4_Set(&e1, pos[1].x - pos[0].x, uv[1].x - uv[0].x, uv[1].y - uv[0].y, 1.0f);
     Vec4_Set(&e2, pos[2].x - pos[0].x, uv[2].x - uv[0].x, uv[2].y - uv[0].y, 1.0f);
@@ -1202,10 +1203,10 @@ void EftMath_CalcTangentFrame(EftMtx *out, EftVec *pos, EftVec *uv) {
 }
 
 /* Builds the rotation whose Z axis is dir (up = -Y), rolled by `roll` about Z; returns 0 for a null dir. */
-s32 EftMath_MtxFromDir(EftMtx *out, EftVec *dir, f32 roll) {
-    EftVec up = { 0.0f, 0.0f, 0.0f, 0.0f };
-    EftVec right;
-    EftVec fwd;
+s32 EftMath_MtxFromDir(EftMtx *out, Vec4Array *dir, f32 roll) {
+    Vec4Array up = { 0.0f, 0.0f, 0.0f, 0.0f };
+    Vec4Array right;
+    Vec4Array fwd;
     EftMtx rot;
 
     up.y = -1.0f;
@@ -1252,10 +1253,10 @@ f32 EftMath_WrapAngle(f32 angle) {
 }
 
 /* Catmull-Rom point of four control points at t. The result goes to a by-value argument and is lost (no caller). */
-void EftMath_CatmullRom(EftVec out, EftVec *p, f32 t) {
+void EftMath_CatmullRom(Vec4Array out, Vec4Array *p, f32 t) {
     EftMtx basis = { { { -1.0f, 3.0f, -3.0f, 1.0f }, { 2.0f, -5.0f, 4.0f, -1.0f }, { -1.0f, 0.0f, 1.0f, 0.0f },
                        { 0.0f, 2.0f, 0.0f, 0.0f } } };
-    EftVec tv;
+    Vec4Array tv;
     EftMtx pts;
 
     Vec4_Set(&pts.row[0], p[0].x, p[0].y, p[0].z, p[0].w);
@@ -1269,11 +1270,11 @@ void EftMath_CatmullRom(EftVec out, EftVec *p, f32 t) {
 }
 
 /* Quadratic spline point of three control points at t (basis 0x2EC520), w = 1. */
-void EftMath_Spline3(EftVec *out, EftVec *p, f32 t) {
+void EftMath_Spline3(Vec4Array *out, Vec4Array *p, f32 t) {
     EftMtx basis = { { { 0.0f, 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, -2.0f, 1.0f }, { 0.0f, -3.0f, 4.0f, -1.0f },
                        { 0.0f, 2.0f, 0.0f, 0.0f } } };
     EftMtx pts;
-    EftVec tv;
+    Vec4Array tv;
 
     Vec4_Set(&pts.row[0], 0.0f, 0.0f, 0.0f, 0.0f);
     Vec4_Set(&pts.row[1], p[0].x, p[0].y, p[0].z, p[0].w);
@@ -1287,11 +1288,11 @@ void EftMath_Spline3(EftVec *out, EftVec *p, f32 t) {
 }
 
 /* Quadratic spline point of three control points at t (basis 0x2EC560); result lost in a by-value argument (no caller). */
-void EftMath_Spline3B(EftVec out, EftVec *p, f32 t) {
+void EftMath_Spline3B(Vec4Array out, Vec4Array *p, f32 t) {
     EftMtx basis = { { { 0.0f, 0.0f, 0.0f, 0.0f }, { 1.0f, -2.0f, 1.0f, 0.0f }, { -1.0f, 0.0f, 1.0f, 0.0f },
                        { 0.0f, 2.0f, 0.0f, 0.0f } } };
     EftMtx pts;
-    EftVec tv;
+    Vec4Array tv;
 
     Vec4_Set(&pts.row[0], p[0].x, p[0].y, p[0].z, p[0].w);
     Vec4_Set(&pts.row[1], p[1].x, p[1].y, p[1].z, p[1].w);
@@ -1304,11 +1305,11 @@ void EftMath_Spline3B(EftVec out, EftVec *p, f32 t) {
 }
 
 /* Cubic Bezier point of four control points at t; result lost in a by-value argument (no caller). */
-void EftMath_Bezier(EftVec out, EftVec *p, f32 t) {
+void EftMath_Bezier(Vec4Array out, Vec4Array *p, f32 t) {
     EftMtx basis = { { { -1.0f, 3.0f, -3.0f, 1.0f }, { 3.0f, -6.0f, 3.0f, 0.0f }, { -3.0f, 3.0f, 0.0f, 0.0f },
                        { 1.0f, 0.0f, 0.0f, 0.0f } } };
     EftMtx pts;
-    EftVec tv;
+    Vec4Array tv;
 
     Vec4_Set(&pts.row[0], p[0].x, p[0].y, p[0].z, p[0].w);
     Vec4_Set(&pts.row[1], p[1].x, p[1].y, p[1].z, p[1].w);
@@ -1321,7 +1322,7 @@ void EftMath_Bezier(EftVec out, EftVec *p, f32 t) {
 }
 
 /* Linear interpolation of two points; result lost in a by-value argument (no caller). */
-void EftMath_Lerp(EftVec out, EftVec *p, f32 t) {
+void EftMath_Lerp(Vec4Array out, Vec4Array *p, f32 t) {
     s32 i;
 
     for (i = 0; i < 3; i++) {
@@ -1331,14 +1332,14 @@ void EftMath_Lerp(EftVec out, EftVec *p, f32 t) {
 }
 
 /* Kochanek-Bartels (tension, bias, continuity) spline point of four control points; result lost (no caller). */
-void EftMath_TcbSpline(EftVec out, EftVec *p, f32 t, f32 tension, f32 bias, f32 continuity) {
+void EftMath_TcbSpline(Vec4Array out, Vec4Array *p, f32 t, f32 tension, f32 bias, f32 continuity) {
     EftMtx basis = { { { 2.0f, -2.0f, 1.0f, 1.0f }, { -3.0f, 3.0f, -2.0f, -1.0f }, { 0.0f, 0.0f, 1.0f, 0.0f },
                        { 1.0f, 0.0f, 0.0f, 0.0f } } };
-    EftVec tv;
-    EftVec k;
+    Vec4Array tv;
+    Vec4Array k;
     EftMtx m;
-    EftVec h;
-    EftVec tmp;
+    Vec4Array h;
+    Vec4Array tmp;
 
     Vec4_Set(&tv, t * t * t, t * t, t, 1.0f);
     Vec4_Set(&k, (1.0f - tension) * (bias + 1.0f) * (continuity + 1.0f) * 0.5f,
@@ -1362,15 +1363,15 @@ void EftMath_TcbSpline(EftVec out, EftVec *p, f32 t, f32 tension, f32 bias, f32 
 }
 
 /* Returns the five view-frustum planes (world space) the clipped draw functions use. */
-EftVec *EftGfx_GetClipPlanes(void) {
+Vec4Array *EftGfx_GetClipPlanes(void) {
     return gEftClipPlanes;
 }
 
 /* Rebuilds the five clip planes from the current camera view (top, bottom, left, right, near). */
 void EftGfx_UpdateClipPlanes(void) {
-    EftVec *plane = gEftClipPlanes;
+    Vec4Array *plane = gEftClipPlanes;
     EftMtx m;
-    EftVec eye;
+    Vec4Array eye;
     f32 angle = 30.0f * 3.14159265f / 180.0f;
 #ifdef PORT
     f32 aspect = 0.75f / Port_WideFactor(); /* the side planes of a 16:9 view */
@@ -1408,7 +1409,7 @@ void EftGfx_UpdateClipPlanes(void) {
     plane[4].y = 0.0f;
     plane[4].z = one;
     plane[4].w = -one;
-    Mtx_InverseRT(&m, (EftMtx *)(gBtlCamView + 0x40));
+    Mtx_InverseRT(&m, (EftMtx *)(&gBtlCamView->world2view2));
     Vec4_Copy(&eye, &m.row[3]);
     m.row[3].x = m.row[3].y = m.row[3].z = 0.0f;
     for (i = 0; i < 5; i++) {
@@ -1419,8 +1420,8 @@ void EftGfx_UpdateClipPlanes(void) {
 }
 
 /* Direction a projectile of fighter objId starts in: at the locked target, else straight ahead (yaw only). */
-s32 EftAim_GetDir(EftVec *out, s32 arg, s32 objId) {
-    EftVec rot;
+s32 EftAim_GetDir(Vec4Array *out, s32 arg, s32 objId) {
+    Vec4Array rot;
 
     if (BtlCharApi_IsLockedOn(objId)) {
         BtlCharApi_CalcAimDir45(objId, arg, out);
@@ -1439,10 +1440,10 @@ s32 EftAim_GetDir(EftVec *out, s32 arg, s32 objId) {
  * Same for a technique: with definition aimMode != 0 the aim is taken once and kept in src->aimDir; an aim more
  * than 60 degrees off the fighter's facing (flat dot < 0.5) falls back to straight ahead.
  */
-s32 EftAim_GetDirKeep(EftHitSrc *src, EftVec *out, s32 arg, s32 objId) {
-    EftVec rot;
-    EftVec fwd;
-    EftVec flat;
+s32 EftAim_GetDirKeep(EftHitSrc *src, Vec4Array *out, s32 arg, s32 objId) {
+    Vec4Array rot;
+    Vec4Array fwd;
+    Vec4Array flat;
 
     BtlCharApi_GetRot(objId, &rot);
     fwd.x = sinf(rot.y);
@@ -1474,10 +1475,10 @@ s32 EftAim_GetDirKeep(EftHitSrc *src, EftVec *out, s32 arg, s32 objId) {
 }
 
 /* Rotates v about a unit axis by angle (Rodrigues' formula); w is copied from v. */
-void EftMath_RotateAboutAxis(EftVec *out, EftVec *v, EftVec *axis, f32 angle) {
-    EftVec a;
-    EftVec b;
-    EftVec c;
+void EftMath_RotateAboutAxis(Vec4Array *out, Vec4Array *v, Vec4Array *axis, f32 angle) {
+    Vec4Array a;
+    Vec4Array b;
+    Vec4Array c;
     f32 cs = cosf(angle);
     f32 sn = sinf(angle);
 
@@ -1495,14 +1496,14 @@ void EftMath_RotateAboutAxis(EftVec *out, EftVec *v, EftVec *axis, f32 angle) {
  * 0x11 led by half of its frame movement times the frames to impact (distance / speed, at most 15); a target
  * behind the projectile (dot <= 0) leaves dir unchanged, and so does a fighter that is not locked on.
  */
-void EftAim_Home(EftVec *out, EftVec *pos, EftVec *dir, s32 objId, f32 speed, f32 maxTurn) {
-    EftVec target;
-    EftVec move;
-    EftVec lead;
-    EftVec newDir;
-    EftVec cur;
-    EftVec to;
-    EftVec axis;
+void EftAim_Home(Vec4Array *out, Vec4Array *pos, Vec4Array *dir, s32 objId, f32 speed, f32 maxTurn) {
+    Vec4Array target;
+    Vec4Array move;
+    Vec4Array lead;
+    Vec4Array newDir;
+    Vec4Array cur;
+    Vec4Array to;
+    Vec4Array axis;
     s32 opp = BtlCharApi_GetOpponentObjId(objId);
     f32 frames;
     f32 t;
@@ -1574,8 +1575,8 @@ void EftGfx_DrawPolyAvgZ(EftGfxVert *verts, s32 arg1, s32 arg2, s32 arg3, s32 fl
     verts = portPoly;
 #endif
     EftGfxScr scr[9];
-    EftVec col[9];
-    EftVec *plane;
+    Vec4Array col[9];
+    Vec4Array *plane;
     s32 count = 3;
     s32 i;
     s32 z;
@@ -1610,8 +1611,8 @@ void EftGfx_DrawPolyFixedZ(EftGfxVert *verts, s32 arg1, s32 arg2, s32 arg3, s32 
     verts = portPoly;
 #endif
     EftGfxScr scr[9];
-    EftVec col[9];
-    EftVec *plane;
+    Vec4Array col[9];
+    Vec4Array *plane;
     s32 count = 3;
     s32 i;
     
@@ -1646,8 +1647,8 @@ void EftGfx_DrawPolyAvgZFront(EftGfxVert *verts, s32 arg1, s32 arg2, s32 arg3, s
     verts = portPoly;
 #endif
     EftGfxScr scr[9];
-    EftVec col[9];
-    EftVec *plane;
+    Vec4Array col[9];
+    Vec4Array *plane;
     s32 count = 3;
     s32 i;
     s32 z;
@@ -1684,8 +1685,8 @@ void EftGfx_DrawPolyScaledZ(EftGfxVert *verts, s32 arg1, s32 arg2, s32 arg3, s32
     verts = portPoly;
 #endif
     EftGfxScr scr[9];
-    EftVec col[9];
-    EftVec *plane;
+    Vec4Array col[9];
+    Vec4Array *plane;
     s32 count = 3;
     s32 i;
     s32 z;
@@ -1752,9 +1753,9 @@ typedef struct EftGfxStripPkt {
     /* 0x88 */ EftGfxXyzf xyz3;
 } EftGfxStripPkt; /* size 0x90 */
 
-extern s32 Vu0Cur_ProjectPoint(EftGfxScr *out, EftVec *pos); /* projects a point to GS 12.4 screen x, y, depth, w */
-extern void Vec4_Mul(EftVec *dst, EftVec *a, EftVec *b);      /* per-component product */
-extern void Vec4_ToInt(EftGfxScr *dst, EftVec *src);          /* float vector to fixed point */
+extern s32 Vu0Cur_ProjectPoint(EftGfxScr *out, Vec4Array *pos); /* projects a point to GS 12.4 screen x, y, depth, w */
+extern void Vec4_Mul(Vec4Array *dst, Vec4Array *a, Vec4Array *b);      /* per-component product */
+extern void Vec4_ToInt(EftGfxScr *dst, Vec4Array *src);          /* float vector to fixed point */
 extern s32 EftPrim_IsOffScreen(s32 x, s32 y, s32 z);          /* eft_b.c: outside the GS drawing area */
 
 /*
@@ -1775,16 +1776,16 @@ extern s32 EftPrim_IsOffScreen(s32 x, s32 y, s32 z);          /* eft_b.c: outsid
  * The parameter order (floats in front of layer / front / tex0) is the one three callers declare (eft_aa.c,
  * eft_ab_c.c, eft_c.c); it decides which saved float register u1 and v1 get.
  */
-void EftGfx_DrawSprite(EftVec *pos, EftVec *color, f32 w, f32 h, f32 u0, f32 v0, f32 u1, f32 v1, f32 rot, s32 layer,
+void EftGfx_DrawSprite(Vec4Array *pos, Vec4Array *color, f32 w, f32 h, f32 u0, f32 v0, f32 u1, f32 v1, f32 rot, s32 layer,
                        s32 front, u64 tex0) {
     EftMtx m;
-    EftVec aspect;
-    EftVec a;
-    EftVec b;
+    Vec4Array aspect;
+    Vec4Array a;
+    Vec4Array b;
     EftGfxScr scr __attribute__((aligned(16)));
     EftGfxScr ia __attribute__((aligned(16)));
     EftGfxScr ib __attribute__((aligned(16)));
-    f32 scale = *(f32 *)(gBtlCamView + 0x234);
+    f32 scale = gBtlCamView->screenDist;
     s32 sw;
     s32 sh;
     s32 z;

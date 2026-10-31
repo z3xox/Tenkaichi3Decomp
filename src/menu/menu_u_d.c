@@ -7,22 +7,19 @@
  * event 33 and repeats a string of event 32's file ("mc_lose_text").
  */
 
-/* While SimEv34 is INCLUDE_ASM its jump table comes from the assembly file, which only aligns it to 8: the
-   original object's .rodata was 16-aligned (it starts at 0x3BAFB0, 8 bytes behind the previous object). */
-RODATA_ALIGN16();
-
-static const s32 sSimPopoX[5] = { 76, 150, 224, 298, 372 };
+/* Original object starts at 0x3BAFB0 on a 16-byte boundary. */
+static const s32 sSimPopoX[5] __attribute__((aligned(16))) = { 76, 150, 224, 298, 372 };
 static const s32 sSimPopoSpeed[3] = { 6, 10, 14 };
-/* A named object because SimEv34 (INCLUDE_ASM) uses it too; it sits where the first literal of the pool was. */
+/* Shared format for the swap helpers and the event callback. */
 static const char sSimPopoClip[] __attribute__((aligned(8))) = "mc_popo%02d";
 
 /* Swaps two of the five figures: down, across, up. Returns 1 when the swap is over. */
-s32 SimPopo_Swap(USimDay *day, s32 a, s32 b) {
-    MFlashRef ref;
+s32 SimPopo_Swap(SimDay *day, s32 a, s32 b) {
+    FlashRef ref;
     char name[64];
     s32 done = 0;
     s32 d;
-    MFlash *flash;
+    Flash *flash;
 
     switch (gSimPopoState) {
     case 0:
@@ -70,10 +67,10 @@ s32 SimPopo_Swap(USimDay *day, s32 a, s32 b) {
 }
 
 /* Lights the figure under the cursor. */
-void SimPopo_CursorOn(USimDay *day) {
-    MFlashRef ref;
+void SimPopo_CursorOn(SimDay *day) {
+    FlashRef ref;
     char name[64];
-    MFlash *flash = &day->flash[3];
+    Flash *flash = &day->flash[3];
 
     sprintf(name, sSimPopoClip, day->cur[3]);
     Flash_FindLabel(flash, 0, name, &ref);
@@ -81,49 +78,26 @@ void SimPopo_CursorOn(USimDay *day) {
 }
 
 /* Puts out the figure under the cursor. */
-void SimPopo_CursorOff(USimDay *day) {
-    MFlashRef ref;
+void SimPopo_CursorOff(SimDay *day) {
+    FlashRef ref;
     char name[64];
-    MFlash *flash = &day->flash[3];
+    Flash *flash = &day->flash[3];
 
     sprintf(name, sSimPopoClip, day->cur[3]);
     Flash_FindLabel(flash, 0, name, &ref);
     Flash_ClipGotoLabel(flash, &ref, "fl_select_off");
 }
 
-/*
- * Event 34: the shell game. One of five figures holds the mark; it is shown, the figures are swapped in pairs
- * (param swaps at one of three speeds), then the player picks one: left / right (gameRepeat 1 / 2), confirm
- * (gamePressed 0x200). Right = points and defence (USimTrain.points / gain), wrong = USimTrain.loss on defence.
- * After the switch every frame places the mark and sets each figure's pictures.
- *
- * NOT MATCHING: 15 of 551 instructions, all in case 6 (0x3922EC..0x392328): the same instructions with other
- * registers and another order of the five stores (the original keeps the Rand_Range result in $v0 until the index
- * arithmetic is done and gives the three other address registers $a2 / $a3 / $a1; this attempt stores the result
- * at once). Every statement order, a temporary for the result, a split load of the speed and chained zero stores
- * were tried (build/scratch_menu_u/perm3.py .. perm6.py). Everything else, including the jump table and the
- * strings, is identical with every relocation applied (build/scratch_menu_u/linkcheck.py). The attempt is
- * behaviourally exact. Verified by enabling it; fdiff then reports the 15 instructions.
- *
- * Cleanup notes (build/scratch_cleanup2_I/ev*.py, rtl/ud.*): the high halves of the five addresses are not
- * local to case 6. The global CSE pass makes `%hi(gSimPopoTarget)` one register for the whole function and
- * copies it into every case that reaches the code behind the switch, so the place of that `lui` in case 6
- * follows from the whole function, and a change in case 6 moves registers in case 16 (0x392450). With the
- * result in a temporary and the order Count, Speed, Won, Target the three other `lui` come out as in the
- * original (a2 / a3 / a1, in that order) but the store of the target then follows the two zero stores (10
- * instructions, two of them in case 16); chained zero stores and a pointer to the table row change nothing.
- * The original has the target's `lui` last and its store first.
- */
-#if 0
-s32 SimEv34(USimDay *day) {
-    MFlashRef ref;
-    MFlashUv uv;
+
+s32 SimEv34(SimDay *day) {
+    FlashRef ref;
+    FlashUv uv;
     char name[64];
     s32 done = 0;
     s32 left = gPad[0].gameRepeat & 1;
     s32 ok = gPad[0].gamePressed & 0x200;
     s32 right = gPad[0].gameRepeat & 2;
-    MFlash *flash;
+    Flash *flash;
     s32 i;
 
     switch (day->seq) {
@@ -175,8 +149,8 @@ s32 SimEv34(USimDay *day) {
             gSimPopoRank = day->rank[2];
             gSimPopoTarget = Rand_Range(5);
             gSimPopoCount = 0;
+            gSimPopoSpeed = gSimTrain2[gSimPopoRank].unk4;
             gSimPopoWon = 0;
-            gSimPopoSpeed = gSimTrain2[gSimPopoRank].speed;
             day->seq++;
             day->seqTimer = 0;
         }
@@ -377,37 +351,37 @@ s32 SimEv34(USimDay *day) {
     flash = &day->flash[3];
     Flash_FindLabel(flash, 0, "mc_fukidasi_popo", &ref);
     Flash_ClipSetOffset(flash, &ref, sSimPopoX[gSimPopoTarget], 0);
-    uv.y0 = 0x80;
-    uv.x1 = 0x200;
-    uv.y1 = 0x100;
-    uv.x0 = 0;
+    uv.v0 = 0x80;
+    uv.u1 = 0x200;
+    uv.v1 = 0x100;
+    uv.u0 = 0;
     Flash_FindLabel(flash, 0, "mc_lose_text", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     for (i = 0; i < 5; i++) {
         if (i != gSimPopoTarget) {
-            uv.x0 = 0x40;
-            uv.y0 = 0;
-            uv.x1 = 0x80;
-            uv.y1 = 0x40;
+            uv.u0 = 0x40;
+            uv.v0 = 0;
+            uv.u1 = 0x80;
+            uv.v1 = 0x40;
         } else {
-            uv.x0 = 0;
-            uv.y0 = 0;
-            uv.x1 = 0x40;
-            uv.y1 = 0x40;
+            uv.u0 = 0;
+            uv.v0 = 0;
+            uv.u1 = 0x40;
+            uv.v1 = 0x40;
         }
         sprintf(name, sSimPopoClip, i);
         Flash_FindLabel(flash, name, "mc_maru_batsu", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
         if (i != gSimPopoTarget) {
-            uv.x0 = 0;
-            uv.y0 = 0;
-            uv.x1 = 0x40;
-            uv.y1 = 0x80;
+            uv.u0 = 0;
+            uv.v0 = 0;
+            uv.u1 = 0x40;
+            uv.v1 = 0x80;
         } else {
-            uv.x0 = 0x40;
-            uv.y0 = 0;
-            uv.x1 = 0x80;
-            uv.y1 = 0x80;
+            uv.u0 = 0x40;
+            uv.v0 = 0;
+            uv.u1 = 0x80;
+            uv.v1 = 0x80;
         }
         Flash_FindLabel(flash, name, "mc_popo_anime00", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
@@ -417,6 +391,3 @@ s32 SimEv34(USimDay *day) {
     }
     return done;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/menu/menu_u_d", SimEv34);
-#endif

@@ -6,7 +6,7 @@
  * Event 33 (pictures 5 and 4): a yes / no offer. Yes: picture 9, attack +10 and defence +10 for 30 % of the
  * current health (flag 0x100 is set with the message), no random loss. No: the usual random loss.
  */
-s32 SimEv33(USimDay *day) {
+s32 SimEv33(SimDay *day) {
     switch (day->seq) {
     case 0:
         day->faceA = 11;

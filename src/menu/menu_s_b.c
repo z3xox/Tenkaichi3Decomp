@@ -83,12 +83,12 @@ void SurvSel_SetupBattle(void) {
 }
 
 #define SS_RES(n) \
-    res = (MTexRes *)MPACK_AT(gSurvSel->res, n); \
+    res = (FlashTexRes *)MPACK_AT(gSurvSel->res, n); \
     Res_RelocateOffsets(&res, res, res)
 
 /* Loads and unpacks the screen (section `section` of archive 3) and builds its movie. */
 void SurvSel_Init(s32 section) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
     s32 i;
 
     gSurvSel = Heap_Alloc(sizeof(SurvSel), 0x20, 0, 2);
@@ -167,10 +167,10 @@ void SurvSel_Term(void) {
 
 /* Draws the three courses with their rank letters and the record of the course under the cursor. */
 void SurvSel_Draw(void) {
-    MFlashRef ref;
-    MFlashUv uv;
+    FlashRef ref;
+    FlashUv uv;
     char name[64];
-    MFlash *flash;
+    Flash *flash;
     s32 i;
     s32 n;
     s32 t0, t1, t2;
@@ -193,20 +193,20 @@ void SurvSel_Draw(void) {
         sprintf(name, "mc_window_plate%02d", i + 1);
         Flash_FindLabel(flash, name, "mc_window_text1_0", &ref);
         TextBox_AttachLine(flash, &ref, 0, 0, i + 0x13C, &gSurvSel->box[i]);
-        rank = S_SAVE->surv[i].rank;
-        uv.x0 = rank * 0x20;
-        uv.y0 = 0;
-        uv.x1 = uv.x0 + 0x20;
-        uv.y1 = 0x20;
+        rank = gSaveData->surv[i].rank;
+        uv.u0 = rank * 0x20;
+        uv.v0 = 0;
+        uv.u1 = uv.u0 + 0x20;
+        uv.v1 = 0x20;
         sprintf(name, "mc_window_plate%02d", i + 1);
         Flash_FindLabel(flash, name, "mc_rankmoji", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
         if (i == gSurvSel->cur[0]) {
-            rank = S_SAVE->surv[i].rank;
-            uv.x0 = rank * 0x40;
-            uv.y0 = 0;
-            uv.x1 = uv.x0 + 0x40;
-            uv.y1 = 0x40;
+            rank = gSaveData->surv[i].rank;
+            uv.u0 = rank * 0x40;
+            uv.v0 = 0;
+            uv.u1 = uv.u0 + 0x40;
+            uv.v1 = 0x40;
             Flash_FindLabel(flash, NULL, "mc_rank", &ref);
             Flash_ClipSetUv(flash, &ref, &uv);
         }
@@ -218,31 +218,31 @@ void SurvSel_Draw(void) {
     }
     Flash_FindLabel(flash, NULL, "mc_missionkari01", &ref);
     TextBox_AttachLine(flash, &ref, 0, 0, 0x150, &gSurvSel->box[3]);
-    uv.x0 = 0;
-    uv.y0 = 0x20;
-    uv.x1 = 0x100;
-    uv.y1 = 0x40;
+    uv.u0 = 0;
+    uv.v0 = 0x20;
+    uv.u1 = 0x100;
+    uv.v1 = 0x40;
     Flash_FindLabel(flash, "mc_mission_plate01", "mc_misson_plate_text", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
-    n = S_SAVE->surv[gSurvSel->cur[0]].defeated;
-    uv.x0 = 0;
-    uv.y0 = 0x60;
-    uv.x1 = 0x100;
-    uv.y1 = 0x80;
+    n = gSaveData->surv[gSurvSel->cur[0]].defeated;
+    uv.u0 = 0;
+    uv.v0 = 0x60;
+    uv.u1 = 0x100;
+    uv.v1 = 0x80;
     Flash_FindLabel(flash, NULL, "mc_gekiha_text01", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     Num_Draw(flash, "mc_gekiha_suji%02d", 0, 3, n, 0x20, 0x20, 0);
-    t1 = S_SAVE->surv[gSurvSel->cur[0]].minutes;
-    t0 = S_SAVE->surv[gSurvSel->cur[0]].hours;
-    t2 = S_SAVE->surv[gSurvSel->cur[0]].seconds;
+    t1 = gSaveData->surv[gSurvSel->cur[0]].minutes;
+    t0 = gSaveData->surv[gSurvSel->cur[0]].hours;
+    t2 = gSaveData->surv[gSurvSel->cur[0]].seconds;
     Num_Draw(flash, "mc_time_suji%02d", 4, 2, t0, 0x20, 0x20, 1);
     Num_Draw(flash, "mc_time_suji%02d", 2, 2, t1, 0x20, 0x20, 1);
     Num_Draw(flash, "mc_time_suji%02d", 0, 2, t2, 0x20, 0x20, 1);
-    n = S_SAVE->surv[gSurvSel->cur[0]].score * 100;
-    uv.x0 = 0;
-    uv.y0 = 0x20;
-    uv.x1 = 0x100;
-    uv.y1 = 0x40;
+    n = gSaveData->surv[gSurvSel->cur[0]].score * 100;
+    uv.u0 = 0;
+    uv.v0 = 0x20;
+    uv.u1 = 0x100;
+    uv.v1 = 0x40;
     Flash_FindLabel(flash, NULL, "mc_time_text02", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     Num_Draw(flash, "mc_score_suji%02d", 0, 9, n, 0x20, 0x20, 0);
@@ -376,9 +376,9 @@ void SurvSel_Input(s32 *result) {
 
 /* Sends the plate under the cursor of `level` to a label. */
 void SurvSel_ClipGoto(s32 movie, s32 level, char *label) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[64];
-    MFlash *flash = &gSurvSel->flash[movie];
+    Flash *flash = &gSurvSel->flash[movie];
 
     sprintf(name, "mc_window_plate%02d", gSurvSel->cur[level] + 1);
     Flash_FindLabel(flash, NULL, name, &ref);

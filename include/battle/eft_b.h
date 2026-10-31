@@ -2,6 +2,7 @@
 #define BATTLE_EFT_B_H
 
 #include "types.h"
+#include "battle/btl_task.h"
 #include "sys/math3d.h"
 
 /*
@@ -25,10 +26,6 @@
 
 /* Flag bytes are read as one-byte bit-field structs through a cast: as members of a word-aligned struct the
    compiler would use word loads, and the original uses byte loads. */
-typedef struct EftBTaskFlags {
-    u8 dying : 1;                   /* set by BtlTask_SetDead */
-} EftBTaskFlags;
-#define EFTB_TASK_FLAGS(t) ((EftBTaskFlags *)&(t)->flags)
 
 typedef struct EftBubbleChrFlags {
     u8 trail : 1;                   /* never set: emit from the whole body every frame */
@@ -37,15 +34,6 @@ typedef struct EftBubbleChrFlags {
 #define EFT_BUBBLE_CHR_FLAGS(c) ((EftBubbleChrFlags *)&(c)->flags)
 
 /* The 0x40-byte task of 0x1AD150.. (only what this file reads). */
-typedef struct EftBTask {
-    /* 0x00 */ u8 flags;            /* EftBTaskFlags */
-    /* 0x01 */ u8 state;            /* free for the class: the geyser's phase */
-    /* 0x02 */ u8 unk2[0x26];
-    /* 0x28 */ void **cls;          /* BtlTaskClass: [0] is the update callback */
-    /* 0x2C */ u8 unk2C[0xC];
-    /* 0x38 */ void *work;          /* work memory of the size given to BtlTask_CreateChildList */
-    /* 0x3C */ s32 unk3C;
-} EftBTask; /* size 0x40 */
 
 /* One texture of a texture set (EftTexSet_Load32 fills it from a pack entry). */
 typedef struct EftBTex {
@@ -211,7 +199,7 @@ void EftBubble_Add(EftBVec pos, EftBVec vel, f32 drag, f32 size, f32 alpha, f32 
 void EftStageScroll_Draw(void);
 
 void *EftGeyser_Create(EftGeyserParam *param);
-EftGeyser *EftGeyser_GetWork(EftBTask *task);
-void EftGeyser_Kill(EftBTask *task);
+EftGeyser *EftGeyser_GetWork(BtlTask *task);
+void EftGeyser_Kill(BtlTask *task);
 
 #endif

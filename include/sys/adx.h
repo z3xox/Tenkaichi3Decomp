@@ -2,6 +2,7 @@
 #define SYS_ADX_H
 
 #include "types.h"
+#include "sys/save.h"
 #include "sys/file.h"
 
 /* Indices into gAdxPlayerTbl (labels "BGM", "MAP", "SE ", "SE ", "VIC", "VIC"). */
@@ -24,24 +25,18 @@ enum {
 #define ADX_FADE_STEP 120    /* attenuation added by one fade-out step (12 dB) */
 #define ADX_VOL_DIVISOR 0x480 /* 0x80 (channel gain) * 9 (option volume) */
 
-/* Volume option used by a channel (index into AdxSaveView.volume). */
+/* Volume option used by a channel (index into SaveData.volume). */
 #define ADX_OPT_VOL_MUSIC 1 /* channels 0-1 */
 #define ADX_OPT_VOL_VOICE 2 /* channels 2-5 */
 
 /* File ids of the character voice lines: base + character * 100 + line. */
 #define VOICE_CHARA_BASE 0x8D4E
-#define VOICE_CHARA_BASE_ALT 0xCC32 /* used when AdxSaveView.flags bit 0 is set */
+#define VOICE_CHARA_BASE_ALT 0xCC32 /* used when SaveData.flags bit 0 is set */
 #define VOICE_CHARA_LINES 100
 
 #define SAVE_FLAG_ALT_VOICE 1
 
 /* The part of the 0x4000-byte gSaveData block this module reads (the full layout belongs to the option module). */
-typedef struct AdxSaveView {
-    /* 0x0000 */ u8 unk0[0x1608];
-    /* 0x1608 */ s32 flags;      /* bit 0: alternate voice set */
-    /* 0x160C */ u8 unk160C[0x16A4 - 0x160C];
-    /* 0x16A4 */ s32 volume[3];  /* 0..9; [1] music streams, [2] voice / SE streams ([0] is not used here) */
-} AdxSaveView;
 
 s32 Adx_CalcOutVol(s32 ch, s32 vol);
 s32 Adx_ConvPan(s32 pan);

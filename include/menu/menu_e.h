@@ -124,15 +124,15 @@ typedef struct TeamSel {
     /* 0x0000 */ u32 *pack;                 /* this screen's section of archive 5 (compressed) */
     /* 0x0004 */ u32 *res;                  /* the same unpacked: a pack of 57 sections */
     /* 0x0008 */ void *faceFile[TEAMSEL_SIDES]; /* 0x16800 bytes each: compressed portrait */
-    /* 0x0010 */ MTexRes *faceRes[TEAMSEL_SIDES]; /* 0x20800 bytes each: the same unpacked */
+    /* 0x0010 */ FlashTexRes *faceRes[TEAMSEL_SIDES]; /* 0x20800 bytes each: the same unpacked */
     /* 0x0018 */ void *stageFile;           /* 0x3B800 bytes: compressed stage picture */
-    /* 0x001C */ MTexRes *stageRes[2];      /* 0x43000 bytes each: unpacked, two buffers for the cross fade */
+    /* 0x001C */ FlashTexRes *stageRes[2];      /* 0x43000 bytes each: unpacked, two buffers for the cross fade */
     /* 0x0024 */ u32 *chipPack;             /* section 45: 165 texture lists, section id + 1 = chip of a character */
     /* 0x0028 */ void *nameText;            /* section 43: character names */
     /* 0x002C */ void *formText;            /* section 44: form names */
     /* 0x0030 */ u32 *stagePack;            /* section 46: 38 texture lists */
-    /* 0x0034 */ MFlash flash[TEAMSEL_FLASH_NUM]; /* 0 background, 1 / 2 the teams, 3 / 4 the reels, 5 / 6 the plates */
-    /* 0x0168 */ MTexRes *bg[2];            /* stage picture drawn behind: new, old */
+    /* 0x0034 */ Flash flash[TEAMSEL_FLASH_NUM]; /* 0 background, 1 / 2 the teams, 3 / 4 the reels, 5 / 6 the plates */
+    /* 0x0168 */ FlashTexRes *bg[2];            /* stage picture drawn behind: new, old */
     /* 0x0170 */ u8 *tex[49];               /* movie 0 */
     /* 0x0234 */ u8 *plateTex[TEAMSEL_SIDES][11]; /* movies 5 and 6 */
     /* 0x028C */ u8 *sideTex[TEAMSEL_SIDES][25];  /* movies 3 and 4 */
@@ -170,8 +170,8 @@ typedef struct TeamSel {
     /* 0x3C64 */ s32 stageCount;
     /* 0x3C68 */ s32 bgmCount;
     /* 0x3C6C */ s32 faceMask;              /* non-zero while the portraits are hidden */
-    /* 0x3C70 */ MTextBox nameBox[TEAMSEL_SIDES];
-    /* 0x3D88 */ MTextBox formBox[TEAMSEL_SIDES];
+    /* 0x3C70 */ TextBox nameBox[TEAMSEL_SIDES];
+    /* 0x3D88 */ TextBox formBox[TEAMSEL_SIDES];
     /* 0x3EA0 */ void *unk3EA0;             /* common file 4, section 2 */
 } TeamSel; /* 0x3EA4 */
 

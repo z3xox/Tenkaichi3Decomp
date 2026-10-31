@@ -2,7 +2,12 @@
 #define BATTLE_EFT_C_H
 
 #include "types.h"
+#include "battle/eft_stage_emit.h"
+#include "battle/eft_b.h"
+#include "battle/btl_task.h"
+#include "sys/vector_types.h"
 #include "sys/math3d.h"
+#include "sys/dma.h"
 
 /*
  * Stage-attached effects: src/battle/eft_c.c = 0x136760..0x13A9D0 (70 functions).
@@ -38,80 +43,7 @@
  *   surfaces   {EftSurf_Update, EftSurf_Init, EftSurf_Term, EftSurf_PostUpdate, EftSurf_Reset, EftSurf_Draw}
  */
 
-/* A vector as the effect code declares it on the stack: 16-byte aligned (copied with ld / sd). */
-typedef struct EftVec {
-    /* 0x00 */ f32 x;
-    /* 0x04 */ f32 y;
-    /* 0x08 */ f32 z;
-    /* 0x0C */ f32 w;
-} __attribute__((aligned(16))) EftVec;
-
-/* The same as a float array (Sony's sceVu0FVECTOR), which is how the surface code indexes its vectors. */
-typedef f32 EftFVec[4] __attribute__((aligned(16)));
-
-/* A task of the effect scene's task tree (0x1AD150..0x1ADC00). Only the fields used here. */
-typedef struct EftTask {
-    /* 0x00 */ u8 flags; /* bit 0: dead */
-    /* 0x04 */ u8 unk4[0x24];
-    /* 0x28 */ struct EftTaskClass *cls;
-    /* 0x2C */ u8 unk2C[0xC];
-    /* 0x38 */ void *work; /* work block of the size given to BtlTask_CreateChildList */
-    /* 0x3C */ s32 unk3C;
-} EftTask; /* size 0x40 */
-
-typedef struct EftTaskClass {
-    /* 0x00 */ void (*update)(EftTask *task);
-    /* 0x04 */ void (*init)(EftTask *task, void *arg);
-    /* 0x08 */ void (*term)(EftTask *task);
-    /* 0x0C */ void (*postUpdate)(EftTask *task);
-    /* 0x10 */ void (*reset)(EftTask *task);
-    /* 0x14 */ void (*draw)(EftTask *task);
-} EftTaskClass; /* size 0x18 */
-
-/* ---- geyser (work block of gEftGeyserClass, eft_b.c; only what the four functions here use) ---- */
-
-typedef struct EftGeyserView {
-    /* 0x00 */ u8 unk0[0x70];
-    /* 0x70 */ Vec4 pos;
-    /* 0x80 */ u8 unk80[0x30];
-    /* 0xB0 */ f32 unkB0; /* size or strength; scales both emitters */
-    /* 0xB4 */ f32 unkB4;
-    /* 0xB8 */ u8 unkB8[0x34];
-    /* 0xEC */ s32 smoke; /* emitter task from EftSmoke_Create */
-    /* 0xF0 */ s32 steam; /* emitter task from EftSteam_Create */
-} EftGeyserView;
-
-/* Argument of EftSmoke_Create. */
-typedef struct EftGeyserSmokeArg {
-    /* 0x00 */ EftVec pos;
-    /* 0x10 */ EftVec colorA;
-    /* 0x20 */ EftVec colorB;
-    /* 0x30 */ f32 unk30;
-    /* 0x34 */ f32 unk34;
-    /* 0x38 */ f32 unk38;
-    /* 0x3C */ f32 unk3C;
-    /* 0x40 */ s32 unk40;
-    /* 0x44 */ s32 unk44;
-    /* 0x48 */ s32 unk48;
-    /* 0x4C */ s32 unk4C;
-} EftGeyserSmokeArg; /* size 0x50 */
-
-/* Argument of EftSteam_Create. */
-typedef struct EftGeyserSteamArg {
-    /* 0x00 */ EftVec pos;
-    /* 0x10 */ EftVec unk10;
-    /* 0x20 */ EftVec color;
-    /* 0x30 */ f32 unk30;
-    /* 0x34 */ f32 gravity; /* 9.8 / 30 */
-    /* 0x38 */ f32 unk38;
-    /* 0x3C */ s32 unk3C;
-    /* 0x40 */ f32 unk40;
-    /* 0x44 */ f32 unk44;
-    /* 0x48 */ f32 unk48;
-    /* 0x4C */ f32 unk4C;
-    /* 0x50 */ s32 unk50;
-    /* 0x54 */ s32 unk54[3];
-} EftGeyserSteamArg; /* size 0x60 */
+/* Vectors, tasks, geyser work and creation arguments come from the shared headers above. */
 
 /* ---- weather ---- */
 
@@ -187,7 +119,7 @@ typedef struct EftStage {
 } EftStage; /* size 0x58 */
 
 typedef struct EftStageKind {
-    /* 0x00 */ EftTaskClass *cls;
+    /* 0x00 */ BtlTaskCls *cls;
     /* 0x04 */ s32 kind; /* EftStage_HasKind */
 } EftStageKind;
 
@@ -231,9 +163,9 @@ typedef struct EftSurfMesh {
 } EftSurfMesh; /* size 0x60 */
 
 typedef struct EftSurfVtx {
-    /* 0x00 */ EftFVec pos;
-    /* 0x10 */ EftFVec st;    /* s, t, q, ? */
-    /* 0x20 */ EftFVec color; /* r, g, b, alpha */
+    /* 0x00 */ FVec4 pos;
+    /* 0x10 */ FVec4 st;    /* s, t, q, ? */
+    /* 0x20 */ FVec4 color; /* r, g, b, alpha */
 } EftSurfVtx; /* size 0x30 */
 
 /* A projected vertex: GS screen coordinates (12.4 fixed point) and depth. */
@@ -362,23 +294,23 @@ extern EftWeather *gEftWeather;
 extern EftStage *gEftStage;
 extern EftSurf *gEftSurf;
 
-s32 EftGeyser_GetSmokePos(EftTask *task);
-s32 EftGeyser_GetSteamWork(EftTask *task);
-void EftGeyser_StartSmoke(EftTask *task);
-void EftGeyser_StartSteam(EftTask *task);
+s32 EftGeyser_GetSmokePos(BtlTask *task);
+s32 EftGeyser_GetSteamWork(BtlTask *task);
+void EftGeyser_StartSmoke(BtlTask *task);
+void EftGeyser_StartSteam(BtlTask *task);
 
 s32 EftWeather_ClipCode(Vec4 *v);
-void EftWeather_Init(EftTask *task);
+void EftWeather_Init(BtlTask *task);
 void EftWeather_Term(void);
 void EftWeather_Update(void);
-void EftWeatherPtcl_Init(EftTask *task);
+void EftWeatherPtcl_Init(BtlTask *task);
 void EftWeatherPtcl_Term(void);
 void EftWeather_Move(EftWeatherPtcl *p, EftWeatherView *view, s32 count);
 void EftWeatherPtcl_Update(void);
 void EftWeatherPtcl_PostUpdate(void);
-void EftWeatherPtcl_Reset(EftTask *task);
+void EftWeatherPtcl_Reset(BtlTask *task);
 void EftWeather_DrawPtcls(EftWeatherPtcl *p, s32 count);
-void EftWeatherPtcl_Draw(EftTask *task);
+void EftWeatherPtcl_Draw(BtlTask *task);
 void EftWeather_SetCount(s32 count);
 s32 EftWeather_GetCount(void);
 void EftWeather_SetFlags(s32 flags);
@@ -400,7 +332,7 @@ void EftStage_Recreate(void);
 void EftStage_ResetAll(void);
 s32 EftStage_IsDrawOn(void);
 void EftStage_SetDrawOn(s32 on);
-void EftStage_Init(EftTask *task);
+void EftStage_Init(BtlTask *task);
 void EftStage_Term(void);
 void EftStage_Update(void);
 void EftStage_FreeKinds(void);

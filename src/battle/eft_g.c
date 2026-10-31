@@ -1,4 +1,5 @@
 #include "common.h"
+#include "battle/btl_cam.h"
 #include "battle/btl_pool.h"
 #include "battle/eft_g.h"
 #include "sys/gfx_ot.h"
@@ -6,8 +7,8 @@
 /*
  * Effect code, 0x147050..0x14B108. See include/battle/eft_g.h for the five pieces and their layouts.
  *
- * One function (EftStorm_DrawBolts) is INCLUDE_ASM with the C attempt in `#if 0` above it and a note on what differs;
- * turning the `#if 0` into `#if 1` and dropping the INCLUDE_ASM line gives a file that fdiff can compile.
+ * EftStorm_DrawBolts is byte-exact through the shared screen-validity and packet helpers.
+ * The camera and task records now come from their canonical headers.
  * EftSmoke_Draw and EftBound_BuildWall match since cleanup W1 (EftSmoke_Draw emits a 4-byte .sdata constant, 0x2FE9EC).
  *
  * Callees that have no name yet, from a first read of how they are used here:
@@ -29,25 +30,6 @@
  * BtlStage_GetLightVecB, BtlStage_GetInnerRadius / GetTop / GetBottom, BtlStage_GetFxResB (number of stage
  * emitters) / GetFxResB2 (their list) / GetFxResA (number of extra emitter tasks to reserve).
  */
-
-typedef struct EftCamView {
-    /* 0x000 */ u8 unk0[0x40];
-    /* 0x040 */ Mtx44 view;      /* world to view */
-    /* 0x080 */ u8 unk80[0xC0];
-    /* 0x140 */ Mtx44 screen;    /* world to screen */
-    /* 0x180 */ u8 unk180[0xA0];
-    /* 0x220 */ Vec4 pos;
-    /* 0x230 */ u8 unk230[0x54];
-    /* 0x284 */ s32 index;       /* 0 or 1 */
-} EftCamView;
-
-typedef struct EftCam {
-    /* 0x000 */ u8 unk0[0xC40];
-    /* 0xC40 */ EftCamView *cur;
-} EftCam;
-
-extern EftCamView *gBtlCamView;
-extern EftCam *gBtlCam;
 
 extern void *memset(void *dst, s32 c, u32 n);
 extern void *memcpy(void *dst, const void *src, u32 n);
@@ -132,7 +114,6 @@ extern void *gEftSmokeClass[6];
 extern void *gEftBoundClass[6];
 extern void *gEftShotCharClass[6];
 extern void *gEftTechEvtClass[6];   /* class of the first task of the shot layer (next file) */
-extern f32 D_002FE9E4[];      /* -0.0f, small data reached without $gp */
 
 typedef struct EftStageView {
     /* 0x00 */ s32 unk0[2];
@@ -224,12 +205,20 @@ typedef struct EftLinePkt {
 
 /* 1 when a GS screen position can be drawn. */
 static inline s32 EftScr_IsValid(EftScrXyz *p) {
-    s32 ok = 0;
+    s32 ok;
 
-    if (p->z > 0 && p->x <= 0xFFFF && p->x > 0) {
-        if (p->y <= 0xFFFF) {
-            if (p->y > 0) ok = 1; else ok = 0;
-        }
+    if (p->z <= 0) {
+        ok = 0;
+    } else if (p->x > 0xFFFF) {
+        ok = 0;
+    } else if (p->x <= 0) {
+        ok = 0;
+    } else if (p->y > 0xFFFF) {
+        ok = 0;
+    } else if (p->y > 0) {
+        ok = 1;
+    } else {
+        ok = 0;
     }
     return ok;
 }
@@ -298,9 +287,9 @@ void EftUtil_MakeFacingMtx(Mtx44 *out, Vec4 *dir, Vec4 *pos) {
     f32 d;
     f32 s = 0.0f;
 
-    cam.x = gBtlCamView->view.m[0][2];
-    cam.y = gBtlCamView->view.m[1][2];
-    cam.z = gBtlCamView->view.m[2][2];
+    cam.x = gBtlCamView->world2view2.m[0][2];
+    cam.y = gBtlCamView->world2view2.m[1][2];
+    cam.z = gBtlCamView->world2view2.m[2][2];
     cam.w = 1.0f;
     d = Vec3_Dot(&cam, dir);
     if (d < s) {
@@ -372,7 +361,7 @@ s32 EftUtil_IsCamUnderWater(void) {
     f32 y;
 
     y = 0.0f;
-    Mtx_InverseRT(&m, &gBtlCamView->view);
+    Mtx_InverseRT(&m, &gBtlCamView->world2view2);
     BtlStage_GetWaterLevel(&y);
     return m.m[3][1] >= y;
 }
@@ -450,7 +439,7 @@ void EftUtil_DrawTri(EftScrXyz *xyz0, EftScrXyz *xyz1, EftScrXyz *xyz2, f32 *col
 }
 
 /* Storm init callback: allocates the work block, loads the textures (stage pack entry 14), spawns everything. */
-void EftStorm_Init(EftTask *task) {
+void EftStorm_Init(BtlTask *task) {
     s32 pack = BtlScene_GetStageData();
 
     if (gEftStorm != NULL) {
@@ -494,35 +483,19 @@ void EftStorm_Update(void) {
    (8, -0) times 150) are turned by the camera's world matrix and added to the bolt position; a bolt is skipped
    when any of the four projects off screen. Kind 0 draws two sprites (textures texA and texB), kind 1 only the
    second, larger one. */
-#if 0 /* not matched: 636 instructions against 636, 116 differ when aligned. Found in the second retry: the body of
-the second sprite exists twice (`if (kind != 0) { B } else { A; B }`); the two tag words are scalars that end up in
-spill slots together with work and i (sp+256 work, 260 i, 264 / 268 the tag words: declaration order work, i, tag,
-vif); the texture word is read where it is stored, after the texture coordinates, so the sprite code is a macro
-(or was written out), not a function taking the value; the packet pointer is one function-level variable filled
-through an inline allocator (that gives the `move v1,a0` copy of the first two expansions and none in the third).
-What still differs is register choice that follows from reload: the original reloads spilled pseudos into a2 where
-this C uses a1 (first Vec4_Scale: `addiu a2,sp,64 / move a0,a2 / move a1,a2`; the loop counter `lw a2,260(sp)`; the
-header constants alternate a2 / v0), the on-screen test keeps 0xFFFF in a0 and the result in a1 (here a1 / a0), and
-the original loads 0x80000000 (t0) before Vu0Cur_LoadMtx and saves it with sq / lq around that call, while
-`tag |= 7`, `vif |= 7` and `i = 3` stay in source order (here the scheduler moves them up across the calls).
-Putting the four locals in a struct (memory) keeps them in place but then they are no longer reloaded into a2.
-Cleanup W1: Vu0Cur_ProjectPoint is now declared with its return value (that alone fixed the same "x / limit /
-reload register" permutation in EftAura_DrawFlames, eft_n.c); here it changes nothing (121 instructions out of
-place with registers, 87 register-masked). Not tried yet with what EftTrail_Draw (eft_q.c) and EftBound_BuildWall
-taught: constants as variables assigned in front of each use (not loop invariants), int constants that are
-converted to float through a spilled variable, and pointer variables assigned twice (unknown alias base). */
+
 /* Fills and queues one lightning sprite: a triangle strip between two projected corners, white scaled by the
    layer brightness, alpha 128 * life / lifeMax, in the second chain of the depth slot of its z. */
 #define EFT_STORM_SPRITE(bolt, a, b, texv, col, tagv, vifv) \
-    do { \
+    { \
         p = EftOt_Alloc(sizeof(EftStripPkt)); \
-        p->gif1 = 0xF42424242160; \
-        p->vif0 = 0x10000000; \
+        p->prim = 0x54; \
         p->tag = (tagv); \
         p->next = 0; \
-        p->gif0 = 0xC400000000008001; \
+        p->vif0 = 0x10000000; \
         p->vif1 = (vifv); \
-        p->prim = 0x54; \
+        p->gif0 = 0xC400000000008001; \
+        p->gif1 = 0xF42424242160; \
         p->rgba[0] = (u32)(col); \
         p->rgba[1] = (u32)(col); \
         p->rgba[2] = (u32)(col); \
@@ -554,7 +527,7 @@ converted to float through a spilled variable, and pointer variables assigned tw
         p->v[3].t = 1.0f; \
         p->tex0 = (texv); \
         EftOt_Add((OtPrim *)p,  (a)->z >> 8, 1); \
-    } while (0)
+    }
 
 void EftStorm_DrawBolts(EftStormBolt *bolt) {
     Mtx44 cam;
@@ -563,8 +536,6 @@ void EftStorm_DrawBolts(EftStormBolt *bolt) {
     EftScrXyz xyz[4];
     EftStorm *work = gEftStorm;
     s32 i;
-    u32 tag;
-    u32 vif;
     EftStripPkt *p;
     f32 col;
     s32 j;
@@ -580,19 +551,15 @@ void EftStorm_DrawBolts(EftStormBolt *bolt) {
     Vec4_Scale(&corner[3], &corner[3], 150.0f);
     Mtx_StoreIdentity(&cam);
     if (gBtlCamView != NULL) {
-        Mtx_InverseRT(&cam, &gBtlCamView->view);
+        Mtx_InverseRT(&cam, &gBtlCamView->world2view2);
     }
-    tag = 0x20000000;
     Mtx_MulVec4(&corner[0], &cam, &corner[0]);
-    vif = 0x50000000;
     Mtx_MulVec4(&corner[1], &cam, &corner[1]);
     Mtx_MulVec4(&corner[2], &cam, &corner[2]);
     Mtx_MulVec4(&corner[3], &cam, &corner[3]);
     Vu0Cur_Push();
-    tag |= 7;
-    vif |= 7;
-    Vu0Cur_LoadMtx(&gBtlCamView->screen);
-    for (i = 3; i >= 0; i--, bolt++) {
+    Vu0Cur_LoadMtx(&gBtlCamView->world2screen);
+    for (i = 0; i < 4; i++, bolt++) {
         if (bolt->life == 0 || bolt->wait != 0) {
             continue;
         }
@@ -608,17 +575,14 @@ void EftStorm_DrawBolts(EftStormBolt *bolt) {
             continue;
         }
         if (bolt->kind != 0) {
-            EFT_STORM_SPRITE(bolt, &xyz[2], &xyz[3], work->tex.entry[bolt->texB].tex0, col, tag, vif);
+            EFT_STORM_SPRITE(bolt, &xyz[2], &xyz[3], work->tex.entry[bolt->texB].tex0, col, 0x20000007, 0x50000007);
         } else {
-            EFT_STORM_SPRITE(bolt, &xyz[0], &xyz[1], work->tex.entry[bolt->texA].tex0, col, tag, vif);
-            EFT_STORM_SPRITE(bolt, &xyz[2], &xyz[3], work->tex.entry[bolt->texB].tex0, col, tag, vif);
+            EFT_STORM_SPRITE(bolt, &xyz[0], &xyz[1], work->tex.entry[bolt->texA].tex0, col, 0x20000007, 0x50000007);
+            EFT_STORM_SPRITE(bolt, &xyz[2], &xyz[3], work->tex.entry[bolt->texB].tex0, col, 0x20000007, 0x50000007);
         }
     }
     Vu0Cur_Pop();
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/battle/eft_g", EftStorm_DrawBolts);
-#endif
 
 /* Storm draw callback. */
 void EftStorm_Draw(void) {
@@ -631,7 +595,7 @@ void EftStorm_PostUpdate(void) {
 }
 
 /* Storm reset callback: respawns the four bolts. */
-void EftStorm_Reset(EftTask *task) {
+void EftStorm_Reset(BtlTask *task) {
     EftStormBolt *bolt = gEftStorm->bolt;
     s32 i;
 
@@ -797,7 +761,7 @@ void EftStorm_DrawRain(void) {
 
     Vec4_Set(&center, 0.0f, 0.0f, 150.0f, 1.0f);
     Vec4_Set(&streak, 0.0f, 100.0f, 0.0f, 0.0f);
-    Mtx_InverseRT(&cam, &gBtlCamView->view);
+    Mtx_InverseRT(&cam, &gBtlCamView->world2view2);
     Mtx_MulVec4(&center, &cam, &center);
     Vec4_Sub(&delta, &gEftStorm->prevCam[view], (Vec4 *)cam.m[3]);
     Vec4_Add(&streak, &streak, &delta);
@@ -805,7 +769,7 @@ void EftStorm_DrawRain(void) {
     Vec4_Scale(&streak, &streak, 20.0f);
     Vec4_Copy(&gEftStorm->prevCam[view], (Vec4 *)cam.m[3]);
     Vu0Cur_Push();
-    Vu0Cur_LoadMtx(&gBtlCamView->screen);
+    Vu0Cur_LoadMtx(&gBtlCamView->world2screen);
     if (!Battle_IsSplitScreen()) {
         EftStorm_WrapRain(&center, gEftStorm->drop, EFT_STORM_DROPS);
         EftStorm_DrawRainLines(gEftStorm->drop, EFT_STORM_DROPS, &streak);
@@ -828,36 +792,36 @@ void *EftSmoke_Create(EftSmokeArg *arg) {
 }
 
 /* Tells a live emitter to stop: it kills itself when its last particle has gone. */
-void EftSmoke_Stop(EftTask *task) {
-    if (task != NULL && task->cls[0] == (void *)EftSmoke_Update && !(task->flags & 1)) {
+void EftSmoke_Stop(BtlTask *task) {
+    if (task != NULL && task->cls->update == EftSmoke_Update && !(task->bits & 1)) {
         ((EftSmoke *)task->work)->flags |= 1;
     }
 }
 
 /* Position of a live emitter, NULL when the task is not one. */
-Vec4 *EftSmoke_GetPos(EftTask *task) {
+Vec4 *EftSmoke_GetPos(BtlTask *task) {
     if (task == NULL) {
         return NULL;
     }
-    if (task->cls[0] != (void *)EftSmoke_Update) {
+    if (task->cls->update != EftSmoke_Update) {
         return NULL;
     }
-    if (task->flags & 1) {
+    if (task->bits & 1) {
         return NULL;
     }
     return &((EftSmoke *)task->work)->arg.pos;
 }
 
 /* Moves a live emitter. */
-void EftSmoke_SetPos(EftTask *task, Vec4 *pos) {
-    if (task != NULL && task->cls[0] == (void *)EftSmoke_Update && !(task->flags & 1)) {
+void EftSmoke_SetPos(BtlTask *task, Vec4 *pos) {
+    if (task != NULL && task->cls->update == EftSmoke_Update && !(task->bits & 1)) {
         Vec4_Copy(&((EftSmoke *)task->work)->arg.pos, pos);
     }
 }
 
 /* Smoke manager init callback: loads the texture (stage pack entry 18) and creates one emitter per record of
    the stage's emitter list. */
-void EftSmokeMgr_Init(EftTask *task) {
+void EftSmokeMgr_Init(BtlTask *task) {
     EftSmokeArg arg;
     s32 pack = BtlScene_GetStageData();
     s32 count = BtlStage_GetFxResB();
@@ -913,7 +877,7 @@ void EftSmokeMgr_Update(void) {
 }
 
 /* Emitter init callback: copies the argument and runs 60..89 updates so that the smoke is already there. */
-void EftSmoke_Init(EftTask *task, EftSmokeArg *arg) {
+void EftSmoke_Init(BtlTask *task, EftSmokeArg *arg) {
     EftSmoke *work = task->work;
     s32 n;
     s32 i;
@@ -938,7 +902,7 @@ void EftSmoke_Reset(void) {
 /* Emitter update callback. Not while time is stopped. With probability 1 / rate starts one free particle at
    the emitter, moving up inside a cone; then moves every live particle and damps its horizontal speed. A
    stopped emitter kills its task once no particle is left. Random: rand() once or twice, Rand_FloatRange twice. */
-void EftSmoke_Update(EftTask *task) {
+void EftSmoke_Update(BtlTask *task) {
     EftSmoke *work = task->work;
     EftSmokePart *part;
     s32 i;
@@ -1005,7 +969,7 @@ void EftSmoke_Update(EftTask *task) {
      front of the loop) survive only when gcse cannot see `hi = one` / `lo = zero` as available inside the loop, i.e.
      when `one` and `zero` are assigned again in the loop. The two dead assignments below do that (flow deletes
      them); what the original had in their place is unknown. */
-void EftSmoke_Draw(EftTask *task) {
+void EftSmoke_Draw(BtlTask *task) {
     Vec4 base;
     Vec4 light;
     Vec4 col;
@@ -1037,7 +1001,7 @@ void EftSmoke_Draw(EftTask *task) {
     one = 1.0f;
     zero = 0.0f;
     Vu0Cur_Push();
-    Vu0Cur_LoadMtx(&gBtlCamView->screen);
+    Vu0Cur_LoadMtx(&gBtlCamView->world2screen);
     BtlStage_GetLightVecB(&light);
     Vec3_Normalize(&light, &light);
     Vec4_Set(&base, work->arg.pos.x, work->arg.pos.y - 50.0f, work->arg.pos.z, one);
@@ -1303,21 +1267,21 @@ void EftBound_DrawMeshCulled(EftBoundMesh *mesh) {
 #ifdef PORT
     /* The PC port's in-between pictures draw the wall from this patch (port/src/gs/gs_draw.c, interp_wall): the
        triangles below reach the GS cut off at the view's edges, differently every tick. */
-    Port_WallMesh(mesh, BtlScene_IsSecondView(), 1, (const float *)&gBtlCamView->screen, (const float *)&gBtlCamView->pos,
+    Port_WallMesh(mesh, BtlScene_IsSecondView(), 1, (const float *)&gBtlCamView->world2screen, (const float *)&gBtlCamView->pos,
                   (const float *)mesh->vtx, mesh->quadCount, mesh->quad, tex->tex0);
 #endif
     Vu0Cur_Push();
-    Vu0Cur_LoadMtx(&gBtlCamView->screen);
+    Vu0Cur_LoadMtx(&gBtlCamView->world2screen);
     for (i = 0; i < mesh->quadCount; i++) {
         m = (EftBoundMesh *)((u8 *)mesh + i * sizeof(EftBoundQuad));
         idx = m->quad[0].idx;
         Vec3_Sub(&d, (Vec4 *)&vtx[idx.i[1]].pos, &cam);
         Vec3_Normalize(&d, &d);
         if (Vec3_Dot(&m->quad[0].normal, &d) < 0.0f) {
-            EftBound_DrawTri(*(EftMtxArg *)&gBtlCamView->screen, vtx[idx.i[0]].pos, vtx[idx.i[1]].pos,
+            EftBound_DrawTri(*(EftMtxArg *)&gBtlCamView->world2screen, vtx[idx.i[0]].pos, vtx[idx.i[1]].pos,
                              vtx[idx.i[2]].pos, vtx[idx.i[0]].st, vtx[idx.i[1]].st, vtx[idx.i[2]].st,
                              vtx[idx.i[0]].col, vtx[idx.i[1]].col, vtx[idx.i[2]].col, param->otZ, tex->tex0);
-            EftBound_DrawTri(*(EftMtxArg *)&gBtlCamView->screen, vtx[idx.i[2]].pos, vtx[idx.i[1]].pos,
+            EftBound_DrawTri(*(EftMtxArg *)&gBtlCamView->world2screen, vtx[idx.i[2]].pos, vtx[idx.i[1]].pos,
                              vtx[idx.i[3]].pos, vtx[idx.i[2]].st, vtx[idx.i[1]].st, vtx[idx.i[3]].st,
                              vtx[idx.i[2]].col, vtx[idx.i[1]].col, vtx[idx.i[3]].col, param->otZ, tex->tex0);
         }
@@ -1334,17 +1298,17 @@ void EftBound_DrawMesh(EftBoundMesh *mesh) {
     s32 i;
 
 #ifdef PORT
-    Port_WallMesh(mesh, BtlScene_IsSecondView(), 0, (const float *)&gBtlCamView->screen, (const float *)&gBtlCamView->pos,
+    Port_WallMesh(mesh, BtlScene_IsSecondView(), 0, (const float *)&gBtlCamView->world2screen, (const float *)&gBtlCamView->pos,
                   (const float *)mesh->vtx, mesh->quadCount, mesh->quad, tex->tex0);
 #endif
     Vu0Cur_Push();
-    Vu0Cur_LoadMtx(&gBtlCamView->screen);
+    Vu0Cur_LoadMtx(&gBtlCamView->world2screen);
     for (i = 0; i < mesh->quadCount; i++) {
         idx = mesh->quad[i].idx;
-        EftBound_DrawTri(*(EftMtxArg *)&gBtlCamView->screen, vtx[idx.i[0]].pos, vtx[idx.i[1]].pos,
+        EftBound_DrawTri(*(EftMtxArg *)&gBtlCamView->world2screen, vtx[idx.i[0]].pos, vtx[idx.i[1]].pos,
                          vtx[idx.i[2]].pos, vtx[idx.i[0]].st, vtx[idx.i[1]].st, vtx[idx.i[2]].st,
                          vtx[idx.i[0]].col, vtx[idx.i[1]].col, vtx[idx.i[2]].col, param->otZ, tex->tex0);
-        EftBound_DrawTri(*(EftMtxArg *)&gBtlCamView->screen, vtx[idx.i[2]].pos, vtx[idx.i[1]].pos,
+        EftBound_DrawTri(*(EftMtxArg *)&gBtlCamView->world2screen, vtx[idx.i[2]].pos, vtx[idx.i[1]].pos,
                          vtx[idx.i[3]].pos, vtx[idx.i[2]].st, vtx[idx.i[1]].st, vtx[idx.i[3]].st,
                          vtx[idx.i[2]].col, vtx[idx.i[1]].col, vtx[idx.i[3]].col, param->otZ, tex->tex0);
     }
@@ -1352,7 +1316,7 @@ void EftBound_DrawMesh(EftBoundMesh *mesh) {
 }
 
 /* Per-fighter init callback: reads the fighter's size and the stage's radius and heights. */
-void EftBound_Init(EftTask *task, s32 *arg) {
+void EftBound_Init(BtlTask *task, s32 *arg) {
     EftBoundChar *work = task->work;
     EftBoundParam *param = gEftBound->param;
     f32 h;
@@ -1382,7 +1346,7 @@ void EftBound_Term(void) {
 
 /* Per-fighter update callback: rebuilds the wall mesh; the first fighter with a visible mesh advances the
    shared textures for this frame. */
-void EftBound_Update(EftTask *task) {
+void EftBound_Update(BtlTask *task) {
     EftBoundChar *work = task->work;
     EftTexSet *tex;
     s32 i;
@@ -1413,7 +1377,7 @@ void EftBound_Reset(void) {
 
 /* Per-fighter draw callback. Skipped when the fighter is hidden, or locked on while it or its opponent has a
    rush connected, or when the wall is disabled. */
-void EftBound_Draw(EftTask *task) {
+void EftBound_Draw(BtlTask *task) {
     EftBoundChar *work = task->work;
 
     if (!EftStage_IsDrawOn()) {
@@ -1443,7 +1407,7 @@ void EftBound_Draw(EftTask *task) {
 
 /* Boundary manager init callback: loads the textures (stage pack entry 21), the parameters (23) and the colour
    (22), enables the wall and creates the tasks of fighters 0 and 1. */
-void EftBoundMgr_Init(EftTask *task) {
+void EftBoundMgr_Init(BtlTask *task) {
     s32 pack = BtlScene_GetStageData();
 
     gEftBound = BtlPool_Alloc(BtlPool_GetCurrent(), sizeof(EftBound));
@@ -1684,7 +1648,7 @@ void EftShot_PlayFireSound(s32 objId, EftShotSlot *slot) {
 
 /* Shot layer init callback (scene layer 1): one EftShotChar per character from pool 3, a child list with one
    task of class 0x2C3928 and one task per character (0 and 1). */
-void EftShotMgr_Init(EftTask *task) {
+void EftShotMgr_Init(BtlTask *task) {
     s32 arg[2];
     s32 size;
     EftShotChar *c;
@@ -1723,7 +1687,7 @@ void EftShotMgr_Update(void) {
 
 /* Character task init callback: selects the character's pool, creates its child list (6 tasks of 0x2000 bytes)
    and sets up its five slots from the character pack. */
-void EftShotChar_Init(EftTask *task, s32 *arg) {
+void EftShotChar_Init(BtlTask *task, s32 *arg) {
     EftShotChar *chr;
     s32 i;
 
@@ -1739,7 +1703,7 @@ void EftShotChar_Init(EftTask *task, s32 *arg) {
 }
 
 /* Character task term callback: empties the character's pool. */
-void EftShotChar_Term(EftTask *task) {
+void EftShotChar_Term(BtlTask *task) {
     EftShot_ResetCharPool(task->chr);
 }
 

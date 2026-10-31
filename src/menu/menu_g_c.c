@@ -33,18 +33,18 @@ void DuelMenu_Idle(void) {
 }
 
 #define DM_VALUE_UV(n) \
-    uv.y0 = (n) * 0x20; \
-    uv.y1 = uv.y0 + 0x20; \
-    uv.x0 = 0; \
-    uv.x1 = 0x100
+    uv.v0 = (n) * 0x20; \
+    uv.v1 = uv.v0 + 0x20; \
+    uv.u0 = 0; \
+    uv.u1 = 0x100
 
 /* Shows or hides the value plates of one setting and gives the visible ones their text. */
 void DuelMenu_ShowValues(s32 item, s32 show) {
-    MFlashRef ref;
-    MFlashUv uv;
+    FlashRef ref;
+    FlashUv uv;
     char name[64];
     char sub[64];
-    MFlash *flash = &DM->flash[0];
+    Flash *flash = &DM->flash[0];
     s32 i;
     s32 j;
 
@@ -184,13 +184,13 @@ void DuelMenu_SetupValue(void) {
 }
 
 #define DM_RES(n) \
-    res = (MTexRes *)MPACK_AT(DM->res, n); \
+    res = (FlashTexRes *)MPACK_AT(DM->res, n); \
     Res_RelocateOffsets(&res, res, res)
 
 /* Loads and unpacks the screen (section `section` of archive 5), builds its movie and windows, and takes the
    three cursors left in gProgress by the last visit. */
 void DuelMenu_Init(s32 section) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
     s32 i;
 
     DM = Heap_Alloc(0x194, 0x20, 0, 2);
@@ -321,10 +321,10 @@ typedef struct DuelSave {
 #define DM_SAVE ((DuelSave *)gSaveData)
 
 #define DM_ROW_UV(n, w) \
-    uv.y0 = (n) * 0x20; \
-    uv.y1 = uv.y0 + 0x20; \
-    uv.x0 = 0; \
-    uv.x1 = w
+    uv.v0 = (n) * 0x20; \
+    uv.v1 = uv.v0 + 0x20; \
+    uv.u0 = 0; \
+    uv.u1 = w
 
 #define DM_SET_UV(parent, clip) \
     Flash_FindLabel(flash, parent, clip, &ref); \
@@ -337,15 +337,15 @@ typedef struct DuelSave {
 /* Draws the background, the guides (blinking, the talker's mouth moving), every plate's text strip, the
    current values of the five settings, the scrolling cloud and smoke layers, the movie and the two windows. */
 void DuelMenu_Draw(void) {
-    MFlashRef ref;
-    MFlashUv uv;
+    FlashRef ref;
+    FlashUv uv;
     char name[64];
     char sub[64];
     char smoke[64];
     s32 i;
     s32 j;
     s32 rule;
-    MFlash *flash;
+    Flash *flash;
 
 #ifdef PORT
     Port_MenuPage(16); /* widescreen menus: this screen's page, its backdrop filling the width */
@@ -383,10 +383,10 @@ void DuelMenu_Draw(void) {
         DM_SET_UV(name, "mc_mode_text_off");
         DM_SET_UV(name, "mc_mode_text_on");
     }
-    uv.y1 = 0x10;
-    uv.x1 = 0x40;
-    uv.y0 = 0;
-    uv.x0 = 0;
+    uv.v1 = 0x10;
+    uv.u1 = 0x40;
+    uv.v0 = 0;
+    uv.u0 = 0;
     Flash_FindLabel(flash, NULL, "mc_menu_plate_anime", &ref);
     FlashAnim_Sheet(flash, &ref, &DM->iconTimer, &DM->iconFrame, &uv, 1, 4, 4);
     for (i = 0; i < 3; i++) {
@@ -451,28 +451,28 @@ void DuelMenu_Draw(void) {
     for (i = 0; i < 5; i++) {
         DuelMenu_ShowValues(i, i == DM->sel[DUEL_LEVEL_VALUE]);
     }
-    uv.y0 = 0;
-    uv.y1 = 0x100;
-    uv.x0 = 0;
-    uv.x1 = 0x200;
+    uv.v0 = 0;
+    uv.v1 = 0x100;
+    uv.u0 = 0;
+    uv.u1 = 0x200;
     Flash_FindLabel(flash, NULL, "mc_kumo", &ref);
     FlashAnim_Scroll(flash, &ref, &uv, &DM->cloud, NULL, -0.28444445f, 0.0f);
     {
         f32 speed[6] = { -1.2190476f, 1.4222222f, 1.4222222f, 1.7066667f, 1.4222222f, 1.4222222f };
 
-        uv.y1 = 0x100;
-        uv.x1 = 0x200;
-        uv.y0 = 0;
-        uv.x0 = 0;
+        uv.v1 = 0x100;
+        uv.u1 = 0x200;
+        uv.v0 = 0;
+        uv.u0 = 0;
         for (i = 0; i < 2; i++) {
             sprintf(smoke, "mc_kemuri_%d", i + 1);
             Flash_FindLabel(flash, NULL, smoke, &ref);
             FlashAnim_Scroll(flash, &ref, &uv, &DM->smoke[i], NULL, speed[i], 0.0f);
         }
-        uv.y1 = 0x200;
-        uv.x1 = 0x100;
-        uv.y0 = 0;
-        uv.x0 = 0;
+        uv.v1 = 0x200;
+        uv.u1 = 0x100;
+        uv.v0 = 0;
+        uv.u0 = 0;
         for (i = 2; i < 6; i++) {
             sprintf(smoke, "mc_kemuri_%d", i + 1);
             Flash_FindLabel(flash, NULL, smoke, &ref);
@@ -491,9 +491,9 @@ void DuelMenu_Draw(void) {
 
 /* Sends the plate under the cursor of a level to a label. */
 void DuelMenu_ClipGoto(s32 level, char *label) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[64];
-    MFlash *flash = &DM->flash[0];
+    Flash *flash = &DM->flash[0];
     s32 i;
 
     switch (level) {

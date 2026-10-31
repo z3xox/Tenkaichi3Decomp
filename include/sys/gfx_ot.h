@@ -36,13 +36,17 @@ typedef struct OtSlot {
 
 /* gOt (0x48 bytes). */
 typedef struct Ot {
-    /* 0x00 */ OtSlot *slots[3];    /* [0] first slot, [1] the OT_Z_SLOTS depth slots, [2] last slot; copied to gOtFirst / gOtZ / gOtLast */
+    /* Three arrays of one element each, indexed by `cur` (one set in this build), not one slots[3]: Ot_Reset's two
+       extra register copies come from each member's constant offset being re-associated with cur * 4. */
+    /* 0x00 */ OtSlot *first[1];    /* first slot; copied to gOtFirst */
+    /* 0x04 */ OtSlot *z[1];        /* the OT_Z_SLOTS depth slots; copied to gOtZ */
+    /* 0x08 */ OtSlot *last[1];     /* last slot; copied to gOtLast */
     /* 0x0C */ s32 unkC;
     /* 0x10 */ u64 alpha1[OT_LAYER_COUNT]; /* GS ALPHA_1 written by each layer's head packets */
     /* 0x20 */ u64 alpha2[OT_LAYER_COUNT]; /* GS ALPHA_2, same */
     /* 0x30 */ void *headBuf[OT_LAYER_COUNT]; /* OT_SLOT_COUNT head packets per layer */
     /* 0x38 */ void *buf;          /* packet memory, followed by the table itself */
-    /* 0x3C */ s32 cur;            /* index added to slots[] by Ot_Reset; always 0 */
+    /* 0x3C */ s32 cur;            /* set index into first / z / last, reset by Ot_Reset; always 0 */
     /* 0x40 */ s32 bufSize;        /* OT_PRIM_BUF_SIZE */
     /* 0x44 */ s32 unk44;
 } Ot;

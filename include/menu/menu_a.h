@@ -2,6 +2,9 @@
 #define MENU_MENU_A_H
 
 #include "types.h"
+#include "sys/progress.h"
+#include "battle/textbox_types.h"
+#include "sys/flash_core.h"
 
 /*
  * Menu overlay DBZP.BIN ("PROGRESS"), 0x334C00..0x339610 (placeholder stem "menu_a"). Four modules:
@@ -17,37 +20,14 @@
 /* ---- Local views of main-executable types (the two Flash headers under include/ conflict). ---- */
 
 /* A movie instance (include/sys/gfxm_c.h has the full layout). */
-typedef struct MFlash {
-    /* 0x00 */ u8 *data;
-    /* 0x04 */ void **tex;
-    /* 0x08 */ u32 flags;    /* MFLASH_ */
-    /* 0x0C */ u32 trig;
-    /* 0x10 */ u32 se;       /* bit n: the movie asked for sound n this tick */
-    /* 0x14 */ s32 unk14[6];
-} MFlash; /* 0x2C */
 
 #define MFLASH_PAD 2         /* the movie's timeline says input is accepted ("pad" "true") */
 
 /* What Flash_FindLabel fills in. */
-typedef struct MFlashRef {
-    /* 0x00 */ s32 id;
-    /* 0x04 */ s32 more;
-} MFlashRef;
 
 /* Texture rectangle given to Flash_ClipSetUv. */
-typedef struct MFlashUv {
-    /* 0x00 */ s32 x0;
-    /* 0x04 */ s32 y0;
-    /* 0x08 */ s32 x1;
-    /* 0x0C */ s32 y1;
-    /* 0x10 */ s32 unk10;
-} MFlashUv; /* 0x14 */
 
 /* Header of a relocated texture list: 0x40-byte entries at tex. */
-typedef struct MTexRes {
-    /* 0x00 */ s32 unk0[4];
-    /* 0x10 */ u8 *tex;
-} MTexRes;
 
 #define MTEX(res, n) ((res)->tex + (n) * 0x40)
 
@@ -55,25 +35,6 @@ typedef struct MTexRes {
 #define MPACK_AT(pack, n) ((u8 *)(pack) + ((((u32 *)(pack))[n] >> 2) << 2))
 
 /* gProgress (0x7FC bytes, main executable): the fields this file uses. */
-typedef struct MenuProgress {
-    /* 0x000 */ s32 unk0;
-    /* 0x004 */ s32 baseFile;      /* 0x1C1: file id of the first menu archive */
-    /* 0x008 */ void *unk8[3];
-    /* 0x014 */ s32 flags;         /* MPROG_ */
-    /* 0x018 */ s32 mode;          /* the screen Progress_Main dispatches to (1..70) */
-    /* 0x01C */ s32 prevMode;      /* guess: tested for 8 / 10 by ModeMenu_Init */
-    /* 0x020 */ s32 unk20;
-    /* 0x024 */ s32 unk24;
-    /* 0x028 */ s32 demoCount;     /* attract demos shown since the opening movie (0..2) */
-    /* 0x02C */ s32 mainMenuItem;  /* item id the main menu was left on */
-    /* 0x030 */ s32 unk30;
-    /* 0x034 */ s32 subMenu;       /* which per-mode sub menu ModeMenu shows (0..7) */
-    /* 0x038 */ s32 subMenuItem;   /* item the sub menu was left on */
-    /* 0x03C */ u8 unk3C[0x5E8];
-    /* 0x624 */ s32 unk624;
-    /* 0x628 */ u8 unk628[0x64];
-    /* 0x68C */ s32 unk68C;
-} MenuProgress;
 
 #define MPROG_NO_SAVE 4        /* "continue without saving" */
 #define MPROG_SAVE_LOADED 8    /* a save was loaded at boot (or the title was left without a card flow) */
@@ -93,23 +54,23 @@ extern void *Sprite_Unpack(void *src, void *dst, s32 *rawSize);
 extern void Sprite_DrawPicture(void *res, s32 x, s32 y, s32 alpha);
 extern void Res_RelocateOffsets(void *out, void *base, void *hdr);
 extern u32 Rand_Range(u32 n);
-extern void Flash_Create(MFlash *flash, void *data, void *tex);
-extern void Flash_Destroy(MFlash *flash);
-extern void Flash_Advance(MFlash *flash);
-extern void Flash_Draw(MFlash *flash);
-extern void Flash_Play(MFlash *flash, s32 speed);
-extern void Flash_GotoLabel(MFlash *flash, char *label, s32 fromStart);
-extern void Flash_FindLabel(MFlash *flash, char *parent, char *name, MFlashRef *out);
-extern void Flash_ClipGotoLabel(MFlash *flash, MFlashRef *ref, char *label);
-extern void Flash_ClipSetFlags(MFlash *flash, MFlashRef *ref, s32 props, s32 on);
-extern void Flash_ClipSetUv(MFlash *flash, MFlashRef *ref, MFlashUv *uv);
-extern void Flash_ClipSetTex(MFlash *flash, MFlashRef *ref, s32 tex);
-extern void FlashAnim_Blink(MFlash *flash, MFlashRef *ref, s32 *timer, s32 frame);
-extern void FlashAnim_Talk(MFlash *flash, MFlashRef *ref, s32 *timer, s32 frame);
-extern void FlashAnim_ShowNext2(MFlash *flash, MFlashRef *ref, s32 frame);
-extern void FlashAnim_Sheet(MFlash *flash, MFlashRef *ref, s32 *timer, s32 *frame, MFlashUv *uv, s32 cols, s32 rows,
+extern void Flash_Create(Flash *flash, void *data, void *tex);
+extern void Flash_Destroy(Flash *flash);
+extern void Flash_Advance(Flash *flash);
+extern void Flash_Draw(Flash *flash);
+extern void Flash_Play(Flash *flash, s32 speed);
+extern void Flash_GotoLabel(Flash *flash, char *label, s32 fromStart);
+extern void Flash_FindLabel(Flash *flash, char *parent, char *name, FlashRef *out);
+extern void Flash_ClipGotoLabel(Flash *flash, FlashRef *ref, char *label);
+extern void Flash_ClipSetFlags(Flash *flash, FlashRef *ref, s32 props, s32 on);
+extern void Flash_ClipSetUv(Flash *flash, FlashRef *ref, FlashUv *uv);
+extern void Flash_ClipSetTex(Flash *flash, FlashRef *ref, s32 tex);
+extern void FlashAnim_Blink(Flash *flash, FlashRef *ref, s32 *timer, s32 frame);
+extern void FlashAnim_Talk(Flash *flash, FlashRef *ref, s32 *timer, s32 frame);
+extern void FlashAnim_ShowNext2(Flash *flash, FlashRef *ref, s32 frame);
+extern void FlashAnim_Sheet(Flash *flash, FlashRef *ref, s32 *timer, s32 *frame, FlashUv *uv, s32 cols, s32 rows,
                             s32 period);
-extern void FlashAnim_Scroll(MFlash *flash, MFlashRef *ref, MFlashUv *uv, f32 *x, f32 *y, f32 dx, f32 dy);
+extern void FlashAnim_Scroll(Flash *flash, FlashRef *ref, FlashUv *uv, f32 *x, f32 *y, f32 dx, f32 dy);
 extern void MsgWin_Init(void *pack, void *text, s32 side, s32 unused);
 extern void MsgWin_Term(void);
 extern void MsgWin_Draw(s32 unused0, s32 unused1, s32 line);
@@ -140,8 +101,8 @@ extern void ColorFade_Draw(void);
 extern s32 ColorFade_IsInDone(void);
 extern s32 ColorFade_IsOutDone(void);
 extern s32 ColorFade_IsFadingOut(void);
-extern void Flash_ClipSetAlpha(MFlash *flash, MFlashRef *ref, f32 alpha);
-extern void Flash_ClipSetColor(MFlash *flash, MFlashRef *ref, f32 color);
+extern void Flash_ClipSetAlpha(Flash *flash, FlashRef *ref, f32 alpha);
+extern void Flash_ClipSetColor(Flash *flash, FlashRef *ref, f32 color);
 extern void Dialog_Init(void *file, void *msgTbl, s32 size);
 extern void Dialog_Term(void);
 extern void McFlow_Init(s32 unused);   /* takes no argument; the title passes 1 */
@@ -166,8 +127,6 @@ extern s32 File_UpdateRequests(void);
 extern void Font_FlushAll(void);
 extern void Shen_Main(void);           /* main 0x2BD230: the dragon-summoning mode (70) */
 
-extern MenuProgress *gProgress;
-
 /* ---- MainMenu (menu_a.c) ---- */
 
 #ifdef PORT
@@ -183,7 +142,7 @@ typedef struct MainMenu {
     /* 0x004 */ u32 *res;           /* the same unpacked: a pack of 29 sections */
     /* 0x008 */ void *msgText;      /* section 28: text of the message window */
     /* 0x00C */ void *subtitles;    /* section 27: subtitles of the guide voices */
-    /* 0x010 */ MFlash flash[MAINMENU_FLASH_NUM];
+    /* 0x010 */ Flash flash[MAINMENU_FLASH_NUM];
     /* 0x03C */ void *bg;           /* section 1: background picture */
     /* 0x040 */ u8 *tex[50];        /* textures of the movie's image records */
     /* 0x108 */ s32 flags;          /* MAINMENU_ */
@@ -216,7 +175,7 @@ typedef struct Title {
     /* 0x00 */ u32 *pack;
     /* 0x04 */ u32 *res;            /* a pack of 15 sections */
     /* 0x08 */ s32 unk8;
-    /* 0x0C */ MFlash flash[TITLE_FLASH_NUM];
+    /* 0x0C */ Flash flash[TITLE_FLASH_NUM];
     /* 0x38 */ void *bg;            /* section 1: background picture */
     /* 0x3C */ u8 *tex[26];
     /* 0xA4 */ void *logo;          /* section 14: the picture shown for 300 frames first */
@@ -262,9 +221,6 @@ extern Title *gTitle;       /* 0x3B0EB8 */
 /* ---- ModeMenu (menu_a_d.c): the sub menu of one game mode, with a guide character and a large picture ---- */
 
 /* A text box of the main executable (include/battle/view_a.h has the layout). */
-typedef struct MTextBox {
-    u8 unk0[0x8C];
-} MTextBox;
 
 /* The work struct (ModeMenu) and its item table are in include/menu/menu_b.h (the object was first decompiled in
    two halves; the head's partial view that stood here is gone). */
@@ -283,7 +239,6 @@ typedef struct MTextBox {
 #define MODEMENU_LOAD_SHOWN 4
 #define MODEMENU_LOAD_ABORT 5
 #define MODEMENU_LOAD_RESTART 6
-
 
 s32 MainMenu_Run(s32 section);
 s32 Title_Run(s32 section);

@@ -58,7 +58,7 @@ void HistResult_SplitEpisode(s32 id, s32 *menu, s32 *item) {
     gHistResult->reward[gHistResult->rewardCount].id = (v); \
     gHistResult->rewardCount++
 
-/* Lists what the won battle gives (gProgress->reward, filled when the battle was set up) and writes it to the
+/* Lists what the won battle gives (gProgress->menu.reward, filled when the battle was set up) and writes it to the
    save: items, characters, stages, newly listed sub menus and episodes, and the dragon ball the battle result
    reports (BattleResult.unk44, 1-based). The points are doubled while item 0x88 is owned. */
 void HistResult_BuildRewards(void) {
@@ -66,7 +66,7 @@ void HistResult_BuildRewards(void) {
     s32 menu;
     s32 item;
     HistProgress *prog = HPROG;
-    HistReward *rw = &prog->reward;
+    ProgressReward *rw = &prog->reward;
     s32 i;
     s32 j;
     s32 id;
@@ -158,8 +158,8 @@ s32 HistResult_IsMenuCleared(void) {
     s32 result = 1;
     s32 i;
 
-    for (i = 0; i < count[gProgress->subMenu]; i++) {
-        if (!(MSAVE->slot[gProgress->subMenu].val[1] & (s32)(1U << i))) {
+    for (i = 0; i < count[gProgress->menu.subMenu]; i++) {
+        if (!(MSAVE->slot[gProgress->menu.subMenu].val[1] & (s32)(1U << i))) {
             result = 0;
             break;
         }
@@ -168,12 +168,12 @@ s32 HistResult_IsMenuCleared(void) {
 }
 
 #define HR_RES(pack, n) \
-    res = (MTexRes *)MPACK_AT(pack, n); \
+    res = (FlashTexRes *)MPACK_AT(pack, n); \
     Res_RelocateOffsets(&res, res, res)
 
 /* Loads the screen, picks the picture, starts the jingle and, after a win, lists the rewards. */
 void HistResult_Init(s32 section) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
     s32 flags;
     s32 bg;
 
@@ -182,11 +182,11 @@ void HistResult_Init(s32 section) {
     memset(gHistResult, 0, 0x140);
     gHistResult->pack = (u32 *)MPACK_AT(gMenuArc2, section);
     gHistResult->res = Sprite_Unpack(gHistResult->pack, NULL, NULL);
-    gHistResult->file = File_LoadSync(gProgress->baseFile + gProgress->subMenu + 0x10, NULL, 0);
+    gHistResult->file = File_LoadSync(gProgress->baseFile + gProgress->menu.subMenu + 0x10, NULL, 0);
     gHistResult->fileRes = Sprite_Unpack(gHistResult->file, NULL, NULL);
     if (flags & 1) {
         bg = Rand_Range(3);
-        MSAVE->slot[gProgress->subMenu].val[1] |= (s32)(1U << gProgress->subMenuItem);
+        MSAVE->slot[gProgress->menu.subMenu].val[1] |= (s32)(1U << gProgress->menu.subMenuItem);
     } else {
         bg = 3;
         gHistResult->flags |= HISTRESULT_LOST;
@@ -231,7 +231,7 @@ void HistResult_Init(s32 section) {
         gHistResult->pointsTotal = 0;
         StreamSe_PlayPausedDefault(0, 0x10BC8);
     } else {
-        if (HistResult_IsMenuCleared() && !(MSAVE->slot[gProgress->subMenu].flags & MSLOT_OUTRO_SEEN)) {
+        if (HistResult_IsMenuCleared() && !(MSAVE->slot[gProgress->menu.subMenu].flags & MSLOT_OUTRO_SEEN)) {
             StreamSe_PlayPausedDefault(0, 0x10BC9);
         } else {
             StreamSe_PlayPausedDefault(0, 0x10BC7);
@@ -264,11 +264,11 @@ void HistResult_Term(void) {
 
 /* Sets up the clips (win / lose caption, point counters, scrolling lines, episode title) and draws. */
 void HistResult_Draw(void) {
-    MFlashRef ref;
-    MFlashUv uv;
+    FlashRef ref;
+    FlashUv uv;
     char name[64];
     s32 i;
-    MFlash *flash;
+    Flash *flash;
 
 #ifdef PORT
     Port_MenuPage(14); /* widescreen menus: this screen's page, its backdrop filling the width */
@@ -286,19 +286,19 @@ void HistResult_Draw(void) {
             if (gHistResult->flags & HISTRESULT_LOST) {
                 Flash_ClipSetFlags(flash, &ref, 2, 0);
             } else {
-                uv.x0 = 0;
-                uv.y0 = 0;
-                uv.x1 = 0x200;
-                uv.y1 = 0x80;
+                uv.u0 = 0;
+                uv.v0 = 0;
+                uv.u1 = 0x200;
+                uv.v1 = 0x80;
                 Flash_ClipSetUv(flash, &ref, &uv);
                 Flash_ClipSetFlags(flash, &ref, 2, 1);
             }
         } else {
             if (gHistResult->flags & HISTRESULT_LOST) {
-                uv.x0 = 0;
-                uv.y0 = 0x80;
-                uv.x1 = 0x200;
-                uv.y1 = 0x100;
+                uv.u0 = 0;
+                uv.v0 = 0x80;
+                uv.u1 = 0x200;
+                uv.v1 = 0x100;
                 Flash_ClipSetUv(flash, &ref, &uv);
                 Flash_ClipSetFlags(flash, &ref, 2, 1);
             } else {
@@ -307,10 +307,10 @@ void HistResult_Draw(void) {
         }
     }
     for (i = 0; i < 2; i++) {
-        uv.x0 = 0;
-        uv.y0 = i * 0x20;
-        uv.x1 = 0x200;
-        uv.y1 = uv.y0 + 0x20;
+        uv.u0 = 0;
+        uv.v0 = i * 0x20;
+        uv.u1 = 0x200;
+        uv.v1 = uv.v0 + 0x20;
         sprintf(name, "mc_point_text_%d", i + 1);
         Flash_FindLabel(flash, NULL, name, &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
@@ -320,10 +320,10 @@ void HistResult_Draw(void) {
     {
         f32 speed[4] = { 17.066667f, 17.066667f, 8.5333333f, 8.5333333f };
 
-        uv.x0 = 0;
-        uv.y0 = 0;
-        uv.x1 = 0x200;
-        uv.y1 = 0x100;
+        uv.u0 = 0;
+        uv.v0 = 0;
+        uv.u1 = 0x200;
+        uv.v1 = 0x100;
         for (i = 0; i < 4; i++) {
             sprintf(name, "mc_line_%d", i + 1);
             Flash_FindLabel(flash, NULL, name, &ref);
@@ -331,13 +331,13 @@ void HistResult_Draw(void) {
             FlashAnim_Scroll(flash, &ref, &uv, &gHistResult->scroll[i], NULL, -speed[i], 0.0f);
         }
     }
-    uv.x0 = 0;
-    uv.y0 = (gProgress->subMenuItem % 4) * 0x40;
-    uv.x1 = 0x200;
-    uv.y1 = uv.y0 + 0x40;
+    uv.u0 = 0;
+    uv.v0 = (gProgress->menu.subMenuItem % 4) * 0x40;
+    uv.u1 = 0x200;
+    uv.v1 = uv.v0 + 0x40;
     Flash_FindLabel(flash, NULL, "mc_battle_text", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
-    Flash_ClipSetTex(flash, &ref, gProgress->subMenuItem / 4);
+    Flash_ClipSetTex(flash, &ref, gProgress->menu.subMenuItem / 4);
     for (i = 0; i < HISTRESULT_FLASH_NUM; i++) {
         Flash_Draw(&gHistResult->flash[i]);
     }
@@ -383,7 +383,7 @@ void HistResult_Input(s32 *result) {
         if (gHistResult->flags & HISTRESULT_LOST) {
             *result = 0;
         } else if (HistResult_IsMenuCleared()) {
-            if (MSAVE->slot[gProgress->subMenu].flags & MSLOT_OUTRO_SEEN) {
+            if (MSAVE->slot[gProgress->menu.subMenu].flags & MSLOT_OUTRO_SEEN) {
                 *result = 1;
             } else {
                 *result = 2;

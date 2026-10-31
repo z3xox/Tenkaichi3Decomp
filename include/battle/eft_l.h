@@ -2,6 +2,7 @@
 #define BATTLE_EFT_L_H
 
 #include "types.h"
+#include "battle/btl_task.h"
 #include "sys/math3d.h"
 
 /*
@@ -23,26 +24,8 @@
  */
 
 /* A 16-byte aligned vector: what the original used inside argument blocks (they are copied 8 bytes at a time). */
-typedef struct EftVec {
-    f32 x, y, z, w;
-} __attribute__((aligned(16))) EftVec;
 
 /* A task of the effect scene's task tree (0x40 bytes); only what these modules touch. */
-typedef struct EftTask {
-    /* 0x00 */ u8 unk0;
-    /* 0x01 */ u8 step;      /* state of the module's update switch */
-    /* 0x02 */ u16 unk2;
-    /* 0x04 */ u32 flags;    /* 0x800 / 0x1000: belongs to character 0 / 1 (BtlTask_SetOwnerTag). Written by the hit record
-                                code: 1 = the record hit something, 2 = it is over, 4 = (also ends the effect) */
-    /* 0x08 */ u16 hit;      /* written by the hit record code: 1 = the volume was moved (hitPos is its new head),
-                                4 = start the end timer */
-    /* 0x0A */ u16 unkA;
-    /* 0x0C */ s32 unkC;
-    /* 0x10 */ Vec4 hitPos;  /* head position written back by the hit record code */
-    /* 0x20 */ u8 unk20[0x38 - 0x20];
-    /* 0x38 */ void *work;   /* work area of the size given to BtlTask_CreateChildList */
-    /* 0x3C */ s32 unk3C;
-} EftTask; /* size 0x40 */
 
 /* Definition of a technique effect (the record a technique's effect request points at); fields used here. */
 typedef struct EftTechDef {
@@ -335,58 +318,58 @@ typedef struct EftAbsorb {
 } EftAbsorb; /* size 0x860 */
 
 /* eft_l.c */
-void EftRushShot_FreeModels(EftTask *task);
-void EftRushShot_StartCam(EftTask *task);
-void EftRushShot_UpdateFade(EftTask *task);
-void EftRushShot_UpdateStageFx(EftTask *task);
-void EftRushShot_UpdateFlash(EftTask *task);
-void EftRushShot_UpdateSparks(EftTask *task);
-void EftRushShot_Draw(s32 objId, EftTask *task, EftModel *model);
-void EftRushShot_UpdateAttached(EftTask *task);
-void EftRushShot_Init(EftTask *task, EftTechArg *arg);
-void EftRushShot_Term(EftTask *task);
-void EftRushShot_Update(EftTask *task);
-void EftRushShot_PostUpdate(EftTask *task);
-void EftRushShot_Reset(EftTask *task);
+void EftRushShot_FreeModels(BtlTask *task);
+void EftRushShot_StartCam(BtlTask *task);
+void EftRushShot_UpdateFade(BtlTask *task);
+void EftRushShot_UpdateStageFx(BtlTask *task);
+void EftRushShot_UpdateFlash(BtlTask *task);
+void EftRushShot_UpdateSparks(BtlTask *task);
+void EftRushShot_Draw(s32 objId, BtlTask *task, EftModel *model);
+void EftRushShot_UpdateAttached(BtlTask *task);
+void EftRushShot_Init(BtlTask *task, EftTechArg *arg);
+void EftRushShot_Term(BtlTask *task);
+void EftRushShot_Update(BtlTask *task);
+void EftRushShot_PostUpdate(BtlTask *task);
+void EftRushShot_Reset(BtlTask *task);
 void EftRushShot_Nop(void);
-void EftRushShotMgr_Init(EftTask *task, EftTechArg *arg);
-void EftRushShotMgr_Term(EftTask *task);
-void EftRushShotMgr_Update(EftTask *task);
+void EftRushShotMgr_Init(BtlTask *task, EftTechArg *arg);
+void EftRushShotMgr_Term(BtlTask *task);
+void EftRushShotMgr_Update(BtlTask *task);
 void EftRushShotMgr_Reset(void);
 
 /* eft_l_b.c */
 EftRingShotOne *EftRingShot_AllocShot(EftRingShot *w);
-void EftRingShot_Fire(s32 objId, EftTask *task, s32 node, s32 arg3, s32 volley);
+void EftRingShot_Fire(s32 objId, BtlTask *task, s32 node, s32 arg3, s32 volley);
 void EftRingShot_BobShot(EftRingShotOne *shot);
-void EftRingShot_UpdateRing(s32 objId, EftTask *task);
-void EftRingShot_UpdatePath(s32 objId, EftTask *task);
-void EftRingShot_UpdateFixed(s32 objId, EftTask *task);
-s32 EftRingShot_ReapShots(EftTask *task);
-s32 EftRingShot_UpdateShots(s32 objId, EftTask *task);
-void EftRingShot_AddHit(EftTask *task, s32 last);
-void EftRingShot_Draw(s32 objId, EftTask *task, EftModel *model, s32 mode);
-void EftRingShot_Init(EftTask *task, EftTechArg *arg);
-void EftRingShot_Term(EftTask *task);
-void EftRingShot_Update(EftTask *task);
-void EftRingShot_PostUpdate(EftTask *task);
-void EftRingShot_Reset(EftTask *task);
+void EftRingShot_UpdateRing(s32 objId, BtlTask *task);
+void EftRingShot_UpdatePath(s32 objId, BtlTask *task);
+void EftRingShot_UpdateFixed(s32 objId, BtlTask *task);
+s32 EftRingShot_ReapShots(BtlTask *task);
+s32 EftRingShot_UpdateShots(s32 objId, BtlTask *task);
+void EftRingShot_AddHit(BtlTask *task, s32 last);
+void EftRingShot_Draw(s32 objId, BtlTask *task, EftModel *model, s32 mode);
+void EftRingShot_Init(BtlTask *task, EftTechArg *arg);
+void EftRingShot_Term(BtlTask *task);
+void EftRingShot_Update(BtlTask *task);
+void EftRingShot_PostUpdate(BtlTask *task);
+void EftRingShot_Reset(BtlTask *task);
 void EftRingShot_Nop(void);
-void EftRingShotMgr_Init(EftTask *task, EftTechArg *arg);
-void EftRingShotMgr_Term(EftTask *task);
-void EftRingShotMgr_Update(EftTask *task);
+void EftRingShotMgr_Init(BtlTask *task, EftTechArg *arg);
+void EftRingShotMgr_Term(BtlTask *task);
+void EftRingShotMgr_Update(BtlTask *task);
 void EftRingShotMgr_Reset(void);
 
 /* eft_l_c.c */
-void EftAbsorb_DrawOne(s32 objId, EftTask *task, EftModel *model, EftModelInst *inst, Vec4 *pos, Vec4 *dir);
-void EftAbsorb_Init(EftTask *task, EftAbsorbArg *arg);
-void EftAbsorb_Term(EftTask *task);
-void EftAbsorb_Update(EftTask *task);
-void EftAbsorb_Reset(EftTask *task);
-void EftAbsorb_PostUpdate(EftTask *task);
+void EftAbsorb_DrawOne(s32 objId, BtlTask *task, EftModel *model, EftModelInst *inst, Vec4 *pos, Vec4 *dir);
+void EftAbsorb_Init(BtlTask *task, EftAbsorbArg *arg);
+void EftAbsorb_Term(BtlTask *task);
+void EftAbsorb_Update(BtlTask *task);
+void EftAbsorb_Reset(BtlTask *task);
+void EftAbsorb_PostUpdate(BtlTask *task);
 void EftAbsorb_Nop(void);
-void EftAbsorbMgr_Init(EftTask *task, s32 *arg);
-void EftAbsorbMgr_Term(EftTask *task);
-void EftAbsorbMgr_Update(EftTask *task);
+void EftAbsorbMgr_Init(BtlTask *task, s32 *arg);
+void EftAbsorbMgr_Term(BtlTask *task);
+void EftAbsorbMgr_Update(BtlTask *task);
 s32 EftAbsorb_Start(EftAbsorbOwner *arg);
 s32 EftAbsorb_Stop(s32 objId);
 void EftAbsorb_StartHands(EftAbsorbOwner *arg);

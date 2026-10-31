@@ -27,8 +27,8 @@ extern void Port_MenuFill(int on);
  */
 
 /* Gives a child clip its texture rectangle. */
-static inline void DcView_SetChildUv(DcView *v, char *parent, char *name, MFlashUv *uv) {
-    MFlashRef ref;
+static inline void DcView_SetChildUv(DcView *v, char *parent, char *name, FlashUv *uv) {
+    FlashRef ref;
 
     Flash_FindLabel(v->flash, parent, name, &ref);
     Flash_ClipSetUv(v->flash, &ref, uv);
@@ -36,18 +36,18 @@ static inline void DcView_SetChildUv(DcView *v, char *parent, char *name, MFlash
 
 /* Shows or hides a child clip. */
 static inline void DcView_ShowChild(DcView *v, char *parent, char *name, s32 on) {
-    MFlashRef ref;
+    FlashRef ref;
 
     Flash_FindLabel(v->flash, parent, name, &ref);
     Flash_ClipSetFlags(v->flash, &ref, 2, on);
 }
 
 /* Texture rectangle of a row of a sheet of w x h pictures. */
-static inline void DcUv_SetRow(MFlashUv *uv, s32 row, s32 w, s32 h) {
-    uv->x0 = 0;
-    uv->y0 = row * h;
-    uv->x1 = w;
-    uv->y1 = row * h + h;
+static inline void DcUv_SetRow(FlashUv *uv, s32 row, s32 w, s32 h) {
+    uv->u0 = 0;
+    uv->v0 = row * h;
+    uv->u1 = w;
+    uv->v1 = row * h + h;
 }
 
 /* Starts the guide's blink timer at a random phase. */
@@ -82,8 +82,8 @@ void DcList_Reset(DcList *d) {
 
 /* Animates the guide's (Bulma's) eyes and mouth. */
 void DcList_UpdateGuide(DcList *d) {
-    MFlashRef ref;
-    MFlash *flash = d->view.flash;
+    FlashRef ref;
+    Flash *flash = d->view.flash;
 
     Flash_FindLabel(flash, NULL, "mc_guide_blma_eye", &ref);
     FlashAnim_Blink(flash, &ref, &d->view.blink, 0);
@@ -97,14 +97,14 @@ void DcList_UpdateGuide(DcList *d) {
 
 /* Scrolls the backdrop strip "mc_compane_3". */
 void DcList_ScrollCloud(DcList *d) {
-    MFlashRef ref;
-    MFlashUv uv;
-    MFlash *flash = d->view.flash;
+    FlashRef ref;
+    FlashUv uv;
+    Flash *flash = d->view.flash;
 
-    uv.y0 = 0;
-    uv.y1 = 0x40;
-    uv.x0 = 0;
-    uv.x1 = 0x40;
+    uv.v0 = 0;
+    uv.v1 = 0x40;
+    uv.u0 = 0;
+    uv.u1 = 0x40;
     Flash_FindLabel(flash, NULL, "mc_compane_3", &ref);
     FlashAnim_Scroll(flash, &ref, &uv, &d->cloudX, NULL, -0.15238095f, 0.0f);
 }
@@ -121,7 +121,7 @@ void DcList_ResetScissor(void) {
 
 /* Hangs the scissor callbacks on the four list plates. */
 void DcView_SetRowCallbacks(DcView *v) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[0x100];
     s32 i;
 
@@ -135,7 +135,7 @@ void DcView_SetRowCallbacks(DcView *v) {
 
 /* Hides the up or the down arrow of the list. */
 void DcView_HideArrow(DcView *v, s32 up) {
-    MFlashRef ref;
+    FlashRef ref;
     char parent[0x100];
     char name[0x100];
 
@@ -152,18 +152,18 @@ void DcView_HideArrow(DcView *v, s32 up) {
 
 /* Gives the two arrows their pictures and hides the one that cannot be used. */
 void DcView_SetArrows(DcView *v, DcChars *c) {
-    MFlashUv uv;
+    FlashUv uv;
     s32 top;
 
-    uv.x0 = 0;
-    uv.x1 = 0x20;
-    uv.y0 = 0x20;
-    uv.y1 = 0x40;
+    uv.u0 = 0;
+    uv.u1 = 0x20;
+    uv.v0 = 0x20;
+    uv.v1 = 0x40;
     DcView_SetChildUv(v, "mc_yajirusi_up", "mc_yajirusi_icon_up", &uv);
-    uv.x0 = 0x20;
-    uv.x1 = 0x40;
-    uv.y0 = 0x20;
-    uv.y1 = 0x40;
+    uv.u0 = 0x20;
+    uv.u1 = 0x40;
+    uv.v0 = 0x20;
+    uv.v1 = 0x40;
     DcView_SetChildUv(v, "mc_yajirusi_down", "mc_yajirusi_icon_down", &uv);
     top = c->top;
     if (top == 0) {
@@ -175,7 +175,7 @@ void DcView_SetArrows(DcView *v, DcChars *c) {
 
 /* Places the scroll bar's knob. */
 void DcView_SetScrollBar(DcView *v, DcChars *c) {
-    MFlashRef ref;
+    FlashRef ref;
     s32 n = SAVE_REC_COUNT;
     s32 y = c->top * 0xB5 / n;
 
@@ -186,7 +186,7 @@ void DcView_SetScrollBar(DcView *v, DcChars *c) {
 
 /* Lights or dims the plate the cursor is on. */
 void DcView_LightRow(DcView *v, DcChars *c, s32 on) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[0x100];
 
     sprintf(name, "mc_menu_plate2_%d", c->row + 1);
@@ -226,7 +226,7 @@ s32 DcChars_ClampRow(DcChars *c) {
 
 /* Fills the four list plates: name and form of each record, empty records dimmed. */
 void DcView_SetRows(DcView *v, DcChars *c) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[0x100];
     s32 i;
     s32 chara;
@@ -281,9 +281,9 @@ void DcList_PickRec(DcList *d) {
 
 /* Plays the "chosen" animation of the cursor's plate. */
 void DcList_RowOk(DcList *d) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[0x100];
-    MFlash *flash;
+    Flash *flash;
 
     sprintf(name, "mc_menu_plate2_%d", d->chars.row + 1);
     flash = d->view.flash;
@@ -409,15 +409,15 @@ void DcList_InputList(DcList *d) {
 
 /* Gives the three plates of the details menu their text pictures. */
 void DcView_SetMenuText(DcView *v) {
-    MFlashUv uv;
+    FlashUv uv;
     char name[0x100];
     s32 i;
 
     for (i = 0; i < 3; i++) {
-        uv.x0 = 0;
-        uv.y0 = i * 0x20;
-        uv.x1 = 0x100;
-        uv.y1 = i * 0x20 + 0x20;
+        uv.u0 = 0;
+        uv.v0 = i * 0x20;
+        uv.u1 = 0x100;
+        uv.v1 = i * 0x20 + 0x20;
         sprintf(name, "menu_plate_%d", i + 1);
         DcView_SetChildUv(v, name, "mc_menu_text_on", &uv);
         DcView_SetChildUv(v, name, "mc_menu_text_off", &uv);
@@ -426,7 +426,7 @@ void DcView_SetMenuText(DcView *v) {
 
 /* Draws the status panel: used item slots, the four stat changes as rows of marks, the attribute. */
 void DcView_SetStatus(DcView *v, DcStatus *s) {
-    MFlashUv uv;
+    FlashUv uv;
     char slots[0x100];
     char base[0x100];
     char name[0x100];
@@ -463,7 +463,7 @@ void DcView_SetStatus(DcView *v, DcStatus *s) {
         DcView_SetChildUv(v, base, name, &uv);
     }
     {
-        MFlashRef ref;
+        FlashRef ref;
 
         Flash_FindLabel(v->flash, NULL, "mc_status_attribute", &ref);
         Flash_ClipSetTex(v->flash, &ref, s->attr);
@@ -472,7 +472,7 @@ void DcView_SetStatus(DcView *v, DcStatus *s) {
 
 /* Lights or dims a plate of the details menu. */
 void DcView_LightMenu(DcView *v, s32 item, s32 on) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[0x100];
 
     sprintf(name, "menu_plate_%d", item + 1);
@@ -497,7 +497,7 @@ void DcList_WrapMenu(s32 *cursor) {
 
 /* Hides the backing plates of the name and form text. */
 void DcView_HideNamePlates(DcView *v) {
-    MFlashRef ref;
+    FlashRef ref;
 
     Flash_FindLabel(v->flash, "mc_name_plate_l", "ch_name_plate", &ref);
     Flash_ClipSetFlags(v->flash, &ref, 2, 0);
@@ -507,7 +507,7 @@ void DcView_HideNamePlates(DcView *v) {
 
 /* Shows a character's name and form in the details panel. */
 void DcView_SetNameText(DcView *v, s32 line) {
-    MFlashRef ref;
+    FlashRef ref;
 
     Flash_FindLabel(v->flash, NULL, "mc_name_text_l", &ref);
     TextBox_AttachLine(v->flash, &ref, 0, 0, line, &v->nameBoxB);
@@ -521,7 +521,7 @@ void DcView_SetNameText(DcView *v, s32 line) {
  * so this is where it was defined.
  */
 static inline void DcView_SetPictureAlpha(DcView *v, f32 alpha) {
-    MFlashRef ref;
+    FlashRef ref;
 
     Flash_FindLabel(v->flash, NULL, "mc_single_chara_r", &ref);
     Flash_ClipSetAlpha(v->flash, &ref, alpha);
@@ -529,7 +529,7 @@ static inline void DcView_SetPictureAlpha(DcView *v, f32 alpha) {
 
 /* Plays the "chosen" animation of a plate of the details menu. */
 void DcView_MenuOk(DcView *v, s32 item) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[0x100];
 
     sprintf(name, "menu_plate_%d", item + 1);
@@ -550,9 +550,9 @@ s32 DcRec_IsSlotEmpty(u16 *items, s32 slot) {
 
 /* Lights or dims a row of the item list (the second movie). */
 void DcView_LightItem(DcView *v, s32 row, s32 on) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[0x100];
-    MFlash *flash;
+    Flash *flash;
 
     sprintf(name, "mc_list_plate_%d", row + 1);
     flash = &v->flash[1];
@@ -635,20 +635,20 @@ static inline void DcList_Say(DcList *list, s32 line) {
     list->voiceLine = line;
 }
 
-/* Sets the texture rectangle of a clip found by name (each use has its own MFlashRef on the stack). */
-static inline void DcList_SetUv(MFlash *flash, char *parent, char *name, MFlashUv *uv) {
-    MFlashRef ref;
+/* Sets the texture rectangle of a clip found by name (each use has its own FlashRef on the stack). */
+static inline void DcList_SetUv(Flash *flash, char *parent, char *name, FlashUv *uv) {
+    FlashRef ref;
 
     Flash_FindLabel(flash, parent, name, &ref);
     Flash_ClipSetUv(flash, &ref, uv);
 }
 
 /* Texture rectangle of one cell of a sheet. */
-static inline void DcList_SetCell(MFlashUv *uv, s32 col, s32 row, s32 w, s32 h) {
-    uv->x0 = col * w;
-    uv->y0 = row * h;
-    uv->x1 = uv->x0 + w;
-    uv->y1 = uv->y0 + h;
+static inline void DcList_SetCell(FlashUv *uv, s32 col, s32 row, s32 w, s32 h) {
+    uv->u0 = col * w;
+    uv->v0 = row * h;
+    uv->u1 = uv->u0 + w;
+    uv->v1 = uv->v0 + h;
 }
 
 /* Keeps the item page's cursor in 0..7 (a ring). */
@@ -675,16 +675,16 @@ s32 DcList_IsRowSkipped(u16 *items, s32 row) {
 
 /* Puts the character's name and form name on the large plates of the item page. */
 void DcList_DrawNames(DcView *view, s32 chara) {
-    MFlashRef ref;
-    MFlashUv uv;
-    MFlash *flash = &view->flash[1];
+    FlashRef ref;
+    FlashUv uv;
+    Flash *flash = &view->flash[1];
 
     Flash_FindLabel(flash, NULL, "mc_name_text_l", &ref);
     TextBox_AttachLine(flash, &ref, 0, 0, chara, &view->nameBoxL);
-    uv.x0 = 0;
-    uv.y0 = 0;
-    uv.x1 = 0x100;
-    uv.y1 = 0x20;
+    uv.u0 = 0;
+    uv.v0 = 0;
+    uv.u1 = 0x100;
+    uv.v1 = 0x20;
     DcList_SetUv(flash, NULL, "mc_name_plate_l", &uv);
     Flash_FindLabel(flash, NULL, "mc_form_text_l", &ref);
     TextBox_AttachLine(flash, &ref, 0, 0, chara, &view->formBoxL);
@@ -692,9 +692,9 @@ void DcList_DrawNames(DcView *view, s32 chara) {
 
 /* Lights or dims a row of the item page. */
 void DcList_LightItemRow(DcView *view, s32 row, s32 on) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[0x100];
-    MFlash *flash;
+    Flash *flash;
 
     sprintf(name, "mc_list_plate_%d", row + 1);
     flash = &view->flash[1];
@@ -708,9 +708,9 @@ void DcList_LightItemRow(DcView *view, s32 row, s32 on) {
 
 /* Fills the eight rows of the item page from the current record: name, cost icon, kind icon. */
 void DcList_DrawItems(DcList *list, s32 cursor) {
-    MFlash *flash = &list->view.flash[1];
-    MFlashRef ref;
-    MFlashUv uv;
+    Flash *flash = &list->view.flash[1];
+    FlashRef ref;
+    FlashUv uv;
     char name[0x100];
     s32 i;
 
@@ -729,10 +729,10 @@ void DcList_DrawItems(DcList *list, s32 cursor) {
         } else {
             Flash_ClipSetFlags(flash, &ref, 2, 0);
         }
-        uv.x0 = 0x40;
-        uv.y0 = 0;
-        uv.x1 = 0x80;
-        uv.y1 = 0x40;
+        uv.u0 = 0x40;
+        uv.v0 = 0;
+        uv.u1 = 0x80;
+        uv.v1 = 0x40;
         Flash_FindLabel(flash, name, "mc_icon_custom", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
         if (item != 0) {
@@ -745,10 +745,10 @@ void DcList_DrawItems(DcList *list, s32 cursor) {
                 Flash_FindLabel(flash, name, "mc_icon_item_cost", &ref);
                 Flash_ClipSetFlags(flash, &ref, 2, 0);
             }
-            uv.x0 = list->itemTbl[item - 1].type << 6;
-            uv.y0 = 0;
-            uv.x1 = uv.x0 + 0x40;
-            uv.y1 = 0x40;
+            uv.u0 = list->itemTbl[item - 1].type << 6;
+            uv.v0 = 0;
+            uv.u1 = uv.u0 + 0x40;
+            uv.v1 = 0x40;
             DcList_SetUv(flash, name, "mc_icon_item_potara", &uv);
             Flash_FindLabel(flash, name, "mc_icon_item_potara", &ref);
             Flash_ClipSetFlags(flash, &ref, 2, 1);
@@ -777,8 +777,8 @@ void DcList_DrawItems(DcList *list, s32 cursor) {
 
 /* Cuts the two "limit" numbers of the item page from their sheets. */
 void DcList_DrawLimitNums(DcList *list) {
-    MFlashUv uv;
-    MFlash *flash = &list->view.flash[1];
+    FlashUv uv;
+    Flash *flash = &list->view.flash[1];
 
     DcList_SetCell(&uv, 2, 2, 0x40, 0x40);
     DcList_SetUv(flash, NULL, "mc_ability_limit_big_num", &uv);
@@ -793,9 +793,9 @@ u16 DcList_GetCursorItem(DcList *list) {
 
 /* Plays the "chosen" animation of the row under the cursor. */
 void DcList_FlashItemRow(DcList *list) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[0x100];
-    MFlash *flash;
+    Flash *flash;
 
     sprintf(name, "mc_list_plate_%d", list->itemCursor + 1);
     flash = &list->view.flash[1];
@@ -943,7 +943,7 @@ static inline void DcList_RequestFace(DcList *list, DcStatus *status) {
 
 /* Loads the large picture of the character under the cursor in the background and fades it in. */
 void DcList_UpdateFace(DcList *list) {
-    MTexRes *res;
+    FlashTexRes *res;
     s32 flags;
 
     if (list->flags & DCLIST_FACE_CHANGE) {
@@ -993,12 +993,12 @@ static inline u8 *DcList_Section(DcList *list, s32 n, const char *host) {
 #define DCLIST_HOST "host:data/ps2/test/main/DC/LIST/"
 
 #define DCLIST_RES(n, host) \
-    res = (MTexRes *)DcList_Section(list, n, host); \
+    res = (FlashTexRes *)DcList_Section(list, n, host); \
     Res_RelocateOffsets(&res, res, res)
 
 /* Unpacks the screen's section of archive 8, builds the two movies, the text boxes and the shared windows. */
 void DcList_Init(DcList *list) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
     s32 i;
     s32 j;
 
@@ -1120,7 +1120,7 @@ void DcList_Init(DcList *list) {
  * since the two halves are one file: the compiler has to have seen the definition of DcView_LightRow.)
  */
 void DcList_Draw(DcList *list) {
-    MFlashRef ref;
+    FlashRef ref;
     DcView *view;
 
     if (!(list->flags & DCLIST_STARTED)) {

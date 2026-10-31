@@ -24,15 +24,15 @@ extern s32 Snd_PlaySe(u32 mask, s32 id);
 
 /* ---- Main executable, beyond what menu_a.h declares ---- */
 
-extern void Flash_ClipSetOffset(MFlash *flash, MFlashRef *ref, s32 x, s32 y);
-extern void Flash_ClipSetScale(MFlash *flash, MFlashRef *ref, f32 x, f32 y);
-extern void Flash_ClipSetCallbackA(MFlash *flash, MFlashRef *ref, void *fn, void *arg);
-extern void Flash_ClipSetCallbackB(MFlash *flash, MFlashRef *ref, void *fn, void *arg);
+extern void Flash_ClipSetOffset(Flash *flash, FlashRef *ref, s32 x, s32 y);
+extern void Flash_ClipSetScale(Flash *flash, FlashRef *ref, f32 x, f32 y);
+extern void Flash_ClipSetCallbackA(Flash *flash, FlashRef *ref, void *fn, void *arg);
+extern void Flash_ClipSetCallbackB(Flash *flash, FlashRef *ref, void *fn, void *arg);
 extern void Sprite_SetScissor(s32 x0, s32 x1, s32 y0, s32 y1);
-extern void TextBox_Init(MTextBox *box, void *text, u32 preset);
-extern void TextBox_SetUnk80(MTextBox *box, s32 value);
-extern void TextBox_SetRect(MTextBox *box, s32 x0, s32 x1, s32 y0, s32 y1);
-extern void TextBox_AttachLine(MFlash *flash, MFlashRef *ref, s32 x, s32 y, s32 line, MTextBox *box);
+extern void TextBox_Init(TextBox *box, void *text, u32 preset);
+extern void TextBox_SetUnk80(TextBox *box, s32 value);
+extern void TextBox_SetRect(TextBox *box, s32 x0, s32 x1, s32 y0, s32 y1);
+extern void TextBox_AttachLine(Flash *flash, FlashRef *ref, s32 x, s32 y, s32 line, TextBox *box);
 extern s32 Dialog_Input(s32 allowCancel);
 extern s32 Dialog_IsClosed(void);
 extern void Dialog_Draw(s32 visible);
@@ -79,7 +79,7 @@ extern char *ChrPass_GetText(void);
 /* ---- PassWin (menu_za_b.c) ---- */
 
 typedef struct PassWin {
-    /* 0x00 */ MFlash flash[1];
+    /* 0x00 */ Flash flash[1];
     /* 0x2C */ u8 *tex[4];
 } PassWin; /* 0x3C */
 
@@ -184,8 +184,8 @@ typedef struct ReplayMenu {
     /* 0x000 */ void *pack;         /* this screen's section of archive 8 (compressed) */
     /* 0x004 */ u32 *res;           /* the same unpacked: a pack of 10 sections */
     /* 0x008 */ u32 *chips;         /* section 8: a pack of 165 character chip texture lists */
-    /* 0x00C */ MFlash flash[1];
-    /* 0x038 */ MTexRes *bg;        /* section 6 */
+    /* 0x00C */ Flash flash[1];
+    /* 0x038 */ FlashTexRes *bg;        /* section 6 */
     /* 0x03C */ u8 *tex[20];
     /* 0x08C */ u8 *chip[REPLAY_TEAM_NUM][REPLAY_MEMBER_NUM]; /* textures 20..29: the chips of the slot shown */
     /* 0x0B4 */ u8 *texB[9];

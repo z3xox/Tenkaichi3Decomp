@@ -1,4 +1,5 @@
 #include "common.h"
+#include "battle/btl_cam.h"
 #include "battle/view_b.h"
 #include "sys/common.h"
 #include "sys/fade.h"
@@ -68,7 +69,7 @@ extern void StgBlur_SetColor2Rgba(s32 view, u8 r, u8 g, u8 b, u8 a);
 extern void StgBlur_SetColor3Rgba(s32 view, u8 r, u8 g, u8 b, u8 a);
 extern s32 ScrWarp_Spawn(s32 view, Vec4 *pos, f32 seconds, f32 radius, f32 width, f32 speed, f32 jitter);
 extern void ScrXfade_RequestCapture(void);
-extern void ScrXfade_Start(s32 request, f32 seconds); /* stg_b.h lists (request, seconds); this order matches the callers here */
+extern void ScrXfade_Start(f32 seconds, s32 request); /* float and integer arguments follow the original caller order */
 extern void BtlObjDraw_Draw(void);
 extern void Gfx_MarkPass(s32 pass);
 extern void Gfx_AddDefaultEnv(void);
@@ -97,7 +98,6 @@ extern void DemoCam_SetFixedPose(Vec4 *pos, Vec4 *rot);
 extern void DemoCam_ClearFixed(void);
 
 extern u8 gBattleProf[];
-extern void *gBtlCamView;
 
 /* sys/file.h declares two parameters; the call passes a third (0), which File_Request ignores */
 extern void *File_Request3(s32 id, void *buf, s32 unused) __asm__("File_Request");
@@ -127,22 +127,9 @@ ShenScene *gShenScene = NULL;
    instructions around 0x2620D8 are ordered differently because of it, everything else is identical. The
    read-only data the attempt emits (the two blur centres, the camera poses, the jump table) and its two
    .lit4 constants (pi 0x2FE7AC, 3.8f 0x2FE7B0) have the original values and order. */
-/* Cleanup 4 (dumps). What the original shows is `lo` NOT living in a saved register: its 0.0 is put in $f0 at
-   the conversion and used three times there (compare, trunc, sub), just as `hi`'s 1.0 is loaded next to its
-   one use (`hi * 128.0f`; a pseudo set once to a constant and used once has its load moved to the use by
-   local-alloc, which is why `hi` already matches). Facts measured:
-   - `lo = 0.0f; hi = 1.0f;` must stand in front of the BtlObj_SetUnkB30 call: that call's own float-to-
-     unsigned conversion has a branch and a join, and behind the join cse no longer knows the constants. Moved
-     behind the call (or into the `if`), cse folds both conversions away (592 instructions).
-   - gcse cannot put a constant into the conversion's instructions (compare / fix), so `lo` keeps its three
-     uses and gets $f20. Any plain copy of it (`f32 a = lo;`) is found by gcse's constant propagation and
-     the conversion is then folded by cse2 (610 instructions); an inline helper with float parameters gives
-     the same code as passing `(u32)lo` (cse forwards the parameter copy).
-   So the source must make ONE use of the 0.0 variable that is neither a foldable copy nor the conversion
-   itself, or leave the pseudo without a hard register (reload then loads the constant once and inherits it).
-   Not found. */
-#if 0
+
 /* A sound of bank mask 2, queued twice. */
+#if 0 /* Pending: object member access remains an offset macro. */
 static inline void ShenScene_PlaySe(s32 id, s32 volume) {
     Snd_PlaySeEx(2, id, volume, 0, 0);
     Snd_PlaySeEx(2, id, volume, 0, 0);
@@ -162,7 +149,6 @@ static inline void ShenScene_SetBlur(u8 a3, u8 a0, u8 a1, u8 a2) {
 s32 ShenScene_StepSeq(ShenSeq *seq) {
     Mtx44 m;
     ShenVec center;
-    f32 lo;
     f32 hi;
     ShenActor *actor;
     Ramp *ramp;
@@ -207,14 +193,13 @@ s32 ShenScene_StepSeq(ShenSeq *seq) {
                 Ramp_Start(ramp, 0.5f, 127.0f, 0.0f);
             }
         }
-        lo = 0.0f;
-        hi = 1.0f;
         BtlObj_SetUnkB30(actor->obj, (u8)(u32)SHEN_RAMP(actor)->value);
         if (DemoCam_GetTime() >= 354.0f) {
             static const ShenVec c = {0.0f, 0.0f, 1.0f, 1.0f};
 
+            hi = 1.0f;
             center = c;
-            ShenScene_SetBlur(0x40, 0, (u32)lo, (u32)(hi * 128.0f));
+            ShenScene_SetBlur((u32)(hi * 64.0f), (u32)(hi * 0.0f), (u32)(hi * 0.0f), (u32)(hi * 128.0f));
             StgBlur_SetCenter(0, &center, 0);
         }
         if (!ShenScene_IsCamEnd()) {
@@ -224,9 +209,9 @@ s32 ShenScene_StepSeq(ShenSeq *seq) {
         /* fall through */
     case 2: {
         work = gShenScene;
+        BtlObjAnim_PlayModel(work->actor[SHENSCENE_ACTOR_DRAGON].obj, 1, 2);
         zero = 0.0f;
         half = 0.5f;
-        BtlObjAnim_PlayModel(work->actor[SHENSCENE_ACTOR_DRAGON].obj, 1, 2);
         Ramp_Start(SHEN_RAMP(&work->actor[SHENSCENE_ACTOR_DRAGON]), 2.0f, 64.0f, zero);
         SHEN_OBJ_FLAGS(gShenScene->actor[SHENSCENE_ACTOR_BALLS].obj) &= ~2;
         {
@@ -252,7 +237,7 @@ s32 ShenScene_StepSeq(ShenSeq *seq) {
             ScrWarp_Spawn(0, &p[dragon], 3.8f, 10.0f, 50.0f, 10.0f, half);
         }
         ScrXfade_RequestCapture();
-        ScrXfade_Start(1, half);
+        ScrXfade_Start(half, 1);
         ShenScene_SetState(SHENSCENE_STATE_READY);
         seq->step++;
     }
@@ -281,7 +266,7 @@ s32 ShenScene_StepSeq(ShenSeq *seq) {
         }
         ShenScene_SetState(SHENSCENE_STATE_INTRO);
         ScrXfade_RequestCapture();
-        ScrXfade_Start(1, 1.0f);
+        ScrXfade_Start(1.0f, 1);
         seq->step++;
         break;
     case 4:
@@ -482,7 +467,7 @@ void ShenScene_Nop2(void) {
 
 /* One frame of the scene: the sequence and the camera, the objects, then everything is drawn. */
 s32 ShenScene_Update(void) {
-    void *view;
+    View *view;
 
     if (!(Battle_GetWork()->flags & 0x100)) {
         if (ShenScene_RunSeq()) {

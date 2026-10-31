@@ -1,4 +1,5 @@
 #include "common.h"
+#include "sys/progress.h"
 #include "battle/btl_tech_a.h"
 
 /*
@@ -29,7 +30,6 @@
 #define BTL_KMH(x) ((x) * (1000.0f / 3600.0f) / 30.0f)
 
 extern BtlTechRoster *gBtlChars;
-extern BtlTechProgress *gProgress;
 
 extern BtlTechChr *BtlChar_FindBySide(s32 side);
 extern BtlTechChr *BtlChar_Get(s32 player);
@@ -292,7 +292,7 @@ s32 BtlCtrl_TestFlagE5(s32 side) {
     return 0;
 }
 
-/* In battle mode 5: bit gProgress->unk7F4 of fighter 0's per-frame bit set. */
+/* In battle mode 5: bit gProgress->training.tutorial of fighter 0's per-frame bit set. */
 s32 BtlCtrl_TestProgressFrameBit(void) {
     BtlTechChr *chr;
 
@@ -304,7 +304,7 @@ s32 BtlCtrl_TestProgressFrameBit(void) {
     }
     chr = BtlChar_Get(0);
     if (chr != NULL) {
-        return (chr->frameBits >> gProgress->unk7F4) & 1;
+        return (chr->frameBits >> gProgress->training.tutorial) & 1;
     }
     return 0;
 }

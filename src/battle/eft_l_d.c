@@ -1,4 +1,6 @@
 #include "common.h"
+#include "sys/vector_types.h"
+#include "sys/math3d.h"
 #include "battle/eft_l.h"
 
 /*
@@ -48,7 +50,6 @@ typedef struct EftSpdLineNode {
     s32 node2;
 } EftSpdLineNode;
 
-
 #define EFT_RANDF() ((f32)rand() / 2147483647.0f)
 
 /* Fighter effect request 0xB (moving faster than half the reference speed): one trail behind each of eleven body
@@ -63,8 +64,8 @@ s32 EftSpdLine_SpawnBodyTrails(s32 objId) {
         { 0x0A, 0x08 }, { 0x08, -1 },   { 0x0E, 0x0C }, { 0x0C, -1 },   { 0x13, 0x14 }, { 0x14, 0x15 },
         { 0x21, 0x22 }, { 0x22, 0x23 }, { 0x10, 0x11 }, { 0x11, 0x30 }, { 0x30, -1 },
     };
-    static const EftVec sUp = { 0.0f, -1.0f, 0.0f, 1.0f }; /* .rodata 0x2ECC00 */
-    EftVec up = sUp;
+    static const Vec4Aligned sUp = { 0.0f, -1.0f, 0.0f, 1.0f }; /* .rodata 0x2ECC00 */
+    Vec4Aligned up = sUp;
     Vec4 up2;
     Vec4 side;
     Vec4 p1;
@@ -126,8 +127,8 @@ s32 EftSpdLine_SpawnPartStreaks(s32 objId, Vec4 *dir, s32 part) {
     Vec4 end;
     Vec4 back;
     Vec4 tmp;
-    static const EftVec sUp = { 0.0f, -1.0f, 0.0f, 1.0f }; /* .rodata 0x2ECC10 */
-    EftVec up = sUp;
+    static const Vec4Aligned sUp = { 0.0f, -1.0f, 0.0f, 1.0f }; /* .rodata 0x2ECC10 */
+    Vec4Aligned up = sUp;
     Vec4 up2;
     Vec4 side;
     f32 size;

@@ -10,7 +10,7 @@ extern void Port_MenuFill(int on);
  * UbResult, 0x3760C8..0x3782A8: the result screen of the two disc modes (modes 27 and 30); work pointer 0x3B7358,
  * .rodata 0x3B7E50..0x3B8284 (from "mc_guide_17go"). Merged from two chunks: the head (0x3760C8..0x376920,
  * MarkCourseCleared and Init, written as menu_n_d.c with the NResult view of include/menu/menu_n.h) and the rest
- * (0x376920.., written as menu_o.c). The one view used now is UbResult / UoProgress / UoSave of
+ * (0x376920.., written as menu_o.c). The one view used now is UbResult / UoProgress / SaveData of
  * include/menu/menu_o.h. The score sheet (UoScore) is filled and counted by the module at 0x37EE18
  * (menu_p / menu_q).
  */
@@ -18,7 +18,7 @@ extern void Port_MenuFill(int on);
 UbResult *gUbResult = NULL; /* 0x3B7358 */
 
 #define RS_RES(n) \
-    res = (MTexRes *)MPACK_AT(gUbResult->res, n); \
+    res = (FlashTexRes *)MPACK_AT(gUbResult->res, n); \
     Res_RelocateOffsets(&res, res, res)
 
 /*
@@ -47,7 +47,7 @@ s32 UbResult_MarkCourseCleared(s32 course) {
  * writes what the battle earned into the save (the course's best result, the reward items).
  */
 void UbResult_Init(s32 section) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
     s32 i;
     s32 rank;
 
@@ -149,7 +149,7 @@ void UbResult_Init(s32 section) {
     } else {
         /* the ladder: first place taken */
         IconWin_SetIcon(3);
-        if (gUbResult->lose == 0 && gSaveData->rank == 1 && (UO_PROG->discFlags & UB_DISC_FLAG8)) {
+        if (gUbResult->lose == 0 && gSaveData->unk77C == 1 && (UO_PROG->discFlags & UB_DISC_FLAG8)) {
             gUbResult->gotItem = 1;
             Save_AddItem(UbScore_GetRewardItem(4));
         }
@@ -176,10 +176,10 @@ void UbResult_Term(void) {
 
 /* Draws the sheet: headline, the base rows, the three bonus rows of the page, time, score, Z points, rank. */
 void UbResult_Draw(void) {
-    MFlashRef ref;
-    MFlashUv uv;
+    FlashRef ref;
+    FlashUv uv;
     char name[64];
-    MFlash *flash;
+    Flash *flash;
     s32 i;
     s32 item;
 
@@ -207,18 +207,18 @@ void UbResult_Draw(void) {
         Flash_FindLabel(flash, "mc_window_plate01", "mc_window_text1_0", &ref);
         TextBox_AttachLine(flash, &ref, 0, 0, 0x142, &gUbResult->box[3]);
     }
-    uv.x0 = 0;
-    uv.y0 = 0x40;
-    uv.x1 = 0x200;
-    uv.y1 = 0x80;
+    uv.u0 = 0;
+    uv.v0 = 0x40;
+    uv.u1 = 0x200;
+    uv.v1 = 0x80;
     Flash_FindLabel(flash, NULL, "mc_win_text02", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     Flash_FindLabel(flash, NULL, "mc_win_text03", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
-    uv.x0 = 0;
-    uv.y0 = 0x20;
-    uv.x1 = 0x20;
-    uv.y1 = 0x40;
+    uv.u0 = 0;
+    uv.v0 = 0x20;
+    uv.u1 = 0x20;
+    uv.v1 = 0x40;
     Flash_FindLabel(flash, NULL, "mc_yajirusi_icon_up", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     if (gUbResult->page == 0) {
@@ -226,10 +226,10 @@ void UbResult_Draw(void) {
     } else {
         Flash_ClipSetFlags(flash, &ref, 2, 1);
     }
-    uv.x0 = 0x20;
-    uv.y0 = 0x20;
-    uv.x1 = 0x40;
-    uv.y1 = 0x40;
+    uv.u0 = 0x20;
+    uv.v0 = 0x20;
+    uv.u1 = 0x40;
+    uv.v1 = 0x40;
     Flash_FindLabel(flash, NULL, "mc_yajirusi_icon_down", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     if (gUbResult->score.bonusCount != 0 && gUbResult->page < gUbResult->pageCount) {
@@ -258,10 +258,10 @@ void UbResult_Draw(void) {
         }
     }
     for (i = 1; i < 4; i++) {
-        uv.x0 = 0;
-        uv.y0 = i * 0x20;
-        uv.x1 = 0x100;
-        uv.y1 = uv.y0 + 0x20;
+        uv.u0 = 0;
+        uv.v0 = i * 0x20;
+        uv.u1 = 0x100;
+        uv.v1 = uv.v0 + 0x20;
         sprintf(name, "mc_point_plate%02d", i + 1);
         Flash_FindLabel(flash, name, "mc_bonus_text", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
@@ -271,37 +271,37 @@ void UbResult_Draw(void) {
     Num_Draw(flash, "mc_time_suji%02d", 4, 2, gUbResult->score.time[0], 0x20, 0x20, 1);
     Num_Draw(flash, "mc_time_suji%02d", 2, 2, gUbResult->score.time[1], 0x20, 0x20, 1);
     Num_Draw(flash, "mc_time_suji%02d", 0, 2, gUbResult->score.time[2], 0x20, 0x20, 1);
-    uv.x0 = 0;
-    uv.y0 = 0x80;
-    uv.x1 = 0x100;
-    uv.y1 = 0xA0;
+    uv.u0 = 0;
+    uv.v0 = 0x80;
+    uv.u1 = 0x100;
+    uv.v1 = 0xA0;
     Flash_FindLabel(flash, NULL, "mc_bonus_title", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
-    uv.x0 = 0;
-    uv.y0 = 0x80;
-    uv.x1 = 0x200;
-    uv.y1 = 0xC0;
+    uv.u0 = 0;
+    uv.v0 = 0x80;
+    uv.u1 = 0x200;
+    uv.v1 = 0xC0;
     Flash_FindLabel(flash, NULL, "mc_win_text04", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     Num_Draw(flash, "mc_henkan_suji%02d", 0, 6, gUbResult->score.points, 0x20, 0x20, 0);
-    uv.x0 = 0;
-    uv.y0 = 0x40;
-    uv.x1 = 0x100;
-    uv.y1 = 0x60;
+    uv.u0 = 0;
+    uv.v0 = 0x40;
+    uv.u1 = 0x100;
+    uv.v1 = 0x60;
     Flash_FindLabel(flash, NULL, "mc_time_text03", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
-    Num_Draw(flash, "mc_zpoint_suji%02d", 0, 9, UO_SAVE->money, 0x20, 0x20, 0);
-    uv.x0 = 0;
-    uv.y0 = 0x20;
-    uv.x1 = 0x100;
-    uv.y1 = 0x40;
+    Num_Draw(flash, "mc_zpoint_suji%02d", 0, 9, gSaveData->money, 0x20, 0x20, 0);
+    uv.u0 = 0;
+    uv.v0 = 0x20;
+    uv.u1 = 0x100;
+    uv.v1 = 0x40;
     Flash_FindLabel(flash, NULL, "mc_time_text02", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     Num_Draw(flash, "mc_score_suji%02d", 0, 9, gUbResult->score.score * 100, 0x20, 0x20, 0);
-    uv.x0 = gUbResult->score.rank * 0x40;
-    uv.y0 = 0;
-    uv.x1 = uv.x0 + 0x40;
-    uv.y1 = 0x40;
+    uv.u0 = gUbResult->score.rank * 0x40;
+    uv.v0 = 0;
+    uv.u1 = uv.u0 + 0x40;
+    uv.v1 = 0x40;
     Flash_FindLabel(flash, NULL, "mc_rankmoji_anime", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     if (gUbResult->kind == 0) {
@@ -310,10 +310,10 @@ void UbResult_Draw(void) {
     } else {
         Flash_FindLabel(flash, NULL, "mc_newrecord_text", &ref);
         if (gUbResult->newRecord) {
-            uv.x0 = 0;
-            uv.y0 = 0x40;
-            uv.x1 = 0x100;
-            uv.y1 = 0x80;
+            uv.u0 = 0;
+            uv.v0 = 0x40;
+            uv.u1 = 0x100;
+            uv.v1 = 0x80;
             Flash_ClipSetUv(flash, &ref, &uv);
             Flash_ClipSetFlags(flash, &ref, 2, 1);
         } else {
@@ -338,8 +338,8 @@ void UbResult_Draw(void) {
 
 /* Per frame: the movie and what its triggers start (headline, page counting, the Z point and item windows). */
 void UbResult_Update(void) {
-    MFlashRef ref;
-    MFlash *flash = &gUbResult->flash[0];
+    FlashRef ref;
+    Flash *flash = &gUbResult->flash[0];
 
     if (UO_PROG->flags & MPROG_FREEZE) {
         return;
@@ -625,12 +625,12 @@ void UbResult_Input(s32 *result) {
             }
             break;
         case 3:
-            if (UbScore_Transfer(&gUbResult->score.points, &UO_SAVE->money, 0x40, 1.0f)) {
+            if (UbScore_Transfer(&gUbResult->score.points, &gSaveData->money, 0x40, 1.0f)) {
                 gUbResult->count++;
                 UbScore_PlateGoto(&gUbResult->flash[0], 1, 0);
             }
-            if (UO_SAVE->money > UO_MONEY_MAX) {
-                UO_SAVE->money = UO_MONEY_MAX;
+            if (gSaveData->money > UO_MONEY_MAX) {
+                gSaveData->money = UO_MONEY_MAX;
             }
             break;
         case 4:
@@ -654,14 +654,14 @@ void UbResult_Input(s32 *result) {
                     while (!UbScore_ConvertStep(&gUbResult->score, UO_MONEY_MAX)) {
                     }
                     gUbResult->score.points = gUbResult->score.shown;
-                    while (!UbScore_Transfer(&gUbResult->score.points, &UO_SAVE->money, UO_MONEY_MAX, 1.0f)) {
+                    while (!UbScore_Transfer(&gUbResult->score.points, &gSaveData->money, UO_MONEY_MAX, 1.0f)) {
                     }
                 } else if (gUbResult->count < 4) {
-                    while (!UbScore_Transfer(&gUbResult->score.points, &UO_SAVE->money, UO_MONEY_MAX, 1.0f)) {
+                    while (!UbScore_Transfer(&gUbResult->score.points, &gSaveData->money, UO_MONEY_MAX, 1.0f)) {
                     }
                 }
-                if (UO_SAVE->money > UO_MONEY_MAX) {
-                    UO_SAVE->money = UO_MONEY_MAX;
+                if (gSaveData->money > UO_MONEY_MAX) {
+                    gSaveData->money = UO_MONEY_MAX;
                 }
                 UbScore_PlateGoto(&gUbResult->flash[0], 0, 0);
                 UbScore_PlateGoto(&gUbResult->flash[0], 1, 0);

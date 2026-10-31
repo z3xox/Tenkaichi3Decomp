@@ -1,4 +1,5 @@
 #include "common.h"
+#include "battle/btl_cam.h"
 #include "sys/gfx_ot.h"
 #include "battle/eft_w.h"
 
@@ -112,7 +113,6 @@ extern void EftGfx_DrawPolyFixedZ(EftWVert *v, s32 layer, s32 a2, s32 a3, s32 no
 s32 EftLink_IsCornerOffScreen(s32 x, s32 y, s32 z);
 
 extern EftWLinkMgr *gEftLink;
-extern EftWView *gBtlCamView;
 
 /* Queues a sprite as a textured strip through its four world-space corners (projected with the loaded
    matrix; dropped when the projection clips), at the average depth of the corners. */
@@ -216,7 +216,6 @@ void EftLink_DrawQuad(Vec4 *corner, EftWVec uv0, EftWVec uv1, EftWVec color, s32
     e->tail->next = (OtPrim *)p;
     e->tail = (OtPrim *)p;
 }
-
 
 /* The same quad through the clipping polygon path: two triangles (corners 0 1 2 and 1 2 3). */
 void EftLink_DrawQuadClipped(Vec4 *corner, EftWVec uv0, EftWVec uv1, EftWVec color, s32 layer, s32 texIdx,
@@ -708,7 +707,7 @@ void EftLink_DrawBillboardClipped(Vec4 *pos, f32 w, f32 h, Vec4 *color, Vec4 *sc
     Vec4_Set(&c[3], w, h, 0.0f, 1.0f);
     Mtx_Translate(&m, &gEftLink->camMtx, scale);
     Mtx_RotateZ(&m, &m, rot);
-    Mtx_InverseRT(&inv, &gBtlCamView->unk40);
+    Mtx_InverseRT(&inv, &gBtlCamView->world2view2);
     inv.m[3][0] = 0.0f;
     inv.m[3][1] = 0.0f;
     inv.m[3][2] = 0.0f;
@@ -1335,7 +1334,6 @@ void EftPart10_Step(f32 alpha, EftPart10 *w);
 EftPart10Grp *EftPart10_NewGroup(EftPart10 *w);
 
 extern EftPart10Mgr *gEftPart10Mgr;
-extern EftWView *gBtlCamView;
 
 /* Init callback of the manager class: allocates the shared block and a child list of 12 emitter tasks. */
 void EftPart10Mgr_Init(EftWTask *task) {
@@ -1503,7 +1501,7 @@ void EftPart10_Draw(EftWTask *task) {
     EftW_MemsetCall(&pos, 0, sizeof(Vec4));
     pos.w = 1.0f;
     Vu0Cur_Push();
-    Vu0Cur_LoadMtx(&gBtlCamView->unk140);
+    Vu0Cur_LoadMtx(&gBtlCamView->world2screen);
     for (grp = w->grpHead; grp != NULL; grp = grp->next) {
         for (p = grp->head; p != NULL; p = p->next) {
             if (p->flags & 0x40) {

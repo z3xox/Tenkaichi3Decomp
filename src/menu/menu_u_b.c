@@ -8,19 +8,19 @@ static inline s32 SimRock_Test(s32 flags, s32 bit) {
 }
 
 /*
- * Event 32 (pictures 2 and 0): the rock game, at the rank of training 1. USimTrain.param rocks cross the screen
+ * Event 32 (pictures 2 and 0): the rock game, at the rank of training 1. SimTrain.param rocks cross the screen
  * one after another, speed * 3 + 3 units a frame; confirm (pad 0, gamePressed 0x200) swings, and a swing whose
  * hit frame (movie trigger 0x10) finds the rock at x -412..-342 breaks it. All rocks broken = points and attack
- * (USimTrain.points / gain); otherwise USimTrain.loss on attack. Declining costs the usual random loss. After
+ * (SimTrain.points / gain); otherwise SimTrain.loss on attack. Declining costs the usual random loss. After
  * the switch every frame places the rock and sets three texture windows; the movie's sound bits play SE 0x3B /
  * 0x3C. The music stops for the game (stream SE 0x10BE1) and resumes after it.
  */
-s32 SimEv32(USimDay *day) {
-    MFlashRef ref;
-    MFlashUv uv;
+s32 SimEv32(SimDay *day) {
+    FlashRef ref;
+    FlashUv uv;
     s32 done = 0;
     s32 ok = gPad[0].gamePressed & 0x200;
-    MFlash *flash;
+    Flash *flash;
 
     switch (day->seq) {
     case 0:
@@ -76,7 +76,7 @@ s32 SimEv32(USimDay *day) {
             day->seqTimer = 0;
         } else {
             gSimRockRank = day->rank[1];
-            gSimRockSpeed = gSimTrain1[gSimRockRank].speed * 3 + 3;
+            gSimRockSpeed = gSimTrain1[gSimRockRank].unk4 * 3 + 3;
             gSimRockLeft = gSimTrain1[gSimRockRank].param;
             gSimRockHits = 0;
             gSimRockX = 0;
@@ -236,22 +236,22 @@ s32 SimEv32(USimDay *day) {
     flash = &day->flash[4];
     Flash_FindLabel(flash, 0, "mc_rock00", &ref);
     Flash_ClipSetOffset(flash, &ref, gSimRockX, 0);
-    uv.x1 = 0x200;
-    uv.x0 = 0;
-    uv.y0 = 0x80;
-    uv.y1 = 0x100;
+    uv.u1 = 0x200;
+    uv.u0 = 0;
+    uv.v0 = 0x80;
+    uv.v1 = 0x100;
     Flash_FindLabel(flash, 0, "mc_lose_text", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
-    uv.x1 = 0x180;
-    uv.x0 = 0x100;
-    uv.y0 = 0;
-    uv.y1 = 0x80;
+    uv.u1 = 0x180;
+    uv.u0 = 0x100;
+    uv.v0 = 0;
+    uv.v1 = 0x80;
     Flash_FindLabel(flash, 0, "mc_count_num00", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
-    uv.x1 = 0x100;
-    uv.x0 = 0x80;
-    uv.y0 = 0;
-    uv.y1 = 0x80;
+    uv.u1 = 0x100;
+    uv.u0 = 0x80;
+    uv.v0 = 0;
+    uv.v1 = 0x80;
     Flash_FindLabel(flash, 0, "mc_count_num01", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     if (flash->se & 1) {

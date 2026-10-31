@@ -2,6 +2,7 @@
 #define SYS_GFXM_B_H
 
 #include "types.h"
+#include "battle/btl_cam.h"
 #include "sys/dma.h"
 #include "sys/math3d.h"
 #include "sys/gfxm_a.h"
@@ -29,19 +30,6 @@ typedef struct GfxTexFile {
 } GfxTexFile;
 
 /* The camera view block GfxLens_DrawAll is given (gBtlCam + 0xC40 pointer). */
-typedef struct GfxLensView {
-    /* 0x00 */ u8 unk00[0x40];
-    /* 0x40 */ Mtx44 mtx40; /* world-to-view matrix */
-    /* 0x80 */ u8 unk80[0x200];
-    /* 0x280 */ s32 unk280; /* non-zero: the view is shown (split screen) */
-    /* 0x284 */ u8 unk284[0xC];
-} GfxLensView; /* 0x290 */
-
-typedef struct GfxLensCam {
-    /* 0x000 */ u8 unk000[0x720];
-    /* 0x720 */ GfxLensView views[2];
-    /* 0xC40 */ GfxLensView *view;
-} GfxLensCam;
 
 /* Work of a CLUT built at run time by GfxClut_InitPacket (0x4C0 bytes). */
 typedef struct GfxClutWork {
@@ -88,11 +76,9 @@ typedef struct GfxWaterStage {
 
 extern GfxWaterLayer *gGfxWater;
 extern GfxClutWork gGfxDepthFog;
-extern GfxLensView *gBtlCamView;
 extern s32 D_002FE8D0[];
 extern GfxLensWork gGfxLens;
 extern GfxClutWork *gGfxAlphaKey;
-extern GfxLensCam *gBtlCam;
 
 void GfxPost_DrawDepthClut(s32 mode, s32 tbp, s32 cbp, u64 alpha);
 void GfxPost_CopyAlphaToDepth(void);

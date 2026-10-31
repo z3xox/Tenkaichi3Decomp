@@ -1,4 +1,6 @@
 #include "common.h"
+#include "sys/vector_types.h"
+#include "sys/math3d.h"
 #include "battle/eft_k.h"
 
 /*
@@ -1959,7 +1961,7 @@ extern void Vec3_Copy(Vec4 *dst, Vec4 *src);
 extern s32 BtlScene_IsCharStopped(s32 objId);
 extern s32 *BtlScene_GetPackEntry(s32 *base, s32 idx);
 extern s32 *BtlScene_GetCharPackEntry(s32 side, s32 idx);
-#define BtlTask_CreateChildList ((void (*)(EftTask *task, s32 count, s32 workSize))BtlTask_CreateChildList)
+#define BtlTask_CreateChildList ((void (*)(BtlTask *task, s32 count, s32 workSize))BtlTask_CreateChildList)
 
 extern s32 BtlCharApi_GetOpponentObjId(s32 objId);
 extern void BtlCharApi_GetNodePos(s32 objId, s32 node, Vec4 *out);
@@ -1974,7 +1976,7 @@ typedef struct EftRushShotMsg {
 
 /* Argument of EftFlash_Start (screen flash). */
 typedef struct EftFlashArg {
-    /* 0x00 */ EftVec color;
+    /* 0x00 */ Vec4Aligned color;
     /* 0x10 */ f32 unk10;
     /* 0x14 */ s32 unk14;
     /* 0x18 */ f32 unk18;
@@ -2013,17 +2015,17 @@ extern void EftEmit_BeginFrame(void *model);
 #define EftEmit_UpdateWidth2 ((void (*)(EftModel *model, EftModelInst *inst))EftEmit_UpdateWidth2)
 #define EftEmit_GetWidth2 ((f32 (*)(EftModelInst *inst))EftEmit_GetWidth2)
 extern void EftTechEvt_RequestStop(s32 objId);
-#define EftRushShot_AddHitRecord ((void (*)(EftTask *task))EftRushShot_AddHitRecord)
-#define EftRushShot_CreateModels ((void (*)(EftTask *task))EftRushShot_CreateModels)
-#define EftRushShot_UpdateModels ((void (*)(EftTask *task))EftRushShot_UpdateModels)
+#define EftRushShot_AddHitRecord ((void (*)(BtlTask *task))EftRushShot_AddHitRecord)
+#define EftRushShot_CreateModels ((void (*)(BtlTask *task))EftRushShot_CreateModels)
+#define EftRushShot_UpdateModels ((void (*)(BtlTask *task))EftRushShot_UpdateModels)
 extern void EftFlash_Start(EftFlashArg *arg);
 extern s32 EftStreak_Start(s32 objId, s32 kind, s32 arg2, f32 angle);
 #define EftStreak_Stop ((void (*)(s32 handle))EftStreak_Stop)
 extern void EftDelaySe_Start(s32 objId, EftSparkTbl *tbl, s32 count);
 extern void EftObj_Destroy(s32 handle);
-#define BtlTask_SetDead ((void (*)(EftTask *task))BtlTask_SetDead)
-#define BtlTask_SetOwnerTag ((void (*)(EftTask *task, s32 flag))BtlTask_SetOwnerTag)
-#define BtlTask_GetParent ((EftTask *(*)(EftTask *task))BtlTask_GetParent)
+#define BtlTask_SetDead ((void (*)(BtlTask *task))BtlTask_SetDead)
+#define BtlTask_SetOwnerTag ((void (*)(BtlTask *task, s32 flag))BtlTask_SetOwnerTag)
+#define BtlTask_GetParent ((BtlTask *(*)(BtlTask *task))BtlTask_GetParent)
 extern void StgTint_Start(s32 a0, s32 a1, f32 time);
 extern void StgBlur_SetCenter(s32 a0, Vec4 *pos, s32 a2);
 extern void StgBlur_SetColor0Rgba(s32 a0, s32 r, s32 g, s32 b, s32 a);
@@ -2034,7 +2036,7 @@ extern void StgBlur_SetColor3Rgba(s32 a0, s32 r, s32 g, s32 b, s32 a);
 extern const EftSparkTbl gEftRushShotSparkTbl;
 
 /* Frees the swarm model objects EftRushShot_CreateModels made. */
-void EftRushShot_FreeModels(EftTask *task) {
+void EftRushShot_FreeModels(BtlTask *task) {
     EftRushShotWork *w = task->work;
     EftRushShotModel *sub;
     s32 i;
@@ -2046,7 +2048,7 @@ void EftRushShot_FreeModels(EftTask *task) {
 }
 
 /* Once the rush has connected, starts the technique's camera cut (EftCam_Start: animation, owner, effect id). */
-void EftRushShot_StartCam(EftTask *task) {
+void EftRushShot_StartCam(BtlTask *task) {
     EftRushShotWork *w = task->work;
     EftTechArg *arg = w->arg;
     EftRushShotMsg msg;
@@ -2060,7 +2062,7 @@ void EftRushShot_StartCam(EftTask *task) {
 
 /* Definition flag 0x200: the stage blur. The victim's event 0x10 starts a fade-in (0.1 per frame) and takes the
  * owner's aim from node 0x11 as the blur centre argument; event 0x20 switches it off. */
-void EftRushShot_UpdateFade(EftTask *task) {
+void EftRushShot_UpdateFade(BtlTask *task) {
     EftRushShotWork *w = task->work;
     EftTechArg *arg = w->arg;
     s32 opp = BtlCharApi_GetOpponentObjId(arg->objId);
@@ -2101,7 +2103,7 @@ void EftRushShot_UpdateFade(EftTask *task) {
 }
 
 /* Victim's bit 0x80 starts the next stage effect of the definition (0x180760), bit 0x100 stops it. */
-void EftRushShot_UpdateStageFx(EftTask *task) {
+void EftRushShot_UpdateStageFx(BtlTask *task) {
     EftRushShotWork *w = task->work;
     EftTechArg *arg = w->arg;
     s32 opp = BtlCharApi_GetOpponentObjId(arg->objId);
@@ -2134,7 +2136,7 @@ void EftRushShot_UpdateStageFx(EftTask *task) {
 }
 
 /* Victim's bit 0x40 (unless definition flag 0x400000): white screen flash (0x172480). */
-void EftRushShot_UpdateFlash(EftTask *task) {
+void EftRushShot_UpdateFlash(BtlTask *task) {
     EftRushShotWork *w = task->work;
     EftTechArg *arg = w->arg;
     s32 opp = BtlCharApi_GetOpponentObjId(arg->objId);
@@ -2147,7 +2149,7 @@ void EftRushShot_UpdateFlash(EftTask *task) {
 }
 
 /* Victim's bit 0x40: sparks at five of the owner's nodes (0x19B7F8 with the table gEftRushShotSparkTbl). */
-void EftRushShot_UpdateSparks(EftTask *task) {
+void EftRushShot_UpdateSparks(BtlTask *task) {
     EftRushShotWork *w = task->work;
     EftTechArg *arg = w->arg;
     s32 opp = BtlCharApi_GetOpponentObjId(arg->objId);
@@ -2160,7 +2162,7 @@ void EftRushShot_UpdateSparks(EftTask *task) {
 }
 
 /* Steps every emitter of the model (19 groups) and spawns its particles at the projectile. */
-void EftRushShot_Draw(s32 objId, EftTask *task, EftModel *model) {
+void EftRushShot_Draw(s32 objId, BtlTask *task, EftModel *model) {
     EftRushShotWork *w = task->work;
     Vec4 pos;
     s32 endAlt = 0;
@@ -2212,7 +2214,7 @@ void EftRushShot_Draw(s32 objId, EftTask *task, EftModel *model) {
 
 /* Swarm models, the node the shot sits on while attached, and the four handlers of the victim's events.
  * Standalone this differs by one instruction (beqz / beqzl at +0x48); see the note at the top of the file. */
-void EftRushShot_UpdateAttached(EftTask *task) {
+void EftRushShot_UpdateAttached(BtlTask *task) {
     EftRushShotMgrWork *mgr = BtlTask_GetParent(task)->work;
     EftRushShotWork *w = task->work;
     EftTechArg *arg = w->arg;
@@ -2244,7 +2246,7 @@ void EftRushShot_UpdateAttached(EftTask *task) {
 }
 
 /* Init callback: clears the work, takes speed and size from the definition and creates the model instance. */
-void EftRushShot_Init(EftTask *task, EftTechArg *arg) {
+void EftRushShot_Init(BtlTask *task, EftTechArg *arg) {
     EftRushShotMgrWork *mgr = BtlTask_GetParent(task)->work;
     EftRushShotWork *w = task->work;
     EftTechDef *def;
@@ -2283,7 +2285,7 @@ void EftRushShot_Init(EftTask *task, EftTechArg *arg) {
 }
 
 /* Term callback: ends the stage tint, the sub-effects and the model instance. */
-void EftRushShot_Term(EftTask *task) {
+void EftRushShot_Term(BtlTask *task) {
     EftRushShotMgrWork *mgr = BtlTask_GetParent(task)->work;
     EftRushShotWork *w = task->work;
     EftTechArg *arg = w->arg;
@@ -2301,7 +2303,7 @@ void EftRushShot_Term(EftTask *task) {
 }
 
 /* Update callback. */
-void EftRushShot_Update(EftTask *task) {
+void EftRushShot_Update(BtlTask *task) {
     s32 advance = 0;
     EftRushShotMgrWork *mgr = BtlTask_GetParent(task)->work;
     EftRushShotWork *w = task->work;
@@ -2324,18 +2326,18 @@ void EftRushShot_Update(EftTask *task) {
     if (!(w->flags & EFT_RUSHSHOT_STARTED)) {
         if (EftShot_TestBits(arg->objId, 2)) {
             EftAim_GetDir(w, w->unk350, arg->objId);
-            task->step = 0;
+            task->chr = 0;
             w->flags |= EFT_RUSHSHOT_STARTED;
             if (mgr->sub[0] != NULL) {
                 w->flags |= EFT_RUSHSHOT_SUB;
             }
         } else if (EftShot_TestBits(arg->objId, 4)) {
-            task->step = 0;
+            task->chr = 0;
             w->flags |= EFT_RUSHSHOT_STARTED;
         }
     }
     if (w->flags & EFT_RUSHSHOT_STARTED) {
-        switch (task->step) {
+        switch (task->chr) {
             case 0:
                 if (EftShot_TestBits(arg->objId, 4)) {
                     w->flags |= EFT_RUSHSHOT_FIRED;
@@ -2344,7 +2346,7 @@ void EftRushShot_Update(EftTask *task) {
                     BtlCharApi_GetNodePos(arg->objId, 0x11, &w->prev);
                     EftAim_GetDirKeep(arg, &w->dir, &w->pos, arg->objId);
                     Vec3_Scale(&w->vel, &w->dir, w->speed);
-                    task->step = 1;
+                    task->chr = 1;
                     w->flags |= EFT_RUSHSHOT_FLIGHT;
                 }
                 break;
@@ -2360,12 +2362,12 @@ void EftRushShot_Update(EftTask *task) {
                         }
                         Vec3_Add(&w->pos, &w->pos, &w->vel);
                     } else {
-                        Vec3_Copy(&w->pos, &task->hitPos);
+                        Vec3_Copy(&w->pos, &task->pos);
                     }
                 }
                 if (EftShot_TestBits(arg->objId, 8)) {
                     w->flags |= EFT_RUSHSHOT_ENDED | EFT_RUSHSHOT_END | EFT_RUSHSHOT_COUNT;
-                    task->step = 3;
+                    task->chr = 3;
                 }
                 break;
             case 1:
@@ -2392,7 +2394,7 @@ void EftRushShot_Update(EftTask *task) {
         }
     }
     if (advance) {
-        task->step++;
+        task->chr++;
     }
     if (w->flags & EFT_RUSHSHOT_COUNT) {
         w->timer += 1.0f;
@@ -2418,7 +2420,7 @@ void EftRushShot_Update(EftTask *task) {
 }
 
 /* Post-update callback: reads what the hit record did this frame (moved, hit, ended). */
-void EftRushShot_PostUpdate(EftTask *task) {
+void EftRushShot_PostUpdate(BtlTask *task) {
     EftRushShotWork *w = task->work;
     Vec4 move;
 
@@ -2427,20 +2429,20 @@ void EftRushShot_PostUpdate(EftTask *task) {
     }
     EftEmit_UpdateAlive(w->model, &w->inst);
     if (task->hit & 1) {
-        Vec3_Sub(&move, &task->hitPos, &w->pos);
-        Vec3_Copy(&w->pos, &task->hitPos);
+        Vec3_Sub(&move, &task->pos, &w->pos);
+        Vec3_Copy(&w->pos, &task->pos);
         Vec3_Add(&w->prev, &w->prev, &move);
         w->flags |= EFT_RUSHSHOT_HIT_MOVED;
     }
-    if (task->flags & 1) {
-        if (task->flags & 2) {
+    if (task->tag & 1) {
+        if (task->tag & 2) {
             w->flags = (w->flags | EFT_RUSHSHOT_END) & ~EFT_RUSHSHOT_FIRED;
         } else {
             w->flags &= ~EFT_RUSHSHOT_FIRED;
         }
-    } else if (task->flags & 2) {
+    } else if (task->tag & 2) {
         w->flags = (w->flags | EFT_RUSHSHOT_END) & ~EFT_RUSHSHOT_FIRED;
-    } else if (task->flags & 4) {
+    } else if (task->tag & 4) {
         w->flags = (w->flags | EFT_RUSHSHOT_END) & ~EFT_RUSHSHOT_FIRED;
     }
     if (task->hit & 4) {
@@ -2449,7 +2451,7 @@ void EftRushShot_PostUpdate(EftTask *task) {
 }
 
 /* Reset callback: destroys the particles once and kills the task. */
-void EftRushShot_Reset(EftTask *task) {
+void EftRushShot_Reset(BtlTask *task) {
     EftRushShotWork *w = task->work;
 
     if (!(w->flags & EFT_RUSHSHOT_RESET)) {
@@ -2464,7 +2466,7 @@ void EftRushShot_Nop(void) {
 }
 
 /* Manager init: loads the effect model from the technique's pack and makes room for two projectiles. */
-void EftRushShotMgr_Init(EftTask *task, EftTechArg *arg) {
+void EftRushShotMgr_Init(BtlTask *task, EftTechArg *arg) {
     EftRushShotMgrWork *mgr = task->work;
     EftRushShotMgrWork *next;
     s32 i;
@@ -2488,12 +2490,12 @@ void EftRushShotMgr_Init(EftTask *task, EftTechArg *arg) {
 }
 
 /* Manager term: releases the model. */
-void EftRushShotMgr_Term(EftTask *task) {
+void EftRushShotMgr_Term(BtlTask *task) {
     EftEmit_FreeSet(task->work);
 }
 
 /* Manager update: steps the model. */
-void EftRushShotMgr_Update(EftTask *task) {
+void EftRushShotMgr_Update(BtlTask *task) {
     EftEmit_BeginFrame(task->work);
 }
 

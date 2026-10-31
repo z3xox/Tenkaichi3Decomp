@@ -1,4 +1,6 @@
 #include "common.h"
+#include "battle/battle.h"
+#include "sys/progress.h"
 #include "sys/dma.h"
 #include "sys/heap.h"
 #include "sys/pad.h"
@@ -7,26 +9,13 @@
 extern void *memset(void *dst, s32 value, u32 size);
 
 /* Local views (see the report): only the fields this file reads. */
-typedef struct PadWatchBattleWork {
-    /* 0x0000 */ u8 unk0[0x19F8];
-    /* 0x19F8 */ s32 running; /* BattleWork.running: 1 while a battle is running */
-} PadWatchBattleWork;
-
-typedef struct PadWatchProgress {
-    /* 0x000 */ u8 unk0[0x18];
-    /* 0x018 */ s32 mode;
-    /* 0x01C */ u8 unk1C[0x604];
-    /* 0x620 */ s32 unk620; /* 1: the screen of mode 0x27 / 0x28 needs both controllers */
-} PadWatchProgress;
 
 typedef struct PadWatchCommonRes {
     /* 0x00 */ u32 *boot; /* CommonRes.boot (file 5); words at +0x24: offsets of the three messages */
 } PadWatchCommonRes;
 
-extern PadWatchProgress *gProgress;
 extern PadWatchCommonRes *gCommonRes;
 
-extern PadWatchBattleWork *Battle_GetWork(void);
 extern s32 Battle_IsSplitScreen(void);
 extern s32 Battle_GetMode(void);
 extern s32 BtlGame_IsReplay(void);  /* returns the word at gBtlGameReplayActive */
@@ -53,17 +42,7 @@ void PadWatch_SetEnabled(s32 enable) {
     gPadWatch->disabled = enable == 0;
 }
 
-/*
- * 1 when a needed controller is missing; *port (if not NULL) receives which one: 0 when controller 1
- * is missing (also when both are), 1 when only controller 2 is. Returns 0 while no port has a settled
- * reading or there is no warning. Polled by the battle's pause check (BtlPause_CheckOpen).
- *
- * NON-MATCHING: 2 of 69 instructions. In the "controller 2 missing" arm the original has
- * `beqz s0,<exit>; nop` and this compiles to `beqzl s0,<exit + 4>; ld s0,0(sp)`: the delay-slot pass
- * here pulls the first instruction of the epilogue into the slot and the original left it empty.
- * Same instructions, registers and branch targets otherwise. Tried without effect: early returns in
- * every combination of the four arms, goto forms, `port == NULL` tests, a variable for the 1.
- */
+
 /* Cleanup pass 2: read from the delay-slot pass (reorg.c). The `li v0,1` in the slot of the preceding
    `bnez v0,<exit>` makes the copy of `li v0,1` at the target redundant for `beqz s0`, so this compiler skips it
    and takes the next instruction of the target (`ld s0`, annulled: beqzl). The original has `beqz` + nop, which
@@ -71,42 +50,40 @@ void PadWatch_SetEnabled(s32 enable) {
    preceding branch got its `li v0,1` only later (second round), i.e. it did not point at the `return 1` block
    directly when the slots were filled first. Eight more arrangements of the `*port = 1` arm (returns, inverted
    tests, a local for the 1) give the same two instructions or more differences. */
-#if 0
+
 s32 PadWatch_GetMissing(s32 *port) {
-    if ((gPadWatch->valid[0] == 0 && gPadWatch->valid[1] == 0) || gPadWatch->message < 0) {
-        return 0;
-    }
-    if (gPadWatch->valid[0] != 0 || gPadWatch->valid[1] != 0) {
-        if (Battle_GetWork()->running != 0
-                ? (BtlGame_IsReplay() == 0 && Battle_IsSplitScreen() != 0)
-                : ((u32)(gProgress->mode - 0x27) < 2 && gProgress->unk620 == 1)) {
-            if (!(gPadWatch->state[0] & 1)) {
-                if (!(gPadWatch->state[1] & 1)) {
+    if ((gPadWatch->valid[0] != 0 || gPadWatch->valid[1] != 0) && gPadWatch->message >= 0) {
+        if (gPadWatch->valid[0] != 0 || gPadWatch->valid[1] != 0) {
+            if (Battle_GetWork()->running != 0
+                    ? (BtlGame_IsReplay() == 0 && Battle_IsSplitScreen() != 0)
+                    : ((u32)(gProgress->mode - 0x27) < 2 && gProgress->players == 1)) {
+                if (!(gPadWatch->state[0] & 1)) {
+                    if (!(gPadWatch->state[1] & 1)) {
+                        if (port != NULL) {
+                            *port = 0;
+                        }
+                    } else {
+                        if (port != NULL) {
+                            *port = 0;
+                        }
+                    }
+                } else if (!(gPadWatch->state[1] & 1)) {
+                    if (port != NULL) {
+                        *port = 1;
+                    }
+                }
+            } else {
+                if (!(gPadWatch->state[0] & 1)) {
                     if (port != NULL) {
                         *port = 0;
                     }
-                } else {
-                    if (port != NULL) {
-                        *port = 0;
-                    }
-                }
-            } else if (!(gPadWatch->state[1] & 1)) {
-                if (port != NULL) {
-                    *port = 1;
-                }
-            }
-        } else {
-            if (!(gPadWatch->state[0] & 1)) {
-                if (port != NULL) {
-                    *port = 0;
                 }
             }
         }
+        return 1;
     }
-    return 1;
+    return 0;
 }
-#endif
-INCLUDE_ASM("asm/nonmatchings/sys/pad_watch", PadWatch_GetMissing);
 
 /* 1 when the given port's controller is missing and a warning is up. */
 s32 PadWatch_IsPortMissing(s32 port) {
@@ -115,7 +92,7 @@ s32 PadWatch_IsPortMissing(s32 port) {
     }
     if (Battle_GetWork()->running != 0
             ? (BtlGame_IsReplay() == 0 && Battle_IsSplitScreen() != 0)
-            : ((u32)(gProgress->mode - 0x27) < 2 && gProgress->unk620 == 1)) {
+            : ((u32)(gProgress->mode - 0x27) < 2 && gProgress->players == 1)) {
         if (!(gPadWatch->state[port] & 1)) {
             return 1;
         }
@@ -152,7 +129,7 @@ void PadWatch_Update(void) {
     if (gPadWatch->disabled == 0 && (gPadWatch->valid[0] != 0 || gPadWatch->valid[1] != 0)) {
         if (Battle_GetWork()->running != 0
                 ? (BtlGame_IsReplay() == 0 && Battle_IsSplitScreen() != 0)
-                : ((u32)(gProgress->mode - 0x27) < 2 && gProgress->unk620 == 1)) {
+                : ((u32)(gProgress->mode - 0x27) < 2 && gProgress->players == 1)) {
             if (!(now[0] & 1)) {
                 if (!(now[1] & 1)) {
                     gPadWatch->message = PAD_WATCH_MSG_BOTH;

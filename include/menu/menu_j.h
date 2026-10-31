@@ -17,9 +17,9 @@
 
 /* ---- Main executable, beyond what menu_a.h declares ---- */
 
-extern void Flash_ClipSetOffset(MFlash *flash, MFlashRef *ref, s32 x, s32 y);
-extern void TextBox_AttachLine(MFlash *flash, MFlashRef *ref, s32 x, s32 y, s32 line, MTextBox *box);
-extern void Num_DrawChild(MFlash *flash, char *parent, char *fmt, s32 first, s32 count, s32 value, s32 w, s32 h, s32 mode,
+extern void Flash_ClipSetOffset(Flash *flash, FlashRef *ref, s32 x, s32 y);
+extern void TextBox_AttachLine(Flash *flash, FlashRef *ref, s32 x, s32 y, s32 line, TextBox *box);
+extern void Num_DrawChild(Flash *flash, char *parent, char *fmt, s32 first, s32 count, s32 value, s32 w, s32 h, s32 mode,
                           s32 parentFmt);
 extern s32 ChrTbl_WrapCostume(s32 chara, s32 *costume);
 extern void *memcpy(void *, const void *, u32);
@@ -148,14 +148,14 @@ typedef struct ESel {
     /* 0x0000 */ u32 *pack;          /* this screen's section of archive 4 (compressed) */
     /* 0x0004 */ u32 *res;           /* the same unpacked */
     /* 0x0008 */ void *imageFile;    /* 0x16800 bytes: compressed large picture (file 0x2F9 + character) */
-    /* 0x000C */ MTexRes *imageRes;  /* 0x20800 bytes: the same unpacked */
+    /* 0x000C */ FlashTexRes *imageRes;  /* 0x20800 bytes: the same unpacked */
     /* 0x0010 */ u32 *chips;         /* section 32: pack of the small character pictures */
     /* 0x0014 */ void *nameText;     /* section 30 */
     /* 0x0018 */ void *formText;     /* section 31 */
     /* 0x001C */ void *msgText;      /* section 33 */
     /* 0x0020 */ void *subtitles;    /* section 36 */
     /* 0x0024 */ void *file;         /* file 0x3C9 + tournament */
-    /* 0x0028 */ MFlash flash[ESEL_FLASH_NUM]; /* 0 picture and entry list, 1 chips, 2 custom / colour plates, 3 guide */
+    /* 0x0028 */ Flash flash[ESEL_FLASH_NUM]; /* 0 picture and entry list, 1 chips, 2 custom / colour plates, 3 guide */
     /* 0x00D8 */ u8 *texA[19];
     /* 0x0124 */ u8 *texC[11];
     /* 0x0150 */ u8 *texB[25];
@@ -181,7 +181,7 @@ typedef struct ESel {
     /* 0x1B18 */ s32 talker;         /* which guide is talking (the Yamcha Game has two) */
     /* 0x1B1C */ s32 blink[2];
     /* 0x1B24 */ s32 talk[2];
-    /* 0x1B2C */ MTextBox box[2];    /* character name, form name */
+    /* 0x1B2C */ TextBox box[2];    /* character name, form name */
     /* 0x1C44 */ void *items;        /* item table of common file 4 */
 } ESel; /* 0x1C48 */
 
@@ -291,7 +291,7 @@ typedef struct TourMenu {
     /* 0x00C */ void *imageRes;     /* 0x41000 bytes: the same unpacked */
     /* 0x010 */ void *msgText;      /* section 19 */
     /* 0x014 */ void *subtitles;    /* section 23 */
-    /* 0x018 */ MFlash flash[TOURMENU_FLASH_NUM]; /* 0 the menu, 1 the invitation */
+    /* 0x018 */ Flash flash[TOURMENU_FLASH_NUM]; /* 0 the menu, 1 the invitation */
     /* 0x070 */ void *bg;           /* section 1: background picture */
     /* 0x074 */ u8 *tex[31];
     /* 0x0F0 */ u8 *texB[6];

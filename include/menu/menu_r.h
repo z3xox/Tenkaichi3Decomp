@@ -4,6 +4,7 @@
 /* menu_a.h declares Snd_PlaySe as returning nothing; it returns s32 (see include/menu/menu_h.h). */
 #define Snd_PlaySe Snd_PlaySe_menuA
 #include "menu/menu_a.h"
+#include "sys/save.h"
 #undef Snd_PlaySe
 extern s32 Snd_PlaySe(u32 mask, s32 id);
 
@@ -30,13 +31,13 @@ extern s32 Snd_PlaySe(u32 mask, s32 id);
 /* ---- Main executable, beyond what menu_a.h declares ---- */
 
 extern s32 Rand_Libc(void);           /* libc rand() */
-extern void TextBox_Init(MTextBox *box, void *text, u32 preset);
-extern void TextBox_SetUnk50(MTextBox *box, s32 value);
-extern void TextBox_SetLineOffsets(MTextBox *box, s32 y1, s32 y2, s32 y3, s32 y4, s32 y5);
-extern void TextBox_SetSpacing(MTextBox *box, s32 x, s32 y);
-extern void TextBox_AttachLine(MFlash *flash, MFlashRef *ref, s32 x, s32 y, s32 line, MTextBox *box);
-extern void Num_Draw(MFlash *flash, char *fmt, s32 first, s32 count, s32 value, s32 w, s32 h, s32 mode);
-extern void Num_DrawChild(MFlash *flash, char *parent, char *fmt, s32 first, s32 count, s32 value, s32 w, s32 h,
+extern void TextBox_Init(TextBox *box, void *text, u32 preset);
+extern void TextBox_SetUnk50(TextBox *box, s32 value);
+extern void TextBox_SetLineOffsets(TextBox *box, s32 y1, s32 y2, s32 y3, s32 y4, s32 y5);
+extern void TextBox_SetSpacing(TextBox *box, s32 x, s32 y);
+extern void TextBox_AttachLine(Flash *flash, FlashRef *ref, s32 x, s32 y, s32 line, TextBox *box);
+extern void Num_Draw(Flash *flash, char *fmt, s32 first, s32 count, s32 value, s32 w, s32 h, s32 mode);
+extern void Num_DrawChild(Flash *flash, char *parent, char *fmt, s32 first, s32 count, s32 value, s32 w, s32 h,
                           s32 mode, s32 parentFmt);
 extern void IconWin_SetIcon(s32 icon);
 extern void Voice_StopWithLip(void);
@@ -117,7 +118,6 @@ typedef struct SimSave {
 } SimSave;
 
 #define SIM_SAVE ((SimSave *)gSaveData)
-extern void *gSaveData;
 
 /* ---- SimDay: the board screen's work area. Only the name here: the layout and the SIMDAY_ constants are in
    include/menu/menu_q.h (the object is src/menu/menu_q_b.c, into which the former menu_r.c was merged). ---- */
@@ -135,7 +135,7 @@ extern s32 UbScore_Transfer(s32 *from, s32 *to, s32 step, f32 rate);
 extern s32 UbScore_CountLine(void *score, s32 isBonus, s32 index, s32 step);
 extern s32 UbScore_ConvertStep(void *score, s32 step);
 extern void UbScore_SetPage(void *score, s32 page);
-extern void UbScore_PlateGoto(MFlash *flash, s32 plate, s32 on);
+extern void UbScore_PlateGoto(Flash *flash, s32 plate, s32 on);
 extern void UbScore_AddRanking(s32 score, s32 chara, s32 cleared);
 extern s32 UbScore_GetRewardItem(s32 idx);
 
@@ -178,10 +178,10 @@ typedef struct SimResult {
     /* 0x00C */ void *text;         /* section 12 */
     /* 0x010 */ void *subtitles;    /* section 11 */
     /* 0x014 */ void *itemText;     /* section 14 */
-    /* 0x018 */ MTextBox box[6];
-    /* 0x360 */ MTextBox itemBox;
+    /* 0x018 */ TextBox box[6];
+    /* 0x360 */ TextBox itemBox;
     /* 0x3EC */ void *bonusTbl;     /* section 13 */
-    /* 0x3F0 */ MFlash flash[SIMRESULT_FLASH_NUM];
+    /* 0x3F0 */ Flash flash[SIMRESULT_FLASH_NUM];
     /* 0x41C */ void *bg;           /* section 6 */
     /* 0x420 */ u8 *tex[49];
     /* 0x4E4 */ s32 flags;          /* SIMRESULT_ */
@@ -251,8 +251,8 @@ typedef struct SimTop {
     /* 0x008 */ u32 *faces;         /* section 7: a pack of 165 texture lists, one per character */
     /* 0x00C */ void *text;         /* section 8 */
     /* 0x010 */ void *subtitles;    /* section 9 */
-    /* 0x014 */ MTextBox box;
-    /* 0x0A0 */ MFlash flash[SIMTOP_FLASH_NUM];
+    /* 0x014 */ TextBox box;
+    /* 0x0A0 */ Flash flash[SIMTOP_FLASH_NUM];
     /* 0x0CC */ void *bg;           /* section 4 */
     /* 0x0D0 */ u8 *tex[40];        /* [gSimTopFaceTex[n]] = the portrait of ranking row n; [26] that of the cursor row */
     /* 0x170 */ s32 flags;          /* SIMTOP_ */

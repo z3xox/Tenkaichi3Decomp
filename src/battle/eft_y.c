@@ -1,4 +1,5 @@
 #include "common.h"
+#include "battle/btl_cam.h"
 #include "battle/eft_y.h"
 #include "sys/math3d.h"
 #include "sys/gfx_ot.h"
@@ -17,46 +18,40 @@ extern void *memset(void *dst, s32 c, u32 n);
 extern f32 atan2f(f32 y, f32 x);
 extern f32 Mathf_Asin(f32 x);
 extern f32 EftMath_WrapAngle(f32 angle);
-extern void Vec4_Set(EftYVec *v, f32 x, f32 y, f32 z, f32 w);
-extern void Vec4_Copy(EftYVec *dst, EftYVec *src);
-extern void Vec4_Sub(EftYVec *dst, EftYVec *a, EftYVec *b);
-extern void Vec4_Add(EftYVec *dst, EftYVec *a, EftYVec *b);
-extern void Vec4_Scale(EftYVec *dst, EftYVec *src, f32 s);
-extern void Vec3_Add(EftYVec *dst, EftYVec *a, EftYVec *b);
-extern void Vec3_Sub(EftYVec *dst, EftYVec *a, EftYVec *b);
-extern void Vec3_Scale(EftYVec *dst, EftYVec *src, f32 s);
-extern void Vec3_Cross(EftYVec *dst, EftYVec *a, EftYVec *b);
-extern void Vec3_Normalize(EftYVec *dst, EftYVec *src);
+extern void Vec4_Set(Vec4Array *v, f32 x, f32 y, f32 z, f32 w);
+extern void Vec4_Copy(Vec4Array *dst, Vec4Array *src);
+extern void Vec4_Sub(Vec4Array *dst, Vec4Array *a, Vec4Array *b);
+extern void Vec4_Add(Vec4Array *dst, Vec4Array *a, Vec4Array *b);
+extern void Vec4_Scale(Vec4Array *dst, Vec4Array *src, f32 s);
+extern void Vec3_Add(Vec4Array *dst, Vec4Array *a, Vec4Array *b);
+extern void Vec3_Sub(Vec4Array *dst, Vec4Array *a, Vec4Array *b);
+extern void Vec3_Scale(Vec4Array *dst, Vec4Array *src, f32 s);
+extern void Vec3_Cross(Vec4Array *dst, Vec4Array *a, Vec4Array *b);
+extern void Vec3_Normalize(Vec4Array *dst, Vec4Array *src);
 extern void Vu0Cur_LoadIdentity(void);                 /* VU0 current matrix = identity (inferred) */
 extern void Vu0Cur_Push(void);                 /* VU0 matrix stack: push */
 extern void Vu0Cur_Pop(void);                 /* pop */
-extern void Vu0Cur_Translate(EftYVec *v);           /* current matrix: translate */
+extern void Vu0Cur_Translate(Vec4Array *v);           /* current matrix: translate */
 extern void Vu0Cur_RotateZ(f32 angle);            /* current matrix: rotate about Z */
 extern void Vu0Cur_RotateX(f32 angle);            /* rotate about X */
 extern void Vu0Cur_RotateY(f32 angle);            /* rotate about Y */
 extern void Vu0Cur_ScaleDiagUniform(f32 scale);            /* scale */
-extern void Vu0Cur_MulVec4(EftYVec *dst, EftYVec *src); /* transform a point by the current matrix */
-extern s32 Vu0Cur_ProjectPoints(EftYScr *out, EftYVec *pos, s32 count); /* project; 0 when clipped */
-extern s32 Vu0Cur_ProjectPointsStq(EftYScr *xyz, EftYVec *stq, EftYVec *pos, EftYVec *uv, s32 n); /* project with texture */
-extern void ClipVtx_Set(EftYClipVtx *out, EftYVec *pos, EftYVec *st, EftYVec *color);
-extern void Vec3_Copy(EftYVec *dst, EftYVec *src); /* copies x, y, z */
-extern void Vec4_ToInt(EftYCol *dst, EftYVec *src); /* float vector to integer vector */
-extern void Vec4_Clamp(EftYVec *dst, EftYVec *src, f32 lo, f32 hi); /* clamps each component */
-extern void Vec3_ScaleAdd(EftYVec *dst, EftYVec *dir, EftYVec *base, f32 s); /* dst = base + dir * s */
+extern void Vu0Cur_MulVec4(Vec4Array *dst, Vec4Array *src); /* transform a point by the current matrix */
+extern s32 Vu0Cur_ProjectPoints(EftYScr *out, Vec4Array *pos, s32 count); /* project; 0 when clipped */
+extern s32 Vu0Cur_ProjectPointsStq(EftYScr *xyz, Vec4Array *stq, Vec4Array *pos, Vec4Array *uv, s32 n); /* project with texture */
+extern void ClipVtx_Set(EftYClipVtx *out, Vec4Array *pos, Vec4Array *st, Vec4Array *color);
+extern void Vec3_Copy(Vec4Array *dst, Vec4Array *src); /* copies x, y, z */
+extern void Vec4_ToInt(EftYCol *dst, Vec4Array *src); /* float vector to integer vector */
+extern void Vec4_Clamp(Vec4Array *dst, Vec4Array *src, f32 lo, f32 hi); /* clamps each component */
+extern void Vec3_ScaleAdd(Vec4Array *dst, Vec4Array *dir, Vec4Array *base, f32 s); /* dst = base + dir * s */
 extern void EftGfx_DrawPolyFixedZ(EftYClipVtx *verts, s32 layer, s32 arg2, s32 arg3, s32 front, s32 flip, u64 tex,
                                   s32 z);
 extern void EftGfx_DrawPolyScaledZ(EftYClipVtx *verts, s32 layer, s32 arg2, s32 arg3, s32 front, s32 flip, u64 tex,
                                    f32 zScale);
 extern u64 EftVram_AddImage(EftYTex *tex, s32 a, s32 b);
 extern u64 EftVram_AddClut(EftYTex *tex);
-extern EftYTask *BtlTaskList_AddTail(void *list, void *cls, void *arg);
+extern BtlTask *BtlTaskList_AddTail(void *list, void *cls, void *arg);
 extern s32 EftQuad_InitQuad(EftQuad *q, EftQuadWork *w); /* fills a new quad from the emitter's current values */
-
-typedef struct EftYCamView {
-    /* 0x000 */ u8 unk0[0x220];
-    /* 0x220 */ EftYVec pos;
-} EftYCamView;
-extern EftYCamView *gBtlCamView;
 
 #define EFTY_CLAMP(x, lo, hi) (((x) < (lo)) ? (lo) : (((hi) < (x)) ? (hi) : (x)))
 #define EFTY_CLAMP01(x) EFTY_CLAMP(x, 0.0f, 1.0f)
@@ -64,7 +59,7 @@ extern EftYCamView *gBtlCamView;
 /* Steps every quad of an emitter by one frame, rebuilds its corners and unlinks the ones whose life is over (or
    all of them when the emitter was killed). */
 void EftQuad_StepAll(EftQuadWork *w) {
-    EftYVec step;
+    Vec4Array step;
     EftQuadDef *def = w->def;
     f32 pitch;
     f32 yaw;
@@ -72,7 +67,7 @@ void EftQuad_StepAll(EftQuadWork *w) {
     f32 fade = 0.0f;
     f32 alpha = 1.0f;
 
-    memset(&step, 0, sizeof(EftYVec));
+    memset(&step, 0, sizeof(Vec4Array));
     if (w->dir.y < -1.0f) {
         w->dir.y = -1.0f;
     }
@@ -267,13 +262,13 @@ void EftQuad_StepAll(EftQuadWork *w) {
 /* Builds the four corners of a quad: a square of half size `halfSize` spun by the quad's own angles, moved to its
    position (times the emitter's size), turned to the emitter's direction and moved to `pos`, all through the
    VU0 matrix the caller prepared. */
-void EftQuad_BuildCorners(EftQuad *q, EftQuadWork *w, EftYVec pos, f32 pitch, f32 yaw) {
-    EftYVec p;
+void EftQuad_BuildCorners(EftQuad *q, EftQuadWork *w, Vec4Array pos, f32 pitch, f32 yaw) {
+    Vec4Array p;
     EftQuadDef *def = w->def;
     f32 h;
     s32 i;
 
-    memset(&p, 0, sizeof(EftYVec));
+    memset(&p, 0, sizeof(Vec4Array));
     Vu0Cur_RotateZ(q->rot.z);
     Vu0Cur_RotateX(q->rot.x);
     Vu0Cur_RotateY(q->rot.y);
@@ -299,10 +294,10 @@ void EftQuad_BuildCorners(EftQuad *q, EftQuadWork *w, EftYVec pos, f32 pitch, f3
 /* Draws the visible quads of an emitter through the clipping polygon drawer. With def flag 0x40 each quad is drawn
    four times, moved half a diagonal towards each corner, with the texture mirrored so the four meet in the middle. */
 void EftQuad_DrawAllFacing(EftQuadWork *w, s32 layer) {
-    EftYVec c[4];
-    EftYVec d;
-    EftYVec uv0;
-    EftYVec uv1;
+    Vec4Array c[4];
+    Vec4Array d;
+    Vec4Array uv0;
+    Vec4Array uv1;
     u8 tbl[4][4] = { { 0, 1, 2, 3 }, { 1, 0, 3, 2 }, { 2, 3, 0, 1 }, { 3, 2, 1, 0 } };
     EftQuad *q;
     s32 i;
@@ -335,10 +330,10 @@ void EftQuad_DrawAllFacing(EftQuadWork *w, s32 layer) {
 
 /* The same walk, drawing each quad as one order table strip. */
 void EftQuad_DrawAllSprite(EftQuadWork *w, s32 layer) {
-    EftYVec c[4];
-    EftYVec d;
-    EftYVec uv0;
-    EftYVec uv1;
+    Vec4Array c[4];
+    Vec4Array d;
+    Vec4Array uv0;
+    Vec4Array uv1;
     u8 tbl[4][4] = { { 0, 1, 2, 3 }, { 1, 0, 3, 2 }, { 2, 3, 0, 1 }, { 3, 2, 1, 0 } };
     EftQuad *q;
     s32 i;
@@ -441,10 +436,9 @@ void EftQuad_ListRemove(EftQuad **head, EftQuad **tail, EftQuad *p) {
     }
 }
 
-
 /* Key animation of the emitter's parameters. At age 0 it sets the two leg lengths and takes the differences key 1
    - key 0; when the age passes the first leg it takes key 2 - key 1 (once). */
-void EftQuad_CalcKeyDeltas(EftYTask *task) {
+void EftQuad_CalcKeyDeltas(BtlTask *task) {
     EftQuadWork *w = task->work;
     EftQuadDef *def = w->def;
     EftQuadDef2 *def2 = w->def2;
@@ -503,10 +497,10 @@ void EftQuad_CalcKeyDeltas(EftYTask *task) {
         w->delta.k.v[0] = def->k[k].v[0] - def->k[k - 1].v[0];
         w->delta.k.v[1] = def->k[k].v[1] - def->k[k - 1].v[1];
         w->delta.l = def->l[k] - def->l[k - 1];
-        Vec4_Sub((EftYVec *)&w->delta.v0, &def2->v0[k], &def2->v0[k - 1]);
-        Vec4_Sub((EftYVec *)&w->delta.v1, &def2->v1[k], &def2->v1[k - 1]);
-        Vec4_Sub((EftYVec *)&w->delta.v2, &def2->v2[k], &def2->v2[k - 1]);
-        Vec4_Sub((EftYVec *)&w->delta.v3, &def2->v3[k], &def2->v3[k - 1]);
+        Vec4_Sub((Vec4Array *)&w->delta.v0, &def2->v0[k], &def2->v0[k - 1]);
+        Vec4_Sub((Vec4Array *)&w->delta.v1, &def2->v1[k], &def2->v1[k - 1]);
+        Vec4_Sub((Vec4Array *)&w->delta.v2, &def2->v2[k], &def2->v2[k - 1]);
+        Vec4_Sub((Vec4Array *)&w->delta.v3, &def2->v3[k], &def2->v3[k - 1]);
         w->delta.c0 = def2->c0[k] - def2->c0[k - 1];
         w->delta.c1 = def2->c1[k] - def2->c1[k - 1];
         w->delta.p0a = def2->p0[k].v[0] - def2->p0[k - 1].v[0];
@@ -521,8 +515,8 @@ void EftQuad_CalcKeyDeltas(EftYTask *task) {
 
 /* Current value of every animated parameter: the leg's first key plus the leg's difference times the progress.
    Original bug: all three components of `d` are advanced with the difference of d[0]. */
-void EftQuad_Animate(EftYTask *task) {
-    EftYVec tmp;
+void EftQuad_Animate(BtlTask *task) {
+    Vec4Array tmp;
     s32 k;
     EftQuadWork *w = task->work;
     EftQuadDef *def = w->def;
@@ -531,7 +525,7 @@ void EftQuad_Animate(EftYTask *task) {
 
     k = 0;
     def2 = w->def2;
-    memset(&tmp, 0, sizeof(EftYVec));
+    memset(&tmp, 0, sizeof(Vec4Array));
     if (!(w->flags & EFT_QUADEM_LEG2)) {
         t = w->age / w->animSplit;
     } else {
@@ -590,23 +584,23 @@ void EftQuad_Animate(EftYTask *task) {
     w->cur.p1b = def2->p1[k].v[1] + w->delta.p1b * t;
     w->cur.p2b = def2->p2[k].v[1] + w->delta.p2b * t;
     w->cur.e2 = def2->e[k] + w->delta.e2 * t;
-    Vec4_Scale(&tmp, (EftYVec *)&w->delta.v0, t);
-    Vec4_Add((EftYVec *)&w->cur.v0, &def2->v0[k], &tmp);
-    Vec4_Scale(&tmp, (EftYVec *)&w->delta.v1, t);
-    Vec4_Add((EftYVec *)&w->cur.v1, &def2->v1[k], &tmp);
-    Vec4_Scale(&tmp, (EftYVec *)&w->delta.v2, t);
-    Vec4_Add((EftYVec *)&w->cur.v2, &def2->v2[k], &tmp);
-    Vec4_Scale(&tmp, (EftYVec *)&w->delta.v3, t);
-    Vec4_Add((EftYVec *)&w->cur.v3, &def2->v3[k], &tmp);
+    Vec4_Scale(&tmp, (Vec4Array *)&w->delta.v0, t);
+    Vec4_Add((Vec4Array *)&w->cur.v0, &def2->v0[k], &tmp);
+    Vec4_Scale(&tmp, (Vec4Array *)&w->delta.v1, t);
+    Vec4_Add((Vec4Array *)&w->cur.v1, &def2->v1[k], &tmp);
+    Vec4_Scale(&tmp, (Vec4Array *)&w->delta.v2, t);
+    Vec4_Add((Vec4Array *)&w->cur.v2, &def2->v2[k], &tmp);
+    Vec4_Scale(&tmp, (Vec4Array *)&w->delta.v3, t);
+    Vec4_Add((Vec4Array *)&w->cur.v3, &def2->v3[k], &tmp);
 }
 
 /* Queues one quad as a textured strip: projects the four corners with their texture coordinates, and links a
    0x90-byte packet into the order table slot of the average depth. Dropped when the projection rejects it.
    `flip` (the emitter's "view only" flag) forces the depth written to the vertices to the nearest value. */
-void EftQuad_DrawSprite(EftYVec *corner, EftYVec uv0, EftYVec uv1, EftYVec color, s32 layer, s32 texIdx, s32 flip,
+void EftQuad_DrawSprite(Vec4Array *corner, Vec4Array uv0, Vec4Array uv1, Vec4Array color, s32 layer, s32 texIdx, s32 flip,
                         EftYTex8 *tex) {
-    EftYVec st[4];
-    EftYVec stq[4];
+    Vec4Array st[4];
+    Vec4Array stq[4];
     EftYScr scr[4];
     EftYCol col;
     EftYStripPkt *p;
@@ -699,12 +693,11 @@ void EftQuad_DrawSprite(EftYVec *corner, EftYVec uv0, EftYVec uv1, EftYVec color
     }
 }
 
-
 /* Draws one quad as two triangles (corners 0-1-2 and 1-2-3) through the clipping polygon drawer. */
-void EftQuad_DrawFacing(EftYVec *corner, EftYVec uv0, EftYVec uv1, EftYVec color, s32 layer, s32 texIdx, s32 arg6,
+void EftQuad_DrawFacing(Vec4Array *corner, Vec4Array uv0, Vec4Array uv1, Vec4Array color, s32 layer, s32 texIdx, s32 arg6,
                         s32 flip, EftYTex8 *tex) {
-    EftYVec c[4];
-    EftYVec st[4];
+    Vec4Array c[4];
+    Vec4Array st[4];
     EftYClipVtx v[9];
 
     Vec4_Set(&st[0], uv0.x, uv0.y, 1.0f, 1.0f);
@@ -823,10 +816,10 @@ void EftQuad_SetLastKey(EftQuadWork *w) {
     w->cur.u = def->u[2];
     w->cur.v = def->v[2];
     w->cur.w = def->w[2];
-    Vec4_Copy((EftYVec *)&w->cur.v0, &def2->v0[2]);
-    Vec4_Copy((EftYVec *)&w->cur.v1, &def2->v1[2]);
-    Vec4_Copy((EftYVec *)&w->cur.v2, &def2->v2[2]);
-    Vec4_Copy((EftYVec *)&w->cur.v3, &def2->v3[2]);
+    Vec4_Copy((Vec4Array *)&w->cur.v0, &def2->v0[2]);
+    Vec4_Copy((Vec4Array *)&w->cur.v1, &def2->v1[2]);
+    Vec4_Copy((Vec4Array *)&w->cur.v2, &def2->v2[2]);
+    Vec4_Copy((Vec4Array *)&w->cur.v3, &def2->v3[2]);
     w->cur.c0 = def2->c0[2];
     w->cur.c1 = def2->c1[2];
     w->cur.p0a = def2->p0[2].a;
@@ -839,7 +832,7 @@ void EftQuad_SetLastKey(EftQuadWork *w) {
 }
 
 /* Creates a quad emitter from separate arguments. No caller in the executable. */
-EftYTask *EftQuad_CreateEx(EftQuadDef *def, EftQuadDef2 *def2, EftYTex8 *tex, EftYVec pos, EftYVec dir, f32 size,
+BtlTask *EftQuad_CreateEx(EftQuadDef *def, EftQuadDef2 *def2, EftYTex8 *tex, Vec4Array pos, Vec4Array dir, f32 size,
                            f32 life) {
     EftQuadArg arg;
 
@@ -864,7 +857,7 @@ EftYTask *EftQuad_CreateEx(EftQuadDef *def, EftQuadDef2 *def2, EftYTex8 *tex, Ef
 }
 
 /* Creates a quad emitter task in the pool's task list. */
-EftYTask *EftQuad_Create(EftQuadArg *arg) {
+BtlTask *EftQuad_Create(EftQuadArg *arg) {
     if (gEftQuadMgr == NULL) {
         return NULL;
     }
@@ -875,12 +868,12 @@ EftYTask *EftQuad_Create(EftQuadArg *arg) {
 }
 
 /* Same as EftQuad_Stop. No caller. */
-void EftQuad_StopAlias(EftYTask *task) {
+void EftQuad_StopAlias(BtlTask *task) {
     EftQuad_Stop(task);
 }
 
 /* Asks the emitter to stop emitting: at once, or after its stop delay, or through its fade when those are set. */
-void EftQuad_Stop(EftYTask *task) {
+void EftQuad_Stop(BtlTask *task) {
     EftQuadWork *w;
     s32 now = 1;
 
@@ -911,7 +904,7 @@ void EftQuad_Stop(EftYTask *task) {
 }
 
 /* Sets the length of the fade that follows a stop, in frames. */
-void EftQuad_SetFade(EftYTask *task, s32 frames) {
+void EftQuad_SetFade(BtlTask *task, s32 frames) {
     EftQuadWork *w;
 
     if (gEftQuadMgr == NULL) {
@@ -933,7 +926,7 @@ void EftQuad_SetFade(EftYTask *task, s32 frames) {
 }
 
 /* Sets the emitter's position and direction. No caller. */
-void EftQuad_SetPosDir(EftYTask *task, EftYVec pos, EftYVec dir) {
+void EftQuad_SetPosDir(BtlTask *task, Vec4Array pos, Vec4Array dir) {
     EftQuadWork *w;
 
     if (gEftQuadMgr == NULL) {
@@ -954,7 +947,7 @@ void EftQuad_SetPosDir(EftYTask *task, EftYVec pos, EftYVec dir) {
 }
 
 /* Stops the emitter and drops all its quads at the next step. */
-void EftQuad_Kill(EftYTask *task) {
+void EftQuad_Kill(BtlTask *task) {
     EftQuadWork *w;
 
     if (gEftQuadMgr == NULL) {
@@ -973,7 +966,7 @@ void EftQuad_Kill(EftYTask *task) {
 }
 
 /* Moves the emitter. */
-void EftQuad_SetPos(EftYTask *task, EftYVec pos) {
+void EftQuad_SetPos(BtlTask *task, Vec4Array pos) {
     EftQuadWork *w;
 
     if (gEftQuadMgr == NULL) {
@@ -992,7 +985,7 @@ void EftQuad_SetPos(EftYTask *task, EftYVec pos) {
 }
 
 /* Moves the emitter and rebuilds the corners of all its quads at the new place at once. */
-void EftQuad_Warp(EftYTask *task, EftYVec pos) {
+void EftQuad_Warp(BtlTask *task, Vec4Array pos) {
     EftQuadWork *w;
     EftQuad *q;
     f32 pitch;
@@ -1027,7 +1020,7 @@ void EftQuad_Warp(EftYTask *task, EftYVec pos) {
 }
 
 /* Sets the emitter's direction (normalised). */
-void EftQuad_SetDir(EftYTask *task, EftYVec dir) {
+void EftQuad_SetDir(BtlTask *task, Vec4Array dir) {
     EftQuadWork *w;
 
     if (gEftQuadMgr == NULL) {
@@ -1047,7 +1040,7 @@ void EftQuad_SetDir(EftYTask *task, EftYVec dir) {
 }
 
 /* Sets the emitter's size. */
-void EftQuad_SetSize(EftYTask *task, f32 size) {
+void EftQuad_SetSize(BtlTask *task, f32 size) {
     EftQuadWork *w;
 
     if (gEftQuadMgr == NULL) {
@@ -1066,7 +1059,7 @@ void EftQuad_SetSize(EftYTask *task, f32 size) {
 }
 
 /* Sets how long the emitter runs before it stops by itself, in seconds. No caller. */
-void EftQuad_SetLife(EftYTask *task, f32 seconds) {
+void EftQuad_SetLife(BtlTask *task, f32 seconds) {
     EftQuadWork *w;
 
     if (gEftQuadMgr == NULL) {
@@ -1085,7 +1078,7 @@ void EftQuad_SetLife(EftYTask *task, f32 seconds) {
 }
 
 /* Replaces the texture table pointer. No caller. */
-void EftQuad_SetTexTable(EftYTask *task, EftYTex8 *tex) {
+void EftQuad_SetTexTable(BtlTask *task, EftYTex8 *tex) {
     EftQuadWork *w;
 
     if (gEftQuadMgr == NULL) {
@@ -1107,7 +1100,7 @@ void EftQuad_SetTexTable(EftYTask *task, EftYTex8 *tex) {
 }
 
 /* Binds the emitter to two entries of a texture table. */
-void EftQuad_SetTexPair(EftYTask *task, EftYTex8 *tex, s32 a, s32 b) {
+void EftQuad_SetTexPair(BtlTask *task, EftYTex8 *tex, s32 a, s32 b) {
     EftQuadWork *w;
 
     if (gEftQuadMgr == NULL) {
@@ -1130,7 +1123,7 @@ void EftQuad_SetTexPair(EftYTask *task, EftYTex8 *tex, s32 a, s32 b) {
 }
 
 /* Sets the frames to wait before the emitter starts. */
-void EftQuad_SetDelay(EftYTask *task, s32 frames) {
+void EftQuad_SetDelay(BtlTask *task, s32 frames) {
     EftQuadWork *w;
 
     if (gEftQuadMgr == NULL) {
@@ -1149,7 +1142,7 @@ void EftQuad_SetDelay(EftYTask *task, s32 frames) {
 }
 
 /* Sets the frames between a stop request and the stop. */
-void EftQuad_SetStopDelay(EftYTask *task, s32 frames) {
+void EftQuad_SetStopDelay(BtlTask *task, s32 frames) {
     EftQuadWork *w;
 
     if (gEftQuadMgr == NULL) {
@@ -1168,7 +1161,7 @@ void EftQuad_SetStopDelay(EftYTask *task, s32 frames) {
 }
 
 /* Marks the emitter as drawn only in its owner's view. Returns 1 when the emitter is alive. */
-s32 EftQuad_SetViewOnly(EftYTask *task) {
+s32 EftQuad_SetViewOnly(BtlTask *task) {
     EftQuadWork *w;
 
     if (gEftQuadMgr == NULL) {
@@ -1189,7 +1182,7 @@ s32 EftQuad_SetViewOnly(EftYTask *task) {
 }
 
 /* Returns 1 while the emitter exists. */
-s32 EftQuad_IsAlive(EftYTask *task) {
+s32 EftQuad_IsAlive(BtlTask *task) {
     EftQuadWork *w;
 
     if (gEftQuadMgr == NULL) {
@@ -1209,7 +1202,7 @@ s32 EftQuad_IsAlive(EftYTask *task) {
 }
 
 /* Chooses whether emitted quads stay where they were emitted (1) or follow the emitter (0). */
-void EftQuad_SetOwnOrigin(EftYTask *task, s32 on) {
+void EftQuad_SetOwnOrigin(BtlTask *task, s32 on) {
     EftQuadWork *w;
 
     if (gEftQuadMgr == NULL) {
@@ -1232,7 +1225,7 @@ void EftQuad_SetOwnOrigin(EftYTask *task, s32 on) {
 }
 
 /* Stores the cut id the emitter's update and draw hand to BtlScene_IsEffectStopped / IsEffectHidden. */
-void EftQuad_SetCut(EftYTask *task, s32 cut) {
+void EftQuad_SetCut(BtlTask *task, s32 cut) {
     EftQuadWork *w;
 
     if (gEftQuadMgr == NULL) {

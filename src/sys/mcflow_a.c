@@ -1,4 +1,6 @@
 #include "common.h"
+#include "sys/save.h"
+#include "sys/progress.h"
 
 /*
  * Memory-card dialog flows: see include/sys/mcflow_a.h for the overview, docs for each state machine.
@@ -10,22 +12,8 @@
 #include "sys/pad.h"
 
 /* One entry of the replay slot list in the progress block (what the replay menu shows). */
-typedef struct McFlowSlotInfo {
-    /* 0x00 */ s32 flags;        /* bit 0: the entry was filled in */
-    /* 0x04 */ s32 chara[2][5];
-} McFlowSlotInfo; /* size 0x2C */
 
 /* The part of the progress block this module touches (local view). */
-typedef struct McFlowProgress {
-    /* 0x000 */ s32 unk0;
-    /* 0x004 */ s32 fileBase;    /* first id of the common files */
-    /* 0x008 */ s32 unk8[3];
-    /* 0x014 */ s32 flags;       /* bit 2: "continue without saving" was chosen at boot; bit 3: a save was loaded at boot */
-    /* 0x018 */ u8 unk18[0x674];
-    /* 0x68C */ s32 unk68C;      /* bit 0 picks the retry question of the scan flow */
-    /* 0x690 */ s32 unk690[3];
-    /* 0x69C */ McFlowSlotInfo slot[8];
-} McFlowProgress;
 
 /* Card state per port, kept by the card layer (local view; the names are readings of how it is used). */
 typedef struct McCardInfo {
@@ -40,8 +28,6 @@ typedef struct McCardInfo {
     /* 0x20 */ s32 unk20;
 } McCardInfo; /* size 0x24 */
 
-extern McFlowProgress *gProgress;
-extern McFlowSave *gSaveData;
 extern McCardInfo gMcCardPort[2];
 #define gMcCard gMcCardPort
 
@@ -70,7 +56,7 @@ extern void *memset(void *dst, s32 c, u32 n);
 extern void SndOpt_Apply(void);   /* applies the loaded sound options (Snd_SetStereo ...) */
 extern void Progress_ClearTeams(void);
 extern void Progress_ClearSession(void);
-extern void Save_SetDefaults(McFlowSave *save);
+extern void Save_SetDefaults(SaveData *save);
 extern s32 Snd_PlaySe(u32 mask, s32 id);
 /* sys/dialog.h, declared here so that this file does not depend on a header that is being renamed */
 extern void Dialog_Draw(s32 visible);
@@ -111,23 +97,22 @@ extern s32 Dialog_IsOpen(void);
 /* 0x2FE940: the first word of this object's .sdata. */
 McFlow *gMcFlow = NULL;
 
-
 /* Marks a slot as present with empty teams. */
 void McFlow_ClearSlotInfo(s32 kind, s32 slot) {
     s32 i, j;
 
     if (kind == 0) {
-        gProgress->slot[slot].flags |= 1;
+        gProgress->replay.team[slot].flags |= 1;
         for (i = 0; i < 2; i++) {
             for (j = 0; j < 5; j++) {
-                gProgress->slot[slot].chara[i][j] = MCFLOW_NO_CHARA;
+                gProgress->replay.team[slot].chara[i][j] = MCFLOW_NO_CHARA;
             }
         }
     } else if (kind == 1) {
-        gProgress->slot[slot].flags |= 1;
+        gProgress->replay.team[slot].flags |= 1;
         for (i = 0; i < 2; i++) {
             for (j = 0; j < 5; j++) {
-                gProgress->slot[slot].chara[i][j] = MCFLOW_NO_CHARA;
+                gProgress->replay.team[slot].chara[i][j] = MCFLOW_NO_CHARA;
             }
         }
     }
@@ -138,17 +123,17 @@ void McFlow_CopySlotInfo(s32 kind, s32 slot) {
     s32 i, j;
 
     if (kind == 0) {
-        gProgress->slot[slot].flags |= 1;
+        gProgress->replay.team[slot].flags |= 1;
         for (i = 0; i < 2; i++) {
             for (j = 0; j < 5; j++) {
-                gProgress->slot[slot].chara[i][j] = gMcFlow->repSave.hdr.chara[i][j];
+                gProgress->replay.team[slot].chara[i][j] = gMcFlow->repSave.hdr.chara[i][j];
             }
         }
     } else if (kind == 1) {
-        gProgress->slot[slot].flags |= 1;
+        gProgress->replay.team[slot].flags |= 1;
         for (i = 0; i < 2; i++) {
             for (j = 0; j < 5; j++) {
-                gProgress->slot[slot].chara[i][j] = gMcFlow->slotHdr[slot].chara[i][j];
+                gProgress->replay.team[slot].chara[i][j] = gMcFlow->slotHdr[slot].chara[i][j];
             }
         }
     }
@@ -226,7 +211,6 @@ void McFlow_CallModeRemoved(void) {
         cb(arg);
     }
 }
-
 
 #ifdef PORT
 /*
@@ -1884,7 +1868,7 @@ void McFlow_UpdateReplayScan(void) {
             if (Dialog_IsOpen()) {
                 Snd_PlaySe(1, 1);
                 Dialog_SetCursor(1);
-                gMcFlow->state = (gProgress->unk68C & 1) ? 0x12 : 0x16;
+                gMcFlow->state = (gProgress->replay.flags & 1) ? 0x12 : 0x16;
             }
         }
         break;
@@ -1899,7 +1883,7 @@ void McFlow_UpdateReplayScan(void) {
             if (Dialog_IsOpen()) {
                 Snd_PlaySe(1, 1);
                 Dialog_SetCursor(1);
-                gMcFlow->state = (gProgress->unk68C & 1) ? 0x12 : 0x16;
+                gMcFlow->state = (gProgress->replay.flags & 1) ? 0x12 : 0x16;
             }
         }
         break;
@@ -1919,7 +1903,7 @@ void McFlow_UpdateReplayScan(void) {
             if (Dialog_IsOpen()) {
                 Snd_PlaySe(1, 1);
                 Dialog_SetCursor(1);
-                gMcFlow->state = (gProgress->unk68C & 1) ? 0x12 : 0x16;
+                gMcFlow->state = (gProgress->replay.flags & 1) ? 0x12 : 0x16;
             }
         }
         break;
@@ -2802,7 +2786,7 @@ void McFlow_Init(void) {
 
     gMcFlow = Heap_Alloc(0x39F90, 0x20, 0, 2);
     memset(gMcFlow, 0, 0x39F90);
-    gMcFlow->pack = File_LoadSync(gProgress->fileBase + 0x1D, NULL, 0);
+    gMcFlow->pack = File_LoadSync(gProgress->baseFile + 0x1D, NULL, 0);
     gMcFlow->res = Sprite_Unpack(gMcFlow->pack, NULL, NULL);
     work = gMcFlow;
     rep = BattleReplay_GetBuffer(NULL);

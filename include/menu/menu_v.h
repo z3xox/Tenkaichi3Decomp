@@ -44,10 +44,10 @@ typedef struct VItemEntry {
 #define VITEM_LISTED 0x40     /* appears in the item lists */
 #define VITEM_UNCOUNTED 0x100  /* not counted for the collection percentage */
 
-extern void TextBox_Init(MTextBox *box, void *text, u32 preset);
-extern void TextBox_SetUnk50(MTextBox *box, s32 value);
-extern void TextBox_SetUnk80(MTextBox *box, s32 value);
-extern void TextBox_AttachLine(MFlash *flash, MFlashRef *ref, s32 x, s32 y, s32 line, MTextBox *box);
+extern void TextBox_Init(TextBox *box, void *text, u32 preset);
+extern void TextBox_SetUnk50(TextBox *box, s32 value);
+extern void TextBox_SetUnk80(TextBox *box, s32 value);
+extern void TextBox_AttachLine(Flash *flash, FlashRef *ref, s32 x, s32 y, s32 line, TextBox *box);
 extern s32 ItemTbl_GetClass(s32 item, VItemEntry *table);
 
 #define VLIST_TABS 4
@@ -65,7 +65,6 @@ typedef struct VItemList {
     /* 0x1610 */ s32 top[VLIST_TABS];     /* first visible list index */
     /* 0x1620 */ s32 bottom[VLIST_TABS];  /* last visible list index */
 } VItemList; /* 0x1630 */
-
 
 /* ---- EvoZ (menu_v.c, menu_v_b.c): the character customising screen. Its first file is in the previous chunk ---- */
 
@@ -152,14 +151,14 @@ typedef struct EvoZ {
     /* 0x0000 */ u32 * pack;  /* this screen's section of archive 7 (compressed) */
     /* 0x0004 */ u32 * res;  /* the same unpacked: a pack of 40 sections */
     /* 0x0008 */ void * faceFile;  /* 0x16800 bytes: compressed portrait (file 0x2F9 + character) */
-    /* 0x000C */ MTexRes * faceRes;  /* the same unpacked */
+    /* 0x000C */ FlashTexRes * faceRes;  /* the same unpacked */
     /* 0x0010 */ void * chipFile;  /* file 0x3C0 (compressed) */
-    /* 0x0014 */ MTexRes * chipRes;  /* the same unpacked */
+    /* 0x0014 */ FlashTexRes * chipRes;  /* the same unpacked */
     /* 0x0018 */ u32 * chipPack;  /* section 36: one texture list per character chip */
     /* 0x001C */ void * dialogText;  /* section 39 */
     /* 0x0020 */ void * text[3];  /* sections 34, 35, 37 */
-    /* 0x002C */ MFlash flash[EVOZ_FLASH_NUM];  /* sections 13, 23, 31: screen, character reel, item list */
-    /* 0x00B0 */ MTexRes * chipTex;
+    /* 0x002C */ Flash flash[EVOZ_FLASH_NUM];  /* sections 13, 23, 31: screen, character reel, item list */
+    /* 0x00B0 */ FlashTexRes * chipTex;
     /* 0x00B4 */ u8 * tex0[43];  /* [42] = the portrait */
     /* 0x0160 */ u8 * tex1[25];  /* [0..6] the reel chips, [18..24] the chips before the last change */
     /* 0x01C4 */ u8 * tex2[26];
@@ -196,7 +195,7 @@ typedef struct EvoZ {
     /* 0x1A90 */ s32 unk1A90[2];
     /* 0x1A98 */ VItemList list;  /* the owned items that can be equipped */
     /* 0x30C8 */ VItemEntry * items;  /* item table of common file 4 */
-    /* 0x30CC */ MTextBox box[18];  /* previous chunk */
+    /* 0x30CC */ TextBox box[18];  /* previous chunk */
     /* 0x3AA4 */ s32 seTimer;  /* previous chunk */
 } EvoZ; /* 0x3AA8 */
 
@@ -242,8 +241,8 @@ extern void Dialog_SetChoices(s32 on);
 extern void Dialog_SetMsg(s32 idx);
 extern s32 Dialog_IsClosed(void);
 extern void Dialog_Draw(s32 visible);
-extern void Flash_ClipSetCallbackA(MFlash *flash, MFlashRef *ref, void *fn, void *arg);
-extern void Flash_ClipSetCallbackB(MFlash *flash, MFlashRef *ref, void *fn, void *arg);
+extern void Flash_ClipSetCallbackA(Flash *flash, FlashRef *ref, void *fn, void *arg);
+extern void Flash_ClipSetCallbackB(Flash *flash, FlashRef *ref, void *fn, void *arg);
 extern s32 ChrTbl_GetLevel(s32 chara, s32 slot, s32 fromRec);
 extern s32 ChrTbl_GetExp(s32 chara, s32 slot);
 extern s32 ChrTbl_GetMaxExp(s32 chara);
@@ -273,11 +272,11 @@ void EvoZ_RemoveAllItems(EvoZ *ez);
 typedef struct ItemHelp {
     /* 0x000 */ void *nameText;     /* pack section 6: item names */
     /* 0x004 */ void *descText;     /* pack section 5: item descriptions */
-    /* 0x008 */ MFlash flash[ITEMHELP_FLASH_NUM]; /* pack section 2 */
+    /* 0x008 */ Flash flash[ITEMHELP_FLASH_NUM]; /* pack section 2 */
     /* 0x034 */ u8 *tex[12];        /* textures of the movie's image records */
     /* 0x064 */ VItemEntry *items;  /* item table of common file 4 */
-    /* 0x068 */ MTextBox name;
-    /* 0x0F4 */ MTextBox desc;
+    /* 0x068 */ TextBox name;
+    /* 0x0F4 */ TextBox desc;
 } ItemHelp; /* 0x180 */
 
 extern ItemHelp *gItemHelp; /* 0x3BB144 */
@@ -292,6 +291,6 @@ void ItemHelp_Close(void);
  * include/menu/menu_w.h (this header's partial view was removed). ---- */
 
 extern void Sprite_SetScissor(s32 x0, s32 x1, s32 y0, s32 y1);
-extern void TextBox_SetRect(MTextBox *box, s32 a, s32 b, s32 c, s32 d);
+extern void TextBox_SetRect(TextBox *box, s32 a, s32 b, s32 c, s32 d);
 
 #endif

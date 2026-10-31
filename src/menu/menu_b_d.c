@@ -127,7 +127,7 @@ void HistSel_RollEvent(void) {
 }
 
 #define SEL_RES(n) \
-    res = (MTexRes *)MPACK_AT(gHistSel->res, n); \
+    res = (FlashTexRes *)MPACK_AT(gHistSel->res, n); \
     Res_RelocateOffsets(&res, res, res)
 
 #define SEL_TEX(n, k) gHistSel->tex[n] = MTEX(res, k)
@@ -140,7 +140,7 @@ void HistSel_RollEvent(void) {
 /* Loads the screen (section `section` of archive 2), lists the unlocked sagas and works out the completion
    percentage of the story mode. */
 void HistSel_Init(s32 section) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
     s32 i;
     s32 j;
     s32 cleared;
@@ -292,7 +292,7 @@ void HistSel_Init(s32 section) {
         gHistSel->flags |= HISTSEL_COMPLETE;
     }
     for (i = 0; i < gHistSel->itemCount; i++) {
-        if (gHistSel->items[i] == gProgress->subMenu) {
+        if (gHistSel->items[i] == gProgress->menu.subMenu) {
             gHistSel->cursor[1] = i;
             break;
         }
@@ -351,12 +351,12 @@ void HistSel_Term(void) {
 
 /* Sets up every clip of the movie for this frame and draws it and the two windows. */
 void HistSel_Draw(void) {
-    MFlashRef ref;
-    MFlashUv uv;
+    FlashRef ref;
+    FlashUv uv;
     char name[64];
     char sub[64];
     s32 i;
-    MFlash *flash;
+    Flash *flash;
 
 #ifdef PORT
     Port_MenuPage(13); /* widescreen menus: this screen's page, its backdrop filling the width */
@@ -391,10 +391,10 @@ void HistSel_Draw(void) {
     Num_Draw(flash, "mc_tassei_num_%d", 0, 3, gHistSel->percent, 0x20, 0x20, 0);
 
     for (i = 0; i < 2; i++) {
-        uv.x0 = i * 0x20;
-        uv.y0 = 0;
-        uv.x1 = uv.x0 + 0x20;
-        uv.y1 = 0x20;
+        uv.u0 = i * 0x20;
+        uv.v0 = 0;
+        uv.u1 = uv.u0 + 0x20;
+        uv.v1 = 0x20;
         switch (i) {
         case 0:
             Flash_FindLabel(flash, "mc_yajirusi_left", "mc_yajirusi_icon_left", &ref);
@@ -417,10 +417,10 @@ void HistSel_Draw(void) {
     }
 
     for (i = 0; i < 2; i++) {
-        uv.x0 = 0;
-        uv.y0 = i * 0x20;
-        uv.x1 = 0x200;
-        uv.y1 = uv.y0 + 0x20;
+        uv.u0 = 0;
+        uv.v0 = i * 0x20;
+        uv.u1 = 0x200;
+        uv.v1 = uv.v0 + 0x20;
         sprintf(name, "mc_menu_plate_%d", i + 1);
         Flash_FindLabel(flash, name, "mc_menu_text_off", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
@@ -428,10 +428,10 @@ void HistSel_Draw(void) {
         Flash_ClipSetUv(flash, &ref, &uv);
     }
     for (i = 0; i < 3; i++) {
-        uv.x0 = 0;
-        uv.y0 = i * 0x20;
-        uv.x1 = 0x200;
-        uv.y1 = uv.y0 + 0x20;
+        uv.u0 = 0;
+        uv.v0 = i * 0x20;
+        uv.u1 = 0x200;
+        uv.v1 = uv.v0 + 0x20;
         sprintf(name, "mc_level_plate_%d", i + 1);
         Flash_FindLabel(flash, name, "mc_level_text_off", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
@@ -451,16 +451,16 @@ void HistSel_Draw(void) {
         sprintf(name, "mc_scenario_text_%d", i + 1);
         Flash_FindLabel(flash, NULL, name, &ref);
         if (i != 0) {
-            uv.x0 = 0;
-            uv.y0 = (gHistSel->items[gHistSel->prev] % 8) * 0x20;
-            uv.x1 = 0x200;
-            uv.y1 = uv.y0 + 0x20;
+            uv.u0 = 0;
+            uv.v0 = (gHistSel->items[gHistSel->prev] % 8) * 0x20;
+            uv.u1 = 0x200;
+            uv.v1 = uv.v0 + 0x20;
             Flash_ClipSetTex(flash, &ref, gHistSel->items[gHistSel->prev] / 8);
         } else {
-            uv.x0 = 0;
-            uv.y0 = (gHistSel->items[gHistSel->cursor[1]] % 8) * 0x20;
-            uv.x1 = 0x200;
-            uv.y1 = uv.y0 + 0x20;
+            uv.u0 = 0;
+            uv.v0 = (gHistSel->items[gHistSel->cursor[1]] % 8) * 0x20;
+            uv.u1 = 0x200;
+            uv.v1 = uv.v0 + 0x20;
             Flash_ClipSetTex(flash, &ref, gHistSel->items[gHistSel->cursor[1]] / 8);
         }
         Flash_ClipSetUv(flash, &ref, &uv);
@@ -476,10 +476,10 @@ void HistSel_Draw(void) {
     {
         f32 speed[3] = { 0.35555556f, 0.35555556f, 0.53333333f };
 
-        uv.x0 = 0;
-        uv.y0 = 0;
-        uv.x1 = 0x40;
-        uv.y1 = 0x40;
+        uv.u0 = 0;
+        uv.v0 = 0;
+        uv.u1 = 0x40;
+        uv.v1 = 0x40;
         for (i = 0; i < 3; i++) {
             sprintf(name, "mc_yuragi_%d", i + 1);
             Flash_FindLabel(flash, NULL, name, &ref);
@@ -500,9 +500,9 @@ void HistSel_Draw(void) {
 
 /* Sends the plate under a cursor to a label: kind 0 the menu plate, kind 2 the level plate. */
 void HistSel_PlateGoto(s32 idx, s32 kind, char *label) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[64];
-    MFlash *flash = &gHistSel->flash[idx];
+    Flash *flash = &gHistSel->flash[idx];
 
     switch (kind) {
     case 0:
@@ -732,7 +732,7 @@ void HistSel_Input(s32 *result) {
 }
 
 /* The history menu's frame loop. Returns 0 to go back to the main menu, 1 when a sub menu was chosen
-   (gProgress->subMenu), 2 for the ending movie. */
+   (gProgress->menu.subMenu), 2 for the ending movie. */
 s32 HistSel_Run(s32 section) {
     s32 result = 1;
 
@@ -790,7 +790,7 @@ s32 HistSel_Run(s32 section) {
                 } else {
                     ColorFade_StartOut(0xFF, 0xFF, 0xFF, 0x14);
                 }
-                gProgress->subMenu = gHistSel->items[gHistSel->cursor[1]];
+                gProgress->menu.subMenu = gHistSel->items[gHistSel->cursor[1]];
                 HPROG->level = MSAVE->level;
             }
         } else if (gHistSel->script == 0) {

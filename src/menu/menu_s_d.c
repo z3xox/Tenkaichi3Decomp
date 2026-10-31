@@ -14,7 +14,7 @@
  */
 
 /* Rolls the outcome (0..5) of training 0: one draw of 0..100 against the weights of the repeat count. */
-s32 SimEv00_Roll(TSimDay *day) {
+s32 SimEv00_Roll(SimDay *day) {
     s32 r = Rand_Range(101);
     s32 sum;
     s32 i;
@@ -36,7 +36,7 @@ s32 SimEv00_Roll(TSimDay *day) {
 }
 
 /* gSimEvent[0]: training 0. */
-s32 SimEv00(TSimDay *day) {
+s32 SimEv00(SimDay *day) {
     s32 atk[2];
     s32 def[2];
     s32 hp;
@@ -91,7 +91,7 @@ s32 SimEv00(TSimDay *day) {
 }
 
 /* Rolls the outcome (0..5) of training 1: one draw of 0..100 against the weights of the repeat count. */
-s32 SimEv01_Roll(TSimDay *day) {
+s32 SimEv01_Roll(SimDay *day) {
     s32 r = Rand_Range(101);
     s32 sum;
     s32 i;
@@ -113,7 +113,7 @@ s32 SimEv01_Roll(TSimDay *day) {
 }
 
 /* gSimEvent[1]: training 1. */
-s32 SimEv01(TSimDay *day) {
+s32 SimEv01(SimDay *day) {
     s32 atk[2];
     s32 def[2];
     s32 hp;
@@ -168,7 +168,7 @@ s32 SimEv01(TSimDay *day) {
 }
 
 /* Rolls the outcome (0..5) of training 2: one draw of 0..100 against the weights of the repeat count. */
-s32 SimEv02_Roll(TSimDay *day) {
+s32 SimEv02_Roll(SimDay *day) {
     s32 r = Rand_Range(101);
     s32 sum;
     s32 i;
@@ -190,7 +190,7 @@ s32 SimEv02_Roll(TSimDay *day) {
 }
 
 /* gSimEvent[2]: training 2. */
-s32 SimEv02(TSimDay *day) {
+s32 SimEv02(SimDay *day) {
     s32 atk[2];
     s32 def[2];
     s32 hp;
@@ -247,7 +247,7 @@ s32 SimEv02(TSimDay *day) {
 /*
  * Merged (integration step 11): this file is menu_s_d.c (gSimEvent[0..2], 0x38C360..0x38CB38) followed by the
  * former menu_t.c (gSimEvent[3..27], 0x38CB38..0x3900D0): one object, 0x38C360..0x3900D0. Both halves now use
- * the TSimDay view of include/menu/menu_t.h (the head's SimDayS of menu_s.h is gone: step -> seq, wait ->
+ * the SimDay view of include/menu/menu_t.h (the head's SimDayS of menu_s.h is gone: step -> seq, wait ->
  * seqTimer, SIMDAY_* -> SIMEV_*). The two header comments are kept as written.
  */
 
@@ -264,7 +264,7 @@ s32 SimEv02(TSimDay *day) {
  */
 
 /* Board row 2: after 61 frames gives back half the health + 5 (line 0x60), then takes 1 attack and 1 defence (line 0x63). */
-s32 SimEv03(TSimDay *day) {
+s32 SimEv03(SimDay *day) {
     switch (day->seq) {
     case 0:
         day->faceA = 10;
@@ -304,7 +304,7 @@ s32 SimEv03(TSimDay *day) {
 }
 
 /* Board row 3: health back to 100 (line 0x61). */
-s32 SimEv04(TSimDay *day) {
+s32 SimEv04(SimDay *day) {
     switch (day->seq) {
     case 0:
         day->faceA = 10;
@@ -328,7 +328,7 @@ s32 SimEv04(TSimDay *day) {
 }
 
 /* Random event 0: nothing is found (lines 0x62, 0x64); attack and defence drop by 0..2 each. */
-s32 SimEv05(TSimDay *day) {
+s32 SimEv05(SimDay *day) {
     switch (day->seq) {
     case 0:
         day->faceA = 11;
@@ -366,7 +366,7 @@ s32 SimEv05(TSimDay *day) {
 }
 
 /* Random event 1: a character (picture Rand_Range(12)) gives Rand_Range(turn) * 100 + 100 points. */
-s32 SimEv06(TSimDay *day) {
+s32 SimEv06(SimDay *day) {
     switch (day->seq) {
     case 0:
         day->faceA = 11;
@@ -436,7 +436,7 @@ s32 SimEv06(TSimDay *day) {
 }
 
 /* Random event 2: a character offers an item (yes / no window); yes = SimDay_GiveItem. */
-s32 SimEv07(TSimDay *day) {
+s32 SimEv07(SimDay *day) {
     switch (day->seq) {
     case 0:
         day->faceA = 11;
@@ -478,7 +478,7 @@ s32 SimEv07(TSimDay *day) {
         day->seqTimer = 0;
         break;
     case 6:
-        if (day->answer != 0) {
+        if (day->unkB8C != 0) {
             day->seq++;
             day->seqTimer = 0;
         } else {
@@ -512,7 +512,7 @@ s32 SimEv07(TSimDay *day) {
 }
 
 /* Random event 3: pictures 0 / 7; a fifth of the health comes back. */
-s32 SimEv08(TSimDay *day) {
+s32 SimEv08(SimDay *day) {
     switch (day->seq) {
     case 0:
         day->faceA = 11;
@@ -585,7 +585,7 @@ s32 SimEv08(TSimDay *day) {
 }
 
 /* Random event 4: as event 3, and attack + 1..5; no closing penalty. */
-s32 SimEv09(TSimDay *day) {
+s32 SimEv09(SimDay *day) {
     switch (day->seq) {
     case 0:
         day->faceA = 11;
@@ -651,7 +651,7 @@ s32 SimEv09(TSimDay *day) {
 }
 
 /* Random event 5: as event 3, and defence + 1..5; no closing penalty. */
-s32 SimEv10(TSimDay *day) {
+s32 SimEv10(SimDay *day) {
     switch (day->seq) {
     case 0:
         day->faceA = 11;
@@ -717,7 +717,7 @@ s32 SimEv10(TSimDay *day) {
 }
 
 /* Random event 6: as event 3, and attack and defence + 1..5 each; no closing penalty. */
-s32 SimEv11(TSimDay *day) {
+s32 SimEv11(SimDay *day) {
     switch (day->seq) {
     case 0:
         day->faceA = 11;
@@ -784,7 +784,7 @@ s32 SimEv11(TSimDay *day) {
 }
 
 /* Random event 7: pictures 0 / 7; costs 5..20 % of the health, pays 1000..5000 points. */
-s32 SimEv12(TSimDay *day) {
+s32 SimEv12(SimDay *day) {
     switch (day->seq) {
     case 0:
         day->faceA = 11;
@@ -876,7 +876,7 @@ s32 SimEv12(TSimDay *day) {
 }
 
 /* Random event 8: pictures 4 / 6 offer a deal for 10000 points (line 0xD7 when short of points); this one gives nothing. */
-s32 SimEv13(TSimDay *day) {
+s32 SimEv13(SimDay *day) {
     switch (day->seq) {
     case 0:
         day->faceA = 11;
@@ -926,7 +926,7 @@ s32 SimEv13(TSimDay *day) {
         break;
     case 7:
         day->msgLine = -1;
-        if (day->answer == 0) {
+        if (day->unkB8C == 0) {
             day->seq = 14;
             day->seqTimer = 0;
         } else {
@@ -1006,7 +1006,7 @@ s32 SimEv13(TSimDay *day) {
 }
 
 /* Random event 9: the 10000-point deal that pays 30000 points. */
-s32 SimEv14(TSimDay *day) {
+s32 SimEv14(SimDay *day) {
     switch (day->seq) {
     case 0:
         day->faceA = 11;
@@ -1056,7 +1056,7 @@ s32 SimEv14(TSimDay *day) {
         break;
     case 7:
         day->msgLine = -1;
-        if (day->answer == 0) {
+        if (day->unkB8C == 0) {
             day->seq = 15;
             day->seqTimer = 0;
         } else {
@@ -1144,7 +1144,7 @@ s32 SimEv14(TSimDay *day) {
 }
 
 /* Random event 10: the 10000-point deal that gives attack + 5 and defence + 5 (it ends without the closing penalty). */
-s32 SimEv15(TSimDay *day) {
+s32 SimEv15(SimDay *day) {
     switch (day->seq) {
     case 0:
         day->faceA = 11;
@@ -1194,7 +1194,7 @@ s32 SimEv15(TSimDay *day) {
         break;
     case 7:
         day->msgLine = -1;
-        if (day->answer == 0) {
+        if (day->unkB8C == 0) {
             day->seq = 15;
             day->seqTimer = 0;
         } else {
@@ -1283,7 +1283,7 @@ s32 SimEv15(TSimDay *day) {
 }
 
 /* Random event 11: the 10000-point deal that offers an item (a second yes / no window). */
-s32 SimEv16(TSimDay *day) {
+s32 SimEv16(SimDay *day) {
     switch (day->seq) {
     case 0:
         day->faceA = 11;
@@ -1333,7 +1333,7 @@ s32 SimEv16(TSimDay *day) {
         break;
     case 7:
         day->msgLine = -1;
-        if (day->answer == 0) {
+        if (day->unkB8C == 0) {
             day->seq = 18;
             day->seqTimer = 0;
         } else {
@@ -1379,7 +1379,7 @@ s32 SimEv16(TSimDay *day) {
         day->seqTimer = 0;
         break;
     case 13:
-        if (day->answer == 0) {
+        if (day->unkB8C == 0) {
             day->seq = 16;
             day->seqTimer = 0;
         } else {
@@ -1436,7 +1436,7 @@ s32 SimEv16(TSimDay *day) {
 }
 
 /* Random event 12: the 10000-point deal that adds one to gSaveData + 0x20C. */
-s32 SimEv17(TSimDay *day) {
+s32 SimEv17(SimDay *day) {
     switch (day->seq) {
     case 0:
         day->faceA = 11;
@@ -1486,7 +1486,7 @@ s32 SimEv17(TSimDay *day) {
         break;
     case 7:
         day->msgLine = -1;
-        if (day->answer == 0) {
+        if (day->unkB8C == 0) {
             day->seq = 15;
             day->seqTimer = 0;
         } else {
@@ -1573,7 +1573,7 @@ s32 SimEv17(TSimDay *day) {
 }
 
 /* Random event 13: picture 5; health back to 100. */
-s32 SimEv18(TSimDay *day) {
+s32 SimEv18(SimDay *day) {
     switch (day->seq) {
     case 0:
         day->faceA = 11;
@@ -1637,7 +1637,7 @@ s32 SimEv18(TSimDay *day) {
 }
 
 /* Random event 14: picture 5 pays 300 points (line 0x86). */
-s32 SimEv19(TSimDay *day) {
+s32 SimEv19(SimDay *day) {
     switch (day->seq) {
     case 0:
         day->faceA = 11;
@@ -1716,7 +1716,7 @@ s32 SimEv19(TSimDay *day) {
 }
 
 /* Random event 15: as event 14 with line 0x87. */
-s32 SimEv20(TSimDay *day) {
+s32 SimEv20(SimDay *day) {
     switch (day->seq) {
     case 0:
         day->faceA = 11;
@@ -1795,7 +1795,7 @@ s32 SimEv20(TSimDay *day) {
 }
 
 /* Random event 16: as event 14 with line 0x88. */
-s32 SimEv21(TSimDay *day) {
+s32 SimEv21(SimDay *day) {
     switch (day->seq) {
     case 0:
         day->faceA = 11;
@@ -1874,7 +1874,7 @@ s32 SimEv21(TSimDay *day) {
 }
 
 /* Random event 17: as event 14 with line 0x89. */
-s32 SimEv22(TSimDay *day) {
+s32 SimEv22(SimDay *day) {
     switch (day->seq) {
     case 0:
         day->faceA = 11;
@@ -1953,7 +1953,7 @@ s32 SimEv22(TSimDay *day) {
 }
 
 /* Random event 18: pictures 6 / 8 sell, for 20000 points, flag 0x1000: the next training comes out as outcome 5. */
-s32 SimEv23(TSimDay *day) {
+s32 SimEv23(SimDay *day) {
     switch (day->seq) {
     case 0:
         day->faceA = 11;
@@ -2002,7 +2002,7 @@ s32 SimEv23(TSimDay *day) {
         day->seqTimer = 0;
         break;
     case 7:
-        if (day->answer != 0) {
+        if (day->unkB8C != 0) {
             day->seq++;
             day->seqTimer = 0;
         } else {
@@ -2076,7 +2076,7 @@ s32 SimEv23(TSimDay *day) {
 }
 
 /* Random event 19: the same sale, flag 0x800: the next training comes out as outcome 0. */
-s32 SimEv24(TSimDay *day) {
+s32 SimEv24(SimDay *day) {
     switch (day->seq) {
     case 0:
         day->faceA = 11;
@@ -2125,7 +2125,7 @@ s32 SimEv24(TSimDay *day) {
         day->seqTimer = 0;
         break;
     case 7:
-        if (day->answer != 0) {
+        if (day->unkB8C != 0) {
             day->seq++;
             day->seqTimer = 0;
         } else {
@@ -2199,7 +2199,7 @@ s32 SimEv24(TSimDay *day) {
 }
 
 /* Random event 20: picture 1 asks; yes = 500 points. */
-s32 SimEv25(TSimDay *day) {
+s32 SimEv25(SimDay *day) {
     switch (day->seq) {
     case 0:
         day->faceA = 11;
@@ -2248,7 +2248,7 @@ s32 SimEv25(TSimDay *day) {
         day->seqTimer = 0;
         break;
     case 7:
-        if (day->answer != 0) {
+        if (day->unkB8C != 0) {
             day->seq++;
             day->seqTimer = 0;
         } else {
@@ -2317,7 +2317,7 @@ s32 SimEv25(TSimDay *day) {
 }
 
 /* Random event 21: picture 1 asks; yes = half the health lost, 500 points. */
-s32 SimEv26(TSimDay *day) {
+s32 SimEv26(SimDay *day) {
     switch (day->seq) {
     case 0:
         day->faceA = 11;
@@ -2366,7 +2366,7 @@ s32 SimEv26(TSimDay *day) {
         day->seqTimer = 0;
         break;
     case 7:
-        if (day->answer != 0) {
+        if (day->unkB8C != 0) {
             day->seq++;
             day->seqTimer = 0;
         } else {
@@ -2430,7 +2430,7 @@ s32 SimEv26(TSimDay *day) {
 }
 
 /* Random event 22: picture 1 asks; yes = attack + 15, defence + 15, half the health lost, 700 points. */
-s32 SimEv27(TSimDay *day) {
+s32 SimEv27(SimDay *day) {
     switch (day->seq) {
     case 0:
         day->faceA = 11;
@@ -2479,7 +2479,7 @@ s32 SimEv27(TSimDay *day) {
         day->seqTimer = 0;
         break;
     case 7:
-        if (day->answer != 0) {
+        if (day->unkB8C != 0) {
             day->seq++;
             day->seqTimer = 0;
         } else {

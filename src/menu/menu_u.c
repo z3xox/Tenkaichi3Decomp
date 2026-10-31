@@ -36,7 +36,7 @@
  * Event 31 (pictures 6 and 3): a yes / no offer. Yes: +1000 points, then the usual loss of attack and defence.
  * No: picture 2 comes in and defence drops by 5 (no random loss on this path).
  */
-s32 SimEv31(USimDay *day) {
+s32 SimEv31(SimDay *day) {
     switch (day->seq) {
     case 0:
         day->faceA = 11;

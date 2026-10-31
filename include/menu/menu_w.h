@@ -26,12 +26,12 @@ extern s32 Snd_PlaySe(u32 mask, s32 id);
 
 /* ---- Main executable, beyond what menu_a.h declares ---- */
 
-extern void Flash_ClipSetCallbackA(MFlash *flash, MFlashRef *ref, void *fn, void *arg);
-extern void Flash_ClipSetCallbackB(MFlash *flash, MFlashRef *ref, void *fn, void *arg);
-extern void Flash_ClipSetScale(MFlash *flash, MFlashRef *ref, f32 x, f32 y);
-extern void Flash_ClipSetOffset(MFlash *flash, MFlashRef *ref, s32 x, s32 y);
-extern void TextBox_AttachLine(MFlash *flash, MFlashRef *ref, s32 x, s32 y, s32 line, MTextBox *box);
-extern void Num_Draw(MFlash *flash, char *fmt, s32 first, s32 count, s32 value, s32 w, s32 h, s32 mode);
+extern void Flash_ClipSetCallbackA(Flash *flash, FlashRef *ref, void *fn, void *arg);
+extern void Flash_ClipSetCallbackB(Flash *flash, FlashRef *ref, void *fn, void *arg);
+extern void Flash_ClipSetScale(Flash *flash, FlashRef *ref, f32 x, f32 y);
+extern void Flash_ClipSetOffset(Flash *flash, FlashRef *ref, s32 x, s32 y);
+extern void TextBox_AttachLine(Flash *flash, FlashRef *ref, s32 x, s32 y, s32 line, TextBox *box);
+extern void Num_Draw(Flash *flash, char *fmt, s32 first, s32 count, s32 value, s32 w, s32 h, s32 mode);
 extern void Save_AddItem(s32 idx);
 extern void GetWin_Init(void *pack, s32 lang);
 
@@ -61,9 +61,9 @@ typedef struct WItemEntry {
 
 extern s32 ItemTbl_GetClass(s32 item, WItemEntry *table);
 extern void Sprite_SetScissor(s32 x0, s32 x1, s32 y0, s32 y1);
-extern void TextBox_Init(MTextBox *box, void *text, u32 preset);
-extern void TextBox_SetUnk80(MTextBox *box, s32 value);
-extern void TextBox_SetRect(MTextBox *box, s32 a, s32 b, s32 c, s32 d);
+extern void TextBox_Init(TextBox *box, void *text, u32 preset);
+extern void TextBox_SetUnk80(TextBox *box, s32 value);
+extern void TextBox_SetRect(TextBox *box, s32 a, s32 b, s32 c, s32 d);
 
 /* ---- Shop (0x399790..0x39E940; this chunk has it from 0x39A978) ---- */
 
@@ -74,7 +74,7 @@ extern void TextBox_SetRect(MTextBox *box, s32 a, s32 b, s32 c, s32 d);
 #define SHOP_VOICE_BASE 0x86DB
 #define SHOP_GUIDE_LINES 15    /* voice lines per guide: line = guide * 15 + SHOP_LINE_ */
 
-/* MFlash indices */
+/* Flash indices */
 #define SHOP_FL_MAIN 0         /* backdrop, the two menu plates, money and percentage */
 #define SHOP_FL_BUY 1          /* the buy list (page 0) */
 #define SHOP_FL_ALL 2          /* the collection list (page 1) */
@@ -110,9 +110,9 @@ typedef struct Shop {
     /* 0x0008 */ void *msgText;       /* section 32 */
     /* 0x000C */ void *subtitles;     /* section 26 */
     /* 0x0010 */ void *itemText;      /* section 30: item names */
-    /* 0x0014 */ MFlash flash[SHOP_FLASH_NUM]; /* sections 6, 17, 19, 9, 29, 33 */
-    /* 0x011C */ MTexRes *bg;         /* section 1 */
-    /* 0x0120 */ MTexRes *guideRes[2];
+    /* 0x0014 */ Flash flash[SHOP_FLASH_NUM]; /* sections 6, 17, 19, 9, 29, 33 */
+    /* 0x011C */ FlashTexRes *bg;         /* section 1 */
+    /* 0x0120 */ FlashTexRes *guideRes[2];
     /* 0x0128 */ u8 *tex0[15];
     /* 0x0164 */ u8 *tex3[5];
     /* 0x0178 */ u8 *tex1[21];
@@ -138,7 +138,7 @@ typedef struct Shop {
     /* 0x0280 */ f32 cloud;           /* scroll position of the backdrop clouds */
     /* 0x0284 */ ShopList list[2];    /* [0] what the shop sells now, [1] every item */
     /* 0x2EE4 */ WItemEntry *items;   /* item table of common file 4 */
-    /* 0x2EE8 */ MTextBox box[SHOP_BOX_NUM]; /* [0..7] rows of the collection, [8..12] rows of the buy list, [13] plate 6 */
+    /* 0x2EE8 */ TextBox box[SHOP_BOX_NUM]; /* [0..7] rows of the collection, [8..12] rows of the buy list, [13] plate 6 */
 } Shop; /* 0x3690 */
 
 #define SHOP_LEAVING 2         /* never set by this object: Shop_Run would count timer down, then fade out */

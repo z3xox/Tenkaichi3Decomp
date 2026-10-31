@@ -1,4 +1,5 @@
 #include "common.h"
+#include "battle/btl_cam.h"
 #include "battle/eft_p.h"
 #include "sys/gfx_ot.h"
 
@@ -68,12 +69,6 @@ extern s32 BtlScene_GetStageFlag(void);
 extern s32 EftAura_IsVisible(s32 objId);
 
 /* The view being drawn: only the view matrix is read. */
-typedef struct EftPView {
-    /* 0x00 */ u8 unk0[0x40];
-    /* 0x40 */ Mtx44 view;
-} EftPView;
-
-extern EftPView *gBtlCamView;
 
 /* GS XYZF2 register value. */
 typedef struct EftPXyzf {
@@ -931,9 +926,9 @@ void EftGlow_MakeFacingMtx(Mtx44 *m, EftPVec *dir, EftPVec *pos) {
     f32 d;
     f32 s = 0.0f;
 
-    cam.x = gBtlCamView->view.m[0][2];
-    cam.y = gBtlCamView->view.m[1][2];
-    cam.z = gBtlCamView->view.m[2][2];
+    cam.x = gBtlCamView->world2view2.m[0][2];
+    cam.y = gBtlCamView->world2view2.m[1][2];
+    cam.z = gBtlCamView->world2view2.m[2][2];
     cam.w = 1.0f;
     d = Vec3_Dot(&cam, dir);
     if (d < s) {

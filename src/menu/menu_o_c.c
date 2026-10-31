@@ -22,7 +22,7 @@ extern s32 SurvSel_Run(s32 section);  /* mode 17 */
 extern s32 SurvResult_Run(s32 section);  /* mode 19 */
 
 /*
- * Mode 15 -> battle: side 0 is the pad with the team chosen in SoloSel / UbTeamSel (gProgress->team, teamSize
+ * Mode 15 -> battle: side 0 is the pad with the team chosen in SoloSel / UbTeamSel (gProgress->replay.team, teamSize
  * members, CPU level 0, full health). The rule and side 1 were written by MisSel_SetupBattle.
  */
 void Ub_SetupTeam(void) {

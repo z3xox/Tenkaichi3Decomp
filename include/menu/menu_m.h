@@ -20,11 +20,11 @@
 
 /* ---- Main executable, beyond what menu_a.h declares ---- */
 
-extern void Flash_ClipSetOffset(MFlash *flash, MFlashRef *ref, s32 x, s32 y);
-extern void TextBox_Init(MTextBox *box, void *text, u32 preset);
-extern void TextBox_SetUnk80(MTextBox *box, s32 value);
-extern void TextBox_AttachLine(MFlash *flash, MFlashRef *ref, s32 x, s32 y, s32 line, MTextBox *box);
-extern void Num_Draw(MFlash *flash, char *fmt, s32 first, s32 count, s32 value, s32 w, s32 h, s32 mode);
+extern void Flash_ClipSetOffset(Flash *flash, FlashRef *ref, s32 x, s32 y);
+extern void TextBox_Init(TextBox *box, void *text, u32 preset);
+extern void TextBox_SetUnk80(TextBox *box, s32 value);
+extern void TextBox_AttachLine(Flash *flash, FlashRef *ref, s32 x, s32 y, s32 line, TextBox *box);
+extern void Num_Draw(Flash *flash, char *fmt, s32 first, s32 count, s32 value, s32 w, s32 h, s32 mode);
 extern s32 ChrTbl_GetCost(s32 chara);
 extern s32 ChrTbl_IsRelated(s32 a, s32 b);
 extern s32 ChrTbl_WrapCostume(s32 chara, s32 *costume);
@@ -177,13 +177,13 @@ typedef struct UbTeamSel {
     /* 0x0000 */ u32 *pack;          /* this screen's section of archive 3 (compressed) */
     /* 0x0004 */ u32 *res;           /* the same unpacked */
     /* 0x0008 */ void *faceFile;     /* 0x16800 bytes: compressed portrait (file 0x2F9 + character) */
-    /* 0x000C */ MTexRes *faceRes;   /* 0x20800 bytes: the same unpacked */
+    /* 0x000C */ FlashTexRes *faceRes;   /* 0x20800 bytes: the same unpacked */
     /* 0x0010 */ u32 *chips;         /* section 27: 165 texture lists, section id + 1 = chip of a character */
     /* 0x0014 */ void *nameText;     /* section 28 */
     /* 0x0018 */ void *formText;     /* section 29 */
     /* 0x001C */ void *msgText;      /* section 25 */
     /* 0x0020 */ void *subtitles;    /* section 26 */
-    /* 0x0024 */ MFlash flash[UBTEAM_FLASH_NUM]; /* 0 portrait and guides, 1 the team, 2 the reel, 3 the plates */
+    /* 0x0024 */ Flash flash[UBTEAM_FLASH_NUM]; /* 0 portrait and guides, 1 the team, 2 the reel, 3 the plates */
     /* 0x00D4 */ void *bg;           /* section 32: background picture */
     /* 0x00D8 */ u8 *texA[20];       /* movie 0 */
     /* 0x0128 */ u8 *texD[11];       /* movie 3 */
@@ -212,7 +212,7 @@ typedef struct UbTeamSel {
     /* 0x1AD8 */ s32 talker;         /* which of the two guides is talking */
     /* 0x1ADC */ s32 blink[2];
     /* 0x1AE4 */ s32 talk[2];
-    /* 0x1AEC */ MTextBox box[2];    /* character name, form name */
+    /* 0x1AEC */ TextBox box[2];    /* character name, form name */
     /* 0x1C04 */ void *items;        /* item table of common file 4 */
 } UbTeamSel; /* 0x1C08 */
 

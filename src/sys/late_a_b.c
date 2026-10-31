@@ -131,10 +131,10 @@ void ShenCfm_Draw(void) {
         Flash_Advance(&gShenCfm->flash[i]);
     }
     for (i = 0; i < 3; i++) {
-        uv.x0 = 0;
-        uv.y0 = i << 5;
-        uv.x1 = 0x100;
-        uv.y1 = (i << 5) + 0x20;
+        uv.u0 = 0;
+        uv.v0 = i << 5;
+        uv.u1 = 0x100;
+        uv.v1 = (i << 5) + 0x20;
         sprintf(name, "mc_reconfir_plate_%d", i + 1);
         ShenCfm_SetClipUv(gShenCfm->flash, name, "mc_reconfir_text_on", &uv);
         ShenCfm_SetClipUv(gShenCfm->flash, name, "mc_reconfir_text_off", &uv);

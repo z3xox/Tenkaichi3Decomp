@@ -5,6 +5,8 @@
 #define Snd_PlaySe Snd_PlaySe_menuA
 #define Rand_Range Rand_Range_menuA
 #include "menu/menu_a.h"
+#include "sys/save.h"
+#include "menu/sim_types.h"
 #undef Snd_PlaySe
 #undef Rand_Range
 #include "sys/pad.h"
@@ -13,50 +15,9 @@ extern s32 Snd_PlaySe(u32 mask, s32 id);
 /* menu_a.h has u32 Rand_Range(u32); the shell game (menu_u_d.c) only matches with a signed result. */
 extern s32 Rand_Range(s32 n);
 
-/* The day screen's work area (mode 22): a local view of SimDay (include/menu/menu_q.h has the full layout). */
-typedef struct USimDay {
-    /* 0x000 */ u8 unk0[0x20];
-    /* 0x020 */ MFlash flash[7];    /* [4] = the movie of training 2 and of the mini games */
-    /* 0x154 */ u8 unk154[0x3FC];
-    /* 0x550 */ s32 flags;
-    /* 0x554 */ s32 unk554;
-    /* 0x558 */ s32 cur[13];
-    /* 0x58C */ s32 timer;
-    /* 0x590 */ s32 state;
-    /* 0x594 */ s32 prevState;
-    /* 0x598 */ s32 unk598[2];
-    /* 0x5A0 */ s32 msgLine;
-    /* 0x5A4 */ s32 menuText;
-    /* 0x5A8 */ s32 bgm;
-    /* 0x5AC */ s32 unk5AC;
-    /* 0x5B0 */ s32 day;
-    /* 0x5B4 */ s32 preview[5];
-    /* 0x5C8 */ u8 unk5C8[0x59C];
-    /* 0xB64 */ s32 event;
-    /* 0xB68 */ s32 seq;
-    /* 0xB6C */ s32 seqTimer;
-    /* 0xB70 */ s32 lastEvent;
-    /* 0xB74 */ s32 repeat;
-    /* 0xB78 */ s32 faceA;
-    /* 0xB7C */ s32 faceB;
-    /* 0xB80 */ s32 rank[3];
-    /* 0xB8C */ s32 unkB8C;         /* answer of the yes / no window (SimDay_Cmd(0x11)) */
-} USimDay;
+/* Shared day-screen and training records are declared in menu/sim_types.h. */
 
-/* One rank of a training (SimTrain of include/menu/menu_q.h). */
-typedef struct USimTrain {
-    /* 0x00 */ s32 param;       /* rock game: rocks thrown; = hits needed to win */
-    /* 0x04 */ s32 speed;       /* rock game: the rock moves speed * 3 + 3 a frame */
-    /* 0x08 */ s32 points;
-    /* 0x0C */ s32 gain;
-    /* 0x10 */ s32 loss;
-    /* 0x14 */ s32 turn;
-} USimTrain; /* 0x18 */
-
-extern USimTrain gSimTrain1[5];   /* 0x3B9088 */
-extern USimTrain gSimTrain2[5];   /* 0x3B9100 */
-
-extern void Flash_ClipSetOffset(MFlash *flash, MFlashRef *ref, s32 x, s32 y);
+extern void Flash_ClipSetOffset(Flash *flash, FlashRef *ref, s32 x, s32 y);
 extern void StreamSe_Stop(s32 se);
 extern void Bgm_Stop(void);
 extern void SimDay_PlayBgm(void);
@@ -84,9 +45,9 @@ extern s32 gSimPopoRank;    /* 0x31EB38 */
 extern s32 SimDay_CountItems2(void);
 extern void SimDay_TakeItem(void);
 
-s32 SimPopo_Swap(USimDay *day, s32 a, s32 b);
-void SimPopo_CursorOn(USimDay *day);
-void SimPopo_CursorOff(USimDay *day);
+s32 SimPopo_Swap(SimDay *day, s32 a, s32 b);
+void SimPopo_CursorOn(SimDay *day);
+void SimPopo_CursorOff(SimDay *day);
 
 extern void SimDay_AddChange(s32 stat, s32 amount);
 extern s32 SimDay_GetStat(s32 stat, s32 preview);
@@ -97,15 +58,15 @@ extern void SimDay_Cmd(s32 cmd);
  * (EvoZ_Load, 0x395E30, is the last function of this source file); include/menu/menu_v.h has that chunk's view
  * of the same work area. Everything below is a local view. ---- */
 
-extern void TextBox_Init(MTextBox *box, void *text, u32 preset);
-extern void TextBox_SetUnk80(MTextBox *box, s32 value);
-extern void TextBox_SetRect(MTextBox *box, s32 x0, s32 x1, s32 y0, s32 y1);
-extern void TextBox_AttachLine(MFlash *flash, MFlashRef *ref, s32 x, s32 y, s32 line, MTextBox *box);
-extern void Num_DrawChild(MFlash *flash, char *parent, char *fmt, s32 first, s32 count, s32 value, s32 w, s32 h,
+extern void TextBox_Init(TextBox *box, void *text, u32 preset);
+extern void TextBox_SetUnk80(TextBox *box, s32 value);
+extern void TextBox_SetRect(TextBox *box, s32 x0, s32 x1, s32 y0, s32 y1);
+extern void TextBox_AttachLine(Flash *flash, FlashRef *ref, s32 x, s32 y, s32 line, TextBox *box);
+extern void Num_DrawChild(Flash *flash, char *parent, char *fmt, s32 first, s32 count, s32 value, s32 w, s32 h,
                           s32 mode, s32 parentFmt);
-extern void Flash_ClipSetScale(MFlash *flash, MFlashRef *ref, f32 x, f32 y);
-extern void Flash_ClipSetCallbackA(MFlash *flash, MFlashRef *ref, void *fn, void *arg);
-extern void Flash_ClipSetCallbackB(MFlash *flash, MFlashRef *ref, void *fn, void *arg);
+extern void Flash_ClipSetScale(Flash *flash, FlashRef *ref, f32 x, f32 y);
+extern void Flash_ClipSetCallbackA(Flash *flash, FlashRef *ref, void *fn, void *arg);
+extern void Flash_ClipSetCallbackB(Flash *flash, FlashRef *ref, void *fn, void *arg);
 extern void Sprite_SetScissor(s32 x0, s32 x1, s32 y0, s32 y1);
 extern s32 ChrTbl_GetMaxExp(s32 chara);
 extern void ItemHelp_Term(void);
@@ -195,13 +156,13 @@ typedef struct UEvoZ {
     /* 0x0000 */ u32 *pack;
     /* 0x0004 */ u32 *res;
     /* 0x0008 */ void *faceFile;        /* 0x16800 bytes: compressed portrait (file 0x2F9 + character) */
-    /* 0x000C */ MTexRes *faceRes;      /* 0x20800 bytes: the same unpacked */
+    /* 0x000C */ FlashTexRes *faceRes;      /* 0x20800 bytes: the same unpacked */
     /* 0x0010 */ void *chipFile;
-    /* 0x0014 */ MTexRes *chipRes;
+    /* 0x0014 */ FlashTexRes *chipRes;
     /* 0x0018 */ u32 *chipPack;
     /* 0x001C */ void *dialogText;
     /* 0x0020 */ void *text[3];         /* character names, form names, item names */
-    /* 0x002C */ MFlash flash[UEVOZ_FLASH_NUM]; /* screen, character reel, item / slot list */
+    /* 0x002C */ Flash flash[UEVOZ_FLASH_NUM]; /* screen, character reel, item / slot list */
     /* 0x00B0 */ void *bg;              /* background picture */
     /* 0x00B4 */ u8 *tex0[43];          /* [42] = the portrait */
     /* 0x0160 */ u8 *tex1[25];
@@ -246,7 +207,7 @@ typedef struct UEvoZ {
     /* 0x1A90 */ s32 unk1A90[2];
     /* 0x1A98 */ UEvoZList list;
     /* 0x30C8 */ UItemEntry *items;     /* item table of common file 4 */
-    /* 0x30CC */ MTextBox box[UEVOZ_BOX_NUM]; /* [0] name, [1] form, [2] changed slot, [3..9] list rows, [10..17] slots */
+    /* 0x30CC */ TextBox box[UEVOZ_BOX_NUM]; /* [0] name, [1] form, [2] changed slot, [3..9] list rows, [10..17] slots */
     /* 0x3AA4 */ s32 seTimer;           /* ticks of the counting sound while points are paid */
 } UEvoZ; /* 0x3AA8 */
 
@@ -257,23 +218,6 @@ typedef struct UEvoZ {
 #define UEVOZ_REEL_READY 0x100    /* the reel's intro is over */
 
 /* gSaveData as this screen uses it (include/sys/save.h has the full layout). */
-typedef struct USaveCustom {
-    /* 0x00 */ u16 set[3][8];   /* three item sets, ids 1-based, 0 = empty */
-    /* 0x30 */ s32 exp;
-    /* 0x34 */ u16 level;
-    /* 0x36 */ u16 unk36;
-} USaveCustom; /* 0x38 */
-
-typedef struct USave {
-    /* 0x0000 */ u8 unk0[0x1808];
-    /* 0x1808 */ USaveCustom custom[97];  /* by cell of the character grid (col + row * 7) */
-    /* 0x2D40 */ u8 unk2D40[0x188];
-    /* 0x2EC8 */ u8 item[350];            /* bit 0 owned, bit 1 new */
-    /* 0x3026 */ u8 unk3026[2];
-    /* 0x3028 */ s32 money;               /* Z points */
-} USave;
-
-extern USave *gSaveData;
 
 extern UEvoZ *gEvoZ;   /* 0x3BB140 */
 

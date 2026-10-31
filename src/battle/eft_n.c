@@ -1,12 +1,15 @@
 #include "common.h"
+#include "battle/btl_cam.h"
+#include "sys/vector_types.h"
+#include "sys/math3d.h"
 #include "battle/eft_n.h"
 #include "sys/gfx_ot.h"
 
 /*
  * Effect tasks, 0x1637A0..0x167E68. See include/battle/eft_n.h.
  *
- * 45 of 47 functions are C. Two are INCLUDE_ASM with the attempt in `#if 0` above them: EftBolt_Shape and
- * EftBolt_Draw (EftAura_DrawFlames matches since cleanup W1). Their float constants are emitted in place with LIT4_WORD, so the file's .lit4
+ * 46 of 47 functions are C. EftBolt_Shape retains its ASM fallback; the PR143 recipe is
+ * marked possibly fake and is not adopted. Its constants remain in LIT4_WORD, so the file's .lit4
  * is the whole of 0x2FC97C..0x2FCAAC whichever way they are built.
  *
  * Nothing here is simulation: no hit record, fighter, battle object or battle event is written. The fighter is
@@ -24,14 +27,6 @@ typedef struct EftNBattleWork {
 } EftNBattleWork;
 
 /* The view being drawn (include/battle/btl_cam.h). */
-typedef struct EftNView {
-    /* 0x000 */ Mtx44 world2view;
-    /* 0x040 */ Mtx44 world2view2;
-    /* 0x080 */ u8 unk80[0xC0];
-    /* 0x140 */ Mtx44 world2screen;
-    /* 0x180 */ u8 unk180[0xA0];
-    /* 0x220 */ Vec4 pos;
-} EftNView;
 
 /* Effect task (include/battle/eft_g.h). */
 typedef struct EftNTask {
@@ -75,8 +70,6 @@ typedef struct EftNQuadPkt {
     /* 0x28 */ u64 tex0;
     /* 0x30 */ EftNVtx v[4];
 } EftNQuadPkt; /* 0x90 */
-
-extern EftNView *gBtlCamView;
 extern u8 gBattleProf[];
 extern void *gEftAuraTaskList;
 extern void *gEftAuraTaskClass[];
@@ -1160,7 +1153,7 @@ void EftBolt_FreeSegs(EftBolt *bolt) {
    rand() divisor in $f24 and uses eleven of them, this attempt twelve) and the vector sums are scheduled in another
    order. The if / else with identical arms is deliberate: the original has a `c.lt.s amp, 0` whose branch is gone. */
 #if 0
-void EftBolt_Shape(EftBolt *bolt, EftVec start, EftVec end, f32 scale) {
+void EftBolt_Shape(EftBolt *bolt, Vec4Aligned start, Vec4Aligned end, f32 scale) {
     Vec4 p0;
     Vec4 p1;
     Vec4 off;
@@ -1404,23 +1397,7 @@ s32 EftBolt_Step(EftBolt *bolt, f32 scale) {
     return done;
 }
 
-/* Draws a bolt: for each shown joint that has a successor, a camera-facing quad from this joint's width to the
-   next one's, coloured per joint, sharing its far edge with the next quad.
-   Not matching: 479 instructions against 481, 42 out of place after a register-masked alignment (61 before cleanup
-   W1). Now in the attempt, all taken from the matched EftAura_DrawFlames: Vu0Cur_ProjectPoint returns a value; the
-   order-table insert is the inline helper with layer 1; the loop is `for (link = &head; *link != NULL; link =
-   &seg->next) { seg = *link; ...` with `continue` (gives the `lw v0,0x30(s6) / bnez v0 / move s6,v0` step); the
-   depth is the plain sum `scr[0].z + scr[1].z + scr[2].z + scr[2].w` (the last term is the original's typo for
-   scr[3].z); the uv stores are in plain field order.
-   What still differs: (1) the corner loop. The original walks TWO reduced pointers, s1 = &scr[i] (the call
-   argument, .w at 12(s1), .x at 0(s1), advanced right behind the x test) and s2 = &scr[i].z (.y at -4(s2), .z at
-   0(s2), advanced behind the z test), increments i at the TOP of the loop (`addiu s4,s4,1` first, with i * 16
-   already in s0 for quad / st / uv) and computes `i < 4` in front of the three tests (`slti v1,s4,4` before the
-   x read): the increment is in front of the tests in the source. This attempt indexes scr and increments at the
-   bottom; `ps = scr; ... ps++` in the loop header is far worse (115). (2) &prev[0] (sp + 64) is recomputed at each
-   use in the original and &prev[1] (s8 = sp + 80) is set in both arms of `if (first)`; here both are hoisted into
-   saved registers, which also swaps s5 / s6 between `seg` and &side. (3) the `bnel` in front of `pkt = gOtCur`. */
-#if 0
+
 void EftBolt_Draw(EftBoltWork *work, EftBolt *bolt, f32 alpha) {
     Vec4 quad[4];
     Vec4 prev[2];
@@ -1432,7 +1409,7 @@ void EftBolt_Draw(EftBoltWork *work, EftBolt *bolt, f32 alpha) {
     Vec4 side;
     Vec4 toCam;
     Vec4 tmp;
-    EftNScr scr[4];
+    s32 scr[4][4]; /* x, y, z, w of each corner as Vu0Cur_ProjectPoint writes them (EftNScr); see the notes */
     s32 col0[4];
     s32 col1[4];
     s32 clipped;
@@ -1504,17 +1481,17 @@ void EftBolt_Draw(EftBoltWork *work, EftBolt *bolt, f32 alpha) {
         uv[3].z = 1.0f;
         uv[3].w = 0.0f;
         for (i = 0; i < 4; i++) {
-            Vu0Cur_ProjectPoint(&scr[i], &quad[i]);
-            Vec4_Scale(&st[i], &uv[i], 1.0f / (f32)scr[i].w);
-            if (scr[i].x > 0xFFF0) {
+            Vu0Cur_ProjectPoint((EftNScr *)scr[i], &quad[i]);
+            Vec4_Scale(&st[i], &uv[i], 1.0f / (f32)scr[i][3]);
+            if ((u32)scr[i][0] > 0xFFF0) {
                 clipped = 1;
                 break;
             }
-            if (scr[i].y > 0xFFF0) {
+            if ((u32)scr[i][1] > 0xFFF0) {
                 clipped = 1;
                 break;
             }
-            if (scr[i].z < 0) {
+            if (scr[i][2] < 0) {
                 clipped = 1;
                 break;
             }
@@ -1525,10 +1502,10 @@ void EftBolt_Draw(EftBoltWork *work, EftBolt *bolt, f32 alpha) {
             if (pkt == NULL) {
                 return;
             }
-            pkt->tag = 0x20000008;
-            pkt->vif1 = 0x50000008;
             pkt->prim = 0x5C;
+            pkt->tag = 0x20000008;
             pkt->vif0 = 0x10000000;
+            pkt->vif1 = 0x50000008;
             pkt->gif0 = 0xE400000000008001;
             pkt->gif1 = 0x42142142142160;
             pkt->next = NULL;
@@ -1563,38 +1540,35 @@ void EftBolt_Draw(EftBoltWork *work, EftBolt *bolt, f32 alpha) {
             pkt->v[2].t = st[2].y;
             pkt->v[3].s = st[3].x;
             pkt->v[3].t = st[3].y;
-            pkt->v[0].x = scr[0].x;
-            pkt->v[0].y = scr[0].y;
-            pkt->v[0].z = scr[0].z;
+            pkt->v[0].x = scr[0][0];
+            pkt->v[0].y = scr[0][1];
+            pkt->v[0].z = scr[0][2];
             pkt->v[0].f = 0xFF;
-            pkt->v[1].x = scr[1].x;
-            pkt->v[1].y = scr[1].y;
-            pkt->v[1].z = scr[1].z;
+            pkt->v[1].x = scr[1][0];
+            pkt->v[1].y = scr[1][1];
+            pkt->v[1].z = scr[1][2];
             pkt->v[1].f = 0xFF;
-            pkt->v[2].x = scr[2].x;
-            pkt->v[2].y = scr[2].y;
-            pkt->v[2].z = scr[2].z;
+            pkt->v[2].x = scr[2][0];
+            pkt->v[2].y = scr[2][1];
+            pkt->v[2].z = scr[2][2];
             pkt->v[2].f = 0xFF;
-            pkt->v[3].x = scr[3].x;
-            pkt->v[3].y = scr[3].y;
-            pkt->v[3].z = scr[3].z;
+            pkt->v[3].x = scr[3][0];
+            pkt->v[3].y = scr[3][1];
+            pkt->v[3].z = scr[3][2];
             pkt->v[3].f = 0xFF;
             pkt->tex0 = work->tex0;
-            /* the fourth term is scr[2].w, not scr[3].z: a typo in the original */
-            z = (scr[0].z + scr[1].z + scr[2].z + scr[2].w) >> 10;
+            /* the fourth term is scr[2][3], not scr[3][2]: a typo in the original */
+            z = (scr[0][2] + scr[1][2] + scr[2][2] + scr[2][3]) >> 10;
             EftAura_OtAdd((OtPrim *)pkt, z, 1);
         }
         n = n1;
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/battle/eft_n", EftBolt_Draw);
-#endif
 
 /* Sets a bolt up between two model nodes: its origin, end points along the two given directions, axis and normal,
    and a chain of joints sized to its length (at most 10). Returns 0 when fewer than 3 joints were free. */
-s32 EftBolt_Start(EftBoltWork *work, EftBolt *bolt, s32 objId, s32 kind, s32 nodeA, s32 nodeB, EftVec dirA,
-                  EftVec dirB, f32 length, f32 follow) {
+s32 EftBolt_Start(EftBoltWork *work, EftBolt *bolt, s32 objId, s32 kind, s32 nodeA, s32 nodeB, Vec4Aligned dirA,
+                  Vec4Aligned dirB, f32 length, f32 follow) {
     Vec4 p0;
     Vec4 p1;
     Vec4 tmp;
@@ -1652,7 +1626,7 @@ s32 EftBolt_Start(EftBoltWork *work, EftBolt *bolt, s32 objId, s32 kind, s32 nod
     }
     EftBolt_AllocSegs(bolt, n);
     if (bolt->count >= 3) {
-        EftBolt_Shape(bolt, *(EftVec *)&p0, *(EftVec *)&p1, work->scale);
+        EftBolt_Shape(bolt, *(Vec4Aligned *)&p0, *(Vec4Aligned *)&p1, work->scale);
     } else {
         EftBolt_FreeSegs(bolt);
         return 0;
@@ -1729,7 +1703,7 @@ void EftBolt_DrawAll(EftBoltWork *work, f32 alpha) {
 
 /* Starts a flash sprite between two model nodes. Kind 0 is the violet flash at a bolt's root (6 frames); other
    kinds are grey and last 3 frames. Returns 0 when all 20 are in use. */
-s32 EftBolt_AddFlash(EftBoltWork *work, s32 kind, s32 nodeA, s32 nodeB, EftVec vel, f32 size, f32 follow) {
+s32 EftBolt_AddFlash(EftBoltWork *work, s32 kind, s32 nodeA, s32 nodeB, Vec4Aligned vel, f32 size, f32 follow) {
     EftBoltFlash *f = NULL;
     s32 i;
 
@@ -2010,7 +1984,7 @@ void EftBolt_Spawn(EftBoltWork *work, s32 objId) {
         Vec3_Normalize(&dirA, &dirA);
         Mtx_MulVec4(&dirB, &m, &dirB);
         Vec3_Normalize(&dirB, &dirB);
-        if (!EftBolt_Start(work, bolt, objId, kind, nodeA, nodeB, *(EftVec *)&dirA, *(EftVec *)&dirB, length,
+        if (!EftBolt_Start(work, bolt, objId, kind, nodeA, nodeB, *(Vec4Aligned *)&dirA, *(Vec4Aligned *)&dirB, length,
                            follow)) {
             break;
         }
@@ -2020,7 +1994,7 @@ void EftBolt_Spawn(EftBoltWork *work, s32 objId) {
         } else {
             size = (RANDF() * 0.25f + 0.7f) * 0.42f * work->scale;
         }
-        EftBolt_AddFlash(work, 0, nodeA, nodeB, *(EftVec *)&vel, size, follow);
+        EftBolt_AddFlash(work, 0, nodeA, nodeB, *(Vec4Aligned *)&vel, size, follow);
         if (side == 0) {
             work->angle[0] = ang;
         } else {

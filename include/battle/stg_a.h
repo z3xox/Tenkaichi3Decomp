@@ -2,6 +2,7 @@
 #define BATTLE_STG_A_H
 
 #include "types.h"
+#include "battle/btl_cam.h"
 #include "sys/math3d.h"
 
 /*
@@ -250,22 +251,6 @@ typedef struct StgGroundHit {
 } StgGroundHit; /* size 0x30 */
 
 /* Local view of the camera view (View in battle/btl_cam.h). */
-typedef struct StgView {
-    /* 0x000 */ u8 unk0[0x40];
-    /* 0x040 */ Mtx44 mtx;
-    /* 0x080 */ u8 unk80[0x180];
-    /* 0x200 */ s32 x0;
-    /* 0x204 */ s32 unk204;
-    /* 0x208 */ s32 x1;
-    /* 0x20C */ s32 unk20C;
-    /* 0x210 */ u8 unk210[0x10];
-    /* 0x220 */ Vec4 pos;
-    /* 0x230 */ f32 unk230;
-    /* 0x234 */ f32 screenDist;
-    /* 0x238 */ u8 unk238[0x18];
-    /* 0x250 */ f32 nearZ;
-    /* 0x254 */ f32 farZ;
-} StgView;
 
 extern BtlStage *gBtlStage; /* named in config/symbols/stg_b.txt */
 
@@ -323,7 +308,7 @@ void StgPart_Animate(StgPart *part, f32 frame, Vec4 *out);
 f32 Stg_WrapRange(f32 lo, f32 hi, f32 v);
 
 /* Drawing helpers (culling, fades, light). */
-void StgFrustum_Build(StgView *view, StgFrustum *fr);
+void StgFrustum_Build(View *view, StgFrustum *fr);
 s32 StgFrustum_TestBox(StgFrustum *fr, f32 x, f32 y, f32 z, f32 r);
 s32 StgFrustum_TestPart(StgPart *part, StgFrustum *fr);
 f32 Stg_FadeRatio(f32 a, f32 b);

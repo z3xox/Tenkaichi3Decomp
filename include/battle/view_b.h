@@ -2,12 +2,15 @@
 #define BATTLE_VIEW_B_H
 
 #include "types.h"
+#include "sys/progress.h"
+#include "battle/textbox_types.h"
+#include "sys/flash_types.h"
 
 /*
  * Menu support code of the main executable, 0x2600B0..0x263098 (placeholder stem "view_b"). Five parts:
  *
  *   view_b.c    0x2600B0..0x260D20  TextBox    the rest of the text box module (it starts in view_a_e.c and is
- *                                              the same object); TextBox_DrawClip is INCLUDE_ASM
+ *                                              the same object); records are shared through textbox_types.h
  *   view_b_b.c  0x260D20..0x2614B0  ChrTbl / ItemSet / ItemTbl  readers of the character and item tables
  *   view_b_c.c  0x2614B0..0x261ED8  MenuUtil   voice line with mouth movement (LipSync), sound options, CPU level
  *                                              mapping, the CPU against CPU demo battle, small text helpers
@@ -16,58 +19,7 @@
  *   view_b_e.c  0x262FF0..0x263098  Dbg        empty debug functions (the head of sys/debug.c)
  */
 
-/* ---- TextBox (view_b.c): the full layout of the 0x8C-byte TextBox of battle/view_a.h ---- */
-
-#define TEXTBOX_FLAG_MAX_W 8      /* shrink the line horizontally to maxW */
-#define TEXTBOX_FLAG_MAX_H 0x10   /* shrink the line vertically to maxH */
-#define TEXTBOX_FLAG_LINE_Y 0x20  /* add lineY[rows - 1] to y */
-#define TEXTBOX_FLAG_SPACING 0x40 /* use spacingX / spacingY */
-
-#define TEXTBOX_LINE_Y_COUNT 5
-
-/* What the movie clip's callback draws: one string with its complete style. */
-typedef struct TextBoxDraw {
-    /* 0x00 */ s32 align;      /* Font_SetAlign */
-    /* 0x04 */ u16 *str;
-    /* 0x08 */ s32 x;          /* the clip's position is added by the callback, every time it runs */
-    /* 0x0C */ s32 y;
-    /* 0x10 */ f32 scaleX;
-    /* 0x14 */ f32 scaleY;
-    /* 0x18 */ u8 color[4];    /* r, g, b, a (0x80 = opaque) */
-    /* 0x1C */ u8 shadow[4];
-    /* 0x20 */ s32 clip[4];    /* Font_SetClip */
-    /* 0x30 */ s32 noFlush;    /* 1: the text is left in the font queue instead of being drawn at once */
-    /* 0x34 */ s32 spacingX;   /* Font_SetSpacing */
-    /* 0x38 */ s32 spacingY;
-} TextBoxDraw; /* size 0x3C */
-
-typedef struct TextBoxFull {
-    /* 0x00 */ s32 flags;      /* TEXTBOX_FLAG_* */
-    /* 0x04 */ void *text;     /* text file: line n is at text + (((u32 *)text)[n + 1] & ~3) */
-    /* 0x08 */ s32 unk8;
-    /* 0x0C */ s32 x;          /* offset added to the position of every line (TextBox_SetUnkC) */
-    /* 0x10 */ s32 y;
-    /* 0x14 */ s32 lineY[TEXTBOX_LINE_Y_COUNT]; /* extra y for a text of 1..5 rows */
-    /* 0x28 */ s32 maxW;
-    /* 0x2C */ s32 maxH;
-    /* 0x30 */ u8 color[4];
-    /* 0x34 */ u8 shadow[4];   /* "color2" in view_a.h */
-    /* 0x38 */ s32 clip[4];    /* "rect" in view_a.h */
-    /* 0x48 */ s32 spacingX;
-    /* 0x4C */ s32 spacingY;
-    /* 0x50 */ TextBoxDraw draw; /* +0x50 align (TextBox_SetUnk50), +0x80 noFlush (TextBox_SetUnk80) */
-} TextBoxFull; /* size 0x8C */
-
-/* The drawing state a movie clip hands to its "draw over" callback (FlashProp in sys/gfxm_c.h). Local view. */
-typedef struct TextBoxClipProp {
-    /* 0x00 */ u8 unk0[0x38];
-    /* 0x38 */ f32 x;          /* translation of the clip's matrix */
-    /* 0x3C */ f32 unk3C[2];
-    /* 0x44 */ f32 y;
-    /* 0x48 */ f32 unk48[3];
-    /* 0x54 */ f32 mul[4];     /* colour transform: c * mul + add */
-    /* 0x64 */ s16 add[4];
-} TextBoxClipProp; /* size 0x6C */
+/* ---- TextBox (view_b.c): shared records in battle/textbox_types.h ---- */
 
 struct TextBox;
 struct Flash;
@@ -78,7 +30,7 @@ void TextBox_SetMaxHeight(struct TextBox *box, s32 h);
 void TextBox_SetMaxSize(struct TextBox *box, s32 w, s32 h);
 void TextBox_SetLineOffsets(struct TextBox *box, s32 y1, s32 y2, s32 y3, s32 y4, s32 y5);
 void TextBox_SetSpacing(struct TextBox *box, s32 x, s32 y);
-s32 TextBox_DrawClip(TextBoxDraw *draw, TextBoxClipProp *prop);
+s32 TextBox_DrawClip(TextBoxDraw *draw, FlashProp *prop);
 void TextBox_AttachLine(struct Flash *flash, struct FlashRef *ref, s32 x, s32 y, s32 line, struct TextBox *box);
 void TextBox_AttachString(struct Flash *flash, struct FlashRef *ref, s32 x, s32 y, u16 *str, struct TextBox *box);
 
@@ -182,24 +134,7 @@ typedef struct LipPack {
 #define VOICE_LANG2_OFFSET 0x55C /* added to a menu voice id when SaveData.flags bit 0 is set */
 
 /* A team record of the progress block: two rows of five character ids. */
-#define PROGRESS_TEAM_COUNT 7
 #define PROGRESS_TEAM_EMPTY 0xA4  /* CHRGRID_ID_EMPTY */
-
-typedef struct ProgressTeam {
-    /* 0x00 */ s32 unk0;
-    /* 0x04 */ s32 chara[2][5];
-} ProgressTeam; /* size 0x2C */
-
-/* gProgress as this file uses it (ViewProgress in battle/view_a.h has the other fields). Local view. */
-typedef struct MenuUtilProgress {
-    /* 0x000 */ u8 unk0[0x14];
-    /* 0x014 */ s32 flags;       /* 0x100: the menu animations are frozen */
-    /* 0x018 */ u8 unk18[0xC];
-    /* 0x024 */ s32 demoPick;    /* the pairing Demo_SetupBattle chose last, -1 at start */
-    /* 0x028 */ u8 unk28[0x69C - 0x28];
-    /* 0x69C */ ProgressTeam team[PROGRESS_TEAM_COUNT];
-    /* 0x7D0 */ u8 unk7D0[0x2C];
-} MenuUtilProgress; /* size 0x7FC */
 
 /* The characters that are never "the same person" as another (ChrTbl_IsRelated). */
 #define CHRTBL_ID_4F 0x4F

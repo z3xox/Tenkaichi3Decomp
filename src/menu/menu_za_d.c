@@ -31,7 +31,7 @@ void ReplayMenu_SetPlayable(s32 on);
 
 /* Plays an animation of the "no data" plate. */
 void ReplayMenu_PlayNoData(char *label) {
-    MFlashRef ref;
+    FlashRef ref;
 
     Flash_FindLabel(&gReplayMenu->flash[0], NULL, "mc_no_data", &ref);
     Flash_ClipGotoLabel(&gReplayMenu->flash[0], &ref, label);
@@ -39,7 +39,7 @@ void ReplayMenu_PlayNoData(char *label) {
 
 /* Puts the chips of the two teams of the slot shown on the ten plates (two rows of five). */
 void ReplayMenu_DrawChips(void) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[0x100];
     s32 team;
     s32 i;
@@ -47,7 +47,7 @@ void ReplayMenu_DrawChips(void) {
     for (team = 0; team < REPLAY_TEAM_NUM; team++) {
         for (i = 0; i < REPLAY_MEMBER_NUM; i++) {
             s32 chara = ZAPROG->replay[gReplayMenu->cursor].chara[team * REPLAY_MEMBER_NUM + i];
-            MTexRes *res = (MTexRes *)MPACK_AT(gReplayMenu->chips, chara + 1);
+            FlashTexRes *res = (FlashTexRes *)MPACK_AT(gReplayMenu->chips, chara + 1);
             s32 slot = i + team * REPLAY_MEMBER_NUM;
 
             gReplayMenu->chip[team][i] = res->tex;
@@ -60,7 +60,7 @@ void ReplayMenu_DrawChips(void) {
 
 /* Plays the "chosen" animation of the play / save plate. */
 void ReplayMenu_ConfirmPlate(void) {
-    MFlashRef ref;
+    FlashRef ref;
 
     Flash_FindLabel(&gReplayMenu->flash[0], NULL, "mc_menu_play_plate", &ref);
     Flash_ClipGotoLabel(&gReplayMenu->flash[0], &ref, "fl_ok");
@@ -68,7 +68,7 @@ void ReplayMenu_ConfirmPlate(void) {
 
 /* Lights or dims the play / save plate. */
 void ReplayMenu_LightPlate(s32 on) {
-    MFlashRef ref;
+    FlashRef ref;
 
     Flash_FindLabel(&gReplayMenu->flash[0], NULL, "mc_menu_play_plate", &ref);
     if (on) {
@@ -80,7 +80,7 @@ void ReplayMenu_LightPlate(s32 on) {
 
 /* Records whether the slot shown holds a replay, and lights the plate accordingly (not in save mode). */
 void ReplayMenu_SetPlayable(s32 on) {
-    MFlashRef ref;
+    FlashRef ref;
 
     Flash_FindLabel(&gReplayMenu->flash[0], NULL, "mc_menu_play_plate", &ref);
     if (on) {
@@ -244,12 +244,12 @@ static inline u8 *ReplayMenu_Section(s32 n, const char *host) {
 }
 
 #define RP_RES(n, host) \
-    res = (MTexRes *)ReplayMenu_Section(n, host); \
+    res = (FlashTexRes *)ReplayMenu_Section(n, host); \
     Res_RelocateOffsets(&res, res, res)
 
 /* Unpacks the screen (section `section` of archive 8), builds its movie and sets the card flows up. */
 void ReplayMenu_Init(s32 section) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
     s32 i;
 
     gReplayMenu = Heap_Alloc(sizeof(ReplayMenu), 0x20, 0, 2);
@@ -293,7 +293,7 @@ void ReplayMenu_Init(s32 section) {
     gReplayMenu->tex[19] = MTEX(res, 0);
     gReplayMenu->chips = (u32 *)ReplayMenu_Section(8, REPLAY_HOST "chara_chip_PS2_.pak");
     for (i = 0; i < 0xA5; i++) {
-        res = (MTexRes *)MPACK_AT(gReplayMenu->chips, i + 1);
+        res = (FlashTexRes *)MPACK_AT(gReplayMenu->chips, i + 1);
         Res_RelocateOffsets(&res, res, res);
     }
     Flash_Create(&gReplayMenu->flash[0], ReplayMenu_Section(1, REPLAY_HOST "replay_data_PS2_.fod"), gReplayMenu->tex);
@@ -363,28 +363,28 @@ void ReplayMenu_Term(void) {
     }
 }
 
-/* Sets the texture rectangle of a clip found by name (each use has its own MFlashRef on the stack). */
-static inline void ReplayMenu_SetUv(char *parent, char *name, MFlashUv *uv) {
-    MFlashRef ref;
+/* Sets the texture rectangle of a clip found by name (each use has its own FlashRef on the stack). */
+static inline void ReplayMenu_SetUv(char *parent, char *name, FlashUv *uv) {
+    FlashRef ref;
 
     Flash_FindLabel(&gReplayMenu->flash[0], parent, name, &ref);
     Flash_ClipSetUv(&gReplayMenu->flash[0], &ref, uv);
 }
 
 /* Texture rectangle of one cell of a sheet. */
-static inline void ReplayMenu_SetCell(MFlashUv *uv, s32 col, s32 row, s32 w, s32 h) {
-    uv->x0 = col * w;
-    uv->x1 = uv->x0 + w;
-    uv->y0 = row * h;
-    uv->y1 = uv->y0 + h;
+static inline void ReplayMenu_SetCell(FlashUv *uv, s32 col, s32 row, s32 w, s32 h) {
+    uv->u0 = col * w;
+    uv->u1 = uv->u0 + w;
+    uv->v0 = row * h;
+    uv->v1 = uv->v0 + h;
 }
 
 /* Draws the frame and runs the card flow. */
 void ReplayMenu_Draw(void) {
-    MFlashRef ref;
+    FlashRef ref;
     char parent[0x100];
     char name[0x100];
-    MFlashUv uv;
+    FlashUv uv;
     s32 num;
     s32 i;
 

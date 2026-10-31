@@ -3,7 +3,7 @@
 /* SimEvent, 0x392D20..0x392F10: gSimEvent[36], the last one. Read-only data: its jump table, 0x3BB110..0x3BB140. */
 
 /* Event 36 (pictures 7 and 3): a gift of 5000 points, then the usual random loss of attack and defence. */
-s32 SimEv36(USimDay *day) {
+s32 SimEv36(SimDay *day) {
     switch (day->seq) {
     case 0:
         day->faceA = 11;

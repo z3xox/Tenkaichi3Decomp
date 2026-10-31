@@ -1,4 +1,5 @@
 #include "common.h"
+#include "battle/hud_types.h"
 #include "battle/hud_c.h"
 #include "battle/battle.h"
 #include "sys/randf.h"
@@ -60,9 +61,9 @@ extern int Port_HudSwap(void);
 
 /* Combo part work (gHudCombo, 0x18C bytes). Arrays of two are indexed by side. */
 typedef struct HudCombo {
-    /* 0x000 */ HudCRes *res;        /* sprite sheet 2 of the HUD file */
-    /* 0x004 */ HudCSprite *sprites; /* HUD_COMBO_SPR_COUNT */
-    /* 0x008 */ HudCNode *nodes;     /* HUD_COMBO_NODE_COUNT */
+    /* 0x000 */ HudRes *res;        /* sprite sheet 2 of the HUD file */
+    /* 0x004 */ HudSprite *sprites; /* HUD_COMBO_SPR_COUNT */
+    /* 0x008 */ HudNode *nodes;     /* HUD_COMBO_NODE_COUNT */
     /* 0x00C */ s32 side;            /* side being updated / drawn */
     /* 0x010 */ s32 msgState[2];     /* 0 start, 1 slide in, 2 hold, 3 slide out, 4 (or -1) off */
     /* 0x018 */ s32 dmgState[2];     /* HUD_COMBO_ST_* */
@@ -101,10 +102,10 @@ extern HudCObj *BtlCtrl_GetObj(s32 side);
 extern void BtlMenu_SetScript2(void *script);
 extern void BtlText_DrawEntryName(s32 x, s32 y, s32 n, s32 align, f32 alpha);
 /* src/battle/hud_d.c */
-extern void HudSprite_Draw(HudCSprite *spr, HudCRes *res, s32 ctx2);
-extern void HudNode_Show(HudCNode *node, s32 show);
-extern void HudNode_SetPos(HudCNode *node, s32 x, s32 y);
-extern void HudNode_SetOfs(HudCNode *node, s32 x, s32 y);
+extern void HudSprite_Draw(HudSprite *spr, HudRes *res, s32 ctx2);
+extern void HudNode_Show(HudNode *node, s32 show);
+extern void HudNode_SetPos(HudNode *node, s32 x, s32 y);
+extern void HudNode_SetOfs(HudNode *node, s32 x, s32 y);
 
 /* Zeroes a small local. The original calls memset for 8-byte locals, which this compiler only does when the
    pointer comes through a variable (an inlined helper or constructor in the original). */
@@ -112,16 +113,16 @@ static inline void HudCombo_Zero(void *p, u32 size) {
     memset(p, 0, size);
 }
 
-void HudCombo_UpdateMessage(HudCNode *node);
-void HudCombo_UpdateText(HudCNode *node);
-void HudCombo_UpdateDamage(HudCNode *node);
-void HudCombo_UpdateHits(HudCNode *node);
-void HudCombo_DrawSprites(HudCNode *node);
-void HudCombo_StoreTextPos(HudCNode *node);
+void HudCombo_UpdateMessage(HudNode *node);
+void HudCombo_UpdateText(HudNode *node);
+void HudCombo_UpdateDamage(HudNode *node);
+void HudCombo_UpdateHits(HudNode *node);
+void HudCombo_DrawSprites(HudNode *node);
+void HudCombo_StoreTextPos(HudNode *node);
 
 /* Update of node 0 (root): steps the slide once a frame (on the side 0 pass) and moves the part off its side's
    edge: 256 pixels to the left for side 0, to the right for side 1. */
-void HudCombo_UpdateRoot(HudCNode *node) {
+void HudCombo_UpdateRoot(HudNode *node) {
     if (!HUDC_PAUSED() && gHudCombo->side == 0) {
         Ramp_Step(&gHudCombo->hide);
     }
@@ -134,11 +135,11 @@ void HudCombo_UpdateRoot(HudCNode *node) {
 
 /* Update of the message node: picks the picture (texture 3 + message), slides it in from its own width in 0.1 s,
    holds it 1.2 s and slides it out in 0.1 s. Message 4 sits 310 pixels lower. */
-void HudCombo_UpdateMessage(HudCNode *node) {
+void HudCombo_UpdateMessage(HudNode *node) {
     f32 pos[2];
     s32 msg = gHudCombo->msg[gHudCombo->side];
     Ramp *ramp = &gHudCombo->msgRamp[gHudCombo->side];
-    HudCSprite *spr;
+    HudSprite *spr;
     f32 width;
     s32 done;
 
@@ -161,7 +162,7 @@ void HudCombo_UpdateMessage(HudCNode *node) {
         HudSprite_InitTex(spr, gHudCombo->res, 7, 0);
         break;
     }
-    width = -(f32)(spr->u1 - spr->u0);
+    width = -(f32)(spr->uv.x1 - spr->uv.x0);
     HudSprite_Show(spr, 1);
     switch (gHudCombo->msgState[gHudCombo->side]) {
     case 0:
@@ -223,17 +224,17 @@ void HudCombo_UpdateMessage(HudCNode *node) {
 }
 
 /* Update of the text node: fades the plate in over 0.1 s, holds it 1.2 s and fades it out. */
-void HudCombo_UpdateText(HudCNode *node) {
+void HudCombo_UpdateText(HudNode *node) {
     f32 pos[2];
     s32 alpha = 0x80;
     Ramp *ramp = &gHudCombo->textRamp[gHudCombo->side];
-    HudCSprite *spr;
+    HudSprite *spr;
     f32 width;
     s32 done;
 
     HudCombo_Zero(pos, sizeof(pos));
     spr = &gHudCombo->sprites[HUD_COMBO_SPR_PLATE];
-    width = -(f32)(spr->u1 - spr->u0);
+    width = -(f32)(spr->uv.x1 - spr->uv.x0);
     HudSprite_Show(spr, 1);
     switch (gHudCombo->textState[gHudCombo->side]) {
     case 0:
@@ -298,7 +299,7 @@ void HudCombo_UpdateText(HudCNode *node) {
 
 /* Sets the three digit sprites of the hit count (sprites 1..3 of the node, units first, 22 pixels apart) and hides
    the leading zeros. */
-void HudCombo_SetHitDigits(HudCNode *node) {
+void HudCombo_SetHitDigits(HudNode *node) {
     u32 pow[6] = { 1, 10, 100, 1000, 10000, 100000 };
     u16 uvs[10][4] = {
         { 0x01, 0x1F, 0x00, 0x20 }, { 0x21, 0x3F, 0x00, 0x20 }, { 0x41, 0x5F, 0x00, 0x20 }, { 0x61, 0x7F, 0x00, 0x20 },
@@ -308,7 +309,7 @@ void HudCombo_SetHitDigits(HudCNode *node) {
     s32 ofs[2];
     u32 hits;
     s32 i;
-    HudCSprite *spr;
+    HudSprite *spr;
     u32 digit;
 
     HudCombo_Zero(ofs, sizeof(ofs));
@@ -332,7 +333,7 @@ void HudCombo_SetHitDigits(HudCNode *node) {
     do {
         spr = node->sprites[i + 1];
         i--;
-        if (spr->u0 != uvs[0][0] || spr->v0 != uvs[0][2]) {
+        if (spr->uv.x0 != uvs[0][0] || spr->uv.y0 != uvs[0][2]) {
             break;
         }
         HudSprite_Show(spr, 0);
@@ -343,7 +344,7 @@ void HudCombo_SetHitDigits(HudCNode *node) {
    hides the leading zeros. The number is damageFrom + (damage - damageFrom) * countRamp, at most 99999. While the
    count is running (and the number is 100..99998) the units digit is a random digit that differs from the one
    shown the frame before: one or more draws from libc rand() per side per drawn frame, none while paused. */
-void HudCombo_SetDamageDigits(HudCNode *node) {
+void HudCombo_SetDamageDigits(HudNode *node) {
     Ramp *ramp = &gHudCombo->countRamp[gHudCombo->side];
     u32 pow[6] = { 1, 10, 100, 1000, 10000, 100000 };
     u16 uvs[10][4] = {
@@ -354,7 +355,7 @@ void HudCombo_SetDamageDigits(HudCNode *node) {
     s32 ofs[2];
     u32 value;
     s32 i;
-    HudCSprite *spr;
+    HudSprite *spr;
     u32 digit;
 
     HudCombo_Zero(ofs, sizeof(ofs));
@@ -396,7 +397,7 @@ void HudCombo_SetDamageDigits(HudCNode *node) {
     do {
         spr = node->sprites[i + 1];
         i--;
-        if (spr->u0 != 1 || spr->v0 != 1) {
+        if (spr->uv.x0 != 1 || spr->uv.y0 != 1) {
             break;
         }
         HudSprite_Show(spr, 0);
@@ -405,16 +406,16 @@ void HudCombo_SetDamageDigits(HudCNode *node) {
 
 /* Update of the damage node: sets the digits and runs the node's state: slide in (0.1 s), a 10 pixel nudge out and
    back when the value changes (0.1 s each way), slide out. */
-void HudCombo_UpdateDamage(HudCNode *node) {
+void HudCombo_UpdateDamage(HudNode *node) {
     f32 pos[2];
     Ramp *ramp = &gHudCombo->dmgRamp[gHudCombo->side];
-    HudCSprite *spr;
+    HudSprite *spr;
     f32 width;
     s32 done;
 
     HudCombo_Zero(pos, sizeof(pos));
     spr = &gHudCombo->sprites[HUD_COMBO_SPR_DAMAGE];
-    width = -(f32)(spr->u1 - spr->u0);
+    width = -(f32)(spr->uv.x1 - spr->uv.x0);
     HudCombo_SetDamageDigits(node);
     HudNode_Show(node, 1);
     switch (gHudCombo->dmgState[gHudCombo->side]) {
@@ -493,18 +494,18 @@ void HudCombo_UpdateDamage(HudCNode *node) {
 
 /* Update of the hit count node: sets the digits and runs the node's state: slide in, a pop of the digits (their
    height grows to 1.5 and back, 0.1 s each way) when the count changes, slide out. */
-void HudCombo_UpdateHits(HudCNode *node) {
+void HudCombo_UpdateHits(HudNode *node) {
     f32 pos[2];
     f32 scale = 1.0f;
     Ramp *ramp = &gHudCombo->hitRamp[gHudCombo->side];
-    HudCSprite *spr;
+    HudSprite *spr;
     f32 width;
     s32 i;
     s32 done;
 
     HudCombo_Zero(pos, sizeof(pos));
     spr = &gHudCombo->sprites[HUD_COMBO_SPR_HITS];
-    width = -(f32)(spr->u1 - spr->u0);
+    width = -(f32)(spr->uv.x1 - spr->uv.x0);
     HudCombo_SetHitDigits(node);
     HudNode_Show(node, 1);
     switch (gHudCombo->hitState[gHudCombo->side]) {
@@ -584,7 +585,7 @@ void HudCombo_UpdateHits(HudCNode *node) {
 }
 
 /* Draw callback: every sprite of the node. */
-void HudCombo_DrawSprites(HudCNode *node) {
+void HudCombo_DrawSprites(HudNode *node) {
     u32 i;
 
     for (i = 0; i < node->spriteCount; i++) {
@@ -594,9 +595,9 @@ void HudCombo_DrawSprites(HudCNode *node) {
 
 /* Draw callback of the text node: draws nothing; it notes where the plate is on the screen (the translation of the
    current VU0 matrix) and its alpha for HudCombo_DrawText, or (-1, -1) while the plate is hidden. */
-void HudCombo_StoreTextPos(HudCNode *node) {
+void HudCombo_StoreTextPos(HudNode *node) {
     f32 m[4][4];
-    HudCSprite *spr = node->sprites[0];
+    HudSprite *spr = node->sprites[0];
     f32 alpha = spr->a / 128.0f;
 
     if (spr->flags & HUDC_SPR_HIDDEN) {
@@ -741,17 +742,17 @@ void HudCombo_DrawText(void) {
 }
 
 /* Battle start: allocates the work, 12 sprites and 6 nodes and builds the tree; returns the root through `out`. */
-void HudCombo_Init(HudCNode **out, HudCRes *res) {
+void HudCombo_Init(HudNode **out, HudRes *res) {
     s32 i;
-    HudCSprite *spr;
-    HudCNode *node;
+    HudSprite *spr;
+    HudNode *node;
 
     gHudCombo = Heap_Alloc(sizeof(HudCombo), 0x20, 0, 2);
     memset(gHudCombo, 0, sizeof(HudCombo));
-    gHudCombo->sprites = Heap_Alloc(HUD_COMBO_SPR_COUNT * sizeof(HudCSprite), 0x20, 0, 2);
-    memset(gHudCombo->sprites, 0, HUD_COMBO_SPR_COUNT * sizeof(HudCSprite));
-    gHudCombo->nodes = Heap_Alloc(HUD_COMBO_NODE_COUNT * sizeof(HudCNode), 0x20, 0, 2);
-    memset(gHudCombo->nodes, 0, HUD_COMBO_NODE_COUNT * sizeof(HudCNode));
+    gHudCombo->sprites = Heap_Alloc(HUD_COMBO_SPR_COUNT * sizeof(HudSprite), 0x20, 0, 2);
+    memset(gHudCombo->sprites, 0, HUD_COMBO_SPR_COUNT * sizeof(HudSprite));
+    gHudCombo->nodes = Heap_Alloc(HUD_COMBO_NODE_COUNT * sizeof(HudNode), 0x20, 0, 2);
+    memset(gHudCombo->nodes, 0, HUD_COMBO_NODE_COUNT * sizeof(HudNode));
     for (i = 0; i < 2; i++) {
         gHudCombo->msg[i] = -1;
         gHudCombo->msgState[i] = -1;
@@ -817,8 +818,8 @@ void HudCombo_Init(HudCNode **out, HudCRes *res) {
     node = &gHudCombo->nodes[HUD_COMBO_NODE_MESSAGE];
     HudNode_SetPos(node, 0, 16);
     node->spriteCount = 1;
-    node->sprites = Heap_Alloc(node->spriteCount * sizeof(HudCSprite *), 0x20, 0, 2);
-    memset(node->sprites, 0, node->spriteCount * sizeof(HudCSprite *));
+    node->sprites = Heap_Alloc(node->spriteCount * sizeof(HudSprite *), 0x20, 0, 2);
+    memset(node->sprites, 0, node->spriteCount * sizeof(HudSprite *));
     node->sprites[0] = &gHudCombo->sprites[0];
     node->update = HudCombo_UpdateMessage;
     node->draw = HudCombo_DrawSprites;
@@ -826,8 +827,8 @@ void HudCombo_Init(HudCNode **out, HudCRes *res) {
     node = &gHudCombo->nodes[HUD_COMBO_NODE_TEXT];
     HudNode_SetPos(node, 0, 4);
     node->spriteCount = 1;
-    node->sprites = Heap_Alloc(node->spriteCount * sizeof(HudCSprite *), 0x20, 0, 2);
-    memset(node->sprites, 0, node->spriteCount * sizeof(HudCSprite *));
+    node->sprites = Heap_Alloc(node->spriteCount * sizeof(HudSprite *), 0x20, 0, 2);
+    memset(node->sprites, 0, node->spriteCount * sizeof(HudSprite *));
     node->sprites[0] = &gHudCombo->sprites[1];
     node->update = HudCombo_UpdateText;
     node->draw = HudCombo_StoreTextPos;
@@ -835,8 +836,8 @@ void HudCombo_Init(HudCNode **out, HudCRes *res) {
     node = &gHudCombo->nodes[HUD_COMBO_NODE_DAMAGE];
     HudNode_SetPos(node, 0, 80);
     node->spriteCount = 6;
-    node->sprites = Heap_Alloc(node->spriteCount * sizeof(HudCSprite *), 0x20, 0, 2);
-    memset(node->sprites, 0, node->spriteCount * sizeof(HudCSprite *));
+    node->sprites = Heap_Alloc(node->spriteCount * sizeof(HudSprite *), 0x20, 0, 2);
+    memset(node->sprites, 0, node->spriteCount * sizeof(HudSprite *));
     node->sprites[0] = &gHudCombo->sprites[2];
     node->sprites[1] = &gHudCombo->sprites[3];
     node->sprites[2] = &gHudCombo->sprites[4];
@@ -850,8 +851,8 @@ void HudCombo_Init(HudCNode **out, HudCRes *res) {
     node = &gHudCombo->nodes[HUD_COMBO_NODE_HITS];
     HudNode_SetPos(node, 0, 80);
     node->spriteCount = 4;
-    node->sprites = Heap_Alloc(node->spriteCount * sizeof(HudCSprite *), 0x20, 0, 2);
-    memset(node->sprites, 0, node->spriteCount * sizeof(HudCSprite *));
+    node->sprites = Heap_Alloc(node->spriteCount * sizeof(HudSprite *), 0x20, 0, 2);
+    memset(node->sprites, 0, node->spriteCount * sizeof(HudSprite *));
     node->sprites[0] = &gHudCombo->sprites[8];
     node->sprites[1] = &gHudCombo->sprites[9];
     node->sprites[2] = &gHudCombo->sprites[10];
@@ -866,8 +867,8 @@ void HudCombo_Init(HudCNode **out, HudCRes *res) {
     node->childCount = 4;
     node->update = NULL;
     node->draw = NULL;
-    node->children = Heap_Alloc(node->childCount * sizeof(HudCNode *), 0x20, 0, 2);
-    memset(node->children, 0, node->childCount * sizeof(HudCNode *));
+    node->children = Heap_Alloc(node->childCount * sizeof(HudNode *), 0x20, 0, 2);
+    memset(node->children, 0, node->childCount * sizeof(HudNode *));
     node->children[0] = &gHudCombo->nodes[HUD_COMBO_NODE_MESSAGE];
     node->children[1] = &gHudCombo->nodes[HUD_COMBO_NODE_TEXT];
     node->children[2] = &gHudCombo->nodes[HUD_COMBO_NODE_DAMAGE];
@@ -879,8 +880,8 @@ void HudCombo_Init(HudCNode **out, HudCRes *res) {
     node->childCount = 1;
     node->update = HudCombo_UpdateRoot;
     node->draw = NULL;
-    node->children = Heap_Alloc(node->childCount * sizeof(HudCNode *), 0x20, 0, 2);
-    memset(node->children, 0, node->childCount * sizeof(HudCNode *));
+    node->children = Heap_Alloc(node->childCount * sizeof(HudNode *), 0x20, 0, 2);
+    memset(node->children, 0, node->childCount * sizeof(HudNode *));
     node->children[0] = &gHudCombo->nodes[1];
 
     *out = gHudCombo->nodes;

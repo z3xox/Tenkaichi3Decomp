@@ -2,6 +2,8 @@
 #define BATTLE_EFT_H_H
 
 #include "types.h"
+#include "battle/eft_ray_types.h"
+#include "battle/btl_tech_b.h"
 #include "sys/math3d.h"
 
 /*
@@ -151,71 +153,6 @@ typedef struct EftShotClassRow {
     /* 0x08 */ s32 unk8;
 } EftShotClassRow; /* size 0xC */
 
-/* Views of the character data EftShot_BuildParam reads (BtlSkillData / BtlSuperData in btl_tech_b.h). */
-typedef struct EftSkillSrc {
-    /* 0x00 */ s32 flags[2];
-    /* 0x08 */ s32 unk8[2];
-    /* 0x10 */ u16 id[2];
-    /* 0x14 */ u16 unk14[2];
-    /* 0x18 */ f32 time[2];
-    /* 0x20 */ f32 unk20[2];
-    /* 0x28 */ f32 unk28[2];
-    /* 0x30 */ f32 unk30[2];
-    /* 0x38 */ u8 unk38[2];
-    /* 0x3A */ u8 unk3A[2];
-    /* 0x3C */ u8 unk3C[2];
-    /* 0x3E */ u8 unk3E[2];
-    /* 0x40 */ u8 unk40[2];
-    /* 0x42 */ u8 unk42[2];
-    /* 0x44 */ u8 unk44[2];
-    /* 0x46 */ u8 unk46[2];
-    /* 0x48 */ u8 unk48[6][2];
-    /* 0x54 */ u8 unk54[6][2];
-    /* 0x60 */ u8 type[2];
-    /* 0x62 */ u8 unk62[2];
-    /* 0x64 */ u8 unk64[0xA];
-    /* 0x6E */ u8 unk6E[2];
-    /* 0x70 */ u8 unk70[2];
-} EftSkillSrc;
-
-typedef struct EftSuperSrc {
-    /* 0x000 */ s32 flags[3];
-    /* 0x00C */ s32 unkC[3];
-    /* 0x018 */ u16 id[3];
-    /* 0x01E */ u16 unk1E[3];
-    /* 0x024 */ f32 time[3];
-    /* 0x030 */ f32 unk30[3];
-    /* 0x03C */ f32 unk3C[3];
-    /* 0x048 */ f32 unk48[3];
-    /* 0x054 */ f32 unk54[3];
-    /* 0x060 */ f32 unk60[3];
-    /* 0x06C */ f32 unk6C[3];
-    /* 0x078 */ f32 unk78[3];
-    /* 0x084 */ f32 unk84[3];
-    /* 0x090 */ u8 unk90[3];
-    /* 0x093 */ u8 unk93[3];
-    /* 0x096 */ u8 unk96[3];
-    /* 0x099 */ u8 unk99[3];
-    /* 0x09C */ u8 unk9C[3];
-    /* 0x09F */ u8 unk9F[3];
-    /* 0x0A2 */ u8 unkA2[3];
-    /* 0x0A5 */ u8 unkA5[3];
-    /* 0x0A8 */ u8 unkA8[6][3];
-    /* 0x0BA */ u8 unkBA[8][3];
-    /* 0x0D2 */ u8 unkD2[2];
-    /* 0x0D4 */ f32 unkD4[8][3];
-    /* 0x134 */ u8 unk134[3];
-    /* 0x137 */ u8 unk137;
-    /* 0x138 */ u8 type[3];
-    /* 0x13B */ u8 unk13B[3];
-    /* 0x13E */ u8 unk13E[0x1E];
-    /* 0x15C */ u8 unk15C[3];
-    /* 0x15F */ u8 unk15F[3];
-    /* 0x162 */ u8 unk162[3];
-    /* 0x165 */ u8 unk165[0xAF];
-    /* 0x214 */ f32 unk214[3];
-} EftSuperSrc;
-
 /* ---- emitter set (parsed effect pack) ----------------------------------------------------------------------- */
 
 /* Number of group kinds a pack can hold (bit n of EftSetHead.mask = kind n present). */
@@ -267,17 +204,23 @@ typedef struct EftSetDef {
     /* 0x07 */ u8 unk7;
     /* 0x08 */ u8 phase;    /* phase that starts the part: 0, 1, 3, 4, 5 by event; 2 at the end; 6 never stopped */
     /* 0x09 */ u8 endPhase; /* event that stops it: 1, 2, 4, 5, 6 */
-    /* 0x0A */ u8 unkA;
-    /* 0x0B */ u8 unkB[5];
+    /* 0x0A */ u8 node;
+    /* 0x0B */ u8 dirMode;
+    /* 0x0C */ f32 spread;
     /* 0x10 */ f32 unk10;
     /* 0x14 */ f32 unk14;
     /* 0x18 */ f32 unk18;
     /* 0x1C */ f32 unk1C;
-    /* 0x20 */ u8 unk20[0x14];
+    /* 0x20 */ f32 scale1;
+    /* 0x24 */ f32 scale2;
+    /* 0x28 */ f32 scaleTime;
+    /* 0x2C */ f32 scaleSplit;
+    /* 0x30 */ f32 scaleStep;
     /* 0x34 */ u8 unk34;
     /* 0x35 */ u8 unk35;
     /* 0x36 */ u8 unk36;
-    /* 0x37 */ u8 unk37[9];
+    /* 0x37 */ u8 scaleMode;
+    /* 0x38 */ u8 unk38[8];
 } EftSetDef; /* size 0x40 */
 
 typedef struct EftSetGroup {
@@ -319,16 +262,24 @@ typedef struct EftSet {
         /* 0x00C */ EftSetPair pairAt[EFT_SET_PAIR + 40]; /* pairAt[EFT_SET_PAIR + n] is pair[n] */
         /* 0x00C */ s32 countAt[EFT_SET_COUNT + 4];    /* countAt[EFT_SET_COUNT + n] is count[n] */
     };
-    /* 0x31C */ void *owner;    /* EftHSlot */
-    /* 0x320 */ s32 *extra;     /* EftVolleyGroup_Init: pack entry 1 when the technique has flag 0x20000 */
-} EftSet; /* size 0x324 */
+    /* 0x31C */ EftHSlot *owner;
+} EftSet;
+
+typedef struct EftVolleyGroupWork {
+    /* 0x000 */ EftSet set;
+    /* 0x320 */ s32 *extra;
+} EftVolleyGroupWork; /* size 0x324 */
 
 /* Per-instance state of a pack's parts. */
+typedef struct EftSetHandles {
+    /* 0x00 */ void *h[40];
+} EftSetHandles;
+
 typedef struct EftSetState {
-    /* 0x000 */ void *handle[2][40]; /* task of each part, by part index */
+    /* 0x000 */ EftSetHandles handle[2]; /* task of each part, by part index */
     /* 0x140 */ u8 flag[40];         /* 2 started, 4 stopped, 0x20, 0x40, 0x80 */
     /* 0x168 */ f32 unk168[40];      /* EftSetDef.unk1C */
-    /* 0x208 */ u8 unk208[0xA0];
+    /* 0x208 */ f32 time[40];
     /* 0x2A8 */ f32 unk2A8;
     /* 0x2AC */ f32 unk2AC;
     /* 0x2B0 */ f32 unk2B0;
@@ -337,14 +288,11 @@ typedef struct EftSetState {
     /* 0x2BC */ f32 unk2BC;
     /* 0x2C0 */ f32 unk2C0;
     /* 0x2C4 */ f32 unk2C4;
-    /* 0x2C8 */ void *owner;
+    /* 0x2C8 */ EftHSlot *owner;
 } EftSetState; /* size 0x2CC */
 
 /* One half of EftSetState.handle as the spawners take it: indexing a member array (not a bare pointer) is what
    gives the original's address arithmetic. */
-typedef struct EftSetHandles {
-    /* 0x00 */ void *h[40];
-} EftSetHandles;
 
 /* Flags EftEmit_GetFlags returns for an emitter and the spawners act on (EFT_SPAWN_* in eft_i.h). */
 #define EFT_CMD_START   0x001 /* create the module's object if the emitter has none */
@@ -368,23 +316,7 @@ typedef struct Vec4Q {
 } __attribute__((aligned(16))) Vec4Q;
 
 /* Type 0 (0x17D290, 0x17D710): a light. */
-typedef struct EftEmitLightArg {
-    /* 0x00 */ Vec4Q pos;
-    /* 0x10 */ s32 color[4]; /* r, g, b, a */
-    /* 0x20 */ f32 unk20;
-    /* 0x24 */ f32 unk24;    /* scale * 100 (kind 0) or * 800 (kind 1) */
-    /* 0x28 */ f32 unk28;
-    /* 0x2C */ f32 unk2C;    /* EftSetDef.unk10 * scale */
-    /* 0x30 */ f32 unk30;    /* EftSetDef.unk14 * scale */
-    /* 0x34 */ s32 unk34;
-    /* 0x38 */ s32 unk38;    /* EftSetDef.unk3 */
-    /* 0x3C */ s32 chr;
-    /* 0x40 */ s32 unk40;
-    /* 0x44 */ s32 unk44;
-    /* 0x48 */ s32 unk48;    /* EftSetDef.unk5 */
-    /* 0x4C */ s32 unk4C;    /* EftSetDef.unk6 */
-    /* 0x50 */ s32 unk50;
-} EftEmitLightArg; /* size 0x60 */
+ /* size 0x60 */
 
 /* Type 2 (0x168600). */
 typedef struct EftEmitArg2 {

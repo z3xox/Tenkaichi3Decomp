@@ -1,4 +1,5 @@
 #include "common.h"
+#include "battle/btl_cam.h"
 #include "battle/eft_y.h"
 #include "sys/math3d.h"
 #include "sys/gfx_ot.h"
@@ -17,46 +18,40 @@ extern void *memset(void *dst, s32 c, u32 n);
 extern f32 atan2f(f32 y, f32 x);
 extern f32 Mathf_Asin(f32 x);
 extern f32 EftMath_WrapAngle(f32 angle);
-extern void Vec4_Set(EftYVec *v, f32 x, f32 y, f32 z, f32 w);
-extern void Vec4_Copy(EftYVec *dst, EftYVec *src);
-extern void Vec4_Sub(EftYVec *dst, EftYVec *a, EftYVec *b);
-extern void Vec4_Add(EftYVec *dst, EftYVec *a, EftYVec *b);
-extern void Vec4_Scale(EftYVec *dst, EftYVec *src, f32 s);
-extern void Vec3_Add(EftYVec *dst, EftYVec *a, EftYVec *b);
-extern void Vec3_Sub(EftYVec *dst, EftYVec *a, EftYVec *b);
-extern void Vec3_Scale(EftYVec *dst, EftYVec *src, f32 s);
-extern void Vec3_Cross(EftYVec *dst, EftYVec *a, EftYVec *b);
-extern void Vec3_Normalize(EftYVec *dst, EftYVec *src);
+extern void Vec4_Set(Vec4Array *v, f32 x, f32 y, f32 z, f32 w);
+extern void Vec4_Copy(Vec4Array *dst, Vec4Array *src);
+extern void Vec4_Sub(Vec4Array *dst, Vec4Array *a, Vec4Array *b);
+extern void Vec4_Add(Vec4Array *dst, Vec4Array *a, Vec4Array *b);
+extern void Vec4_Scale(Vec4Array *dst, Vec4Array *src, f32 s);
+extern void Vec3_Add(Vec4Array *dst, Vec4Array *a, Vec4Array *b);
+extern void Vec3_Sub(Vec4Array *dst, Vec4Array *a, Vec4Array *b);
+extern void Vec3_Scale(Vec4Array *dst, Vec4Array *src, f32 s);
+extern void Vec3_Cross(Vec4Array *dst, Vec4Array *a, Vec4Array *b);
+extern void Vec3_Normalize(Vec4Array *dst, Vec4Array *src);
 extern void Vu0Cur_LoadIdentity(void);                 /* VU0 current matrix = identity (inferred) */
 extern void Vu0Cur_Push(void);                 /* VU0 matrix stack: push */
 extern void Vu0Cur_Pop(void);                 /* pop */
-extern void Vu0Cur_Translate(EftYVec *v);           /* current matrix: translate */
+extern void Vu0Cur_Translate(Vec4Array *v);           /* current matrix: translate */
 extern void Vu0Cur_RotateZ(f32 angle);            /* current matrix: rotate about Z */
 extern void Vu0Cur_RotateX(f32 angle);            /* rotate about X */
 extern void Vu0Cur_RotateY(f32 angle);            /* rotate about Y */
 extern void Vu0Cur_ScaleDiagUniform(f32 scale);            /* scale */
-extern void Vu0Cur_MulVec4(EftYVec *dst, EftYVec *src); /* transform a point by the current matrix */
-extern s32 Vu0Cur_ProjectPoints(EftYScr *out, EftYVec *pos, s32 count); /* project; 0 when clipped */
-extern s32 Vu0Cur_ProjectPointsStq(EftYScr *xyz, EftYVec *stq, EftYVec *pos, EftYVec *uv, s32 n); /* project with texture */
-extern void ClipVtx_Set(EftYClipVtx *out, EftYVec *pos, EftYVec *st, EftYVec *color);
-extern void Vec3_Copy(EftYVec *dst, EftYVec *src); /* copies x, y, z */
-extern void Vec4_ToInt(EftYCol *dst, EftYVec *src); /* float vector to integer vector */
-extern void Vec4_Clamp(EftYVec *dst, EftYVec *src, f32 lo, f32 hi); /* clamps each component */
-extern void Vec3_ScaleAdd(EftYVec *dst, EftYVec *dir, EftYVec *base, f32 s); /* dst = base + dir * s */
+extern void Vu0Cur_MulVec4(Vec4Array *dst, Vec4Array *src); /* transform a point by the current matrix */
+extern s32 Vu0Cur_ProjectPoints(EftYScr *out, Vec4Array *pos, s32 count); /* project; 0 when clipped */
+extern s32 Vu0Cur_ProjectPointsStq(EftYScr *xyz, Vec4Array *stq, Vec4Array *pos, Vec4Array *uv, s32 n); /* project with texture */
+extern void ClipVtx_Set(EftYClipVtx *out, Vec4Array *pos, Vec4Array *st, Vec4Array *color);
+extern void Vec3_Copy(Vec4Array *dst, Vec4Array *src); /* copies x, y, z */
+extern void Vec4_ToInt(EftYCol *dst, Vec4Array *src); /* float vector to integer vector */
+extern void Vec4_Clamp(Vec4Array *dst, Vec4Array *src, f32 lo, f32 hi); /* clamps each component */
+extern void Vec3_ScaleAdd(Vec4Array *dst, Vec4Array *dir, Vec4Array *base, f32 s); /* dst = base + dir * s */
 extern void EftGfx_DrawPolyFixedZ(EftYClipVtx *verts, s32 layer, s32 arg2, s32 arg3, s32 front, s32 flip, u64 tex,
                                   s32 z);
 extern void EftGfx_DrawPolyScaledZ(EftYClipVtx *verts, s32 layer, s32 arg2, s32 arg3, s32 front, s32 flip, u64 tex,
                                    f32 zScale);
 extern u64 EftVram_AddImage(EftYTex *tex, s32 a, s32 b);
 extern u64 EftVram_AddClut(EftYTex *tex);
-extern EftYTask *BtlTaskList_AddTail(void *list, void *cls, void *arg);
+extern BtlTask *BtlTaskList_AddTail(void *list, void *cls, void *arg);
 extern s32 EftQuad_InitQuad(EftQuad *q, EftQuadWork *w); /* fills a new quad from the emitter's current values */
-
-typedef struct EftYCamView {
-    /* 0x000 */ u8 unk0[0x220];
-    /* 0x220 */ EftYVec pos;
-} EftYCamView;
-extern EftYCamView *gBtlCamView;
 
 #define EFTY_CLAMP(x, lo, hi) (((x) < (lo)) ? (lo) : (((hi) < (x)) ? (hi) : (x)))
 #define EFTY_CLAMP01(x) EFTY_CLAMP(x, 0.0f, 1.0f)
@@ -82,9 +77,9 @@ void EftLine_LoadTex(EftLineWork *w, EftLineArg *arg) {
 
 /* The line's animated values at one key. */
 void EftLine_SetKey(EftLineCur *out, EftLineArg *arg, s32 key) {
-    EftYVec a;
-    EftYVec b;
-    EftYVec c;
+    Vec4Array a;
+    Vec4Array b;
+    Vec4Array c;
     EftLineDef *def = arg->def;
     EftLineDef2 *def2 = arg->def2;
     s32 i;
@@ -119,10 +114,10 @@ void EftLine_SetKey(EftLineCur *out, EftLineArg *arg, s32 key) {
 
 /* The line's animated values between two keys, from the time since the animation started. */
 void EftLine_Animate(EftLineWork *w) {
-    EftYVec d;
-    EftYVec a;
-    EftYVec b;
-    EftYVec c;
+    Vec4Array d;
+    Vec4Array a;
+    Vec4Array b;
+    Vec4Array c;
     EftLineCur *out = &w->cur;
     EftLineDef *def = w->arg.def;
     EftLineDef2 *def2 = w->arg.def2;
@@ -188,23 +183,16 @@ void EftLine_Animate(EftLineWork *w) {
 
 /* Draws the line as one order table strip: a quad from pos -/+ side * width to the same two points + dir *
    length, where side is perpendicular to dir and to the direction to the camera. */
-/* NON-MATCHING: 26 of 340 instructions differ, one cause: the original fills the delay slot of the branch after
-   Vu0Cur_ProjectPoints with the first instruction of the epilogue (ld s0) and this C with the following load of gOtCur, which
-   shifts the 25 instructions up to the next alignment nop by one. Same instructions otherwise.
-   Cleanup E: the delay-slot pass tries the fall-through first for a forward `beqz` and takes `lw s0,gOtCur`; the
-   original took the target's first instruction and retargeted the branch (the second branch still goes to the
-   unshifted label), so there the fall-through was not usable: a label directly behind the branch, or s0 live at the
-   target. Early return, goto, an inverted test, do-while around the body, the tail stores duplicated in the
-   three depth arms and an empty do-while in front of the end label all compile to the same 26. */
-#if 0
-void EftLine_DrawSprite(EftYTask *task) {
-    EftYVec p[4];
-    EftYVecU st[4];
-    EftYVec stq[4];
-    EftYVec cam;
-    EftYVec side;
-    EftYVec ofs;
-    EftYVec len;
+
+
+void EftLine_DrawSprite(BtlTask *task) {
+    Vec4Array p[4];
+    Vec4 st[4];
+    Vec4Array stq[4];
+    Vec4Array cam;
+    Vec4Array side;
+    Vec4Array ofs;
+    Vec4Array len;
     EftYScr scr[4];
     EftYCol col;
     EftLineDef *def;
@@ -214,6 +202,7 @@ void EftLine_DrawSprite(EftYTask *task) {
     s32 i;
     s32 z;
     s32 layer;
+    s32 visible;
 
     def = w->arg.def;
     Vec4_Copy(&cam, &gBtlCamView->pos);
@@ -226,7 +215,8 @@ void EftLine_DrawSprite(EftYTask *task) {
     Vec3_Scale(&len, &w->arg.dir, w->length);
     Vec3_Add(&p[2], &p[0], &len);
     Vec3_Add(&p[3], &p[1], &len);
-    if (Vu0Cur_ProjectPoints(scr, p, 4)) {
+    visible = Vu0Cur_ProjectPoints(scr, p, 4) != 0;
+    if (visible) {
         pk = (EftYStripPkt *)gOtCur;
         gOtCur = (u32 *)(pk + 1);
         if (pk != NULL) {
@@ -254,7 +244,7 @@ void EftLine_DrawSprite(EftYTask *task) {
                 st[i].y = (i / 2) * w->dv + w->v0;
                 st[i].z = 1.0f;
                 st[i].w = 0.0f;
-                Vec3_Scale(&stq[i], (EftYVec *)&st[i], rhw);
+                Vec3_Scale(&stq[i], (Vec4Array *)&st[i], rhw);
             }
             if (w->flags & 0x20) {
                 for (i = 3; i >= 0; i--) {
@@ -324,19 +314,16 @@ void EftLine_DrawSprite(EftYTask *task) {
         }
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/battle/eft_z", EftLine_DrawSprite);
-#endif
 
 /* Draws the same quad as two triangles through the clipping polygon drawer, at the depth slot of the unclipped
    projection. */
-void EftLine_DrawClipped(EftYTask *task) {
-    EftYVec p[4];
-    EftYVecU st[4];
-    EftYVec cam;
-    EftYVec side;
-    EftYVec ofs;
-    EftYVec len;
+void EftLine_DrawClipped(BtlTask *task) {
+    Vec4Array p[4];
+    Vec4 st[4];
+    Vec4Array cam;
+    Vec4Array side;
+    Vec4Array ofs;
+    Vec4Array len;
     EftYScr scr[4];
     EftYClipVtx v[9];
     EftLineDef *def;
@@ -366,9 +353,9 @@ void EftLine_DrawClipped(EftYTask *task) {
     Vu0Cur_ProjectPoints(scr, p, 4);
     z = (scr[0].z + scr[1].z + scr[2].z + scr[3].z) >> 10;
     for (i = 0; i < 2; i++) {
-        ClipVtx_Set(&v[0], &p[i], (EftYVec *)&st[i], &w->color);
-        ClipVtx_Set(&v[1], &p[i + 1], (EftYVec *)&st[i + 1], &w->color);
-        ClipVtx_Set(&v[2], &p[i + 2], (EftYVec *)&st[i + 2], &w->color);
+        ClipVtx_Set(&v[0], &p[i], (Vec4Array *)&st[i], &w->color);
+        ClipVtx_Set(&v[1], &p[i + 1], (Vec4Array *)&st[i + 1], &w->color);
+        ClipVtx_Set(&v[2], &p[i + 2], (Vec4Array *)&st[i + 2], &w->color);
         EftGfx_DrawPolyFixedZ(v, def->layer, 0, 0, (w->flags >> 5) & 1, 0, w->gsTex0, z);
     }
 }
@@ -413,7 +400,6 @@ void EftLine_DrawClipped(EftYTask *task) {
 #undef EftLine_Animate
 #undef EftLine_DrawSprite
 #undef EftLine_DrawClipped
-#define gBtlCamView ((EftZView *)gBtlCamView)
 #define Vec4_Set ((void (*)(Vec4 *dst, f32 x, f32 y, f32 z, f32 w))Vec4_Set)
 #define Vec4_Copy ((void (*)(Vec4 *dst, Vec4 *src))Vec4_Copy)
 #define Vec3_Copy ((void (*)(Vec4 *dst, Vec4 *src))Vec3_Copy)

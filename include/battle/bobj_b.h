@@ -216,7 +216,6 @@ typedef struct BObjLink {
     /* 0x34 */ f32 swing[3];   /* (v) swing phases, advanced by BtlObj_ChaosRand */
 } BObjLink; /* size 0x40 */
 
-
 /* The two link tables (object + 0x1010 and + 0x1420). */
 typedef struct BObjChainA {
     /* 0x000 */ BObjLink links[BOBJ_CHAIN_A_MAX];
@@ -250,7 +249,7 @@ typedef struct BObjMdl {
     /* 0x098 */ void *unk98[1];         /* (v) entries 0x29..0x2B run from here ... */
     /* 0x09C */ void *common9C;         /* (v) ... but BtlObj_BindCommonTables then stores common entry 12 here */
     /* 0x0A0 */ void *unkA0;
-    /* 0x0A4 */ void *unkA4;            /* (v) entry 0x2D + gProgress->unk00 */
+    /* 0x0A4 */ void *unkA4;            /* (v) entry 0x2D + gProgress->unk0 */
     /* 0x0A8 */ void *anims[0x19E];     /* (v) animation file 1, entries 1..0x19E (object + 0xC0) */
     /* 0x720 */ void *unk720[8];        /* (v) entries 0x1D..0x24 */
     /* 0x740 */ BObjLipData *lip[100];  /* (v) entries 0x35.. (0x99.. for the second voice language) */

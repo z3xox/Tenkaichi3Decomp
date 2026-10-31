@@ -2,6 +2,7 @@
 #define MENU_MENU_I_H
 
 #include "menu/menu_a.h"
+#include "sys/save.h"
 
 /*
  * Menu overlay DBZP.BIN, 0x35A558..0x35F650 (placeholder stem "menu_i"). Four pieces:
@@ -20,11 +21,11 @@
 extern void MsgWin_SetText(void *text);
 extern void MsgWin_SetBoxParam(s32 a, s32 b);
 extern void IconWin_SetIcon(s32 icon);
-extern void TextBox_Init(MTextBox *box, void *text, u32 preset);
-extern void TextBox_SetUnk80(MTextBox *box, s32 value);
-extern void TextBox_SetUnkC(MTextBox *box, s32 a, s32 b);
-extern void TextBox_SetMaxSize(MTextBox *box, s32 w, s32 h);
-extern void TextBox_SetLineOffsets(MTextBox *box, s32 a, s32 b, s32 c, s32 d, s32 e);
+extern void TextBox_Init(TextBox *box, void *text, u32 preset);
+extern void TextBox_SetUnk80(TextBox *box, s32 value);
+extern void TextBox_SetUnkC(TextBox *box, s32 a, s32 b);
+extern void TextBox_SetMaxSize(TextBox *box, s32 w, s32 h);
+extern void TextBox_SetLineOffsets(TextBox *box, s32 a, s32 b, s32 c, s32 d, s32 e);
 extern void FontIcon_SetPadType(s32 type);
 extern void FontIcon_ResetAnim(void);
 extern void Battle_ClearWork(void);
@@ -107,11 +108,11 @@ typedef struct TrainGuide {
 typedef struct Train {
     /* 0x0000 */ u32 *pack;            /* this screen's section of archive 6 (compressed) */
     /* 0x0004 */ u32 *res;             /* the same unpacked */
-    /* 0x0008 */ MFlash flash[TRAIN_FLASH_NUM];
+    /* 0x0008 */ Flash flash[TRAIN_FLASH_NUM];
     /* 0x0034 */ void *bg;             /* section 2: background picture */
     /* 0x0038 */ u8 *tex[48];          /* [9] the explanation picture */
     /* 0x00F8 */ TrainGuide guide;
-    /* 0x0110 */ MTextBox box[5];      /* the lesson names: three rows and two scrolling in or out */
+    /* 0x0110 */ TextBox box[5];      /* the lesson names: three rows and two scrolling in or out */
     /* 0x03CC */ u8 unk3CC[0x3C];      /* passed to MsgWin_Init, which ignores it */
     /* 0x0408 */ s32 pose[2];          /* per guide: which of two pictures */
     /* 0x0410 */ void *msgText[2];     /* sections 14 (top menu), 15 (class and lesson menus) */
@@ -120,7 +121,7 @@ typedef struct Train {
     /* 0x0420 */ void *text;           /* section 16: the lesson names; also shown for line 0x28 */
     /* 0x0424 */ f32 cloud;            /* scroll position of the background clouds */
     /* 0x0428 */ void *imageFile;      /* 0xE000 bytes: compressed explanation picture */
-    /* 0x042C */ MTexRes *imageRes;    /* 0x10800 bytes: the same unpacked */
+    /* 0x042C */ FlashTexRes *imageRes;    /* 0x10800 bytes: the same unpacked */
     /* 0x0430 */ void *unk430;         /* 0x10800 bytes, allocated and freed only */
     /* 0x0434 */ void *pageText;       /* section 17: text of the explanation pages */
     /* 0x0438 */ s32 result;           /* Train_Run's result: 0 back, 1 battle or tutorial, 0x2D character select */
@@ -137,11 +138,7 @@ typedef struct Train {
     /* 0x0470 */ s32 idle;             /* frames without input */
     /* 0x0474 */ f32 imageAlpha;
     /* 0x0478 */ s32 flags;            /* TRAIN_ */
-    /* 0x047C */ s32 pages[TRAIN_CLASS_NUM][TRAIN_LESSON_MAX][TRAIN_PAGE_MAX]; /* page ids of each listed lesson */
-    /* 0x1994 */ s32 nameLine[TRAIN_CLASS_NUM][TRAIN_LESSON_MAX];  /* TrainLesson.id: text line of the name */
-    /* 0x1A48 */ s32 voiceTbl[TRAIN_CLASS_NUM][TRAIN_LESSON_MAX];  /* TrainLesson.voice: subtitle line */
-    /* 0x1AFC */ s32 pageCount[TRAIN_CLASS_NUM][TRAIN_LESSON_MAX]; /* pages listed */
-    /* 0x1BB0 */ s32 count[TRAIN_CLASS_NUM];                       /* lessons listed per class */
+    /* 0x047C */ TrainLists lists; /* generated lesson/page tables */
     /* 0x1BBC */ TrainTbl tbl;
     /* 0x1BD0 */ s32 clipX;
     /* 0x1BD4 */ s32 clipY;
@@ -194,8 +191,6 @@ typedef struct MSaveTrain {
     /* 0xE0C */ s32 trainClear[TRAIN_CLASS_NUM];
 } MSaveTrain;
 
-struct SaveData;
-extern struct SaveData *gSaveData; /* include/sys/save.h */
 #define gSaveTrain ((MSaveTrain *)gSaveData)
 
 extern Train *gTrain; /* 0x3B4BA8 */

@@ -35,18 +35,16 @@ extern void Font_SetSpacing(s32 x, s32 y);
 extern const u16 *UiText_TranslateLine(const u32 *table, int line, const u16 *original);
 #endif
 
-#define TB(box) ((TextBoxFull *)(box))
-
 /* A line wider than `w` is shrunk horizontally to fit. */
 void TextBox_SetMaxWidth(TextBox *box, s32 w) {
-    TB(box)->maxW = w;
-    TB(box)->flags |= TEXTBOX_FLAG_MAX_W;
+    box->maxW = w;
+    box->flags |= TEXTBOX_FLAG_MAX_W;
 }
 
 /* A text taller than `h` is shrunk vertically to fit. */
 void TextBox_SetMaxHeight(TextBox *box, s32 h) {
-    TB(box)->maxH = h;
-    TB(box)->flags |= TEXTBOX_FLAG_MAX_H;
+    box->maxH = h;
+    box->flags |= TEXTBOX_FLAG_MAX_H;
 }
 
 /* Both limits. `unused` is not looked at. */
@@ -57,63 +55,43 @@ void TextBox_SetMaxSize(TextBox *box, s32 w, s32 h) {
 
 /* Extra y offset for a text of one, two, three, four and five rows (to centre it in its window). */
 void TextBox_SetLineOffsets(TextBox *box, s32 y1, s32 y2, s32 y3, s32 y4, s32 y5) {
-    TB(box)->flags |= TEXTBOX_FLAG_LINE_Y;
-    TB(box)->lineY[0] = y1;
-    TB(box)->lineY[1] = y2;
-    TB(box)->lineY[2] = y3;
-    TB(box)->lineY[3] = y4;
-    TB(box)->lineY[4] = y5;
+    box->flags |= TEXTBOX_FLAG_LINE_Y;
+    box->lineY[0] = y1;
+    box->lineY[1] = y2;
+    box->lineY[2] = y3;
+    box->lineY[3] = y4;
+    box->lineY[4] = y5;
 }
 
 /* Character and line spacing. */
 void TextBox_SetSpacing(TextBox *box, s32 x, s32 y) {
-    TB(box)->flags |= TEXTBOX_FLAG_SPACING;
-    TB(box)->spacingX = x;
-    TB(box)->spacingY = y;
+    box->flags |= TEXTBOX_FLAG_SPACING;
+    box->spacingX = x;
+    box->spacingY = y;
 }
 
-/* The clip callback: moves the text by the clip's position, tints text and shadow with the clip's colour
-   transform, and prints the string unless it has become fully transparent.
 
-   NOT MATCHING: kept as INCLUDE_ASM. The attempt below is behaviourally exact. It differs in how the clamped
-   component reaches its store: the original copies it with `move v1,v0` (seven times; the eighth needs no
-   copy), this C narrows it with `andi v1,v0,0xff` (eight times, so the function is one instruction longer).
-   An `s32` helper gives the plain copy but then the compiler turns the outer test into a branch around, or
-   stores in both arms; some 40 shapes of the clamp were tried. Everything else is identical. */
-/* Second cleanup pass: on this compiler `move` is also what an int-to-long sign extension compiles to
-   (`(s64)u0 << 4` in BtlText_PutSprite), and a helper returning s64 / long does give a move in the arm
-   (`move v0,v0`), but the narrowing then moves to the join (`andi v0,v0,0xff` in front of the `sb`): 48
-   differences. A `u8` result local in a macro is promoted to a full register and has its zero hoisted in front
-   of the branch (204 instructions). So the original copy is most likely a plain copy between two int
-   registers that the allocator could not merge (the next statement's `lbu` already sits in v0 at the join),
-   in a shape where the compiler does not hoist the `= 0` arm; not found (15 more shapes tried here).
-   Cleanup 4: twelve more shapes (nested ternaries on an `s32` temporary, `r = 0xFF; if (t < 0x100) r = t;` in
-   a block or in an `s32` inline helper, min / max macros, a helper taking `u8 *`): 62 to 130 differences, all
-   because the `< 0` test then becomes straight-line code or the zero is hoisted. The `u8` helper below stays
-   the closest form. */
-#if 0
+
 /* Clamps a colour component to a byte. */
-static inline u8 TextBox_ClampByte(s32 c) {
-    return c < 0 ? 0 : (c > 0xFF ? 0xFF : c);
-}
+#define TB_CLAMP(x, lo, hi) ((x) < (lo) ? (lo) : ((x) > (hi) ? (hi) : (x)))
 
 /* A colour component after a clip's colour transform. */
-#define TB_TINT(c, mul, add) (c) = TextBox_ClampByte((s32)((f32)(c) * (mul)) + (add))
+#define TB_TINT(c, mul, add) (c) = TB_CLAMP((s32)((f32)(c) * (mul)) + (add), 0, 0xFF)
 
-s32 TextBox_DrawClip(TextBoxDraw *draw, TextBoxClipProp *prop) {
+s32 TextBox_DrawClip(TextBoxDraw *draw, FlashProp *prop) {
     u32 shadow;
 
     if (prop != NULL) {
-        draw->x = (f32)draw->x + prop->x;
-        draw->y = (f32)draw->y + prop->y;
-        TB_TINT(draw->color[0], prop->mul[0], prop->add[0]);
-        TB_TINT(draw->color[1], prop->mul[1], prop->add[1]);
-        TB_TINT(draw->color[2], prop->mul[2], prop->add[2]);
-        TB_TINT(draw->color[3], prop->mul[3], prop->add[3]);
-        TB_TINT(draw->shadow[0], prop->mul[0], prop->add[0]);
-        TB_TINT(draw->shadow[1], prop->mul[1], prop->add[1]);
-        TB_TINT(draw->shadow[2], prop->mul[2], prop->add[2]);
-        TB_TINT(draw->shadow[3], prop->mul[3], prop->add[3]);
+        draw->x = (f32)draw->x + prop->mtx.m[2];
+        draw->y = (f32)draw->y + prop->mtx.m[5];
+        TB_TINT(draw->color[0], prop->cx.mul[0], prop->cx.add[0]);
+        TB_TINT(draw->color[1], prop->cx.mul[1], prop->cx.add[1]);
+        TB_TINT(draw->color[2], prop->cx.mul[2], prop->cx.add[2]);
+        TB_TINT(draw->color[3], prop->cx.mul[3], prop->cx.add[3]);
+        TB_TINT(draw->shadow[0], prop->cx.mul[0], prop->cx.add[0]);
+        TB_TINT(draw->shadow[1], prop->cx.mul[1], prop->cx.add[1]);
+        TB_TINT(draw->shadow[2], prop->cx.mul[2], prop->cx.add[2]);
+        TB_TINT(draw->shadow[3], prop->cx.mul[3], prop->cx.add[3]);
     }
     if (draw->color[3] != 0) {
         shadow = (draw->shadow[0] | (draw->shadow[2] << 16)) | ((draw->shadow[3] << 24) | (draw->shadow[1] << 8));
@@ -134,9 +112,6 @@ s32 TextBox_DrawClip(TextBoxDraw *draw, TextBoxClipProp *prop) {
         }
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/battle/view_b", TextBox_DrawClip);
-#endif
 
 /* Fills box->draw for one string and hangs it on a clip. */
 #define TB_ATTACH(flash, ref, x, y, str, box) \
@@ -144,91 +119,91 @@ INCLUDE_ASM("asm/nonmatchings/battle/view_b", TextBox_DrawClip);
     ofs[0] = 0; \
     alpha = Flash_ClipGetAlpha(flash, ref); \
     TB_ATTACH_STR(str, box) \
-    if (TB(box)->flags & TEXTBOX_FLAG_MAX_W) { \
+    if (box->flags & TEXTBOX_FLAG_MAX_W) { \
         size = Font_GetWidth(str); \
-        if (TB(box)->maxW < size) { \
-            scale[0] = (f32)TB(box)->maxW / (f32)size; \
+        if (box->maxW < size) { \
+            scale[0] = (f32)box->maxW / (f32)size; \
         } else { \
             scale[0] = 1.0f; \
         } \
     } else { \
         scale[0] = 1.0f; \
     } \
-    if (TB(box)->flags & TEXTBOX_FLAG_MAX_H) { \
+    if (box->flags & TEXTBOX_FLAG_MAX_H) { \
         size = Font_GetHeight(str); \
-        if (TB(box)->maxH < size) { \
-            scale[1] = (f32)TB(box)->maxH / (f32)size; \
+        if (box->maxH < size) { \
+            scale[1] = (f32)box->maxH / (f32)size; \
         } else { \
             scale[1] = 1.0f; \
         } \
     } else { \
         scale[1] = 1.0f; \
     } \
-    if (TB(box)->flags & TEXTBOX_FLAG_LINE_Y) { \
+    if (box->flags & TEXTBOX_FLAG_LINE_Y) { \
         switch (Font_CountLines(str)) { \
         case 1: \
-            ofs[1] += TB(box)->lineY[0]; \
+            ofs[1] += box->lineY[0]; \
             break; \
         case 2: \
-            ofs[1] += TB(box)->lineY[1]; \
+            ofs[1] += box->lineY[1]; \
             break; \
         case 3: \
-            ofs[1] += TB(box)->lineY[2]; \
+            ofs[1] += box->lineY[2]; \
             break; \
         case 4: \
-            ofs[1] += TB(box)->lineY[3]; \
+            ofs[1] += box->lineY[3]; \
             break; \
         case 5: \
-            ofs[1] += TB(box)->lineY[4]; \
+            ofs[1] += box->lineY[4]; \
             break; \
         } \
     } \
-    TB(box)->draw.x = ofs[0] + TB(box)->x + x; \
-    TB(box)->draw.y = ofs[1] + TB(box)->y + y; \
-    TB(box)->draw.scaleX = scale[0]; \
-    TB(box)->draw.scaleY = scale[1]; \
-    if (TB(box)->flags & TEXTBOX_FLAG_COLOR) { \
-        TB(box)->draw.color[0] = TB(box)->color[0]; \
-        TB(box)->draw.color[1] = TB(box)->color[1]; \
-        TB(box)->draw.color[2] = TB(box)->color[2]; \
-        TB(box)->draw.color[3] = (u32)(TB(box)->color[3] * alpha); \
+    box->draw.x = ofs[0] + box->x + x; \
+    box->draw.y = ofs[1] + box->y + y; \
+    box->draw.scaleX = scale[0]; \
+    box->draw.scaleY = scale[1]; \
+    if (box->flags & TEXTBOX_FLAG_COLOR) { \
+        box->draw.color[0] = box->color[0]; \
+        box->draw.color[1] = box->color[1]; \
+        box->draw.color[2] = box->color[2]; \
+        box->draw.color[3] = (u32)(box->color[3] * alpha); \
     } else { \
-        TB(box)->draw.color[0] = 0xFF; \
-        TB(box)->draw.color[1] = 0xFF; \
-        TB(box)->draw.color[2] = 0xFF; \
-        TB(box)->draw.color[3] = (u32)(alpha * 128.0f); \
+        box->draw.color[0] = 0xFF; \
+        box->draw.color[1] = 0xFF; \
+        box->draw.color[2] = 0xFF; \
+        box->draw.color[3] = (u32)(alpha * 128.0f); \
     } \
-    if (TB(box)->flags & TEXTBOX_FLAG_COLOR2) { \
-        TB(box)->draw.shadow[0] = TB(box)->shadow[0]; \
-        TB(box)->draw.shadow[1] = TB(box)->shadow[1]; \
-        TB(box)->draw.shadow[2] = TB(box)->shadow[2]; \
-        TB(box)->draw.shadow[3] = (u32)(TB(box)->shadow[3] * alpha); \
+    if (box->flags & TEXTBOX_FLAG_COLOR2) { \
+        box->draw.shadow[0] = box->shadow[0]; \
+        box->draw.shadow[1] = box->shadow[1]; \
+        box->draw.shadow[2] = box->shadow[2]; \
+        box->draw.shadow[3] = (u32)(box->shadow[3] * alpha); \
     } else { \
-        TB(box)->draw.shadow[0] = 0x20; \
-        TB(box)->draw.shadow[1] = 0x20; \
-        TB(box)->draw.shadow[2] = 0x20; \
-        TB(box)->draw.shadow[3] = (u32)(alpha * 64.0f); \
+        box->draw.shadow[0] = 0x20; \
+        box->draw.shadow[1] = 0x20; \
+        box->draw.shadow[2] = 0x20; \
+        box->draw.shadow[3] = (u32)(alpha * 64.0f); \
     } \
-    if (TB(box)->flags & TEXTBOX_FLAG_RECT) { \
-        TB(box)->draw.clip[0] = TB(box)->clip[0]; \
-        TB(box)->draw.clip[1] = TB(box)->clip[1]; \
-        TB(box)->draw.clip[2] = TB(box)->clip[2]; \
-        TB(box)->draw.clip[3] = TB(box)->clip[3]; \
+    if (box->flags & TEXTBOX_FLAG_RECT) { \
+        box->draw.clip[0] = box->clip[0]; \
+        box->draw.clip[1] = box->clip[1]; \
+        box->draw.clip[2] = box->clip[2]; \
+        box->draw.clip[3] = box->clip[3]; \
     } else { \
-        TB(box)->draw.clip[2] = 0x1FF; \
-        TB(box)->draw.clip[3] = 0x1BF; \
-        TB(box)->draw.clip[0] = 0; \
-        TB(box)->draw.clip[1] = 0; \
+        box->draw.clip[2] = 0x1FF; \
+        box->draw.clip[3] = 0x1BF; \
+        box->draw.clip[0] = 0; \
+        box->draw.clip[1] = 0; \
     } \
-    if (TB(box)->flags & TEXTBOX_FLAG_SPACING) { \
-        TB(box)->draw.spacingX = TB(box)->spacingX; \
-        TB(box)->draw.spacingY = TB(box)->spacingY; \
+    if (box->flags & TEXTBOX_FLAG_SPACING) { \
+        box->draw.spacingX = box->spacingX; \
+        box->draw.spacingY = box->spacingY; \
     } else { \
-        TB(box)->draw.spacingX = 0; \
-        TB(box)->draw.spacingY = 0; \
+        box->draw.spacingX = 0; \
+        box->draw.spacingY = 0; \
     } \
-    TB(box)->draw.str = str; \
-    Flash_ClipSetCallbackC(flash, ref, TextBox_DrawClip, &TB(box)->draw)
+    box->draw.str = str; \
+    Flash_ClipSetCallbackC(flash, ref, TextBox_DrawClip, &box->draw)
 
 /* Shows line `line` of the box's text file on a clip, at (x, y) from the clip's position. A negative line or
    a missing clip takes the text off the clip. */
@@ -239,15 +214,15 @@ void TextBox_AttachLine(Flash *flash, FlashRef *ref, s32 x, s32 y, s32 line, Tex
     f32 alpha;
     u16 *str;
 
-    if (line < 0 || ref->id < 0) {
+    if (line < 0 || ref->index < 0) {
         Flash_ClipSetCallbackC(flash, ref, NULL, NULL);
         return;
     }
 #ifdef PORT
-#define TB_ATTACH_STR(str, box) str = (u16 *)((u8 *)TB(box)->text + ((((u32 *)TB(box)->text)[line + 1] >> 2) << 2)); \
-    str = (u16 *)UiText_TranslateLine((const u32 *)TB(box)->text, line, str);
+#define TB_ATTACH_STR(str, box) str = (u16 *)((u8 *)box->text + ((((u32 *)box->text)[line + 1] >> 2) << 2)); \
+    str = (u16 *)UiText_TranslateLine((const u32 *)box->text, line, str);
 #else
-#define TB_ATTACH_STR(str, box) str = (u16 *)((u8 *)TB(box)->text + ((((u32 *)TB(box)->text)[line + 1] >> 2) << 2));
+#define TB_ATTACH_STR(str, box) str = (u16 *)((u8 *)box->text + ((((u32 *)box->text)[line + 1] >> 2) << 2));
 #endif
     TB_ATTACH(flash, ref, x, y, str, box);
 #undef TB_ATTACH_STR
@@ -260,7 +235,7 @@ void TextBox_AttachString(Flash *flash, FlashRef *ref, s32 x, s32 y, u16 *str, T
     f32 scale[2];
     f32 alpha;
 
-    if (ref->id < 0) {
+    if (ref->index < 0) {
         Flash_ClipSetCallbackC(flash, ref, NULL, NULL);
         return;
     }

@@ -1,4 +1,5 @@
 #include "common.h"
+#include "battle/btl_cam.h"
 #include "battle/battle.h"
 #include "sys/dma.h"
 #include "sys/gfx.h"
@@ -94,15 +95,6 @@ extern void Vu1Pkt_LoadProg6(void *view, Mtx44 *mtx, Vec4 *vec);
 extern void ObjDraw_DrawPartsFlat(ObjMdlObj *obj);
 
 void MdlTex_RebaseChain(s32 single, void *chain, s32 tbp, s32 cbp, s32 tbp2, s32 cbp2, u32 minTbp, u32 minCbp);
-
-/* The battle view as ObjShadow_Draw reads it: its scissor rectangle. */
-typedef struct ObjShadowCam {
-    /* 0x000 */ u8 unk000[0x200];
-    /* 0x200 */ s32 x0;
-    /* 0x204 */ s32 x1;
-    /* 0x208 */ s32 y0;
-    /* 0x20C */ s32 y1;
-} ObjShadowCam;
 
 /* Four floats, 8-byte aligned: constant initialisers of this type are copied with ld / sd. */
 typedef struct ObjVec8 {
@@ -737,7 +729,7 @@ void ObjShadow_BeginRender(ObjMdlObj *obj) {
 }
 
 /* Second shadow pass: draws the collected ground triangles in the view, textured with the shadow page. */
-void ObjShadow_Draw(ObjMdlObj *obj, ObjShadowCam *view) {
+void ObjShadow_Draw(ObjMdlObj *obj, View *view) {
     Vec4 color;
 
     if (ObjShadow_IsEnabled(obj)) {
@@ -748,7 +740,7 @@ void ObjShadow_Draw(ObjMdlObj *obj, ObjShadowCam *view) {
             if (sh->count >= OBJ_SHADOW_PKT_TRIS) {
                 sh->count = OBJ_SHADOW_PKT_TRIS - 1;
             }
-            Dma_AddScissor(view->x0, view->x1, view->y0, view->y1);
+            Dma_AddScissor(view->scissorX0, view->scissorX1, view->scissorY0, view->scissorY1);
             ObjGs_AddDefaultEnv();
             BtlObjLight_GetColor(&color);
             color.w *= sh->alpha;

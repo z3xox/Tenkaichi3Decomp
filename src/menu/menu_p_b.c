@@ -19,7 +19,7 @@ MisResult *gMisResult = NULL;
 #define MR gMisResult
 
 #define MR_RES(n) \
-    res = (MTexRes *)MPACK_AT(MR->res, n); \
+    res = (FlashTexRes *)MPACK_AT(MR->res, n); \
     Res_RelocateOffsets(&res, res, res)
 
 #define MR_SET_UV(parent, clip) \
@@ -61,7 +61,7 @@ void MisResult_ClipScissorOff(void) {
 
 /* Loads the screen (section `section` of archive 3), works the score out and records the mission as cleared. */
 void MisResult_Init(s32 section) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
     s32 i;
     s32 total;
 
@@ -196,10 +196,10 @@ void MisResult_Term(void) {
 
 /* Draws the screen. */
 void MisResult_Draw(void) {
-    MFlashRef ref;
-    MFlashUv uv;
+    FlashRef ref;
+    FlashUv uv;
     char name[64];
-    MFlash *flash;
+    Flash *flash;
     s32 i;
     s32 mission;
 
@@ -220,27 +220,27 @@ void MisResult_Draw(void) {
     mission = P_PROG->misRank * MISSEL_ROWS + P_PROG->misRow;
     Flash_FindLabel(flash, "mc_window_plate01", "mc_window_text1_0", &ref);
     TextBox_AttachLine(flash, &ref, 0, 0, mission + 0xD8, &MR->box[3]);
-    uv.x0 = 0;
-    uv.y0 = 0x40;
-    uv.x1 = 0x200;
-    uv.y1 = 0x80;
+    uv.u0 = 0;
+    uv.v0 = 0x40;
+    uv.u1 = 0x200;
+    uv.v1 = 0x80;
     MR_SET_UV(NULL, "mc_win_text02");
     MR_SET_UV(NULL, "mc_win_text03");
     /* page arrows */
-    uv.x0 = 0;
-    uv.y0 = 0x20;
-    uv.x1 = 0x20;
-    uv.y1 = 0x40;
+    uv.u0 = 0;
+    uv.v0 = 0x20;
+    uv.u1 = 0x20;
+    uv.v1 = 0x40;
     MR_SET_UV(NULL, "mc_yajirusi_icon_up");
     if (MR->page == 0) {
         Flash_ClipSetFlags(flash, &ref, 2, 0);
     } else {
         Flash_ClipSetFlags(flash, &ref, 2, 1);
     }
-    uv.x0 = 0x20;
-    uv.y0 = 0x20;
-    uv.x1 = 0x40;
-    uv.y1 = 0x40;
+    uv.u0 = 0x20;
+    uv.v0 = 0x20;
+    uv.u1 = 0x40;
+    uv.v1 = 0x40;
     MR_SET_UV(NULL, "mc_yajirusi_icon_down");
     if (MR->score.bonusCount != 0 && MR->page < MR->pages) {
         Flash_ClipSetFlags(flash, &ref, 2, 1);
@@ -270,10 +270,10 @@ void MisResult_Draw(void) {
     }
     /* the captions of lines 2..4 */
     for (i = 1; i < 4; i++) {
-        uv.x0 = 0;
-        uv.y0 = i << 5;
-        uv.x1 = 0x100;
-        uv.y1 = uv.y0 + 0x20;
+        uv.u0 = 0;
+        uv.v0 = i << 5;
+        uv.u1 = 0x100;
+        uv.v1 = uv.v0 + 0x20;
         sprintf(name, "mc_point_plate%02d", i + 1);
         MR_SET_UV(name, "mc_bonus_text");
         Flash_FindLabel(flash, name, "mc_pt_percent", &ref);
@@ -282,41 +282,41 @@ void MisResult_Draw(void) {
     Num_Draw(flash, "mc_time_suji%02d", 4, 2, MR->score.clock.hours, 0x20, 0x20, 1);
     Num_Draw(flash, "mc_time_suji%02d", 2, 2, MR->score.clock.minutes, 0x20, 0x20, 1);
     Num_Draw(flash, "mc_time_suji%02d", 0, 2, MR->score.clock.seconds, 0x20, 0x20, 1);
-    uv.x0 = 0;
-    uv.y0 = 0x80;
-    uv.x1 = 0x100;
-    uv.y1 = 0xA0;
+    uv.u0 = 0;
+    uv.v0 = 0x80;
+    uv.u1 = 0x100;
+    uv.v1 = 0xA0;
     MR_SET_UV(NULL, "mc_bonus_title");
-    uv.x0 = 0;
-    uv.y0 = 0x80;
-    uv.x1 = 0x200;
-    uv.y1 = 0xC0;
+    uv.u0 = 0;
+    uv.v0 = 0x80;
+    uv.u1 = 0x200;
+    uv.v1 = 0xC0;
     MR_SET_UV(NULL, "mc_win_text04");
     Num_Draw(flash, "mc_henkan_suji%02d", 0, 6, MR->score.convert, 0x20, 0x20, 0);
-    uv.x0 = 0;
-    uv.y0 = 0x40;
-    uv.x1 = 0x100;
-    uv.y1 = 0x60;
+    uv.u0 = 0;
+    uv.v0 = 0x40;
+    uv.u1 = 0x100;
+    uv.v1 = 0x60;
     MR_SET_UV(NULL, "mc_time_text03");
     Num_Draw(flash, "mc_zpoint_suji%02d", 0, 9, P_SAVE->money, 0x20, 0x20, 0);
-    uv.x0 = 0;
-    uv.y0 = 0x20;
-    uv.x1 = 0x100;
-    uv.y1 = 0x40;
+    uv.u0 = 0;
+    uv.v0 = 0x20;
+    uv.u1 = 0x100;
+    uv.v1 = 0x40;
     MR_SET_UV(NULL, "mc_time_text02");
     Num_Draw(flash, "mc_score_suji%02d", 0, 9, MR->score.total * 100, 0x20, 0x20, 0);
     /* rank letter */
-    uv.x0 = MR->score.rank << 6;
-    uv.y0 = 0;
-    uv.x1 = uv.x0 + 0x40;
-    uv.y1 = 0x40;
+    uv.u0 = MR->score.rank << 6;
+    uv.v0 = 0;
+    uv.u1 = uv.u0 + 0x40;
+    uv.v1 = 0x40;
     MR_SET_UV(NULL, "mc_rankmoji_anime");
     Flash_FindLabel(flash, NULL, "mc_newrecord_text", &ref);
     if (MR->newRecord) {
-        uv.x0 = 0;
-        uv.y0 = 0x40;
-        uv.x1 = 0x100;
-        uv.y1 = 0x80;
+        uv.u0 = 0;
+        uv.v0 = 0x40;
+        uv.u1 = 0x100;
+        uv.v1 = 0x80;
         Flash_ClipSetUv(flash, &ref, &uv);
         Flash_ClipSetFlags(flash, &ref, 2, 1);
     } else {
@@ -381,8 +381,8 @@ void MisResult_Draw(void) {
 
 /* Runs the timer and the movie and answers the movie's triggers. */
 void MisResult_Update(void) {
-    MFlashRef ref;
-    MFlash *flash = &MR->flash[0];
+    FlashRef ref;
+    Flash *flash = &MR->flash[0];
     s32 i;
 
     if (gProgress->flags & MPROG_FREEZE) {

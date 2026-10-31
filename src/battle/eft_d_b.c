@@ -1,4 +1,8 @@
 #include "common.h"
+#include "battle/btl_task.h"
+#include "battle/btl_cam.h"
+#include "sys/vector_types.h"
+#include "sys/math3d.h"
 #include "battle/eft_d.h"
 #include "sys/dma.h"
 #include "sys/gfx.h"
@@ -48,12 +52,9 @@ extern void IVec4_ToFloat(f32 *out, s32 *in); /* integer vector to float vector 
 extern void Vec4_ToInt(s32 *dst, Vec4 *src); /* float vector to integer vector */
 extern void Vec4_Clamp(f32 *out, f32 *in, f32 min, f32 max); /* clamps a vector */
 extern s32 Mtx_ProjectPoint(EftScrPos *out, Mtx44 *m, Vec4 *v); /* projects one point */
-extern void Mtx_ProjectPointStq(s32 *scr, f32 *st, Mtx44 *m, f32 *pos, f32 *nrm); /* projects, makes env-map st */
 
 /* Local vectors as plain arrays (sceVu0FVECTOR / sceVu0IVECTOR style): 16-byte aligned, so the compiler
    copies them with 64-bit loads. */
-typedef f32 EftFVec[4] __attribute__((aligned(16)));
-typedef s32 EftIVec[4] __attribute__((aligned(16)));
 
 /* The same as a struct, for an initialised local that is built in place. */
 typedef struct EftVec16 {
@@ -61,34 +62,26 @@ typedef struct EftVec16 {
 } __attribute__((aligned(16))) EftVec16;
 
 /* The part of the camera view (gBtlCamView) the transition reads. */
-typedef struct EftView {
-    /* 0x000 */ u8 unk0[0x40];
-    /* 0x040 */ Mtx44 unk40;    /* DrawSprite: its transform (Mtx_Transpose) is applied to the sprite's corners */
-    /* 0x080 */ u8 unk80[0xC0];
-    /* 0x140 */ Mtx44 proj;     /* camera space to screen */
-} EftView;
-
-extern EftView *gBtlCamView;
 
 /* Draws a particle as a camera-facing quad whose alpha rises and falls over its life. */
 void EftBurst_DrawQuad(EftBurstPtcl *p) {
-    EftFVec v;
-    EftFVec corner[4] = {
+    FVec4 v;
+    FVec4 corner[4] = {
         { -1.0f, -1.0f, 0.0f, 0.0f },
         { 1.0f, -1.0f, 0.0f, 0.0f },
         { -1.0f, 1.0f, 0.0f, 0.0f },
         { 1.0f, 1.0f, 0.0f, 0.0f },
     };
-    EftFVec st[4];
-    EftIVec scr[4];
+    FVec4 st[4];
+    IVec4Array scr[4];
     u64 *pkt;
     s32 vis;
     s32 i;
     f32 scale;
     s32 life;
     s32 lifeMax;
-    EftFVec *pc;
-    EftIVec *ps;
+    FVec4 *pc;
+    IVec4Array *ps;
 
     vis = 0;
     memset(st, 0, sizeof(st));
@@ -105,7 +98,7 @@ void EftBurst_DrawQuad(EftBurstPtcl *p) {
         Vec4_Scale((Vec4 *)v, (Vec4 *)pc[i], scale);
         Vec4_Add((Vec4 *)v, (Vec4 *)v, &p->pos);
         v[3] = 1.0f;
-        Mtx_ProjectPoint((EftScrPos *)ps[i], &gBtlCamView->proj, (Vec4 *)v);
+        Mtx_ProjectPoint((EftScrPos *)ps[i], &gBtlCamView->world2screen, (Vec4 *)v);
         vis += scr[i][2] > 0;
     }
     if (vis != 0) {
@@ -152,20 +145,20 @@ void EftBurst_DrawQuad(EftBurstPtcl *p) {
    D_002EC800 (corners) and D_002EC840 (st) in .rodata. `ps` (as in EftBurst_DrawQuad) is needed only for the
    Mtx_ProjectPoint call: with scr[i] there, the copy of the two tables uses other temporaries. */
 void EftBurst_DrawQuadRot(EftBurstPtcl *p) {
-    EftFVec v;
-    EftFVec corner[4] = {
+    FVec4 v;
+    FVec4 corner[4] = {
         { -1.0f, -1.0f, 0.0f, 0.0f },
         { 1.0f, -1.0f, 0.0f, 0.0f },
         { -1.0f, 1.0f, 0.0f, 0.0f },
         { 1.0f, 1.0f, 0.0f, 0.0f },
     };
-    EftFVec st[4] = {
+    FVec4 st[4] = {
         { 0.0f, 0.0f, 1.0f, 1.0f },
         { 1.0f, 0.0f, 1.0f, 1.0f },
         { 0.0f, 1.0f, 1.0f, 1.0f },
         { 1.0f, 1.0f, 1.0f, 1.0f },
     };
-    EftIVec scr[4];
+    IVec4Array scr[4];
     Mtx44 m;
     Mtx44 m2;
     u64 *pkt;
@@ -179,7 +172,7 @@ void EftBurst_DrawQuadRot(EftBurstPtcl *p) {
     s32 scaleY;
     s32 rotate;
     s32 scaleX;
-    EftIVec *ps;
+    IVec4Array *ps;
 
     vis = 0;
     ps = scr;
@@ -212,7 +205,7 @@ void EftBurst_DrawQuadRot(EftBurstPtcl *p) {
         }
         Vec4_Add((Vec4 *)v, (Vec4 *)v, &p->pos);
         v[3] = 1.0f;
-        Mtx_ProjectPoint((EftScrPos *)ps[i], &gBtlCamView->proj, (Vec4 *)v);
+        Mtx_ProjectPoint((EftScrPos *)ps[i], &gBtlCamView->world2screen, (Vec4 *)v);
         vis += scr[i][2] > 0;
     }
     if (vis != 0) {
@@ -263,16 +256,16 @@ void EftBurst_DrawQuadRot(EftBurstPtcl *p) {
 
 /* Draws a particle as an axis-aligned sprite; its two corners are turned by the view's matrix at +0x40. */
 void EftBurst_DrawSprite(EftBurstPtcl *p) {
-    EftFVec v;
-    EftFVec corner[2] = {
+    FVec4 v;
+    FVec4 corner[2] = {
         { -1.0f, -1.0f, 0.0f, 0.0f },
         { 1.0f, 1.0f, 0.0f, 0.0f },
     };
-    EftFVec st[2] = {
+    FVec4 st[2] = {
         { 0.0f, 0.0f, 0.0f, 0.0f },
         { 1.0f, 1.0f, 0.0f, 0.0f },
     };
-    EftIVec scr[2];
+    IVec4Array scr[2];
     Mtx44 m;
     u64 *pkt;
     s32 i;
@@ -289,13 +282,13 @@ void EftBurst_DrawSprite(EftBurstPtcl *p) {
     lifeMax = p->lifeMax;
     alpha = p->alpha;
     flags = p->flags;
-    Mtx_Transpose(&m, &gBtlCamView->unk40);
+    Mtx_Transpose(&m, &gBtlCamView->world2view2);
     for (i = 0; i < 2; i++) {
         Mtx_MulVec4((Vec4 *)v, &m, (Vec4 *)corner[i]);
         Vec4_Scale((Vec4 *)v, (Vec4 *)v, scale);
         Vec4_Add((Vec4 *)v, (Vec4 *)v, &p->pos);
         v[3] = 1.0f;
-        Mtx_ProjectPoint((EftScrPos *)scr[i], &gBtlCamView->proj, (Vec4 *)v);
+        Mtx_ProjectPoint((EftScrPos *)scr[i], &gBtlCamView->world2screen, (Vec4 *)v);
         vis += scr[i][2] > 0;
     }
     if (vis != 0) {
@@ -491,42 +484,6 @@ void EftBurst_ClearAlphaPlane(void) {
     Dma_EndDirect(p);
 }
 
-#if 0 /* ATTEMPT: not matching: 597 instructions against 599, 44 differ in an aligned listing, all of them register
-   choice and instruction order in three places of the vertex loop; the control flow, the frame (0x240), every stack
-   slot, every call and every packet word are the original's. What differs:
-   - the colour unpack: the original reads rgba[0] and rgba[2] into $v1 and the two high bytes into $v0, and
-     takes the three low parts of the first RGBAQ word from those registers (`move a1,v1`, `move a2,v0 /
-     dsll a2,a2,8`, `move a0,v1 / dsll a0,a0,16`), reloading only rgba[3] from the stack; here the registers
-     alternate the other way round and rgba[2] is reloaded too (2 instructions short). The moves are sign
-     extending loads of rgba[i] that the post-reload CSE turned into copies, so the first scheduling pass of the
-     original must have put the reads of rgba[0] and rgba[1] behind the store of rgba[1] and in front of the load
-     of the third byte, not into the load-delay gaps where they land here. Reading / storing through a pointer
-     that the compiler cannot resolve (`c = rgba;` set outside the vertex loop) gives the original's register
-     pattern but costs two instructions elsewhere; a `do { } while (0)` around the four stores does too but breaks
-     the loop's induction pointers.
-   - the copies of the two constant vectors: the original loads the address of D_002EC8D0 into $v1 and copies it
-     to $t0 for the second half (`move t0,v1 ... ld v0,0(v1) / ld v1,8(t0)`), with the halves in $a3/$a2 and
-     $v0/$v1; here both addresses go through $t0 and the halves sit in $a2/$a3 and $v1/$v0.
-   - the last two argument moves in front of Mtx_ProjectPointStq are swapped (`move t0,s0 / move a3,v0`).
-   Ruled out (about 250 variants): every element type / alignment for the vectors, `static const` tables copied by
-   struct assignment, memcpy, u64 pairs (u128 gives lq / sq and is the only form that keeps the lui / addiu in the
-   block), colour bytes as u8, bit fields, temporaries, one u32, casts, statement permutations, the position of
-   `env`, `pos[3]`, `vis`.
-   What the rewrite established (and the previous attempt had wrong in shape, not in behaviour):
-   - a triangle record is a structure, { s16 vtx[3]; s16 nrm[3][2]; u16 col[3][2]; }: the colour is read as two
-     16-bit words split with `& 0xFF` and `>> 8` (lbu / lhu + srl), and the multiple-of-16 split of the member
-     offsets gives the original's two extra walking pointers (tri + 2, tri + 6);
-   - `((x >> 8) & 0xFF)` with the redundant mask is required: without it the vertex loop is one instruction
-     shorter for the loop pass and `tri->vtx[k]` becomes a walking pointer as well (the test is
-     `lifetime * threshold * benefit < insn_count`, here 264 against 264);
-   - the packing casts are (u64), not (s64): this compiler reassociates `a | b << 8 | c << 16 | d << 24 | q << 32`
-     differently for the two ((a | q) | (c << 16 | b << 8)) | d << 24 is the (u64) form);
-   - TEX0_2 is `tex0 | (y << 37 | x | 0x400000000)` with the parentheses;
-   - the group loop is `for (i = 0; i < n; i++)` (reversed by the compiler into the counter at sp+0x18C), not a
-     loop on n itself; the triangles are written out without a loop, two words at a time;
-   - the visibility test is the inline function Eft_IsScreenPosVisible used as a value (`vis += ...`);
-   - the light vectors are block-scope initialised arrays ({0, 0, 0, 1} is "mostly zero", so it becomes
-     memset + one store). */
 typedef struct EftBurstTri {
     /* 0x00 */ s16 vtx[3];
     /* 0x06 */ s16 nrm[3][2];   /* two packed angles per corner (env-map normal) */
@@ -560,16 +517,16 @@ static inline s32 EftBurst_IsVisible(s32 *pos) {
    second, environment-mapped pass through GS context 2 whose colour is a light that fades with the
    distance to the centre and grows with the frame counter. */
 void EftBurst_DrawModel(EftBurstModel *model, s32 unused) {
-    EftFVec origin;
-    EftFVec d;
-    EftFVec ang;
-    EftFVec pos;
-    EftIVec scr[3];
-    EftFVec nrm[3];
-    EftFVec st[3];
-    EftFVec st2[3];
+    FVec4 origin;
+    FVec4 d;
+    FVec4 ang;
+    FVec4 pos;
+    IVec4Array scr[3];
+    FVec4 nrm[3];
+    FVec4 st[3];
+    FVec4 st2[3];
     u64 rgbaq[3][2];
-    EftIVec rgba;
+    IVec4Array rgba;
     EftBurstGroup *grp;
     EftBurstTex *texs;
     EftBurstTex *envTex;
@@ -649,7 +606,7 @@ void EftBurst_DrawModel(EftBurstModel *model, s32 unused) {
                 Vec4_Scale((Vec4 *)pos, (Vec4 *)pos, scale);
                 Vec4_Sub((Vec4 *)d, (Vec4 *)origin, (Vec4 *)pos);
                 pos[3] = 1.0f;
-                Mtx_ProjectPointStq(scr[k], st[k], &gBtlCamView->proj, pos, nrm[k]);
+                Mtx_ProjectPointStq(scr[k], st[k], &gBtlCamView->world2screen, pos, nrm[k]);
                 rgba[0] = tri->col[k][0] & 0xFF;
                 rgba[1] = (tri->col[k][0] >> 8) & 0xFF;
                 rgba[2] = tri->col[k][1] & 0xFF;
@@ -661,10 +618,10 @@ void EftBurst_DrawModel(EftBurstModel *model, s32 unused) {
                     st2[k][0] *= 8.0f;
                     st2[k][1] *= 8.0f;
                     if (gEftBurst->frame >= 11) {
-                        EftFVec light = { 0.0f, 0.0f, 0.0f, 1.0f };
-                        EftFVec lightDir = { 1.0f, -0.2f, -0.8f, 0.0f };
-                        EftFVec ambient = { 127.0f, 127.0f, 127.0f, 0.0f };
-                        EftFVec colF;
+                        Vec4Array light = { { 0.0f, 0.0f, 0.0f, 1.0f } };
+                        FVec4 lightDir = { 1.0f, -0.2f, -0.8f, 0.0f };
+                        FVec4 ambient = { 127.0f, 127.0f, 127.0f, 0.0f };
+                        FVec4 colF;
                         f32 len;
                         f32 lit;
 
@@ -674,8 +631,8 @@ void EftBurst_DrawModel(EftBurstModel *model, s32 unused) {
                             lit = 255.0f;
                         }
                         IVec4_ToFloat(colF, rgba);
-                        Vec4_Scale((Vec4 *)light, (Vec4 *)light, fade * 0.6f * lit);
-                        Vec4_Add((Vec4 *)ambient, (Vec4 *)light, (Vec4 *)ambient);
+                        Vec4_Scale((Vec4 *)light.v, (Vec4 *)light.v, fade * 0.6f * lit);
+                        Vec4_Add((Vec4 *)ambient, (Vec4 *)light.v, (Vec4 *)ambient);
                         Vec4_Clamp(ambient, ambient, 0.0f, 255.0f);
                         Vec4_ToInt(rgba, (Vec4 *)ambient);
                         rgbaq[k][1] = (u64)rgba[0] | ((u64)rgba[1] << 8) | ((u64)rgba[2] << 16) |
@@ -757,12 +714,6 @@ void EftBurst_DrawModel(EftBurstModel *model, s32 unused) {
     }
     Dma_EndDirect(EftBurst_PutModelEnvEnd(Dma_BeginDirect()));
 }
-#endif
-INCLUDE_RODATA("asm/nonmatchings/battle/eft_d_b", D_002EC8C0);
-INCLUDE_RODATA("asm/nonmatchings/battle/eft_d_b", D_002EC8D0);
-LIT4_WORD(D_002FC474, 0x3C888888); /* 1.0f / 60.0f */
-LIT4_WORD(D_002FC478, 0x3F199999); /* 0.6f */
-INCLUDE_ASM("asm/nonmatchings/battle/eft_d_b", EftBurst_DrawModel);
 
 /* Uploads a texture unless it is already the current one. */
 void EftBurst_SetTexture(EftBurstTex *tex, s32 x, s32 y) {
@@ -1079,18 +1030,7 @@ s32 EftBurst_UpdateDebris(EftBurstPtcl *p) {
  * ------------------------------------------------------------------------------------------------------------ */
 /* eft_e.h declares the transition's globals and the view with its own types: hide those declarations and reach
  * the globals through casts. */
-#define EftView EftViewE
-#define gEftBurstRes gEftBurstRes_eDecl
-#define gEftBurst gEftBurst_eDecl
 #include "battle/eft_e.h"
-#undef gEftBurstRes
-#undef gEftBurst
-#define gEftBurstRes (*(EftTransRes *)&gEftBurstRes)
-#ifdef PORT /* assigned to: a cast is not an lvalue for a modern compiler */
-#define gEftBurst (*(EftTransWork **)&gEftBurst)
-#else
-#define gEftBurst ((EftTransWork *)gEftBurst)
-#endif
 #include "sys/gfx_ot.h"
 
 /*
@@ -1117,7 +1057,7 @@ extern s32 BtlPool_GetCurrent(void);
 extern void *BtlPool_Alloc(s32 slot, s32 size);
 extern void BtlPool_Free(s32 slot, void *ptr);
 extern void *BtlTask_CreateChildList(void *task, s32 capacity, s32 workSize);
-extern void *BtlTaskList_AddTail(void *list, BtlTaskClass *cls, void *arg);
+extern void *BtlTaskList_AddTail(void *list, BtlTaskCls *cls, void *arg);
 extern void BtlTask_SetDead(void *task);
 extern void EftCam_Start(s32 *arg);
 extern void EftCam_SetHold(s32 arg);
@@ -1157,15 +1097,6 @@ typedef struct EftStageState {
 extern EftStageState *gBtlStage;
 
 /* The view being drawn (btl_cam.h); only the matrices and position used here. */
-typedef struct EftView {
-    /* 0x000 */ Mtx44 world2view;
-    /* 0x040 */ Mtx44 world2view2;
-    /* 0x080 */ u8 unk80[0xC0];
-    /* 0x140 */ Mtx44 world2screen;
-    /* 0x180 */ u8 unk180[0xA0];
-    /* 0x220 */ Vec4 pos;
-} EftView;
-#define gBtlCamView ((EftView *)gBtlCamView)
 
 extern f32 sqrtf(f32 x);
 extern f32 atan2f(f32 y, f32 x);
@@ -1231,13 +1162,6 @@ extern EftBattleWork *Battle_GetWork(void);
 
 extern EftEVec D_002C3630; /* (0, 0, 0, 1) */
 
-#define EftBurst_AllocPtcl ((EftTransPart *(*)(void))EftBurst_AllocPtcl)
-#define EftBurst_InitSpark ((void (*)(EftTransPart *part, s32 idx))EftBurst_InitSpark)
-#define EftBurst_InitStreak ((void (*)(EftTransPart *part))EftBurst_InitStreak)
-#define EftBurst_InitFlash ((void (*)(EftTransPart *part))EftBurst_InitFlash)
-#define EftBurst_InitRing ((void (*)(EftTransPart *part))EftBurst_InitRing)
-#define EftBurst_InitGlow ((void (*)(EftTransPart *part))EftBurst_InitGlow)
-#define EftBurst_InitDebris ((void (*)(EftTransPart *part))EftBurst_InitDebris)
 extern s32 Snd_PlaySeEx(u32 mask, s32 id, s32 volume, s32 pan, s32 pitch);
 
 extern f32 EftStage_GetTintScale(void);
@@ -1281,7 +1205,6 @@ typedef struct EftSteamPkt {
     /* 0x78 */ u64 pad;
 } EftSteamPkt; /* size 0x80 */
 
-
 typedef struct EftCommonRes {
     u8 unk0[0x34];
     s32 *transition;
@@ -1315,17 +1238,17 @@ void EftBurst_Init(void) {
     s32 i;
     s32 off;
 
-    gEftBurst = Heap_Alloc(sizeof(EftTransWork), 0x20, 0, 2);
-    memset(gEftBurst, 0, sizeof(EftTransWork));
+    gEftBurst = Heap_Alloc(sizeof(EftBurstWork), 0x20, 0, 2);
+    memset(gEftBurst, 0, sizeof(EftBurstWork));
     gEftBurstRes.endReq = 0;
-    for (i = 0, off = 0; i < EFT_TRANS_PART_COUNT; i++, off += sizeof(EftTransPart)) {
-        memset((u8 *)gEftBurst + off + 0x240, 0, sizeof(EftTransPart));
+    for (i = 0, off = 0; i < EFT_TRANS_PART_COUNT; i++, off += sizeof(EftBurstPtcl)) {
+        memset((u8 *)gEftBurst + off + 0x240, 0, sizeof(EftBurstPtcl));
     }
     gEftBurst->fadeDist = 8.0f;
     gEftBurst->unkC = 20.0f;
     gEftBurst->frame = 0;
     gEftBurst->seWait = 60;
-    gEftBurst->camArg[0] = (s32)gEftBurstRes.file1;
+    gEftBurst->camArg[0] = (s32)gEftBurstRes.camAnim;
     gEftBurst->camArg[1] = -1;
     gEftBurst->camArg[2] = -1;
     EftCam_Start(gEftBurst->camArg);
@@ -1365,7 +1288,7 @@ void EftBurst_Update(void *task) {
     }
     if (gEftBurst->frame == 0) {
         {
-            EftTransPart *part = EftBurst_AllocPtcl();
+            EftBurstPtcl *part = EftBurst_AllocPtcl();
 
             if (part != NULL) {
                 EftBurst_InitRing(part);
@@ -1375,7 +1298,7 @@ void EftBurst_Update(void *task) {
             }
         }
         {
-            EftTransPart *part = EftBurst_AllocPtcl();
+            EftBurstPtcl *part = EftBurst_AllocPtcl();
 
             if (part != NULL) {
                 EftBurst_InitRing(part);
@@ -1387,7 +1310,7 @@ void EftBurst_Update(void *task) {
     }
     if (gEftBurst->frame == 7) {
         {
-            EftTransPart *part = EftBurst_AllocPtcl();
+            EftBurstPtcl *part = EftBurst_AllocPtcl();
 
             if (part != NULL) {
                 EftBurst_InitFlash(part);
@@ -1398,7 +1321,7 @@ void EftBurst_Update(void *task) {
     if (gEftBurst->frame == 10) {
         for (i = 0; i < 240; i++) {
             {
-                EftTransPart *part = EftBurst_AllocPtcl();
+                EftBurstPtcl *part = EftBurst_AllocPtcl();
 
                 if (part != NULL) {
                     EftBurst_InitStreak(part);
@@ -1408,7 +1331,7 @@ void EftBurst_Update(void *task) {
     }
     if (gEftBurst->frame == 30) {
         {
-            EftTransPart *part = EftBurst_AllocPtcl();
+            EftBurstPtcl *part = EftBurst_AllocPtcl();
 
             if (part != NULL) {
                 EftBurst_InitFlash(part);
@@ -1421,7 +1344,7 @@ void EftBurst_Update(void *task) {
             gEftBurst->spawnWait--;
         } else {
             {
-                EftTransPart *part = EftBurst_AllocPtcl();
+                EftBurstPtcl *part = EftBurst_AllocPtcl();
 
                 if (part != NULL) {
                     EftBurst_InitGlow(part);
@@ -1433,7 +1356,7 @@ void EftBurst_Update(void *task) {
     if (gEftBurst->frame == 10) {
         for (i = 0; i < 32; i++) {
             {
-                EftTransPart *part = EftBurst_AllocPtcl();
+                EftBurstPtcl *part = EftBurst_AllocPtcl();
 
                 if (part != NULL) {
                     EftBurst_InitSpark(part, i);
@@ -1442,7 +1365,7 @@ void EftBurst_Update(void *task) {
         }
         for (i = 0; i < 16; i++) {
             {
-                EftTransPart *part = EftBurst_AllocPtcl();
+                EftBurstPtcl *part = EftBurst_AllocPtcl();
 
                 if (part != NULL) {
                     EftBurst_InitDebris(part);
@@ -1452,14 +1375,14 @@ void EftBurst_Update(void *task) {
     }
     if (gEftBurst->frame >= 11) {
         {
-            EftTransPart *part = EftBurst_AllocPtcl();
+            EftBurstPtcl *part = EftBurst_AllocPtcl();
 
             if (part != NULL) {
                 EftBurst_InitSpark(part, 0);
             }
         }
         {
-            EftTransPart *part = EftBurst_AllocPtcl();
+            EftBurstPtcl *part = EftBurst_AllocPtcl();
 
             if (part != NULL) {
                 EftBurst_InitDebris(part);
@@ -1485,7 +1408,7 @@ void EftBurst_Update(void *task) {
                        sinf((gEftBurst->phase * 6 % 360) * 3.14159265f / 180.0f)) /
                       6.0f;
     {
-        EftTransPart *part = gEftBurst->part;
+        EftBurstPtcl *part = gEftBurst->ptcl;
 
         for (j = 0; j < EFT_TRANS_PART_COUNT; j++, part++) {
             part->visible = 0;
@@ -1519,13 +1442,13 @@ void EftBurst_Update(void *task) {
 /* Transition task draw: the model, then every particle that was visible in the last update. */
 void EftBurst_Draw(void) {
     s32 i;
-    EftTransPart *part;
+    EftBurstPtcl *part;
 
     if (gEftBurstRes.endReq == 0) {
         Gfx_AddDefaultEnv();
-        EftBurst_DrawModel(gEftBurstRes.file2, 0);
+        EftBurst_DrawModel(gEftBurstRes.model, 0);
         EftBurst_SetTexture(NULL, 0, 0);
-        part = gEftBurst->part;
+        part = gEftBurst->ptcl;
         for (i = 0; i < EFT_TRANS_PART_COUNT; i++, part++) {
             if (part->visible != 0) {
                 part->draw(part);
@@ -1548,11 +1471,11 @@ void EftBurst_Reset(void *task) {
 void EftBurst_Start(void) {
     s32 *pack = gCommonRes->transition;
 
-    gEftBurstRes.file2 = BtlScene_GetPackEntry(pack, 2);
-    EftBurst_RelocateModel(gEftBurstRes.file2);
-    gEftBurstRes.file3 = BtlScene_GetPackEntry(pack, 3);
-    Res_RelocateOffsets(&gEftBurstRes.file3, gEftBurstRes.file3, gEftBurstRes.file3);
-    gEftBurstRes.file1 = BtlScene_GetPackEntry(pack, 1);
+    gEftBurstRes.model = BtlScene_GetPackEntry(pack, 2);
+    EftBurst_RelocateModel(gEftBurstRes.model);
+    gEftBurstRes.texPack = BtlScene_GetPackEntry(pack, 3);
+    Res_RelocateOffsets(&gEftBurstRes.texPack, gEftBurstRes.texPack, gEftBurstRes.texPack);
+    gEftBurstRes.camAnim = BtlScene_GetPackEntry(pack, 1);
     gEftBurstRes.startReq = 1;
     gEftBurstRes.endReq = 0;
 }

@@ -55,6 +55,3 @@ gGfxAlphaKey:
 .globl gGfxWater
 gGfxWater:
     .space 4
-.globl D_002FE8D0
-D_002FE8D0:
-    .space 8

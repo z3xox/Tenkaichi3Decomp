@@ -17,7 +17,7 @@ SurvResult *gSurvResult = NULL;
  */
 
 #define SR_RES(n) \
-    res = (MTexRes *)MPACK_AT(gSurvResult->res, n); \
+    res = (FlashTexRes *)MPACK_AT(gSurvResult->res, n); \
     Res_RelocateOffsets(&res, res, res)
 
 /*
@@ -25,7 +25,7 @@ SurvResult *gSurvResult = NULL;
  * the battle result and writes the record and the reward item into the save.
  */
 void SurvResult_Init(s32 section) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
     s32 i;
 
     gSurvResult = Heap_Alloc(sizeof(SurvResult), 0x20, 0, 2);
@@ -112,8 +112,8 @@ void SurvResult_Init(s32 section) {
     UbScore_CalcPoints(gSurvResult->price, &gSurvResult->score);
     gSurvResult->newRecord =
         UbScore_SaveBestB(S_PROG->cursor, UbScore_CalcRank(2, &gSurvResult->score), &gSurvResult->score);
-    if (gSurvResult->score.line[3].value >= 10 && !(S_SAVE->ubFlags & S_UBFLAG_SURV_ITEM)) {
-        S_SAVE->ubFlags |= S_UBFLAG_SURV_ITEM;
+    if (gSurvResult->score.line[3].value >= 10 && !(gSaveData->unk208 & S_UBFLAG_SURV_ITEM)) {
+        gSaveData->unk208 |= S_UBFLAG_SURV_ITEM;
         gSurvResult->gotItem = 1;
         Save_AddItem(UbScore_GetRewardItem(3));
     }
@@ -140,10 +140,10 @@ void SurvResult_Term(void) {
 
 /* Draws the score lines, the page of bonus plates, the totals, the rank and the reward item. */
 void SurvResult_Draw(void) {
-    MFlashRef ref;
-    MFlashUv uv;
+    FlashRef ref;
+    FlashUv uv;
     char name[64];
-    MFlash *flash;
+    Flash *flash;
     s32 i;
 
 #ifdef PORT
@@ -166,18 +166,18 @@ void SurvResult_Draw(void) {
         Flash_FindLabel(flash, "mc_window_plate01", "mc_window_text1_0", &ref);
         TextBox_AttachLine(flash, &ref, 0, 0, 0x142, &gSurvResult->box[3]);
     }
-    uv.x0 = 0;
-    uv.y0 = 0x40;
-    uv.x1 = 0x200;
-    uv.y1 = 0x80;
+    uv.u0 = 0;
+    uv.v0 = 0x40;
+    uv.u1 = 0x200;
+    uv.v1 = 0x80;
     Flash_FindLabel(flash, NULL, "mc_win_text02", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     Flash_FindLabel(flash, NULL, "mc_win_text03", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
-    uv.x0 = 0;
-    uv.y0 = 0x20;
-    uv.x1 = 0x20;
-    uv.y1 = 0x40;
+    uv.u0 = 0;
+    uv.v0 = 0x20;
+    uv.u1 = 0x20;
+    uv.v1 = 0x40;
     Flash_FindLabel(flash, NULL, "mc_yajirusi_icon_up", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     if (gSurvResult->page == 0) {
@@ -185,10 +185,10 @@ void SurvResult_Draw(void) {
     } else {
         Flash_ClipSetFlags(flash, &ref, 2, 1);
     }
-    uv.x0 = 0x20;
-    uv.y0 = 0x20;
-    uv.x1 = 0x40;
-    uv.y1 = 0x40;
+    uv.u0 = 0x20;
+    uv.v0 = 0x20;
+    uv.u1 = 0x40;
+    uv.v1 = 0x40;
     Flash_FindLabel(flash, NULL, "mc_yajirusi_icon_down", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     if (gSurvResult->score.bonusCount != 0 && gSurvResult->page < gSurvResult->pages) {
@@ -218,10 +218,10 @@ void SurvResult_Draw(void) {
         }
     }
     for (i = 1; i < 4; i++) {
-        uv.x0 = 0;
-        uv.y0 = i * 0x20;
-        uv.x1 = 0x100;
-        uv.y1 = uv.y0 + 0x20;
+        uv.u0 = 0;
+        uv.v0 = i * 0x20;
+        uv.u1 = 0x100;
+        uv.v1 = uv.v0 + 0x20;
         sprintf(name, "mc_point_plate%02d", i + 1);
         Flash_FindLabel(flash, name, "mc_bonus_text", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
@@ -231,45 +231,45 @@ void SurvResult_Draw(void) {
     Num_Draw(flash, "mc_time_suji%02d", 4, 2, gSurvResult->score.hours, 0x20, 0x20, 1);
     Num_Draw(flash, "mc_time_suji%02d", 2, 2, gSurvResult->score.minutes, 0x20, 0x20, 1);
     Num_Draw(flash, "mc_time_suji%02d", 0, 2, gSurvResult->score.seconds, 0x20, 0x20, 1);
-    uv.x0 = 0;
-    uv.y0 = 0x80;
-    uv.x1 = 0x100;
-    uv.y1 = 0xA0;
+    uv.u0 = 0;
+    uv.v0 = 0x80;
+    uv.u1 = 0x100;
+    uv.v1 = 0xA0;
     Flash_FindLabel(flash, NULL, "mc_bonus_title", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
-    uv.x0 = 0;
-    uv.y0 = 0x80;
-    uv.x1 = 0x200;
-    uv.y1 = 0xC0;
+    uv.u0 = 0;
+    uv.v0 = 0x80;
+    uv.u1 = 0x200;
+    uv.v1 = 0xC0;
     Flash_FindLabel(flash, NULL, "mc_win_text04", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     Num_Draw(flash, "mc_henkan_suji%02d", 0, 6, gSurvResult->score.convert, 0x20, 0x20, 0);
-    uv.x0 = 0;
-    uv.y0 = 0x40;
-    uv.x1 = 0x100;
-    uv.y1 = 0x60;
+    uv.u0 = 0;
+    uv.v0 = 0x40;
+    uv.u1 = 0x100;
+    uv.v1 = 0x60;
     Flash_FindLabel(flash, NULL, "mc_time_text03", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
-    Num_Draw(flash, "mc_zpoint_suji%02d", 0, 9, S_SAVE->money, 0x20, 0x20, 0);
-    uv.x0 = 0;
-    uv.y0 = 0x20;
-    uv.x1 = 0x100;
-    uv.y1 = 0x40;
+    Num_Draw(flash, "mc_zpoint_suji%02d", 0, 9, gSaveData->money, 0x20, 0x20, 0);
+    uv.u0 = 0;
+    uv.v0 = 0x20;
+    uv.u1 = 0x100;
+    uv.v1 = 0x40;
     Flash_FindLabel(flash, NULL, "mc_time_text02", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     Num_Draw(flash, "mc_score_suji%02d", 0, 9, gSurvResult->score.total * 100, 0x20, 0x20, 0);
-    uv.x0 = gSurvResult->score.rank * 0x40;
-    uv.y0 = 0;
-    uv.x1 = uv.x0 + 0x40;
-    uv.y1 = 0x40;
+    uv.u0 = gSurvResult->score.rank * 0x40;
+    uv.v0 = 0;
+    uv.u1 = uv.u0 + 0x40;
+    uv.v1 = 0x40;
     Flash_FindLabel(flash, NULL, "mc_rankmoji_anime", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     Flash_FindLabel(flash, NULL, "mc_newrecord_text", &ref);
     if (gSurvResult->newRecord) {
-        uv.x0 = 0;
-        uv.y0 = 0x40;
-        uv.x1 = 0x100;
-        uv.y1 = 0x80;
+        uv.u0 = 0;
+        uv.v0 = 0x40;
+        uv.u1 = 0x100;
+        uv.v1 = 0x80;
         Flash_ClipSetUv(flash, &ref, &uv);
         Flash_ClipSetFlags(flash, &ref, 2, 1);
     } else {
@@ -292,8 +292,8 @@ void SurvResult_Draw(void) {
 
 /* Runs the leave timer and the movie, and acts on the movie's triggers. */
 void SurvResult_Update(void) {
-    MFlashRef ref;
-    MFlash *flash = &gSurvResult->flash[0];
+    FlashRef ref;
+    Flash *flash = &gSurvResult->flash[0];
     s32 i;
 
     if (gProgress->flags & MPROG_FREEZE) {
@@ -583,12 +583,12 @@ void SurvResult_Input(s32 *result) {
             }
             break;
         case 3:
-            if (UbScore_Transfer(&gSurvResult->score.convert, &S_SAVE->money, 0x40, 1.0f)) {
+            if (UbScore_Transfer(&gSurvResult->score.convert, &gSaveData->money, 0x40, 1.0f)) {
                 gSurvResult->step++;
                 UbScore_PlateGoto(&gSurvResult->flash[0], 1, 0);
             }
-            if (S_SAVE->money > S_MONEY_MAX) {
-                S_SAVE->money = S_MONEY_MAX;
+            if (gSaveData->money > S_MONEY_MAX) {
+                gSaveData->money = S_MONEY_MAX;
             }
             break;
         case 4:
@@ -612,14 +612,14 @@ void SurvResult_Input(s32 *result) {
                 while (!UbScore_ConvertStep(&gSurvResult->score, S_MONEY_MAX)) {
                 }
                 gSurvResult->score.convert = gSurvResult->score.count;
-                while (!UbScore_Transfer(&gSurvResult->score.convert, &S_SAVE->money, S_MONEY_MAX, 1.0f)) {
+                while (!UbScore_Transfer(&gSurvResult->score.convert, &gSaveData->money, S_MONEY_MAX, 1.0f)) {
                 }
             } else if (gSurvResult->step < 4) {
-                while (!UbScore_Transfer(&gSurvResult->score.convert, &S_SAVE->money, S_MONEY_MAX, 1.0f)) {
+                while (!UbScore_Transfer(&gSurvResult->score.convert, &gSaveData->money, S_MONEY_MAX, 1.0f)) {
                 }
             }
-            if (S_SAVE->money > S_MONEY_MAX) {
-                S_SAVE->money = S_MONEY_MAX;
+            if (gSaveData->money > S_MONEY_MAX) {
+                gSaveData->money = S_MONEY_MAX;
             }
             UbScore_PlateGoto(&gSurvResult->flash[0], 0, 0);
             UbScore_PlateGoto(&gSurvResult->flash[0], 1, 0);

@@ -2,6 +2,7 @@
 #define BATTLE_EFT_Z_H
 
 #include "types.h"
+#include "battle/btl_cam.h"
 #include "sys/math3d.h"
 #include "sys/list.h"
 
@@ -321,14 +322,6 @@ EftGndDustPart *EftGndDust_AllocPart(List *list, List *free);
 #define V(p) ((Vec4 *)(p))
 
 /* The view being drawn (include/battle/btl_cam.h). */
-typedef struct EftZView {
-    /* 0x000 */ u8 unk0[0x140];
-    /* 0x140 */ Mtx44 world2screen;
-    /* 0x180 */ u8 unk180[0xA0];
-    /* 0x220 */ Vec4 eye;
-} EftZView;
-
-extern EftZView *gBtlCamView;
 
 extern void *D_002C40F0[]; /* EftBill item class */
 extern void *D_002C4120[]; /* dust classes, kinds 0..5 */

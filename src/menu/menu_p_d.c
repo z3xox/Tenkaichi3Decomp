@@ -207,8 +207,8 @@ void UbScore_SetPage(UbScore *score, s32 page) {
 }
 
 /* Lights or dims plate `plate` of the money conversion and its arrow. */
-void UbScore_PlateGoto(MFlash *flash, s32 plate, s32 on) {
-    MFlashRef ref;
+void UbScore_PlateGoto(Flash *flash, s32 plate, s32 on) {
+    FlashRef ref;
     char name[64];
     char *plateFmt = "mc_pt_convert_plate%d";
     char *arrowFmt = "mc_blue_yajirusi%02d";

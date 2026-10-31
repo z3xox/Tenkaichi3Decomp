@@ -50,12 +50,12 @@ void TourMenu_CheckInvite(void) {
 }
 
 #define TM_RES(n) \
-    res = (MTexRes *)MPACK_AT(gTourMenu->res, n); \
+    res = (FlashTexRes *)MPACK_AT(gTourMenu->res, n); \
     Res_RelocateOffsets(&res, res, res)
 
 /* Loads the screen: section `section` of archive 4, and the invitation picture if one arrived. */
 void TourMenu_Init(s32 section) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
 
     gTourMenu = Heap_Alloc(sizeof(TourMenu), 0x20, 0, 2);
     memset(gTourMenu, 0, sizeof(TourMenu));
@@ -172,11 +172,11 @@ void TourMenu_Term(void) {
 
 /* Draws the background, sets up the clock, the prize money, the plates and the icons, and draws the movies. */
 void TourMenu_Draw(void) {
-    MFlashRef ref;
-    MFlashUv uv;
+    FlashRef ref;
+    FlashUv uv;
     char name[64];
     s32 i;
-    MFlash *flash;
+    Flash *flash;
 
 #ifdef PORT
     Port_MenuPage(20); /* widescreen menus: this screen's page, its backdrop filling the width */
@@ -201,28 +201,28 @@ void TourMenu_Draw(void) {
                       gTourMenu->cursor[TOURMENU_LV_TOP] == 1 ? 2 : 0, 0);
     }
     for (i = 0; i < 2; i++) {
-        uv.x0 = 0;
-        uv.y0 = i * 0x20;
-        uv.x1 = 0x200;
-        uv.y1 = uv.y0 + 0x20;
+        uv.u0 = 0;
+        uv.v0 = i * 0x20;
+        uv.u1 = 0x200;
+        uv.v1 = uv.v0 + 0x20;
         sprintf(name, "mc_menu_plate_%02d", i + 1);
         Flash_FindLabel(flash, name, "mc_menu_text_off", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
         Flash_FindLabel(flash, name, "mc_menu_text_on", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
     }
-    uv.y0 = 0;
-    uv.x0 = 0;
-    uv.y1 = 0x40;
-    uv.x1 = 0x40;
+    uv.v0 = 0;
+    uv.u0 = 0;
+    uv.v1 = 0x40;
+    uv.u1 = 0x40;
     Flash_FindLabel(flash, NULL, "mc_icon_ship", &ref);
     FlashAnim_Sheet(flash, &ref, &gTourMenu->iconTimer, &gTourMenu->iconFrame, &uv, 4, 1, 4);
     for (i = 0; i < TOUR_NUM; i++) {
         /* the five tournaments: dimmed in the top entry unless the tournament is open */
-        uv.x0 = 0;
-        uv.y0 = i * 0x20 + 0x40;
-        uv.y1 = i * 0x20 + 0x60;
-        uv.x1 = 0x200;
+        uv.u0 = 0;
+        uv.v0 = i * 0x20 + 0x40;
+        uv.v1 = i * 0x20 + 0x60;
+        uv.u1 = 0x200;
         sprintf(name, "mc_taikai_plate_%02d", i + 1);
         Flash_FindLabel(flash, NULL, name, &ref);
         if (gTourMenu->cursor[TOURMENU_LV_TOP] != 1 && !(gSaveData->unkA08 & (s32)(1U << i))) {
@@ -234,44 +234,44 @@ void TourMenu_Draw(void) {
         Flash_ClipSetUv(flash, &ref, &uv);
         Flash_FindLabel(flash, name, "mc_taikai_text_on", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
-        uv.y0 = 0;
-        uv.y1 = 0x40;
-        uv.x0 = i * 0x40;
-        uv.x1 = uv.x0 + 0x40;
+        uv.v0 = 0;
+        uv.v1 = 0x40;
+        uv.u0 = i * 0x40;
+        uv.u1 = uv.u0 + 0x40;
         Flash_FindLabel(flash, name, "mc_taikai_icon_s", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
     }
-    uv.y0 = (gTourMenu->cursor[TOURMENU_LV_TOUR] % 4) * 0x40;
-    uv.x0 = 0;
-    uv.x1 = 0x200;
-    uv.y1 = uv.y0 + 0x40;
+    uv.v0 = (gTourMenu->cursor[TOURMENU_LV_TOUR] % 4) * 0x40;
+    uv.u0 = 0;
+    uv.u1 = 0x200;
+    uv.v1 = uv.v0 + 0x40;
     Flash_FindLabel(flash, "mc_taikaititle_plate", "mc_taikaititle_text", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     Flash_ClipSetTex(flash, &ref, gTourMenu->cursor[TOURMENU_LV_TOUR] / 4);
-    uv.y0 = (gTourMenu->cursor[TOURMENU_LV_TOUR] / 4) * 0x40;
-    uv.y1 = uv.y0 + 0x40;
-    uv.x0 = (gTourMenu->cursor[TOURMENU_LV_TOUR] % 4) * 0x40;
-    uv.x1 = uv.x0 + 0x40;
+    uv.v0 = (gTourMenu->cursor[TOURMENU_LV_TOUR] / 4) * 0x40;
+    uv.v1 = uv.v0 + 0x40;
+    uv.u0 = (gTourMenu->cursor[TOURMENU_LV_TOUR] % 4) * 0x40;
+    uv.u1 = uv.u0 + 0x40;
     Flash_FindLabel(flash, "mc_taikaititle_plate", "mc_plate_icon_mark", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     Flash_FindLabel(flash, NULL, "mc_taikai_icon", &ref);
     Flash_ClipSetTex(flash, &ref, gTourMenu->cursor[TOURMENU_LV_TOUR]);
     for (i = 0; i < 2; i++) {
         /* the arrows of the level and entrant numbers: only the free entry lets them change */
-        uv.y0 = 0;
-        uv.y1 = 0x40;
-        uv.x0 = i * 0x40;
-        uv.x1 = uv.x0 + 0x40;
+        uv.v0 = 0;
+        uv.v1 = 0x40;
+        uv.u0 = i * 0x40;
+        uv.u1 = uv.u0 + 0x40;
         Flash_FindLabel(flash, "mc_yajirusi_u_l", i != 0 ? "mc_yajirusi_l" : "mc_yajirusi_r", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
         Flash_ClipSetFlags(flash, &ref, 2, gTourMenu->cursor[TOURMENU_LV_TOP] == 1);
     }
     for (i = 0; i < 3; i++) {
         /* the three levels, shown as dragon balls */
-        uv.x0 = i * 0x40;
-        uv.x1 = uv.x0 + 0x40;
-        uv.y0 = 0;
-        uv.y1 = 0x40;
+        uv.u0 = i * 0x40;
+        uv.u1 = uv.u0 + 0x40;
+        uv.v0 = 0;
+        uv.v1 = 0x40;
         sprintf(name, "mc_dragonball_off_%02d", i + 1);
         Flash_FindLabel(flash, name, "mc_dragonball_off", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
@@ -279,26 +279,26 @@ void TourMenu_Draw(void) {
         Flash_ClipSetUv(flash, &ref, &uv);
     }
     /* the number of entrants */
-    uv.y0 = ((gTourMenu->cursor[TOURMENU_LV_NUM] + 1) / 4) * 0x40;
-    uv.y1 = uv.y0 + 0x40;
-    uv.x0 = ((gTourMenu->cursor[TOURMENU_LV_NUM] + 1) % 4) * 0x40;
-    uv.x1 = uv.x0 + 0x40;
+    uv.v0 = ((gTourMenu->cursor[TOURMENU_LV_NUM] + 1) / 4) * 0x40;
+    uv.v1 = uv.v0 + 0x40;
+    uv.u0 = ((gTourMenu->cursor[TOURMENU_LV_NUM] + 1) % 4) * 0x40;
+    uv.u1 = uv.u0 + 0x40;
     Flash_FindLabel(flash, NULL, "mc_suji_01", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     for (i = 0; i < 2; i++) {
-        uv.y0 = (i ^ 1) * 0x20;
-        uv.x0 = 0;
-        uv.x1 = 0x100;
-        uv.y1 = uv.y0 + 0x20;
+        uv.v0 = (i ^ 1) * 0x20;
+        uv.u0 = 0;
+        uv.u1 = 0x100;
+        uv.v1 = uv.v0 + 0x20;
         sprintf(name, "mc_plate_text_01_%d", i + 1);
         Flash_FindLabel(flash, NULL, name, &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
     }
     for (i = 1; i < 3; i++) {
-        uv.x0 = 0;
-        uv.y0 = i * 0x20;
-        uv.x1 = 0x100;
-        uv.y1 = uv.y0 + 0x20;
+        uv.u0 = 0;
+        uv.v0 = i * 0x20;
+        uv.u1 = 0x100;
+        uv.v1 = uv.v0 + 0x20;
         sprintf(name, "mc_menu_text_01_%d", i);
         Flash_FindLabel(flash, NULL, name, &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
@@ -315,9 +315,9 @@ void TourMenu_Draw(void) {
 
 /* Sends a clip of movie `movie` to a label: the plate under the cursor of menu level `kind`. */
 void TourMenu_ClipGoto(s32 movie, s32 kind, char *label) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[64];
-    MFlash *flash = &gTourMenu->flash[movie];
+    Flash *flash = &gTourMenu->flash[movie];
 
     switch (kind) {
     case TOURMENU_LV_TOP:

@@ -1,4 +1,5 @@
 #include "common.h"
+#include "battle/btl_cam.h"
 #include "battle/eft_t.h"
 
 /*
@@ -133,12 +134,6 @@ typedef struct EftUBattleWork {
 } EftUBattleWork;
 
 /* The view being drawn (include/battle/btl_cam.h). */
-typedef struct EftUView {
-    /* 0x000 */ Mtx44 world2view;
-    /* 0x040 */ Mtx44 world2view2;
-    /* 0x080 */ u8 unk80[0xC0];
-    /* 0x140 */ Mtx44 world2screen;
-} EftUView;
 
 /* GS XYZF2 register value. */
 typedef struct EftUXyzf {
@@ -183,8 +178,6 @@ typedef struct EftUUpB {
 typedef struct EftUUpC {
     f32 x, y, z, w;
 } __attribute__((aligned(16))) EftUUpC;
-
-extern EftUView *gBtlCamView;
 #ifdef PORT /* assigned to: a cast is not an lvalue for a modern compiler */
 #define gEftShotFx (*(EftShotFxWork **)&gEftShotFx)
 #else

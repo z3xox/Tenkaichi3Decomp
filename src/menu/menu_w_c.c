@@ -15,11 +15,11 @@ extern void Port_MenuFill(int on);
  * Read-only data: 0x3BC008..0x3BC364 (the Shop object's ends with the jump table at 0x3BBDA0..0x3BC004);
  * "fl_on_start" / "fl_off_start" exist in both, so they are two source files.
  *
- * This file looks clips up through small inline helpers that own their MFlashRef. That shows in three ways:
+ * This file looks clips up through small inline helpers that own their FlashRef. That shows in three ways:
  * the strings of EvoTop_ClipOnOff ("fl_on_start" / "fl_off_start") are emitted in front of the first string of
  * the function that uses it; each inlined copy has its own 16-byte stack slot behind the caller's locals; and
  * the slot's address is formed again at every use instead of being kept in a register. (A 128-bit scalar in
- * place of the MFlashRef gives the same code but not the same string order.)
+ * place of the FlashRef gives the same code but not the same string order.)
  *
  * "fl_ok" (0x3BC068) sits between the strings of EvoTop_SetPlateText and the "host:" paths of EvoTop_Init: it
  * belongs to the inline helper EvoTop_PlateOk, which the original therefore defined above EvoTop_Init, although
@@ -47,8 +47,8 @@ s32 EvoTop_Wrap(s32 value, s32 min, s32 max) {
 }
 
 /* Plays the "on" or the "off" animation of a clip of the movie's root. */
-static inline void EvoTop_ClipOnOff(MFlash *flash, char *name, s32 on) {
-    MFlashRef ref;
+static inline void EvoTop_ClipOnOff(Flash *flash, char *name, s32 on) {
+    FlashRef ref;
 
     Flash_FindLabel(flash, NULL, name, &ref);
     if (on) {
@@ -61,15 +61,15 @@ static inline void EvoTop_ClipOnOff(MFlash *flash, char *name, s32 on) {
 /* Lights (on != 0) or dims the plate the cursor is on. */
 void EvoTop_SetPlate(EvoTop *menu, s32 on) {
     char name[256];
-    MFlash *flash = &menu->flash[0];
+    Flash *flash = &menu->flash[0];
 
     sprintf(name, "mc_menu_plate_%d", menu->cursor + 1);
     EvoTop_ClipOnOff(flash, name, on);
 }
 
 /* Sets the texture rectangle of a clip. */
-static inline void EvoTop_ClipSetUv(MFlash *flash, char *parent, char *name, MFlashUv *uv) {
-    MFlashRef ref;
+static inline void EvoTop_ClipSetUv(Flash *flash, char *parent, char *name, FlashUv *uv) {
+    FlashRef ref;
 
     Flash_FindLabel(flash, parent, name, &ref);
     Flash_ClipSetUv(flash, &ref, uv);
@@ -77,16 +77,16 @@ static inline void EvoTop_ClipSetUv(MFlash *flash, char *parent, char *name, MFl
 
 /* Gives each of the three plates its strip of the caption texture. */
 void EvoTop_SetPlateText(EvoTop *menu) {
-    MFlashUv uv;
+    FlashUv uv;
     char name[256];
-    MFlash *flash = &menu->flash[0];
+    Flash *flash = &menu->flash[0];
     s32 i;
 
     for (i = 0; i < 3; i++) {
-        uv.x0 = 0;
-        uv.y0 = i * 0x20;
-        uv.x1 = 0x200;
-        uv.y1 = uv.y0 + 0x20;
+        uv.u0 = 0;
+        uv.v0 = i * 0x20;
+        uv.u1 = 0x200;
+        uv.v1 = uv.v0 + 0x20;
         sprintf(name, "mc_menu_plate_%d", i + 1);
         EvoTop_ClipSetUv(flash, name, "mc_menu_text_on", &uv);
         EvoTop_ClipSetUv(flash, name, "mc_menu_text_off", &uv);
@@ -96,7 +96,7 @@ void EvoTop_SetPlateText(EvoTop *menu) {
 /* Plays "fl_ok" on the cursor plate. Inline in the original (its locals are the first of EvoTop_Input's frame)
    and defined here, ahead of its only user: see the header comment. */
 static inline void EvoTop_PlateOk(EvoTop *m) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[0x100];
 
     sprintf(name, "mc_menu_plate_%d", m->cursor + 1);
@@ -125,13 +125,13 @@ static inline u8 *EvoTop_Section(EvoTop *menu, s32 n, const char *host) {
 #define EVO_HOST "host:data/ps2/test/main/evoZ/"
 
 #define EVO_RES(n, host) \
-    res = (MTexRes *)EvoTop_Section(menu, n, host); \
+    res = (FlashTexRes *)EvoTop_Section(menu, n, host); \
     Res_RelocateOffsets(&res, res, res)
 
 /* Unpacks the menu's section of archive 7 and builds its movie, windows and sounds. */
 void EvoTop_Init(EvoTop *menu, s32 section) {
-    MTexRes *res = NULL;
-    MFlash *flash = &menu->flash[0];
+    FlashTexRes *res = NULL;
+    Flash *flash = &menu->flash[0];
 
     menu->pack = (u32 *)MPACK_AT(gMenuArc7, section);
     menu->res = Sprite_Unpack(menu->pack, NULL, NULL);
@@ -204,7 +204,7 @@ void EvoTop_ScissorOff(void) {
 
 /* Hangs the scissor callbacks on the two cloud clips. */
 void EvoTop_SetCloudClips(EvoTop *m) {
-    MFlashRef ref;
+    FlashRef ref;
 
     Flash_FindLabel(&m->flash[0], NULL, "mc_bg_cloud_1", &ref);
     Flash_ClipSetCallbackA(&m->flash[0], &ref, EvoTop_ScissorCloud1, NULL);
@@ -216,7 +216,7 @@ void EvoTop_SetCloudClips(EvoTop *m) {
 
 /* Animates the guide's eyes and mouth. */
 void EvoTop_UpdateFace(EvoTop *m) {
-    MFlashRef ref;
+    FlashRef ref;
 
     Flash_FindLabel(&m->flash[0], NULL, "mc_guide_cririn_eye", &ref);
     FlashAnim_Blink(&m->flash[0], &ref, &m->blink, 0);
@@ -230,11 +230,11 @@ void EvoTop_UpdateFace(EvoTop *m) {
 
 /* Starts the movie and the first voice line when due, then draws the screen. */
 void EvoTop_Draw(EvoTop *m) {
-    MFlashRef ref;
-    MFlashUv uv;
+    FlashRef ref;
+    FlashUv uv;
     char name[0x100];
     s32 i;
-    MFlash *flash;
+    Flash *flash;
 
     if (!(m->flags & EVOTOP_STARTED)) {
         Flash_GotoLabel(&m->flash[0], "fl_in", 1);
@@ -265,10 +265,10 @@ void EvoTop_Draw(EvoTop *m) {
     EvoTop_SetPlateText(m);
     EvoTop_SetCloudClips(m);
     flash = &m->flash[0];
-    uv.x1 = 0x200;
-    uv.y1 = 0x100;
-    uv.x0 = 0;
-    uv.y0 = 0;
+    uv.u1 = 0x200;
+    uv.v1 = 0x100;
+    uv.u0 = 0;
+    uv.v0 = 0;
     for (i = 0; i < 2; i++) {
         sprintf(name, "mc_bg_cloud_%d", i + 1);
         Flash_FindLabel(flash, NULL, name, &ref);

@@ -1,4 +1,6 @@
 #include "common.h"
+#include "battle/btl_cam.h"
+#include "sys/math3d.h"
 #include "battle/eft_s.h"
 #include "sys/gfx_ot.h"
 
@@ -14,17 +16,11 @@
 #define V(p) ((Vec4 *)(p))
 
 /* The view being drawn (include/battle/btl_cam.h). */
-typedef struct EftSView {
-    /* 0x000 */ u8 unk0[0x220];
-    /* 0x220 */ EftVec pos;    /* camera position */
-} EftSView;
 
-extern EftSView *gBtlCamView;
 /* gOtCur read as a volatile object (same symbol). The original never moves the load `pkt = gOtCur` into the delay
    slot of the branch in front of it, while the store `gOtCur = pkt + 1` does go into one: a volatile read
    reproduces exactly that (see EftChain_DrawStrand). */
 extern u32 *volatile gOtCurRead __asm__("gOtCur");
-extern EftArcPool *gEftChain;
 extern void *D_002C3E18[6]; /* task class of the prop ki blast */
 
 extern s32 rand(void);
@@ -72,7 +68,7 @@ extern void EftSpr_DrawRot(f32 x, f32 y, f32 z, u8 r, u8 g, u8 b, u8 a, s32 t0, 
 extern u64 EftVram_AddImage(void *tex, s32 a, s32 b);
 extern u64 EftVram_AddClut(void *tex);
 extern void EftTexSet_Load4(void *tex, s32 *entry);
-extern void BtlTask_SetDead(EftTask *task);                   /* kills the task */
+extern void BtlTask_SetDead(BtlTask *task);                   /* kills the task */
 extern void EftObj_SetMtx(s32 obj, Mtx44 *m);               /* sets a model object's matrix */
 extern void EftObj_SetVisible(s32 obj, s32 show);
 extern s32 BtlPool_GetCurrent(void);
@@ -82,33 +78,33 @@ extern s32 *BtlScene_GetPackEntry(s32 *base, s32 idx);
 extern s32 *BtlScene_GetCharPackEntry(s32 side, s32 idx);
 extern s32 BtlScene_IsEffectStopped(s32 objId, s32 kind);
 extern s32 BtlScene_IsEffectHidden(s32 objId, s32 kind);
-extern void *BtlTask_CreateChildList(EftTask *task, s32 count, s32 workSize);
+extern void *BtlTask_CreateChildList(BtlTask *task, s32 count, s32 workSize);
 extern void *BtlTaskList_AddTail(void *list, void *cls, void *arg);
 extern void EftChar_SetList(s32 side, s32 slot, void *list);  /* registers a character's child list */
 extern void *EftChar_GetList(s32 side, s32 slot);             /* ... and returns it */
-extern void EftKiObj_Turn(EftTask *task, EftKiProp *w);     /* deflect: new owner, new velocity */
-extern void EftKiObj_Update(EftTask *task);                   /* update callback of the prop ki blast */
+extern void EftKiObj_Turn(BtlTask *task, EftKiProp *w);     /* deflect: new owner, new velocity */
+extern void EftKiObj_Update(BtlTask *task);                   /* update callback of the prop ki blast */
 
 /* ---- prop ki blast (continued from the previous file) ----------------------------------------------------- */
 
 /* Reset callback of the prop ki blast: kills the task. */
-void EftKiObj_Reset(EftTask *task) {
+void EftKiObj_Reset(BtlTask *task) {
     BtlTask_SetDead(task);
 }
 
 /* Post-update callback. */
-void EftKiObj_PostUpdateCb(EftTask *task) {
+void EftKiObj_PostUpdateCb(BtlTask *task) {
     EftKiObj_PostUpdate(task);
 }
 
 /* Draw callback. */
-void EftKiObj_DrawCb(EftTask *task) {
+void EftKiObj_DrawCb(BtlTask *task) {
     EftKiObj_Draw(task);
 }
 
 /* Manager init: loads the character's blast pack (model and fragment texture) and creates the list of ten
    blast tasks, registered as the character's list 1. */
-void EftKiObjMgr_Init(EftTask *task, s32 *arg) {
+void EftKiObjMgr_Init(BtlTask *task, s32 *arg) {
     EftKiPropMgr *mgr = task->work;
     EftKiPropRes *res;
     void *list;
@@ -125,7 +121,7 @@ void EftKiObjMgr_Init(EftTask *task, s32 *arg) {
 }
 
 /* Manager term: frees the resources. */
-void EftKiObjMgr_Term(EftTask *task) {
+void EftKiObjMgr_Term(BtlTask *task) {
     EftKiPropMgr *mgr = task->work;
 
     if (mgr->res != NULL) {
@@ -135,7 +131,7 @@ void EftKiObjMgr_Term(EftTask *task) {
 }
 
 /* Manager update: the fragment texture has to be rebuilt this frame. */
-void EftKiObjMgr_Update(EftTask *task) {
+void EftKiObjMgr_Update(BtlTask *task) {
     EftKiPropMgr *mgr = task->work;
 
     mgr->res->texReady = 0;
@@ -151,14 +147,14 @@ void EftKiObj_Create(EftKiPropArg arg) {
 }
 
 /* Stores a 0x40-byte block in a live prop ki blast. No caller in the main executable. */
-void EftKiObj_SetBlock(EftTask *task, EftKiPropBlock *src) {
-    if (task != NULL && !(task->flags & 1) && task->cls[0] == EftKiObj_Update) {
+void EftKiObj_SetBlock(BtlTask *task, EftKiPropBlock *src) {
+    if (task != NULL && !(task->bits & 1) && task->cls->update == EftKiObj_Update) {
         ((EftKiProp *)task->work)->block = *src;
     }
 }
 
 /* One frame of a prop ki blast: moves it under gravity, turns it, steps the fragments. */
-s32 EftKiObj_Step(EftTask *task) {
+s32 EftKiObj_Step(BtlTask *task) {
     EftKiProp *w = task->work;
     s32 period;
 
@@ -185,7 +181,7 @@ s32 EftKiObj_Step(EftTask *task) {
 
 /* After the hit pass: shows or hides the model; a hit breaks the blast at the hit position; a deflection hands
    it to the other fighter. */
-void EftKiObj_PostUpdate(EftTask *task) {
+void EftKiObj_PostUpdate(BtlTask *task) {
     EftKiProp *w = task->work;
 
     if (w->flags & EFT_KIPROP_SHOWN) {
@@ -198,33 +194,33 @@ void EftKiObj_PostUpdate(EftTask *task) {
         EftObj_SetVisible(w->modelObj, 0);
     }
     if (w->modelObj != -1) {
-        if (task->result & 0x3F) {
+        if (task->tag & 0x3F) {
             w->life = 0;
             if (!(w->flags & EFT_KIPROP_BROKEN)) {
-                Vec3_Copy(V(&w->pos), V(&task->hitPos));
+                Vec3_Copy(V(&w->pos), V(&task->pos));
                 EftKiObj_Break(task, &w->pos);
                 w->flags |= EFT_KIPROP_BROKEN;
                 w->flags &= ~EFT_KIPROP_SHOWN;
                 w->flags &= ~EFT_KIPROP_HITTING;
             }
-        } else if (task->result & 0xC0) {
+        } else if (task->tag & 0xC0) {
             if (!(w->flags & EFT_KIPROP_DEFLECTED)) {
                 EftKiObj_Turn(task, w);
-                w->pos.x = task->hitPos.x;
-                w->pos.y = task->hitPos.y;
-                w->pos.z = task->hitPos.z;
+                w->pos.x = task->pos.x;
+                w->pos.y = task->pos.y;
+                w->pos.z = task->pos.z;
                 w->flags |= EFT_KIPROP_HITMOVED;
-                task->result &= ~0xC0;
+                task->tag &= ~0xC0;
             }
         }
     }
 }
 
 /* Places the model (scale, spin about X, position) and draws the fragments. */
-void EftKiObj_Draw(EftTask *task) {
+void EftKiObj_Draw(BtlTask *task) {
     Mtx44 m;
     Mtx44 s;
-    EftVec pos;
+    Vec4Array pos;
     EftKiProp *w = task->work;
 
     if (w->modelObj != -1) {
@@ -246,7 +242,7 @@ void EftKiObj_Draw(EftTask *task) {
 
 /* Breaks the blast: five fragments at pos with random upward directions (speed 4, vertical part x 1.3) and a
    random size factor. */
-void EftKiObj_Break(EftTask *task, EftVec *pos) {
+void EftKiObj_Break(BtlTask *task, Vec4Array *pos) {
     EftKiProp *w = task->work;
     EftKiPropFrag *f;
     s32 i;
@@ -268,7 +264,7 @@ void EftKiObj_Break(EftTask *task, EftVec *pos) {
 }
 
 /* Moves the fragments under gravity until their timer runs out. */
-void EftKiObj_StepFrags(EftTask *task) {
+void EftKiObj_StepFrags(BtlTask *task) {
     EftKiProp *w = task->work;
     EftKiPropFrag *f;
     s32 i;
@@ -290,7 +286,7 @@ void EftKiObj_StepFrags(EftTask *task) {
 }
 
 /* Draws the fragments as sprites turned by the blast's spin. */
-void EftKiObj_DrawFrags(EftTask *task) {
+void EftKiObj_DrawFrags(BtlTask *task) {
     EftKiProp *w = task->work;
     EftKiPropFrag *f;
     s32 i;
@@ -329,9 +325,9 @@ void EftChain_BuildTex(EftArc *dst, EftArc *src) {
 
 /* Loads one key (0..2) of the parameters into `out`: seconds become frames, the angle rows are scaled by pi. */
 void EftChain_SetKey(EftArcKey *out, EftArc *w, s32 key) {
-    EftVec a;
-    EftVec b;
-    EftVec c;
+    Vec4Array a;
+    Vec4Array b;
+    Vec4Array c;
     EftArcKeys *keys = w->arg.keys;
     EftArcParam *p = w->arg.param;
     s32 j;
@@ -400,23 +396,12 @@ void EftChain_SetKey(EftArcKey *out, EftArc *w, s32 key) {
 /* Blends the current parameters between two keys by the key timer (keys 0..1 up to keyMid, then 1..2).
    As in the original: rows 2, 4 and 6 use the delta of the row before them, and the step / crawl angle rows
    are not scaled by pi here (EftChain_SetKey scales them). */
-#if 0 /* not matched: same operations, but register allocation differs through the whole 600-instruction block after the loop (the original keeps `out` in s6 and has a 0x180 frame; this C gets a 0x1A0 frame with `out` in t9 saved around the calls). The part up to the end of the pair loop is the same instruction sequence.
-Cleanup W1 (analysis only, no new form found): the 0x20 of frame is the caller-save slot of `out` plus spill slots. In
-the original the long block behind the loop keeps only SEVEN block-local address temporaries in saved registers
-(s0-s4, s7, s8), so global allocation still finds s5 for `p` and s6 for `out`; about fifty other address temporaries
-(set once, used once, long-lived) go to stack slots 0x40..0x110(sp). In this attempt local-alloc gives EIGHT of those
-long-lived temporaries a saved register (s0-s5, s7, s8: lengths 170..270 instructions, 2 or 3 references each), which
-leaves one saved register for `p` and pushes `out` into t9. So the cause is one more address temporary alive across
-the block than in the original, not the struct view: the rows are already separate members, and the original's
-address shapes agree with that (bases p+4 / p+8 / p+12, i.e. row offset modulo 16, plus k * 4 + a multiple of 16).
-Worth trying next: the original forms the k1 side of a row as `off16(k1*4 + (p + rest))` with the sum SHARED between
-the rows of equal rest (t7 = k1*4 + p + 4 serves 0x14, 0x44, ...), and the k0 side as a fresh `(p + rest) + (k0*4 +
-off16)` per row; here both sides come out in the per-row form, which is where the extra temporaries come from. */
+/* Keep elapsed key time separate from the fraction used to interpolate each key pair. */
 void EftChain_BlendKeys(EftArc *w) {
-    EftVec d;
-    EftVec a;
-    EftVec b;
-    EftVec c;
+    Vec4Array d;
+    Vec4Array a;
+    Vec4Array b;
+    Vec4Array c;
     EftArcKey *out = &w->cur;
     EftArcParam *p = w->arg.param;
     EftArcKeys *keys = w->arg.keys;
@@ -425,15 +410,17 @@ void EftChain_BlendKeys(EftArc *w) {
     s32 k0;
     s32 k1;
     s32 j;
+    f32 time;
 
-    t = w->keyT;
+    time = w->keyT;
     mid = w->keyMid;
-    if (t < mid) {
-        t = t / mid;
+    if (time < mid) {
+        t = time / mid;
         k0 = 0;
         k1 = 1;
     } else {
-        t = (t - mid) / (w->keyEnd - mid);
+        t = time - mid;
+        t = t / (w->keyEnd - mid);
         k0 = 1;
         k1 = 2;
     }
@@ -546,10 +533,6 @@ void EftChain_BlendKeys(EftArc *w) {
     out->fadeIn = (ROW(37, k0) + d.v[0] * t) * 30.0f;
     out->fadeOut = (ROW(38, k0) + d.v[1] * t) * 30.0f;
 }
-#else
-LIT4_WORD(D_002FCC54, 0x40490FDA); /* the function's pi */
-INCLUDE_ASM("asm/nonmatchings/battle/eft_s", EftChain_BlendKeys);
-#endif
 
 /* Takes up to `count` free nodes from the shared pool (round robin from its cursor) and links them as the
    chain. */
@@ -604,12 +587,12 @@ void EftChain_FreeNodes(EftArcChain *ch) {
 /* Lays out a new chain: node radii from a random start to a random end radius along the chain's direction
    (which turns by stepX / stepY per node), random jitter in proportion to the node spacing, random widths
    (the two end nodes at a fifth). */
-void EftChain_InitStrand(EftTask *task, EftArcChain *ch) {
+void EftChain_InitStrand(BtlTask *task, EftArcChain *ch) {
     Mtx44 m;
     Mtx44 base;
-    EftVec dir;
-    EftVec d;
-    EftVec prev;
+    Vec4Array dir;
+    Vec4Array d;
+    Vec4Array prev;
     EftArc *w = task->work;
     EftArcKey *key = &w->cur;
     EftArcNode *n;
@@ -675,11 +658,11 @@ void EftChain_InitStrand(EftTask *task, EftArcChain *ch) {
    (every node takes its successor's place and the last one gets a new position), the other kinds drift and
    re-roll the jitter; then world position and colour of every node (kinds 0 and 2 fade the head).
    As in the original, the crawl adds crawlY to the wrapped rotX to get rotY. */
-void EftChain_UpdateStrand(EftTask *task, EftArcChain *ch) {
+void EftChain_UpdateStrand(BtlTask *task, EftArcChain *ch) {
     Mtx44 m;
-    EftVec old;
-    EftVec d;
-    EftVec dir;
+    Vec4Array old;
+    Vec4Array d;
+    Vec4Array dir;
     EftArc *w = task->work;
     EftArcParam *p = w->arg.param;
     EftArcKey *key = &w->cur;
@@ -816,15 +799,15 @@ static inline void EftChain_OtAdd(OtPrim *p, s32 z, s32 layer) {
 /* Draws a chain as a ribbon facing the camera: one textured quad per pair of shown nodes, widened across the
    segment by the nodes' widths, queued by its average depth. A clipped quad is skipped. */
 void EftChain_DrawStrand(EftArc *w, EftArc *w2, EftArcChain *ch) {
-    EftVec uv[4] = { { { 0.0f, 0.0f, 1.0f, 0.0f } }, { { 0.0f, 1.0f, 1.0f, 0.0f } }, { { 1.0f, 0.0f, 1.0f, 0.0f } }, { { 1.0f, 1.0f, 1.0f, 0.0f } } };
-    EftVec quad[4];
-    EftVec prevEnd[2];
-    EftVec st[4];
-    EftVec cam;
-    EftVec side;
-    EftVec toCam;
-    EftVec offA;
-    EftVec offB;
+    Vec4Array uv[4] = { { { 0.0f, 0.0f, 1.0f, 0.0f } }, { { 0.0f, 1.0f, 1.0f, 0.0f } }, { { 1.0f, 0.0f, 1.0f, 0.0f } }, { { 1.0f, 1.0f, 1.0f, 0.0f } } };
+    Vec4Array quad[4];
+    Vec4Array prevEnd[2];
+    Vec4Array st[4];
+    Vec4Array cam;
+    Vec4Array side;
+    Vec4Array toCam;
+    Vec4Array offA;
+    Vec4Array offB;
     EftSScr scr[4];
     s32 colA[4];
     s32 colB[4];
@@ -953,15 +936,15 @@ void EftChain_DrawStrand(EftArc *w, EftArc *w2, EftArcChain *ch) {
 
 /* The same ribbon through the shared polygon clipper: two triangles per segment. */
 void EftChain_DrawStrandClipped(EftArc *w, EftArc *w2, EftArcChain *ch) {
-    EftVec uv[4] = { { { 0.0f, 0.0f, 1.0f, 0.0f } }, { { 0.0f, 1.0f, 1.0f, 0.0f } }, { { 1.0f, 0.0f, 1.0f, 0.0f } }, { { 1.0f, 1.0f, 1.0f, 0.0f } } };
-    EftVec quad[4];
-    EftVec prevEnd[2];
-    EftVec cam;
-    EftVec side;
-    EftVec toCam;
-    EftVec offA;
-    EftVec offB;
-    EftVec col[4];
+    Vec4Array uv[4] = { { { 0.0f, 0.0f, 1.0f, 0.0f } }, { { 0.0f, 1.0f, 1.0f, 0.0f } }, { { 1.0f, 0.0f, 1.0f, 0.0f } }, { { 1.0f, 1.0f, 1.0f, 0.0f } } };
+    Vec4Array quad[4];
+    Vec4Array prevEnd[2];
+    Vec4Array cam;
+    Vec4Array side;
+    Vec4Array toCam;
+    Vec4Array offA;
+    Vec4Array offB;
+    Vec4Array col[4];
     EftSClipVtx poly[9];
     EftArcParam *p;
     s32 first;
@@ -1014,7 +997,7 @@ void EftChain_DrawStrandClipped(EftArc *w, EftArc *w2, EftArcChain *ch) {
 /* Starts a chain in a free slot: nodes from the pool (fewer than 3: gives up), random life, colours, direction
    (kind 2: random pitch, and a yaw that advances per chain; other kinds: the effect's slot rotation), turn
    steps mirrored on odd slots, then the node layout. */
-s32 EftChain_StartStrand(EftTask *task, EftArcChain *ch) {
+s32 EftChain_StartStrand(BtlTask *task, EftArcChain *ch) {
     EftArc *w = task->work;
     EftArcParam *p = w->arg.param;
     EftArcKey *key = &w->cur;
@@ -1123,7 +1106,7 @@ s32 EftChain_StartStrand(EftTask *task, EftArcChain *ch) {
 
 /* One frame of every chain: growth, shrinking, the end phase, width and colour pulses, colour drift, fades,
    visibility, the nodes; a chain whose life is over and whose alpha reached 0 is freed on the next frame. */
-void EftChain_UpdateStrands(EftTask *task) {
+void EftChain_UpdateStrands(BtlTask *task) {
     EftArc *w = task->work;
     EftArcParam *p = w->arg.param;
     EftArcKey *key = &w->cur;
@@ -1260,7 +1243,7 @@ void EftChain_UpdateStrands(EftTask *task) {
 }
 
 /* Draws every visible chain, as clipped polygons or as plain quads. */
-void EftChain_DrawStrands(EftTask *task) {
+void EftChain_DrawStrands(BtlTask *task) {
     EftArc *w = task->work;
     EftArcParam *p = w->arg.param;
     EftArcChain *ch;
@@ -1280,7 +1263,7 @@ void EftChain_DrawStrands(EftTask *task) {
 
 /* Starts bursts of chains while the spawn timer is due: countBase (+ a random part) chains per burst, each in a
    free slot; advances the rotation of the current slot (mirrored on odd slots) and steps the slot 0..3. */
-void EftChain_Spawn(EftTask *task) {
+void EftChain_Spawn(BtlTask *task) {
     EftArc *w = task->work;
     EftArcKey *key = &w->cur;
     EftArcParam *p = w->arg.param;
@@ -1337,7 +1320,7 @@ void EftChain_Spawn(EftTask *task) {
 
 /* Init callback: copies the argument, builds the matrix that turns +Z onto the direction, presets the four slot
    rotations, loads key 0 (animated) or key 2 and picks the texture. */
-void EftChain_Init(EftTask *task, EftArcArg *arg) {
+void EftChain_Init(BtlTask *task, EftArcArg *arg) {
     EftArc *w = task->work;
     EftArcParam *p = arg->param;
     EftArcKey *key = &w->cur;
@@ -1382,7 +1365,7 @@ void EftChain_Init(EftTask *task, EftArcArg *arg) {
 }
 
 /* Term callback: frees every chain's nodes. */
-void EftChain_Term(EftTask *task) {
+void EftChain_Term(BtlTask *task) {
     EftArc *w = task->work;
     EftArcChain *ch;
     s32 i;
@@ -1398,7 +1381,7 @@ void EftChain_Term(EftTask *task) {
 
 /* Update callback: start delay, bursts (until the effect is told to end), chains, key animation, life; once
    ending and every chain is gone the task is killed. Otherwise builds this frame's TEX0. */
-void EftChain_Update(EftTask *task) {
+void EftChain_Update(BtlTask *task) {
     EftArc *w = task->work;
     s32 busy = 0;
     EftArcParam *p = w->arg.param;
@@ -1484,8 +1467,6 @@ void EftChain_Update(EftTask *task) {
  * included) come out identical to the original.
  */
 
-#define gBtlCamView ((EftTCamView *)gBtlCamView)
-
 extern void *memset(void *dst, s32 c, u32 n);
 extern s32 rand(void);
 extern f32 atan2f(f32 y, f32 x);
@@ -1513,7 +1494,6 @@ extern void Vec3_Div(Vec4 *dst, Vec4 *src, f32 div);     /* dst = src / div */
 extern void Vec3_Copy(Vec4 *dst, Vec4 *src);              /* copies x, y, z */
 #define Vec4_ToInt ((void (*)(EftTIVec *dst, Vec4 *src))Vec4_ToInt)          /* float vector to integer vector */
 extern s32 Mtx_ProjectPoint(EftTIVec *out, Mtx44 *m, Vec4 *pos); /* projects one point */
-#define Vec3_Add4 ((void (*)(Vec4 *dst, Vec4 *a, Mtx44 *m, Vec4 *b, Vec4 *c))Vec3_Add4)
 
 extern s32 BtlPool_GetCurrent(void);
 extern void *BtlPool_Alloc(s32 slot, s32 size);
@@ -1541,19 +1521,12 @@ extern void BtlCharApi_GetNodePos(s32 objId, s32 node, Vec4 *out);
 extern s32 BtlCharApi_IsInTechnique(s32 objId);
 extern s32 BtlCharApi_IsInClashA(s32 objId);
 
-#define EftChain_SetTex ((void (*)(EftChainWork *w, s32 a1, s32 a2, s32 a3))EftChain_SetTex)
 #define EftChain_DrawStrands ((void (*)(EftTTask *task))EftChain_DrawStrands)                    /* draws the strands */
 #define EftChain_Update ((void (*)(EftTTask *task))EftChain_Update)                    /* update callback of the chain task class */
 
 extern void *D_002C3E48[6]; /* chain task class */
 extern void *gEftRayClass[6]; /* ray task class */
 
-#ifdef PORT /* assigned to: a cast is not an lvalue for a modern compiler */
-#define gEftChain (*(EftChainMgr **)&gEftChain)
-#else
-#define gEftChain ((EftChainMgr *)gEftChain)
-#endif
-extern void *gEftChainList;
 extern EftRayMgr *gEftRay;
 
 void EftRay_Update(EftTTask *task);
@@ -1581,9 +1554,9 @@ void EftChain_Reset(EftTTask *task) {
 
 /* Draw callback: draws the strands unless the effect is hidden or belongs to the other view. */
 void EftChain_Draw(EftTTask *task) {
-    EftChainWork *w = task->work;
+    EftArc *w = task->work;
 
-    if (BtlScene_IsEffectHidden(w->arg.objId, w->type)) {
+    if (BtlScene_IsEffectHidden(w->arg.objId, w->stopKind)) {
         return;
     }
     if (w->flags & EFT_CHAIN_VIEW_ONLY) {
@@ -1592,23 +1565,23 @@ void EftChain_Draw(EftTTask *task) {
         }
     }
     Vu0Cur_Push();
-    Vu0Cur_LoadMtx(&gBtlCamView->screen);
+    Vu0Cur_LoadMtx(&gBtlCamView->world2screen);
     EftChain_DrawStrands(task);
     Vu0Cur_Pop();
 }
 
 /* Init callback of the manager class 0x2C3E30: the link buffer and a list of 10 tasks. */
 void EftChainMgr_Init(EftTTask *task) {
-    gEftChain = BtlPool_Alloc(BtlPool_GetCurrent(), sizeof(EftChainMgr));
-    memset(gEftChain, 0, sizeof(EftChainMgr));
-    gEftChain->buf = BtlPool_Alloc(BtlPool_GetCurrent(), 0xBB80);
-    memset(gEftChain->buf, 0, 0xBB80);
-    gEftChainList = BtlTask_CreateChildList(task, 10, sizeof(EftChainWork));
+    gEftChain = BtlPool_Alloc(BtlPool_GetCurrent(), sizeof(EftArcPool));
+    memset(gEftChain, 0, sizeof(EftArcPool));
+    gEftChain->node = BtlPool_Alloc(BtlPool_GetCurrent(), 0xBB80);
+    memset(gEftChain->node, 0, 0xBB80);
+    gEftChainList = BtlTask_CreateChildList(task, 10, sizeof(EftArc));
 }
 
 /* Term callback of the manager class. */
 void EftChainMgr_Term(EftTTask *task) {
-    BtlPool_Free(BtlPool_GetCurrent(), gEftChain->buf);
+    BtlPool_Free(BtlPool_GetCurrent(), gEftChain->node);
     BtlPool_Free(BtlPool_GetCurrent(), gEftChain);
     gEftChain = NULL;
 }
@@ -1622,17 +1595,17 @@ void EftChainMgr_Reset(EftTTask *task) {
 }
 
 /* Starts a chain effect; returns its task (the handle of the functions below). */
-EftTTask *EftChain_Create(EftChainArg arg) {
+EftTTask *EftChain_Create(EftArcArg arg) {
     return BtlTaskList_AddTail(gEftChainList, D_002C3E48, &arg);
 }
 
 /* The strand at 0x140 past a walking pointer: the original steps a pointer from the work's start. */
-#define EFT_CHAIN_STRAND(p) ((EftChainStrand *)((u8 *)(p) + 0x140))
+#define EFT_CHAIN_STRAND(p) ((EftArcChain *)((u8 *)(p) + 0x140))
 #define IS_CHAIN(task) ((task)->cls[0] == EftChain_Update)
 
 /* Lets the effect finish. */
 s32 EftChain_Stop(EftTTask *task) {
-    EftChainWork *w;
+    EftArc *w;
 
     if (task == NULL) {
         return 0;
@@ -1653,7 +1626,7 @@ s32 EftChain_Stop(EftTTask *task) {
 
 /* Ends the effect now (part kind 18's "kill" entry). */
 s32 EftChain_Kill(EftTTask *task) {
-    EftChainWork *w;
+    EftArc *w;
 
     if (task == NULL) {
         return 0;
@@ -1674,7 +1647,7 @@ s32 EftChain_Kill(EftTTask *task) {
 
 /* Part kind 18's "is alive" entry. */
 s32 EftChain_IsAlive(EftTTask *task) {
-    EftChainWork *w;
+    EftArc *w;
 
     if (task == NULL) {
         return 0;
@@ -1694,7 +1667,7 @@ s32 EftChain_IsAlive(EftTTask *task) {
 
 /* Moves the effect's origin; links already out stay where they are. */
 s32 EftChain_SetPos(EftTTask *task, Vec4 *pos) {
-    EftChainWork *w;
+    EftArc *w;
 
     if (task == NULL) {
         return 0;
@@ -1712,8 +1685,8 @@ s32 EftChain_SetPos(EftTTask *task, Vec4 *pos) {
 
 /* Moves the origin and re-places every link of every strand relative to it. */
 s32 EftChain_Warp(EftTTask *task, Vec4 *pos) {
-    EftChainWork *w;
-    EftChainStrand *st;
+    EftArc *w;
+    EftArcChain *st;
     s32 i;
 
     if (task == NULL) {
@@ -1727,18 +1700,18 @@ s32 EftChain_Warp(EftTTask *task, Vec4 *pos) {
         return 0;
     }
     Vec3_Copy((Vec4 *)&w->arg.pos, pos);
-    st = (EftChainStrand *)w;
+    st = (EftArcChain *)w;
     for (i = 0; i < 16; i++, st++) {
-        Mtx44 *m = &EFT_CHAIN_STRAND(st)->mtx;
-        EftChainLink *link;
+        Vec4 *chainPos = (Vec4 *)&EFT_CHAIN_STRAND(st)->pos;
+        EftArcNode *link;
 
         if (EFT_CHAIN_STRAND(st)->flags & 1) {
-            EftChainLink **pp = &EFT_CHAIN_STRAND(st)->head;
+            EftArcNode **pp = &EFT_CHAIN_STRAND(st)->head;
 
             while (*pp != NULL) {
                 link = *pp;
-                Vec3_Add4(&link->pos, (Vec4 *)&w->arg.pos, m, &link->unk0, &link->unk10);
-                link->pos.w = 1.0f;
+                Vec3_Add4((Vec4 *)&link->world, (Vec4 *)&w->arg.pos, chainPos, (Vec4 *)&link->pos, (Vec4 *)&link->jit);
+                link->world.w = 1.0f;
                 pp = &link->next;
             }
         }
@@ -1748,7 +1721,7 @@ s32 EftChain_Warp(EftTTask *task, Vec4 *pos) {
 
 /* Sets the direction and rebuilds the rotation from it (pitch about X, then yaw about Y). */
 s32 EftChain_SetDir(EftTTask *task, Vec4 *dir) {
-    EftChainWork *w;
+    EftArc *w;
 
     if (task == NULL) {
         return 0;
@@ -1763,15 +1736,15 @@ s32 EftChain_SetDir(EftTTask *task, Vec4 *dir) {
     Vec3_Copy((Vec4 *)&w->arg.dir, dir);
     w->pitch = Mathf_Asin(-w->arg.dir.y);
     w->yaw = atan2f(w->arg.dir.x, w->arg.dir.z);
-    Mtx_StoreIdentity(&w->rot);
-    Mtx_RotateX(&w->rot, &w->rot, w->pitch);
-    Mtx_RotateY(&w->rot, &w->rot, w->yaw);
+    Mtx_StoreIdentity(&w->mtx);
+    Mtx_RotateX(&w->mtx, &w->mtx, w->pitch);
+    Mtx_RotateY(&w->mtx, &w->mtx, w->yaw);
     return 1;
 }
 
 /* Sets the size. */
 s32 EftChain_SetSize(EftTTask *task, f32 size) {
-    EftChainWork *w;
+    EftArc *w;
 
     if (task == NULL) {
         return 0;
@@ -1783,13 +1756,13 @@ s32 EftChain_SetSize(EftTTask *task, f32 size) {
     if (!(w->flags & EFT_CHAIN_ALIVE)) {
         return 0;
     }
-    w->arg.size = size;
+    w->arg.scale = size;
     return 1;
 }
 
 /* Sets the part's parameter 3, clamped to 3..7. */
 s32 EftChain_SetParam3(EftTTask *task, s32 v) {
-    EftChainWork *w;
+    EftArc *w;
 
     if (task == NULL) {
         return 0;
@@ -1801,18 +1774,18 @@ s32 EftChain_SetParam3(EftTTask *task, s32 v) {
     if (!(w->flags & EFT_CHAIN_ALIVE)) {
         return 0;
     }
-    w->unkE90 = v;
+    w->nodeCount = v;
     if (v < 3) {
-        w->unkE90 = 3;
+        w->nodeCount = 3;
     } else if (v >= 8) {
-        w->unkE90 = 7;
+        w->nodeCount = 7;
     }
     return 1;
 }
 
 /* Sets the part's parameter 5. */
 s32 EftChain_SetParam5(EftTTask *task, f32 v) {
-    EftChainWork *w;
+    EftArc *w;
 
     if (task == NULL) {
         return 0;
@@ -1824,13 +1797,13 @@ s32 EftChain_SetParam5(EftTTask *task, f32 v) {
     if (!(w->flags & EFT_CHAIN_ALIVE)) {
         return 0;
     }
-    w->unkEA0 = v;
+    w->delay = v;
     return 1;
 }
 
 /* Sets the part's parameter 6. */
 s32 EftChain_SetParam6(EftTTask *task, f32 v) {
-    EftChainWork *w;
+    EftArc *w;
 
     if (task == NULL) {
         return 0;
@@ -1842,7 +1815,7 @@ s32 EftChain_SetParam6(EftTTask *task, f32 v) {
     if (!(w->flags & EFT_CHAIN_ALIVE)) {
         return 0;
     }
-    w->unkEA4 = v;
+    w->endWait = v;
     return 1;
 }
 
@@ -1851,8 +1824,8 @@ s32 EftChain_SetParam6(EftTTask *task, f32 v) {
    The original shape appears as soon as EftChain_SetTex is DEFINED earlier in the same file (checked in a scratch
    file with a dummy definition): this function belongs to the object that holds 0x1793A8, i.e. this file is the
    tail of the file before it and will match once the two are merged. */
-s32 EftChain_SetRes(EftTTask *task, s32 a1, s32 a2, s32 a3) {
-    EftChainWork *w;
+s32 EftChain_SetRes(EftTTask *task, EftArcTexSet *a1, s32 a2, s32 a3) {
+    EftArc *w;
 
     if (task == NULL) {
         return 0;
@@ -1870,7 +1843,7 @@ s32 EftChain_SetRes(EftTTask *task, s32 a1, s32 a2, s32 a3) {
 
 /* Restricts drawing to the view that shows the owner. */
 s32 EftChain_SetViewOnly(EftTTask *task) {
-    EftChainWork *w;
+    EftArc *w;
 
     if (task == NULL) {
         return 0;
@@ -1891,7 +1864,7 @@ s32 EftChain_SetViewOnly(EftTTask *task) {
 
 /* Stores the owner's effect type. */
 s32 EftChain_SetType(EftTTask *task, s32 type) {
-    EftChainWork *w;
+    EftArc *w;
 
     if (task == NULL) {
         return 0;
@@ -1906,7 +1879,7 @@ s32 EftChain_SetType(EftTTask *task, s32 type) {
     if (!(w->flags & EFT_CHAIN_ALIVE)) {
         return 0;
     }
-    w->type = type;
+    w->stopKind = type;
     return 1;
 }
 
@@ -2025,12 +1998,12 @@ EftTTask *EftRay_StartHit(s32 objId, EftTVec pos, s32 delay, s32 fade, s32 unuse
     EftRayArg arg;
 
     Vec4_Copy((Vec4 *)&arg.pos, (Vec4 *)&pos);
-    arg.color[0] = 0xC0;
+    arg.color.r = 0xC0;
     arg.delay = (f32)delay;
     arg.fadeFrames = (f32)fade;
-    arg.color[1] = 0xC0;
-    arg.color[2] = 0xC0;
-    arg.color[3] = 0x70;
+    arg.color.g = 0xC0;
+    arg.color.b = 0xC0;
+    arg.color.a = 0x70;
     arg.length = 60.0f;
     arg.width = 0.3f;
     arg.inner = -1.2f;
@@ -2054,10 +2027,10 @@ EftTTask *EftRay_StartScreen(s32 objId, s32 delay, s32 fade, f32 life) {
     EftRayArg arg;
 
     Vec4_Set((Vec4 *)&arg.pos, 0.0f, 0.0f, 0.0f, 1.0f);
-    arg.color[0] = 0xC0;
-    arg.color[1] = 0xC0;
-    arg.color[2] = 0xC0;
-    arg.color[3] = 0x80;
+    arg.color.r = 0xC0;
+    arg.color.g = 0xC0;
+    arg.color.b = 0xC0;
+    arg.color.a = 0x80;
     arg.life = life;
     arg.length = 800.0f;
     arg.width = 1.5f;
@@ -2227,7 +2200,7 @@ void EftRay_Setup(EftRayWork *w, EftRayArg *arg) {
     Vec4_Set((Vec4 *)&w->scale, 1.0f, 1.0f, 1.0f, 1.0f);
     w->life = arg->life;
     w->shrink = 1.0f / (arg->life * 0.9f * 30.0f);
-    w->alphaRange = arg->color[3];
+    w->alphaRange = arg->color.v[3];
     w->alpha = 1.0f;
     w->alphaStep = 1.0f / (f32)arg->fadeFrames;
     w->mode = arg->mode;
@@ -2249,10 +2222,10 @@ void EftRay_Setup(EftRayWork *w, EftRayArg *arg) {
     for (i = 0; i < arg->count; i++, ray++) {
         f32 angle = EftMath_WrapAngle(step * (f32)i * 3.14159265f / 180.0f + (f32)(rand() % 5) * 3.14159265f / 180.0f);
 
-        ray->r = arg->color[0];
-        ray->g = arg->color[1];
-        ray->b = arg->color[2];
-        ray->a = arg->color[3] - rand() % 16;
+        ray->r = arg->color.v[0];
+        ray->g = arg->color.v[1];
+        ray->b = arg->color.v[2];
+        ray->a = arg->color.v[3] - rand() % 16;
         ray->angle = angle;
         ray->length = arg->length + (f32)rand() / 2147483647.0f * 20.0f;
         ray->width = arg->width * ((f32)rand() / 2147483647.0f * 5.0f);
@@ -2299,7 +2272,7 @@ void EftRay_DrawRays(EftRayWork *w) {
         case 0:
             Mtx_StoreIdentity(&m);
             Mtx_StoreIdentity(&w->mtx);
-            Mtx_InverseRT(&m, &gBtlCamView->view);
+            Mtx_InverseRT(&m, &gBtlCamView->world2view2);
             m.m[3][0] = 0.0f;
             m.m[3][1] = 0.0f;
             m.m[3][2] = 0.0f;
@@ -2310,7 +2283,7 @@ void EftRay_DrawRays(EftRayWork *w) {
         case 1:
             if (w->mode == EFT_RAY_MODE_TECH || w->mode == EFT_RAY_MODE_CUT) {
                 BtlCharApi_GetNodePos(BtlCharApi_GetOpponentObjId(w->objId), 3, &node);
-                Mtx_ProjectPoint(&scr, &gBtlCamView->screen, &node);
+                Mtx_ProjectPoint(&scr, &gBtlCamView->world2screen, &node);
                 if (scr.z < 0) {
                     return;
                 }
@@ -2324,7 +2297,7 @@ void EftRay_DrawRays(EftRayWork *w) {
             break;
     }
     Vu0Cur_Push();
-    Vu0Cur_LoadMtx(&gBtlCamView->screen);
+    Vu0Cur_LoadMtx(&gBtlCamView->world2screen);
     ray = w->ray;
     for (i = 0; i < w->count; i++, ray++) {
         for (j = 0, bp = base, c = corner; j < 4; ) {

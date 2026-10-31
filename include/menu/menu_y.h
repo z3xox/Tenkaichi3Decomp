@@ -20,11 +20,11 @@
 /* ---- Main executable, beyond what menu_a.h declares ---- */
 
 extern void Sprite_SetScissor(s32 x0, s32 x1, s32 y0, s32 y1);
-extern void Flash_ClipSetCallbackA(MFlash *flash, MFlashRef *ref, void *fn, void *arg);
-extern void Flash_ClipSetCallbackB(MFlash *flash, MFlashRef *ref, void *fn, void *arg);
-extern void Flash_ClipSetOffset(MFlash *flash, MFlashRef *ref, s32 x, s32 y);
-extern void Flash_ClipSetScale(MFlash *flash, MFlashRef *ref, f32 x, f32 y);
-extern void TextBox_AttachLine(MFlash *flash, MFlashRef *ref, s32 x, s32 y, s32 line, MTextBox *box);
+extern void Flash_ClipSetCallbackA(Flash *flash, FlashRef *ref, void *fn, void *arg);
+extern void Flash_ClipSetCallbackB(Flash *flash, FlashRef *ref, void *fn, void *arg);
+extern void Flash_ClipSetOffset(Flash *flash, FlashRef *ref, s32 x, s32 y);
+extern void Flash_ClipSetScale(Flash *flash, FlashRef *ref, f32 x, f32 y);
+extern void TextBox_AttachLine(Flash *flash, FlashRef *ref, s32 x, s32 y, s32 line, TextBox *box);
 extern void IconWin_SetIcon(s32 icon);
 extern void Dialog_Draw(s32 visible);
 extern void Dialog_Start(s32 kind);
@@ -83,14 +83,13 @@ void Option_Draw(void);
 void Option_PlateGoto(s32 unused, s32 clip, char *label);
 s32 Option_SetKeyMark(s32 row);
 void Option_UpdateReset(void);
-void Option_SetBottomText(MFlash *flash, MFlashRef *ref, char *name, MFlashUv uv);
-void Option_SetMenuText(MFlash *flash, MFlashRef *ref, char *name, MFlashUv uv);
+void Option_SetBottomText(Flash *flash, FlashRef *ref, char *name, FlashUv uv);
+void Option_SetMenuText(Flash *flash, FlashRef *ref, char *name, FlashUv uv);
 void Option_DimPickers(void);
 void Option_SetBgmScissor(void);
 void Option_ResetScissor(void);
 void Option_OnSaved(void);
 void Option_Term(void);
-
 
 /* DcList (menu_y_b.c, the whole object since menu_z.c was merged into it): see include/menu/menu_z.h. */
 

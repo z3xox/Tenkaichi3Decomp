@@ -7,7 +7,7 @@
  * usual random loss follows; without items but with 100 points or more, a tenth of the points goes, then the
  * random loss; with neither, defence drops by 5 and the script ends without the random loss.
  */
-s32 SimEv35(USimDay *day) {
+s32 SimEv35(SimDay *day) {
     switch (day->seq) {
     case 0:
         day->faceA = 11;

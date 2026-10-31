@@ -27,11 +27,11 @@ s32 Train_IsClassCleared(s32 class) {
     s32 i;
 
     if (class == 0) {
-        n = gTrain->count[0];
+        n = gTrain->lists.count[0];
     } else if (class == 1) {
-        n = gTrain->count[1];
+        n = gTrain->lists.count[1];
     } else if (class == 2) {
-        n = gTrain->count[2];
+        n = gTrain->lists.count[2];
     } else {
         n = 0;
     }
@@ -62,9 +62,9 @@ void Train_CopyCursor(s32 *dst, s32 *src) {
 
 /* Sends the clip named by `fmt` and n + 1 to "fl_on_start" or "fl_off_start". */
 static inline void Train_ClipGoto(char *fmt, s32 n, s32 on) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[256];
-    MFlash *flash = &gTrain->flash[0];
+    Flash *flash = &gTrain->flash[0];
 
     sprintf(name, fmt, n + 1);
     Flash_FindLabel(flash, NULL, name, &ref);
@@ -104,8 +104,8 @@ void Train_CursorGoto(s32 on) {
 
 /* Shows the "cleared" icon of the current lesson: the animated one on levels 2 and 5, the still one on 3 and 4. */
 void Train_DrawClearIcon(void) {
-    MFlashRef ref;
-    MFlash *flash = &gTrain->flash[0];
+    FlashRef ref;
+    Flash *flash = &gTrain->flash[0];
 
     if (gTrain->level == 3 || gTrain->level == 4) {
         if (Train_IsCleared(gTrain->sel[1], gTrain->row + gTrain->top)) {
@@ -128,8 +128,8 @@ void Train_DrawClearIcon(void) {
 }
 
 /* Gives the clip `name` of `parent` a texture rectangle. */
-static inline void Train_SetUv(MFlash *flash, char *parent, char *name, MFlashUv *uv) {
-    MFlashRef ref;
+static inline void Train_SetUv(Flash *flash, char *parent, char *name, FlashUv *uv) {
+    FlashRef ref;
 
     Flash_FindLabel(flash, parent, name, &ref);
     Flash_ClipSetUv(flash, &ref, uv);
@@ -137,10 +137,10 @@ static inline void Train_SetUv(MFlash *flash, char *parent, char *name, MFlashUv
 
 /* Sets the text strips of the six menu plates (texture 0 on the top menu, 2 on the class menu). */
 void Train_DrawPlates(void) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[256];
-    MFlashUv uv;
-    MFlash *flash = &gTrain->flash[0];
+    FlashUv uv;
+    Flash *flash = &gTrain->flash[0];
     s32 tex;
     s32 i;
 
@@ -161,10 +161,10 @@ void Train_DrawPlates(void) {
         Flash_ClipSetTex(flash, &ref, tex);
         Flash_FindLabel(flash, name, "mc_menu_text_off", &ref);
         Flash_ClipSetTex(flash, &ref, tex);
-        uv.x0 = 0;
-        uv.x1 = 0x200;
-        uv.y0 = i * 0x20;
-        uv.y1 = i * 0x20 + 0x20;
+        uv.u0 = 0;
+        uv.u1 = 0x200;
+        uv.v0 = i * 0x20;
+        uv.v1 = i * 0x20 + 0x20;
         Train_SetUv(flash, name, "mc_menu_text_on", &uv);
         Train_SetUv(flash, name, "mc_menu_text_off", &uv);
         Flash_FindLabel(flash, name, "mc_icon_wii_style", &ref);
@@ -174,9 +174,9 @@ void Train_DrawPlates(void) {
 
 /* Attaches the lesson names to the five list plates and shows the "cleared" icon of each. */
 void Train_DrawList(void) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[256];
-    MFlash *flash = &gTrain->flash[0];
+    Flash *flash = &gTrain->flash[0];
     s32 i;
     s32 lesson;
     s32 line;
@@ -190,7 +190,7 @@ void Train_DrawList(void) {
         } else {
             lesson = gTrain->top + i;
         }
-        line = gTrain->nameLine[gTrain->sel[1]][lesson];
+        line = gTrain->lists.nameLine[gTrain->sel[1]][lesson];
         Flash_FindLabel(flash, name, "mc_dammy_text", &ref);
         TextBox_AttachLine(flash, &ref, 0, 0, line, &gTrain->box[i]);
         Flash_FindLabel(flash, name, "mc_icon_training_clear", &ref);
@@ -216,7 +216,7 @@ void Train_ScissorOff(void) {
 
 /* Reads the position of the two "mc_ss" clips and makes them draw inside the list scissor. */
 void Train_SetClip(void) {
-    MFlashRef ref;
+    FlashRef ref;
 
     Flash_FindLabel(&gTrain->flash[0], NULL, "mc_ss_speace", &ref);
     Flash_ClipGetPos(&gTrain->flash[0], &ref, &gTrain->clipX, &gTrain->clipY);
@@ -230,7 +230,7 @@ void Train_SetClip(void) {
 
 /* Hides the up (or down) arrow of the lesson list. */
 void Train_HideArrow(s32 up) {
-    MFlashRef ref;
+    FlashRef ref;
     char parent[256];
     char name[256];
 
@@ -247,30 +247,30 @@ void Train_HideArrow(s32 up) {
 
 /* Sets the arrow icons' texture rectangles and hides the arrows that lead nowhere. */
 void Train_DrawArrows(void) {
-    MFlashUv uv;
+    FlashUv uv;
 
-    uv.x0 = 0;
-    uv.x1 = 0x20;
-    uv.y0 = 0x20;
-    uv.y1 = 0x40;
+    uv.u0 = 0;
+    uv.u1 = 0x20;
+    uv.v0 = 0x20;
+    uv.v1 = 0x40;
     Train_SetUv(&gTrain->flash[0], "mc_yajirusi_up", "mc_yajirusi_icon_up", &uv);
-    uv.x0 = 0x20;
-    uv.x1 = 0x40;
-    uv.y0 = 0x20;
-    uv.y1 = 0x40;
+    uv.u0 = 0x20;
+    uv.u1 = 0x40;
+    uv.v0 = 0x20;
+    uv.v1 = 0x40;
     Train_SetUv(&gTrain->flash[0], "mc_yajirusi_down", "mc_yajirusi_icon_down", &uv);
-    uv.x0 = 0x20;
-    uv.x1 = 0x40;
-    uv.y0 = 0;
-    uv.y1 = 0x20;
+    uv.u0 = 0x20;
+    uv.u1 = 0x40;
+    uv.v0 = 0;
+    uv.v1 = 0x20;
     Train_SetUv(&gTrain->flash[0], "mc_yajirusi_right", "mc_yajirusi_icon_right", &uv);
     if (gTrain->top == 0) {
         Train_HideArrow(1);
-    } else if (gTrain->top == gTrain->count[gTrain->sel[1]] - TRAIN_ROWS) {
+    } else if (gTrain->top == gTrain->lists.count[gTrain->sel[1]] - TRAIN_ROWS) {
         Train_HideArrow(0);
     }
     {
-        MFlashRef ref;
+        FlashRef ref;
 
         Flash_FindLabel(&gTrain->flash[0], NULL, "mc_ss_next_2", &ref);
         if (gTrain->page >= gTrain->pageNum - 1) {
@@ -332,7 +332,7 @@ s32 Train_MoveRow(s32 dir) {
     s32 lesson;
     s32 hi;
 
-    hi = gTrain->count[gTrain->sel[1]] - 1;
+    hi = gTrain->lists.count[gTrain->sel[1]] - 1;
     lesson = gTrain->row + gTrain->top + dir;
     if (Train_IsOutside(&lesson, 0, hi)) {
         return 0;
@@ -341,7 +341,7 @@ s32 Train_MoveRow(s32 dir) {
     gTrain->row += dir;
     if (Train_Clamp(&gTrain->row, 0, TRAIN_ROWS - 1)) {
         gTrain->top += dir;
-        if (!Train_Clamp(&gTrain->top, 0, gTrain->count[gTrain->sel[1]] - TRAIN_ROWS)) {
+        if (!Train_Clamp(&gTrain->top, 0, gTrain->lists.count[gTrain->sel[1]] - TRAIN_ROWS)) {
             switch (dir) {
             case 1:
                 Flash_GotoLabel(&gTrain->flash[0], "fl_class_menu_up", 1);
@@ -357,7 +357,7 @@ s32 Train_MoveRow(s32 dir) {
     sprintf(name, "mc_menu_plate_2_%d", gTrain->row + 1);
     Train_Plate2Goto(gTrain->row, 1);
     Snd_PlaySe(1, 0);
-    line = gTrain->voiceTbl[gTrain->sel[1]][gTrain->row + gTrain->top];
+    line = gTrain->lists.voiceTbl[gTrain->sel[1]][gTrain->row + gTrain->top];
     TRAIN_SAY(line);
     return 1;
 }
@@ -372,12 +372,12 @@ void Train_NextRow(void) {
     if (Train_Clamp(&gTrain->row, 0, TRAIN_ROWS - 1)) {
         gTrain->top++;
     }
-    if (!Train_Clamp(&gTrain->top, 0, gTrain->count[gTrain->sel[1]] - TRAIN_ROWS)) {
+    if (!Train_Clamp(&gTrain->top, 0, gTrain->lists.count[gTrain->sel[1]] - TRAIN_ROWS)) {
         gTrain->extra = gTrain->top - 1;
     }
     sprintf(name, "mc_menu_plate_2_%d", gTrain->row + 1);
     Train_Plate2Goto(gTrain->row, 1);
-    line = gTrain->voiceTbl[gTrain->sel[1]][gTrain->row + gTrain->top];
+    line = gTrain->lists.voiceTbl[gTrain->sel[1]][gTrain->row + gTrain->top];
     TRAIN_SAY(line);
 }
 
@@ -432,7 +432,7 @@ void Train_MoveCursor(s32 dir) {
  *
  * Three menu levels (top menu, class, lesson), then the guide's introduction, the explanation pages (a text
  * line and a picture per page) and, by the lesson's flags, a tutorial or a practice battle. The guides are
- * Great Saiyaman (top menu) and Videl (the rest). Train_BuildLists is INCLUDE_ASM; everything else matches.
+ * Great Saiyaman (top menu) and Videl (the rest). Flash and TextBox records use their shared owners; legacy session views in other handlers remain pending.
  */
 
 /* Says a line with its subtitle and remembers it (the top menu and the rest have different voice banks). */
@@ -454,10 +454,10 @@ void Train_RestoreScroll(void) {
     s32 top;
 
     scroll[0] = gTrain->saved[gTrain->sel[1]];
-    top = gTrain->count[gTrain->sel[1]] - TRAIN_ROWS;
+    top = gTrain->lists.count[gTrain->sel[1]] - TRAIN_ROWS;
     if (top < gTrain->saved[gTrain->sel[1]]) {
         scroll[0] = top;
-        scroll[1] = TRAIN_ROWS - (gTrain->count[gTrain->sel[1]] - gTrain->saved[gTrain->sel[1]]);
+        scroll[1] = TRAIN_ROWS - (gTrain->lists.count[gTrain->sel[1]] - gTrain->saved[gTrain->sel[1]]);
     } else {
         scroll[1] = 0;
     }
@@ -468,30 +468,7 @@ void Train_SaveCursor(void) {
     gTrain->saved[gTrain->sel[1]] = gTrain->row + gTrain->top;
 }
 
-/*
- * Train_BuildLists (0x35A610) is the one function of this object that does not match: 11 of 118 instructions,
- * all in the inlined skip-list test. The original starts that loop with
- *     move t0,zero / sltu v0,t0,t2 / beqz v0 / move t1,t0      (found = 0; if (found < num); i = found)
- * and the attempt with
- *     move t1,zero / beqz t0 / move t2,zero                    (i = 0; if (num != 0); found = 0)
- * i.e. here the compiler folds the entry test `0 < skipNum` into `skipNum != 0` (in combine) and loads both
- * zeros as constants; the rest differs only by the three registers that follow from it. Behaviour is the same.
- * Tried without success: every loop shape (for / while / while (1) / goto), found and i at function or block
- * scope and in either order, i initialised from found, u8 / 64-bit flags, a result passed by pointer, a walking
- * pointer, a hand-inlined test.
- *
- * Cleanup notes (RTL dumps, build/scratch_cleanup2_I/rtl/hd.*): up to the second CSE pass the attempt has what
- * the original must have had, `found = 0; i = 0; n = tbl->skipNum; t = found <u n` (CSE itself writes the
- * compare with `found`, the older register that holds 0). The fold happens in combine, which merges
- * `found = 0` into the compare because the compare is the FIRST use of `found` behind it in the same basic
- * block. The original therefore had either another use of `found` in front of the compare or a block boundary
- * between the two, and its `move t1,t0` is a real copy `i = found` that the first CSE pass could not turn into
- * `i = 0`, i.e. `found = 0` was not visible on the path that CSE followed to it. Also tried here: the count
- * read into a local in front of the two initialisations, `found` as a parameter of a nested inline, `do { }
- * while (0)` around the initialisation or the loop, `if (found < n)` written out with a do / while: all give
- * the same 11 (10 for the written-out test).
- */
-#if 0
+
 /* The lesson records of a class. */
 static inline TrainLesson *Train_ClassLessons(TrainTbl *tbl, s32 class) {
     TrainLesson *p = NULL;
@@ -513,7 +490,7 @@ static inline TrainLesson *Train_ClassLessons(TrainTbl *tbl, s32 class) {
 /* Whether a page id is in the skip list. */
 static inline s32 Train_IsSkipped(TrainTbl *tbl, u32 page) {
     s32 found = 0;
-    u32 i;
+    u32 i = 0;
 
     for (i = 0; i < tbl->skipNum; i++) {
         if (tbl->skip[i] == page) {
@@ -555,18 +532,16 @@ void Train_BuildLists(TrainTbl *tbl, TrainLists *out) {
         out->count[class] = count;
     }
 }
-#endif
-INCLUDE_ASM("asm/nonmatchings/menu/menu_h_d", Train_BuildLists);
 
 /* Picks the title of the current class. */
 void Train_DrawTitle(void) {
-    MFlashUv uv;
-    MFlash *flash = &gTrain->flash[0];
+    FlashUv uv;
+    Flash *flash = &gTrain->flash[0];
 
-    uv.y0 = gTrain->sel[1] * 0x40;
-    uv.y1 = uv.y0 + 0x40;
-    uv.x0 = 0;
-    uv.x1 = 0x100;
+    uv.v0 = gTrain->sel[1] * 0x40;
+    uv.v1 = uv.v0 + 0x40;
+    uv.u0 = 0;
+    uv.u1 = 0x100;
     Train_SetUv(flash, NULL, "mc_title_class", &uv);
 }
 
@@ -582,13 +557,13 @@ void Train_DrawIconWin(void) {
 
 /* Scrolls the clouds and draws the background picture. */
 void Train_DrawBg(void) {
-    MFlashRef ref;
-    MFlashUv uv;
+    FlashRef ref;
+    FlashUv uv;
 
-    uv.x0 = 0;
-    uv.y0 = 0;
-    uv.x1 = 0x200;
-    uv.y1 = 0x80;
+    uv.u0 = 0;
+    uv.v0 = 0;
+    uv.u1 = 0x200;
+    uv.v1 = 0x80;
     Flash_FindLabel(&gTrain->flash[0], NULL, "mc_bg_cloud", &ref);
     FlashAnim_Scroll(&gTrain->flash[0], &ref, &uv, &gTrain->cloud, NULL, 0.047407407f, 0.0f);
 #ifdef PORT
@@ -602,7 +577,7 @@ void Train_DrawBg(void) {
 
 /* The two guides: pose, and for the one who is talking (Videl below the top menu) eyes and mouth. */
 void Train_DrawGuides(void) {
-    MFlashRef ref;
+    FlashRef ref;
     char guide[2][0x100] = {"mc_guide_saiyaman", "mc_guide_bidel"};
     char eye[2][0x100] = {"", "mc_guide_%c_bidel_eye"};
     char mouth[2][0x100] = {"mc_guide_%c_saiyaman_mouth", "mc_guide_%c_bidel_mouth"};
@@ -646,12 +621,12 @@ static inline u8 *Train_Section(s32 n, const char *host) {
 #define TR_HOST "host:data/test/ut/"
 
 #define TR_RES(n, host) \
-    res = (MTexRes *)Train_Section(n, host); \
+    res = (FlashTexRes *)Train_Section(n, host); \
     Res_RelocateOffsets(&res, res, res)
 
 /* Loads and unpacks the screen (section `section` of archive 6) and builds its movie, windows and lists. */
 void Train_Init(s32 section) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
     s32 i;
 
     gTrain = Heap_Alloc(0x1BE0, 0x20, 0, 2);
@@ -728,7 +703,7 @@ void Train_Init(s32 section) {
     }
     gTrain->unk46C = 0x1E;
     gTrain->voiceLine = -1;
-    Train_BuildLists(&gTrain->tbl, (TrainLists *)gTrain->pages);
+    Train_BuildLists(&gTrain->tbl, &gTrain->lists);
 }
 
 /* Frees the screen. */
@@ -807,7 +782,7 @@ void Train_Update(void) {
                 Train_Say(gTrain->sel[0] + 2);
                 Train_CursorGoto(1);
             } else if (TRAIN_PROG->flags & MPTRAIN_AGAIN) {
-                Train_Say(gTrain->voiceTbl[gTrain->sel[1]][TRAIN_CUR_LESSON]);
+                Train_Say(gTrain->lists.voiceTbl[gTrain->sel[1]][TRAIN_CUR_LESSON]);
             } else if (TRAIN_PROG->flags & MPTRAIN_FIRST_CLEAR) {
                 Train_Say(0x39);
             } else {
@@ -824,7 +799,7 @@ void Train_Draw(void) {
 #ifdef PORT
     Port_MenuPage(18); /* widescreen menus: this screen's page */
 #endif
-    MFlashRef ref;
+    FlashRef ref;
     s32 i = 0;
 
     Flash_FindLabel(&gTrain->flash[0], NULL, "mc_ss_speace", &ref); /* sic: the movie's label is misspelt */
@@ -905,7 +880,7 @@ static inline TrainLesson *Train_FindLesson(void) {
         break;
     }
     for (i = 0; i < num; i++) {
-        if (p[i].id == gTrain->nameLine[gTrain->sel[1]][TRAIN_CUR_LESSON]) {
+        if (p[i].id == gTrain->lists.nameLine[gTrain->sel[1]][TRAIN_CUR_LESSON]) {
             return &p[i];
         }
     }
@@ -933,7 +908,7 @@ static inline s32 Train_FindLessonIndex(void) {
         break;
     }
     for (i = 0; i < num; i++) {
-        if (p[i].id == gTrain->nameLine[gTrain->sel[1]][TRAIN_CUR_LESSON]) {
+        if (p[i].id == gTrain->lists.nameLine[gTrain->sel[1]][TRAIN_CUR_LESSON]) {
             break;
         }
     }
@@ -1035,7 +1010,7 @@ void Train_Input(void) {
         break;
     case TRAIN_LV_LESSON:
         if (Voice_GetStat(0) == MVOICE_IDLE && gTrain->voiceLine == 9) {
-            Train_Say(gTrain->voiceTbl[gTrain->sel[1]][TRAIN_CUR_LESSON]);
+            Train_Say(gTrain->lists.voiceTbl[gTrain->sel[1]][TRAIN_CUR_LESSON]);
         }
         if (gPad[0].gameRepeat & PADG_UP) {
             Train_MoveCursor(0);
@@ -1072,8 +1047,8 @@ void Train_Input(void) {
             MsgWin_SetBoxParam(0, 5);
             FontIcon_SetPadType(0);
             MsgWin_SetText(gTrain->pageText);
-            gTrain->voiceLine = gTrain->pages[gTrain->sel[1]][TRAIN_CUR_LESSON][gTrain->page];
-            gTrain->pageNum = gTrain->pageCount[gTrain->sel[1]][TRAIN_CUR_LESSON];
+            gTrain->voiceLine = gTrain->lists.pages[gTrain->sel[1]][TRAIN_CUR_LESSON][gTrain->page];
+            gTrain->pageNum = gTrain->lists.pageCount[gTrain->sel[1]][TRAIN_CUR_LESSON];
             FontIcon_ResetAnim();
             gTrain->flags |= TRAIN_IMAGE_CHANGE;
         }
@@ -1083,7 +1058,7 @@ void Train_Input(void) {
             gTrain->page++;
             gTrain->pose[1] = 0;
             if (gTrain->page < gTrain->pageNum) {
-                gTrain->voiceLine = gTrain->pages[gTrain->sel[1]][TRAIN_CUR_LESSON][gTrain->page];
+                gTrain->voiceLine = gTrain->lists.pages[gTrain->sel[1]][TRAIN_CUR_LESSON][gTrain->page];
                 if (Train_PageHasImage()) {
                     gTrain->flags |= TRAIN_IMAGE_CHANGE;
                     Flash_GotoLabel(&gTrain->flash[0], "fl_ss_view", 1);
@@ -1115,7 +1090,7 @@ void Train_Input(void) {
                         gTrain->level = TRAIN_LV_LESSON;
                         Flash_GotoLabel(&gTrain->flash[0], "fl_ss_view_out", 1);
                         Train_NextRow();
-                        Train_Say(gTrain->voiceTbl[gTrain->sel[1]][TRAIN_CUR_LESSON]);
+                        Train_Say(gTrain->lists.voiceTbl[gTrain->sel[1]][TRAIN_CUR_LESSON]);
                     } else {
                         gTrain->level = TRAIN_LV_CLEAR;
                         Flash_GotoLabel(&gTrain->flash[0], "fl_clear_in_1", 1);
@@ -1131,7 +1106,7 @@ void Train_Input(void) {
             Snd_PlaySe(1, 2);
             MsgWin_SetBoxParam(0, 0);
             MsgWin_SetText(gTrain->msgText[1]);
-            Train_Say(gTrain->voiceTbl[gTrain->sel[1]][TRAIN_CUR_LESSON]);
+            Train_Say(gTrain->lists.voiceTbl[gTrain->sel[1]][TRAIN_CUR_LESSON]);
         }
         break;
     case TRAIN_LV_CLEAR:
@@ -1171,7 +1146,7 @@ void Train_Input(void) {
                 gTrain->flags ^= TRAIN_CLEAR_SAVED;
             }
             Train_NextRow();
-            Train_Say(gTrain->voiceTbl[gTrain->sel[1]][TRAIN_CUR_LESSON]);
+            Train_Say(gTrain->lists.voiceTbl[gTrain->sel[1]][TRAIN_CUR_LESSON]);
         }
         break;
     }
@@ -1211,7 +1186,7 @@ void Train_Input(void) {
 
 /* Loads the picture of the current page (file 0x402 + page id) in the background, then fades it in. */
 void Train_UpdateImage(void) {
-    MTexRes *res;
+    FlashTexRes *res;
 
     if (gTrain->flags & TRAIN_IMAGE_CHANGE) {
         gTrain->imageAlpha = 0.0f;

@@ -2,6 +2,7 @@
 #define MENU_MENU_O_H
 
 #include "menu/menu_a.h"
+#include "sys/save.h"
 
 /*
  * Menu overlay DBZP.BIN, 0x376920..0x37AFF8 (placeholder stem "menu_o"): the mode group 13..30 (main-menu item 1,
@@ -23,13 +24,13 @@
 /* ---- Main executable, beyond what menu_a.h declares ---- */
 
 extern s32 Rand_Libc(void);     /* the C library rand(), not the shared Mersenne Twister */
-extern void TextBox_Init(MTextBox *box, void *text, u32 preset);
-extern void TextBox_SetUnk50(MTextBox *box, s32 value);
-extern void TextBox_SetMaxWidth(MTextBox *box, s32 w);
-extern void TextBox_SetLineOffsets(MTextBox *box, s32 a, s32 b, s32 c, s32 d, s32 e);
-extern void TextBox_AttachLine(MFlash *flash, MFlashRef *ref, s32 x, s32 y, s32 line, MTextBox *box);
-extern void Num_Draw(MFlash *flash, char *fmt, s32 first, s32 count, s32 value, s32 w, s32 h, s32 mode);
-extern void Num_DrawChild(MFlash *flash, char *parent, char *fmt, s32 first, s32 count, s32 value, s32 w, s32 h,
+extern void TextBox_Init(TextBox *box, void *text, u32 preset);
+extern void TextBox_SetUnk50(TextBox *box, s32 value);
+extern void TextBox_SetMaxWidth(TextBox *box, s32 w);
+extern void TextBox_SetLineOffsets(TextBox *box, s32 a, s32 b, s32 c, s32 d, s32 e);
+extern void TextBox_AttachLine(Flash *flash, FlashRef *ref, s32 x, s32 y, s32 line, TextBox *box);
+extern void Num_Draw(Flash *flash, char *fmt, s32 first, s32 count, s32 value, s32 w, s32 h, s32 mode);
+extern void Num_DrawChild(Flash *flash, char *parent, char *fmt, s32 first, s32 count, s32 value, s32 w, s32 h,
                           s32 mode, s32 parentFmt);
 extern void IconWin_SetIcon(s32 icon);
 extern void Save_AddItem(s32 idx);
@@ -101,25 +102,8 @@ typedef struct UoProgress {
 #define UB_DISC_FLAG8 8
 
 /* One mission's record in the save (12 bytes). */
-typedef struct UoMissionRec {
-    /* 0x0 */ u8 unk0;
-    /* 0x1 */ u8 rank;
-    /* 0x2 */ u8 time0;         /* best time, shown as three two-digit groups (separate members, not an array:
-                                   the code's address arithmetic shows it) */
-    /* 0x3 */ u8 time1;
-    /* 0x4 */ u8 time2;
-    /* 0x5 */ u8 unk5[3];
-    /* 0x8 */ s32 score;        /* shown * 100 */
-} UoMissionRec;
 
-/* Best result of one course (NCourseRec of include/menu/menu_n.h). */
-typedef struct UoCourseRec {
-    /* 0x0 */ u8 cleared;
-    /* 0x1 */ u8 rank;
-    /* 0x2 */ u8 time[3];
-    /* 0x5 */ u8 unk5[3];
-    /* 0x8 */ s32 score;
-} UoCourseRec; /* 0xC */
+/* Best result of one course (SaveCourse of include/menu/menu_n.h). */
 
 #define UO_COURSE_NUM 5
 
@@ -127,22 +111,6 @@ typedef struct UoCourseRec {
  * gSaveData as this chunk reads it: one flat structure. (menu_c.h's view nests a body behind the 8-byte checksum;
  * here the flat form is the one that reproduces the address arithmetic: 0x28C splits into 0x280 + 0xC.)
  */
-typedef struct UoSave {
-    /* 0x0000 */ u8 unk0[0x208];
-    /* 0x0208 */ s32 unk208;            /* bit 0x10: the reward for clearing all five courses was given */
-    /* 0x020C */ s32 missionPages;      /* pages of five missions the list shows */
-    /* 0x0210 */ u8 unk210[0x7C];
-    /* 0x028C */ UoMissionRec mission[100];
-    /* 0x073C */ u8 unk73C[0x40];
-    /* 0x077C */ s32 rank;              /* the player's place on the ladder (menu_n.h: 99 by default, 0 = first) */
-    /* 0x0780 */ UoCourseRec course[UO_COURSE_NUM];
-    /* 0x07BC */ u8 unk7BC[0x286C];
-    /* 0x3028 */ s32 money;             /* Z points */
-} UoSave;
-
-extern UoSave *gSaveData;
-
-#define UO_SAVE gSaveData
 
 #define UO_MONEY_MAX 9999999
 
@@ -179,11 +147,11 @@ typedef struct UbResult {
     /* 0x00C */ void *text;         /* section 12 */
     /* 0x010 */ void *subtitles;    /* section 11 */
     /* 0x014 */ void *itemText;     /* section 14 */
-    /* 0x018 */ MTextBox box[4];    /* 0..2 bonus rows, 3 the headline */
-    /* 0x248 */ MTextBox itemBox;
+    /* 0x018 */ TextBox box[4];    /* 0..2 bonus rows, 3 the headline */
+    /* 0x248 */ TextBox itemBox;
     /* 0x2D4 */ u8 unk2D4[0x8C];
     /* 0x360 */ void *bonusTbl;     /* section 13 */
-    /* 0x364 */ MFlash flash[1];
+    /* 0x364 */ Flash flash[1];
     /* 0x390 */ void *bg;
     /* 0x394 */ u8 *tex[47];
     /* 0x450 */ s32 flags;          /* UBRES_ */
@@ -232,7 +200,7 @@ extern s32 UbScore_Transfer(s32 *from, s32 *to, s32 step, f32 rate);
 extern s32 UbScore_CountLine(UoScore *score, s32 bonus, s32 row, s32 step);
 extern s32 UbScore_ConvertStep(UoScore *score, s32 step);
 extern void UbScore_SetPage(UoScore *score, s32 page);
-extern void UbScore_PlateGoto(MFlash *flash, s32 which, s32 on);
+extern void UbScore_PlateGoto(Flash *flash, s32 which, s32 on);
 extern s32 UbScore_GetRewardItem(s32 kind);
 extern s32 UbScore_Fill(s32 kind, UoScore *score, s32 *pageCount);
 extern void UbScore_CalcPoints(void *bonusTbl, UoScore *score);
@@ -259,11 +227,11 @@ typedef struct DiscFusion {
     /* 0x008 */ void *msgText;      /* section 10 */
     /* 0x00C */ void *subtitles;    /* section 11 */
     /* 0x010 */ void *text;         /* section 12: plate text and the dialog's messages */
-    /* 0x014 */ MFlash flash[DISCFUSION_FLASH_NUM]; /* 0 the screen, 1 the "recognised" movie */
+    /* 0x014 */ Flash flash[DISCFUSION_FLASH_NUM]; /* 0 the screen, 1 the "recognised" movie */
     /* 0x06C */ void *bg;
     /* 0x070 */ u8 *texA[18];
     /* 0x0B8 */ u8 *texB[4];
-    /* 0x0C8 */ MTextBox box[DISCFUSION_DISC_NUM];
+    /* 0x0C8 */ TextBox box[DISCFUSION_DISC_NUM];
     /* 0x1E0 */ s32 flags;          /* UBRES_ (same bits) */
     /* 0x1E4 */ s32 cursor[1];      /* indexed by level, which is always 0 */
     /* 0x1E8 */ s32 timer;
@@ -368,10 +336,10 @@ typedef struct MisSel {
     /* 0x008 */ u32 *chips;         /* section 15: 165 texture lists, section id + 1 = chip of a character */
     /* 0x00C */ void *text;         /* section 18 */
     /* 0x010 */ void *subtitles;    /* section 17 */
-    /* 0x014 */ MTextBox box[7];    /* 0..4 mission names, 5 team kind, 6 DP rule */
+    /* 0x014 */ TextBox box[7];    /* 0..4 mission names, 5 team kind, 6 DP rule */
     /* 0x3E8 */ MisSelDef *missions; /* section 10 */
     /* 0x3EC */ MisSelOpp *opps; /* section 11 */
-    /* 0x3F0 */ MFlash flash[MISSEL_FLASH_NUM];
+    /* 0x3F0 */ Flash flash[MISSEL_FLASH_NUM];
     /* 0x41C */ void *bg;
     /* 0x420 */ u8 *tex[39];
     /* 0x4BC */ s32 flags;          /* MISSEL_ */

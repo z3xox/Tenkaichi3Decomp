@@ -2,6 +2,7 @@
 #define MENU_MENU_P_H
 
 #include "menu/menu_a.h"
+#include "sys/save.h"
 
 /*
  * Menu overlay DBZP.BIN, 0x37AFF8..0x37F430 (placeholder stem "menu_p"): screens of the mode group 13..30
@@ -21,15 +22,15 @@
 /* ---- Main executable, beyond what menu_a.h declares ---- */
 
 extern void Sprite_SetScissor(s32 x0, s32 x1, s32 y0, s32 y1);
-extern void Flash_ClipSetCallbackA(MFlash *flash, MFlashRef *ref, void *fn, void *arg);
-extern void Flash_ClipSetCallbackB(MFlash *flash, MFlashRef *ref, void *fn, void *arg);
-extern void TextBox_Init(MTextBox *box, void *text, u32 preset);
-extern void TextBox_SetUnk50(MTextBox *box, s32 value);
-extern void TextBox_SetMaxWidth(MTextBox *box, s32 w);
-extern void TextBox_SetLineOffsets(MTextBox *box, s32 y1, s32 y2, s32 y3, s32 y4, s32 y5);
-extern void TextBox_AttachLine(MFlash *flash, MFlashRef *ref, s32 x, s32 y, s32 line, MTextBox *box);
-extern void Num_Draw(MFlash *flash, char *fmt, s32 first, s32 count, s32 value, s32 w, s32 h, s32 mode);
-extern void Num_DrawChild(MFlash *flash, char *parent, char *fmt, s32 first, s32 count, s32 value, s32 w, s32 h,
+extern void Flash_ClipSetCallbackA(Flash *flash, FlashRef *ref, void *fn, void *arg);
+extern void Flash_ClipSetCallbackB(Flash *flash, FlashRef *ref, void *fn, void *arg);
+extern void TextBox_Init(TextBox *box, void *text, u32 preset);
+extern void TextBox_SetUnk50(TextBox *box, s32 value);
+extern void TextBox_SetMaxWidth(TextBox *box, s32 w);
+extern void TextBox_SetLineOffsets(TextBox *box, s32 y1, s32 y2, s32 y3, s32 y4, s32 y5);
+extern void TextBox_AttachLine(Flash *flash, FlashRef *ref, s32 x, s32 y, s32 line, TextBox *box);
+extern void Num_Draw(Flash *flash, char *fmt, s32 first, s32 count, s32 value, s32 w, s32 h, s32 mode);
+extern void Num_DrawChild(Flash *flash, char *parent, char *fmt, s32 first, s32 count, s32 value, s32 w, s32 h,
                           s32 mode, s32 parentFmt);
 extern void IconWin_SetIcon(s32 icon);
 extern void Voice_StopWithLip(void);
@@ -103,8 +104,6 @@ typedef struct PSave {
     /* 0x3028 */ s32 money;
 } PSave;
 
-extern void *gSaveData;
-
 #define P_SAVE ((PSave *)gSaveData)
 #define P_MONEY_MAX 9999999
 
@@ -166,7 +165,7 @@ s32 UbScore_CountLine(UbScore *score, s32 isBonus, s32 index, s32 step);
 
 s32 UbScore_ConvertStep(UbScore *score, s32 step);      /* total -> convert at one tenth; 1 when done */
 void UbScore_SetPage(UbScore *score, s32 page);         /* fills UbScore.shown for a bonus page */
-void UbScore_PlateGoto(MFlash *flash, s32 plate, s32 on);
+void UbScore_PlateGoto(Flash *flash, s32 plate, s32 on);
 void UbScore_AddRanking(s32 score, s32 chara, s32 cleared);
 s32 UbScore_SaveMissionBest(s32 mission, s32 total, UbScore *score); /* 1 = a new record was saved */
 s32 UbScore_SaveBestB(s32 course, s32 total, UbScore *score);
@@ -174,7 +173,7 @@ s32 UbScore_SaveBestC(s32 course, s32 total, UbScore *score);
 s32 UbScore_GetRewardItem(s32 idx);
 
 /*
- * gSaveData as the module's record functions use it (the views of the tail half, formerly QSave* of menu_q.h):
+ * gSaveData as the module's record functions use it (the views of the tail half, formerly SaveData* of menu_q.h):
  * the body behind the 8-byte checksum, nested as in include/menu/menu_c.h (it reproduces the address arithmetic).
  */
 
@@ -241,10 +240,10 @@ typedef struct MisResult {
     /* 0x00C */ void *text;         /* section 12 */
     /* 0x010 */ void *subtitles;    /* section 11 */
     /* 0x014 */ void *itemText;     /* section 14: item names */
-    /* 0x018 */ MTextBox box[6];    /* 0..2 bonus plates, 3 mission title, 4 / 5 reward window */
-    /* 0x360 */ MTextBox itemBox;
+    /* 0x018 */ TextBox box[6];    /* 0..2 bonus plates, 3 mission title, 4 / 5 reward window */
+    /* 0x360 */ TextBox itemBox;
     /* 0x3EC */ UbScorePrice *price; /* section 13 */
-    /* 0x3F0 */ MFlash flash[MISRESULT_FLASH_NUM];
+    /* 0x3F0 */ Flash flash[MISRESULT_FLASH_NUM];
     /* 0x41C */ void *bg;           /* section 5: background picture */
     /* 0x420 */ u8 *tex[47];        /* textures of the movie's image records */
     /* 0x4DC */ s32 flags;          /* MISRESULT_ */
@@ -303,7 +302,7 @@ typedef struct UbMenu {
     /* 0x04 */ u32 *res;
     /* 0x08 */ void *text;          /* section 8: text of the message window */
     /* 0x0C */ void *subtitles;     /* section 9 */
-    /* 0x10 */ MFlash flash[UBMENU_FLASH_NUM];
+    /* 0x10 */ Flash flash[UBMENU_FLASH_NUM];
     /* 0x3C */ void *bg;            /* section 2: background picture */
     /* 0x40 */ u8 *tex[17];         /* textures of the movie's image records */
     /* 0x84 */ s32 flags;           /* UBMENU_ */

@@ -2,6 +2,7 @@
 #define SYS_LOADING_H
 
 #include "types.h"
+#include "sys/progress.h"
 
 /* Which of the three button-mashing loading screens is shown (LoadScreen.type; file id 0x3C1 + type). */
 #define LOAD_TYPE_0 0 /* two-frame animation; a 0..100 counter shown as rows of pips */
@@ -95,19 +96,8 @@ typedef union LoadScreen {
 } LoadScreen;
 
 /* The part of the 0x7FC-byte progress struct (gProgress) this module touches. */
-typedef struct Progress {
-    /* 0x00 */ s32 unk0[2];
-    /* 0x08 */ void *loadPack;       /* buffer the packed loading-screen file is read into */
-    /* 0x0C */ void *loadRes;        /* buffer it is unpacked into */
-    /* 0x10 */ LoadSprite *loadSprites; /* room for LOAD_SPRITE_COUNT sprites */
-    /* 0x14 */ s32 flags;
-    /* 0x18 */ s32 mode;
-    /* 0x1C */ s32 unk1C;
-    /* 0x20 */ s32 lastLoadType;     /* type of the previous loading screen + 1, so it is not repeated */
-} Progress;
 
 extern LoadScreen gLoadScreen;
-extern Progress *gProgress;
 
 void Load_RunBlocking(void);
 void Load_BuildSprites(void);

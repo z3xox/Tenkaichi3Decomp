@@ -2,6 +2,7 @@
 #define BATTLE_EFT_S_H
 
 #include "types.h"
+#include "battle/btl_task.h"
 #include "sys/math3d.h"
 
 /*
@@ -13,34 +14,14 @@
  *    position, velocity and end are here. The types below are called EftKiProp* (this file's views).
  * 2. 0x1793A8..0x17CB40: the "chain" effect (named by the former eft_t.c, now the second part of eft_s.c, which has its remaining class callbacks and its
  *    public API from 0x17CB40 on): up to 16 strands of ribbon nodes radiating from a point, driven by a three-key
- *    parameter block. Drawing only. The types below are called EftArc* (this file's views; EftArcChain is one
- *    strand, eft_t.h's EftChainStrand).
+ *    parameter block. Drawing only. EftArc* records below are shared with the module's remaining callbacks.
  *
- * All structs are this file's views; a field named unkXX / fXX has no meaning backed by this file.
+ * Unknown-member names preserve offsets until their semantics are recovered; legacy ki-blast views remain.
  */
 
 /* The effect code's vector: 16-byte aligned, copied with 64-bit loads. */
-typedef union EftVec {
-    struct {
-        f32 x, y, z, w;
-    };
-    f32 v[4];
-} __attribute__((aligned(16))) EftVec;
 
 /* The part of a task (0x40 bytes) that the callbacks here use. */
-typedef struct EftTask {
-    /* 0x00 */ u8 flags;       /* bit 0: killed */
-    /* 0x01 */ u8 unk1[3];
-    /* 0x04 */ u32 result;     /* written by the hit pass: low six bits = the record hit something / is over;
-                                  0x40 / 0x80 = the blast was deflected / reflected */
-    /* 0x08 */ u32 unk8[2];
-    /* 0x10 */ EftVec hitPos;  /* position written back by the hit pass */
-    /* 0x20 */ u8 unk20[8];
-    /* 0x28 */ void **cls;     /* task class; cls[0] is the update callback */
-    /* 0x2C */ u8 unk2C[0xC];
-    /* 0x38 */ void *work;     /* work block of the size given to BtlTask_CreateChildList */
-    /* 0x3C */ s32 unk3C;
-} EftTask; /* 0x40 */
 
 /* One texture entry (GS TEX0 value plus loader data). */
 typedef struct EftSTexEntry {
@@ -52,7 +33,7 @@ typedef struct EftSTexEntry {
 
 /* Argument of EftKiObj_Create: the ki blast launch block the fighter fills (FxHitArg2 in btl_char_fx.h). */
 typedef struct EftKiPropArg {
-    /* 0x00 */ EftVec pos;
+    /* 0x00 */ Vec4Array pos;
     /* 0x10 */ s16 objId;     /* fighter that fired */
     /* 0x12 */ s16 owner;     /* fighter the blast currently belongs to (toggled when it is deflected) */
     /* 0x14 */ u16 code;
@@ -75,8 +56,8 @@ typedef struct EftKiPropBlock {
 } EftKiPropBlock; /* 0x40 */
 
 typedef struct EftKiPropFrag {
-    /* 0x00 */ EftVec pos;
-    /* 0x10 */ EftVec vel;    /* w = size factor 0.5..1 */
+    /* 0x00 */ Vec4Array pos;
+    /* 0x10 */ Vec4Array vel;    /* w = size factor 0.5..1 */
 } EftKiPropFrag; /* 0x20 */
 
 #define EFT_KIPROP_FRAGS 5
@@ -94,10 +75,10 @@ typedef struct EftKiPropFrag {
 /* Work block of one prop ki blast, 0x1E0 bytes. */
 typedef struct EftKiProp {
     /* 0x000 */ EftKiPropArg arg;
-    /* 0x050 */ EftVec nodePos;
-    /* 0x060 */ EftVec pos;
-    /* 0x070 */ EftVec prevPos;
-    /* 0x080 */ EftVec vel;
+    /* 0x050 */ Vec4Array nodePos;
+    /* 0x060 */ Vec4Array pos;
+    /* 0x070 */ Vec4Array prevPos;
+    /* 0x080 */ Vec4Array vel;
     /* 0x090 */ EftKiPropBlock block;
     /* 0x0D0 */ s32 flags;
     /* 0x0D4 */ s32 life;
@@ -200,10 +181,10 @@ typedef struct EftArcParam {
 
 /* Key data: vectors and pairs per key. */
 typedef struct EftArcKeys {
-    /* 0x000 */ EftVec colBase[3];
-    /* 0x030 */ EftVec colRange[3];
-    /* 0x060 */ EftVec col2Base[3];
-    /* 0x090 */ EftVec col2Range[3];
+    /* 0x000 */ Vec4Array colBase[3];
+    /* 0x030 */ Vec4Array colRange[3];
+    /* 0x060 */ Vec4Array col2Base[3];
+    /* 0x090 */ Vec4Array col2Range[3];
     /* 0x0C0 */ f32 mulR[3][2];    /* from, to */
     /* 0x0D8 */ f32 mulG[3][2];
     /* 0x0F0 */ f32 mulB[3][2];
@@ -212,10 +193,10 @@ typedef struct EftArcKeys {
 
 /* The parameters in effect (one key, or the blend of two). 0xF8 bytes. */
 typedef struct EftArcKey {
-    /* 0x00 */ EftVec colBase;
-    /* 0x10 */ EftVec colRange;
-    /* 0x20 */ EftVec col2Base;
-    /* 0x30 */ EftVec col2Range;
+    /* 0x00 */ Vec4Array colBase;
+    /* 0x10 */ Vec4Array colRange;
+    /* 0x20 */ Vec4Array col2Base;
+    /* 0x30 */ Vec4Array col2Range;
     /* 0x40 */ f32 mulBase[3];   /* colour pulse: factor at phase 0 */
     /* 0x4C */ f32 mulRange[3];  /* ... and its change over the pulse */
     /* 0x58 */ f32 mulTime;      /* frames of half a colour pulse */
@@ -262,8 +243,8 @@ typedef struct EftArcKey {
 
 /* Argument of the arc effect's init. */
 typedef struct EftArcArg {
-    /* 0x00 */ EftVec pos;
-    /* 0x10 */ EftVec dir;
+    /* 0x00 */ Vec4Array pos;
+    /* 0x10 */ Vec4Array dir;
     /* 0x20 */ s32 objId;
     /* 0x24 */ s32 texIdx;
     /* 0x28 */ f32 life;          /* seconds; <= 0: until told to end */
@@ -275,10 +256,10 @@ typedef struct EftArcArg {
 } EftArcArg; /* 0x40 */
 
 typedef struct EftArcNode {
-    /* 0x00 */ EftVec pos;       /* relative to the chain */
-    /* 0x10 */ EftVec jit;       /* random offset */
-    /* 0x20 */ EftVec world;
-    /* 0x30 */ EftVec color;     /* 0..255 */
+    /* 0x00 */ Vec4Array pos;       /* relative to the chain */
+    /* 0x10 */ Vec4Array jit;       /* random offset */
+    /* 0x20 */ Vec4Array world;
+    /* 0x30 */ Vec4Array color;     /* 0..255 */
     /* 0x40 */ s32 flags;        /* 1 in use, 2 shown */
     /* 0x44 */ f32 widthA;
     /* 0x48 */ f32 widthB;
@@ -311,12 +292,12 @@ typedef struct EftArcPool {
 #define EFT_ARCCH_VISIBLE 0x800
 
 typedef struct EftArcChain {
-    /* 0x00 */ EftVec pos;       /* added to every node */
-    /* 0x10 */ EftVec drift;     /* added to the node positions each frame (kinds other than 1) */
-    /* 0x20 */ EftVec unk20;
-    /* 0x30 */ EftVec color;
-    /* 0x40 */ EftVec colA;
-    /* 0x50 */ EftVec colB;      /* col2 - colA */
+    /* 0x00 */ Vec4Array pos;       /* added to every node */
+    /* 0x10 */ Vec4Array drift;     /* added to the node positions each frame (kinds other than 1) */
+    /* 0x20 */ Vec4Array unk20;
+    /* 0x30 */ Vec4Array color;
+    /* 0x40 */ Vec4Array colA;
+    /* 0x50 */ Vec4Array colB;      /* col2 - colA */
     /* 0x60 */ EftArcNode *head;
     /* 0x64 */ s32 count;
     /* 0x68 */ s32 flags;
@@ -387,20 +368,23 @@ typedef struct EftArc {
     /* 0xF08 */ u64 unkF08;
 } EftArc; /* 0xF10 */
 
-void EftKiObj_Reset(EftTask *task);
-void EftKiObj_PostUpdateCb(EftTask *task);
-void EftKiObj_DrawCb(EftTask *task);
-void EftKiObjMgr_Init(EftTask *task, s32 *arg);
-void EftKiObjMgr_Term(EftTask *task);
-void EftKiObjMgr_Update(EftTask *task);
+void EftKiObj_Reset(BtlTask *task);
+void EftKiObj_PostUpdateCb(BtlTask *task);
+void EftKiObj_DrawCb(BtlTask *task);
+void EftKiObjMgr_Init(BtlTask *task, s32 *arg);
+void EftKiObjMgr_Term(BtlTask *task);
+void EftKiObjMgr_Update(BtlTask *task);
 void EftKiObj_Create(EftKiPropArg arg);
-void EftKiObj_SetBlock(EftTask *task, EftKiPropBlock *src);
-s32 EftKiObj_Step(EftTask *task);
-void EftKiObj_PostUpdate(EftTask *task);
-void EftKiObj_Draw(EftTask *task);
-void EftKiObj_Break(EftTask *task, EftVec *pos);
-void EftKiObj_StepFrags(EftTask *task);
-void EftKiObj_DrawFrags(EftTask *task);
+void EftKiObj_SetBlock(BtlTask *task, EftKiPropBlock *src);
+s32 EftKiObj_Step(BtlTask *task);
+void EftKiObj_PostUpdate(BtlTask *task);
+void EftKiObj_Draw(BtlTask *task);
+void EftKiObj_Break(BtlTask *task, Vec4Array *pos);
+void EftKiObj_StepFrags(BtlTask *task);
+void EftKiObj_DrawFrags(BtlTask *task);
+
+extern EftArcPool *gEftChain;
+extern void *gEftChainList;
 
 void EftChain_SetTex(EftArc *w, EftArcTexSet *set, s32 a, s32 b);
 void EftChain_BuildTex(EftArc *dst, EftArc *src);
@@ -408,16 +392,16 @@ void EftChain_SetKey(EftArcKey *out, EftArc *w, s32 key);
 void EftChain_BlendKeys(EftArc *w);
 s32 EftChain_AllocNodes(EftArcChain *ch, s32 count);
 void EftChain_FreeNodes(EftArcChain *ch);
-void EftChain_InitStrand(EftTask *task, EftArcChain *ch);
-void EftChain_UpdateStrand(EftTask *task, EftArcChain *ch);
+void EftChain_InitStrand(BtlTask *task, EftArcChain *ch);
+void EftChain_UpdateStrand(BtlTask *task, EftArcChain *ch);
 void EftChain_DrawStrand(EftArc *w, EftArc *w2, EftArcChain *ch);
 void EftChain_DrawStrandClipped(EftArc *w, EftArc *w2, EftArcChain *ch);
-s32 EftChain_StartStrand(EftTask *task, EftArcChain *ch);
-void EftChain_UpdateStrands(EftTask *task);
-void EftChain_DrawStrands(EftTask *task);
-void EftChain_Spawn(EftTask *task);
-void EftChain_Init(EftTask *task, EftArcArg *arg);
-void EftChain_Term(EftTask *task);
-void EftChain_Update(EftTask *task);
+s32 EftChain_StartStrand(BtlTask *task, EftArcChain *ch);
+void EftChain_UpdateStrands(BtlTask *task);
+void EftChain_DrawStrands(BtlTask *task);
+void EftChain_Spawn(BtlTask *task);
+void EftChain_Init(BtlTask *task, EftArcArg *arg);
+void EftChain_Term(BtlTask *task);
+void EftChain_Update(BtlTask *task);
 
 #endif

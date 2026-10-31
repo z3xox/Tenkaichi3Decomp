@@ -1,4 +1,5 @@
 #include "common.h"
+#include "battle/btl_cam.h"
 #include "sys/gfx_ot.h"
 #include "battle/eft_x.h"
 
@@ -23,14 +24,6 @@ extern f32 Port_WideFactor(void); /* widescreen on PC: 1, or 4/3 for a 16:9 pict
  */
 
 /* The view being drawn (include/battle/btl_cam.h). */
-typedef struct EftXView {
-    /* 0x000 */ Mtx44 world2view;
-    /* 0x040 */ Mtx44 world2view2;
-    /* 0x080 */ u8 unk80[0xC0];
-    /* 0x140 */ Mtx44 world2screen;
-    /* 0x180 */ u8 unk180[0xB4];
-    /* 0x234 */ f32 screenDist;
-} EftXView;
 
 /* One vertex as ClipVtx_Set builds it for the EftGfx_DrawPoly functions. */
 typedef struct EftXVert {
@@ -101,7 +94,6 @@ typedef struct EftXQuadPkt {
 #define EFT_X_TEX0(tex, i) (*(u64 *)((u32)(tex) + ((i) << 4)))
 
 extern EftPart10Mgr *gEftPart10Mgr;
-extern EftXView *gBtlCamView;
 extern void *gEftPart10Class[6];
 
 extern s32 rand(void);
@@ -199,7 +191,6 @@ void EftPart10_UnlinkGroup(EftPart10Group **head, EftPart10Group **tail, EftPart
         }
     }
 }
-
 
 /* Takes a free particle, initialises it from the emitter and starts it on the unit sphere at the two angles;
    appends it to the burst group. Does nothing when no particle is free or its life comes out as 0. */
@@ -418,7 +409,6 @@ void EftPart10_UnlinkPtcl(EftPart10Ptcl **head, EftPart10Ptcl **tail, EftPart10P
         }
     }
 }
-
 
 /* Queues a particle as a textured strip through its four world-space corners (projected with the loaded
    matrix; dropped when the projection clips), at the average depth of the corners. */

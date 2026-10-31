@@ -27,8 +27,8 @@
 
 /* ---- Main executable, beyond what menu_a.h declares ---- */
 
-extern void Flash_ClipSetOffset(MFlash *flash, MFlashRef *ref, s32 x, s32 y);
-extern void TextBox_AttachLine(MFlash *flash, MFlashRef *ref, s32 x, s32 y, s32 line, MTextBox *box);
+extern void Flash_ClipSetOffset(Flash *flash, FlashRef *ref, s32 x, s32 y);
+extern void TextBox_AttachLine(Flash *flash, FlashRef *ref, s32 x, s32 y, s32 line, TextBox *box);
 
 extern s32 rand(void);
 extern void Voice_StopWithLip(void);
@@ -42,10 +42,10 @@ extern void GetWin_Close(void);
 extern void GetWin_Next(void);
 extern s32 GetWin_IsAnimating(void);
 extern void GetWin_Setup(s32 kind, s32 value);
-extern void TextBox_Init(MTextBox *box, void *text, u32 preset);
-extern void Flash_Reset(MFlash *flash, s32 keepClips);
-extern void Flash_SetOffset(MFlash *flash, s32 x, s32 y);
-extern void Flash_SetFlag(MFlash *flash, u32 mask, u8 on);
+extern void TextBox_Init(TextBox *box, void *text, u32 preset);
+extern void Flash_Reset(Flash *flash, s32 keepClips);
+extern void Flash_SetOffset(Flash *flash, s32 x, s32 y);
+extern void Flash_SetFlag(Flash *flash, u32 mask, u8 on);
 
 /* Voice_GetStat result when nothing is playing. */
 #define MVOICE_IDLE 5
@@ -90,8 +90,7 @@ typedef struct BrkEntrant {
 
 #define TOUR_ENTRANT_MAX 17
 
-
-/* MFlash.trig bits the screens test. */
+/* Flash.trig bits the screens test. */
 #define MFLASH_TRIG_1 1
 #define MFLASH_TRIG_8 8
 
@@ -185,9 +184,9 @@ typedef struct Bracket {
     /* 0x0024 */ void *nameText;     /* section 21 */
     /* 0x0028 */ void *formText;     /* section 22 */
     /* 0x002C */ void *file;         /* file 0x3C9 + tournament: the backdrop */
-    /* 0x0030 */ MFlash flash[BRACKET_FLASH_NUM];
+    /* 0x0030 */ Flash flash[BRACKET_FLASH_NUM];
     /* 0x0138 */ s32 unk138;
-    /* 0x013C */ MTexRes *guideTex[2]; /* sections 43 / 44: the two picture sets of the guide */
+    /* 0x013C */ FlashTexRes *guideTex[2]; /* sections 43 / 44: the two picture sets of the guide */
     /* 0x0144 */ s32 unk144;
     /* 0x0148 */ u8 *texTree[26];    /* textures of flash[0] */
     /* 0x01B0 */ u8 *texTitle[38];   /* flash[5] */
@@ -218,8 +217,8 @@ typedef struct Bracket {
     /* 0x1A60 */ s32 talk[2];
     /* 0x1A68 */ TourEntrants ents;
     /* 0x1D10 */ TourMatches matches;
-    /* 0x1E10 */ MTextBox nameBox[2];
-    /* 0x1F28 */ MTextBox formBox[2];
+    /* 0x1E10 */ TextBox nameBox[2];
+    /* 0x1F28 */ TextBox formBox[2];
     /* 0x2040 */ void *cpu;          /* section 31: the CPU opponents' strength (menu_l) */
     /* 0x2044 */ void *prize;        /* section 41: the prize table (menu_l) */
     /* 0x2048 */ BracketReward reward[8];
@@ -283,7 +282,7 @@ void Bracket_Load(Bracket *b);
 
 typedef struct TourBg {
     /* 0x00 */ u32 *res;         /* the backdrop file unpacked */
-    /* 0x04 */ MFlash flash[1];
+    /* 0x04 */ Flash flash[1];
     /* 0x30 */ void *bg;         /* section 1: background picture */
     /* 0x34 */ u8 *tex[11];
     /* 0x60 */ s32 kind;         /* TOUR_: which tournament's backdrop */

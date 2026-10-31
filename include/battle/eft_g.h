@@ -2,6 +2,8 @@
 #define BATTLE_EFT_G_H
 
 #include "types.h"
+#include "battle/eft_stage_emit.h"
+#include "battle/btl_task.h"
 #include "sys/math3d.h"
 
 /*
@@ -19,14 +21,6 @@
  */
 
 /* The part of a task (0x40 bytes, 0x1AD150..) that the callbacks here use. */
-typedef struct EftTask {
-    /* 0x00 */ u8 flags;       /* bit 0: killed */
-    /* 0x01 */ u8 chr;         /* EftShotChar_Init stores the character index here */
-    /* 0x02 */ u8 unk2[0x26];
-    /* 0x28 */ void **cls;     /* task class; cls[0] is the update callback */
-    /* 0x2C */ u8 unk2C[0xC];
-    /* 0x38 */ void *work;     /* work block of the size given to BtlTask_CreateChildList */
-} EftTask;
 
 /* A GS screen position as the projection helpers (0x1210D8, 0x121140) write it. */
 typedef struct EftScrXyz {
@@ -110,32 +104,10 @@ typedef struct EftStorm {
 /* ---- smoke emitters -------------------------------------------------------------------- */
 
 /* Argument of EftSmoke_Create. */
-typedef struct EftSmokeArg {
-    /* 0x00 */ Vec4 pos;
-    /* 0x10 */ Vec4 ambient;   /* r, g, b 0..255 */
-    /* 0x20 */ Vec4 diffuse;   /* added scaled by the light term */
-    /* 0x30 */ f32 size;
-    /* 0x34 */ f32 alpha;
-    /* 0x38 */ f32 speed;
-    /* 0x3C */ f32 damp;       /* horizontal velocity factor per frame */
-    /* 0x40 */ s32 lifeBase;
-    /* 0x44 */ s32 lifeRange;
-    /* 0x48 */ s32 rate;       /* one particle per frame with probability 1 / rate */
-    /* 0x4C */ s32 unk4C;
-} __attribute__((aligned(16))) EftSmokeArg; /* 0x50; copied with 64-bit loads, so 16-byte aligned */
+ /* 0x50; copied with 64-bit loads, so 16-byte aligned */
 
 /* Record of the stage's emitter list (BtlStage_GetFxResB2). */
-typedef struct EftSmokeSrc {
-    /* 0x00 */ f32 pos[3];
-    /* 0x0C */ f32 damp;
-    /* 0x10 */ f32 size;
-    /* 0x14 */ f32 speed;
-    /* 0x18 */ u16 lifeBase;
-    /* 0x1A */ u16 rate;
-    /* 0x1C */ u8 ambient[4];
-    /* 0x20 */ u8 diffuse[4];
-    /* 0x24 */ u8 unk24[0xC];
-} EftSmokeSrc; /* 0x30 */
+
 
 typedef struct EftSmokePart {
     /* 0x00 */ Vec4 pos;
@@ -208,7 +180,7 @@ typedef struct EftBoundMesh {
     /* 0x030 */ Vec4 center;
     /* 0x040 */ EftBoundVtx vtx[24];
     /* 0x640 */ EftBoundQuad quad[15];
-    /* 0x820 */
+
 } EftBoundMesh; /* 0x820 */
 
 /* Parameters, entry 0x17 of the stage effect pack. */
@@ -290,13 +262,13 @@ void EftUtil_ClipSegToWater(Vec4 *out, Vec4 *a, Vec4 *b);
 s32 EftUtil_IsCamUnderWater(void);
 s32 EftUtil_IsScreenPosClipped(EftScrXyz *p);
 
-void EftStorm_Init(EftTask *task);
+void EftStorm_Init(BtlTask *task);
 void EftStorm_Term(void);
 void EftStorm_Update(void);
 void EftStorm_DrawBolts(EftStormBolt *bolt);
 void EftStorm_Draw(void);
 void EftStorm_PostUpdate(void);
-void EftStorm_Reset(EftTask *task);
+void EftStorm_Reset(BtlTask *task);
 void EftStorm_SpawnBolt(EftStormBolt *bolt);
 void EftStorm_InitRain(void);
 void EftStorm_MoveRain(void);
@@ -305,17 +277,17 @@ void EftStorm_WrapRain(Vec4 *center, EftStormDrop *drop, s32 count);
 void EftStorm_DrawRain(void);
 
 void *EftSmoke_Create(EftSmokeArg *arg);
-void EftSmoke_Stop(EftTask *task);
-Vec4 *EftSmoke_GetPos(EftTask *task);
-void EftSmoke_SetPos(EftTask *task, Vec4 *pos);
-void EftSmokeMgr_Init(EftTask *task);
+void EftSmoke_Stop(BtlTask *task);
+Vec4 *EftSmoke_GetPos(BtlTask *task);
+void EftSmoke_SetPos(BtlTask *task, Vec4 *pos);
+void EftSmokeMgr_Init(BtlTask *task);
 void EftSmokeMgr_Term(void);
 void EftSmokeMgr_Update(void);
-void EftSmoke_Init(EftTask *task, EftSmokeArg *arg);
+void EftSmoke_Init(BtlTask *task, EftSmokeArg *arg);
 void EftSmoke_Term(void);
 void EftSmoke_Reset(void);
-void EftSmoke_Update(EftTask *task);
-void EftSmoke_Draw(EftTask *task);
+void EftSmoke_Update(BtlTask *task);
+void EftSmoke_Draw(BtlTask *task);
 
 void EftBound_UpdateAngle(EftBoundChar *work, EftBoundChar *src);
 void EftBound_BuildWall(EftBoundChar *work, EftBoundChar *src);
@@ -323,13 +295,13 @@ void EftBound_DrawTri(EftMtxArg m, EftVecArg p0, EftVecArg p1, EftVecArg p2, Eft
                       EftVecArg st2, EftVecArg c0, EftVecArg c1, EftVecArg c2, s32 otZ, u64 tex0);
 void EftBound_DrawMeshCulled(EftBoundMesh *mesh);
 void EftBound_DrawMesh(EftBoundMesh *mesh);
-void EftBound_Init(EftTask *task, s32 *arg);
+void EftBound_Init(BtlTask *task, s32 *arg);
 void EftBound_Term(void);
-void EftBound_Update(EftTask *task);
+void EftBound_Update(BtlTask *task);
 void EftBound_PostUpdate(void);
 void EftBound_Reset(void);
-void EftBound_Draw(EftTask *task);
-void EftBoundMgr_Init(EftTask *task);
+void EftBound_Draw(BtlTask *task);
+void EftBoundMgr_Init(BtlTask *task);
 void EftBoundMgr_Term(void);
 void EftBoundMgr_Update(void);
 s32 EftBoundMgr_AddChar(s32 objId);
@@ -349,14 +321,16 @@ void EftShot_Nop(void);
 void EftShot_SetCurSlot(s32 chr, s32 slot);
 s32 EftShot_GetCurSlot(s32 chr);
 void EftShot_PlayFireSound(s32 objId, EftShotSlot *slot);
-void EftShotMgr_Init(EftTask *task);
+void EftShotMgr_Init(BtlTask *task);
 void EftShotMgr_Term(void);
 void EftShotMgr_Update(void);
-void EftShotChar_Init(EftTask *task, s32 *arg);
-void EftShotChar_Term(EftTask *task);
+void EftShotChar_Init(BtlTask *task, s32 *arg);
+void EftShotChar_Term(BtlTask *task);
 void EftShotChar_Update(void);
 void EftShot_SetCharPool(s32 chr);
 void EftShot_ResetCharPool(s32 chr);
 s32 EftShot_InitSlot(s32 chr, s32 slot, void *pack);
+
+extern f32 D_002FE9E4[];      /* -0.0f, small data reached without $gp */
 
 #endif

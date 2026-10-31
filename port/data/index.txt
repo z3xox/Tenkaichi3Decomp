@@ -13,13 +13,8 @@ cod_1F2198.rodata 0 0x1f2190
 cod_1F3488.rodata 0 0x1f3480
 cod_1F36F8.rodata 0 0x1f36f0
 cod_1F44C0.rodata 0 0x1f44c0
-cod_1FC2A0.lit4 0 0x1fc2a0
 cod_1FC2CC.lit4 0 0x1fc2c0
 cod_1FC328.lit4 0 0x1fc320
-cod_1FC3FC.lit4 0 0x1fc3f0
-cod_1FC728.lit4 0 0x1fc720
-cod_1FC744.lit4 0 0x1fc740
-cod_1FE408.lit4 0 0x1fe400
 cod_1FE4BC.lit4 0 0x1fe4b0
 cod_1FE7AC.lit4 0 0x1fe7a0
 cod_1FE820.lit4 0 0x1fe820
@@ -39,10 +34,6 @@ cod_1FF05C.sdata 0 0x1ff050
 cod_1FF11C.sdata 0 0x1ff110
 cod_1FF170.sdata 0 0x1ff170
 dbzp_07C204.data 1 0x7c200
-inc_D_002EC6E0.rodata 0 0x1ec6e0
-inc_D_002EC8C0.rodata 0 0x1ec8c0
-inc_D_002EC8D0.rodata 0 0x1ec8d0
-inc_D_002ECE90.rodata 0 0x1ece90
 inc_D_002ECEA0.rodata 0 0x1ecea0
 inc_D_002ED360.rodata 0 0x1ed360
 inc_D_002ED3E0.rodata 0 0x1ed3e0
@@ -59,7 +50,6 @@ inc_D_002EDDD8.rodata 0 0x1eddd0
 inc_D_002EDE10.rodata 0 0x1ede10
 inc_D_002EDEB0.rodata 0 0x1edeb0
 inc_D_002EDEE8.rodata 0 0x1edee0
-inc_D_002F1B90.rodata 0 0x1f1b90
 inc_D_002F2420.rodata 0 0x1f2420
 inc_D_002F33D0.rodata 0 0x1f33d0
 inc_D_002F33E0.rodata 0 0x1f33e0
@@ -68,4 +58,4 @@ inc_D_002F3440.rodata 0 0x1f3440
 inc_gEftShotFxRows.rodata 0 0x1ed0e0
 inc_gEftShotFxSegs.rodata 0 0x1ecec0
 vu1_micro.data 0 0x1bf6b0
-checksum 0x94ac6a4484be12e8
+checksum 0x272bf43799d84cfb

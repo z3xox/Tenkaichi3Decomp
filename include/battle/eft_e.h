@@ -2,6 +2,9 @@
 #define BATTLE_EFT_E_H
 
 #include "types.h"
+#include "battle/eft_stage_emit.h"
+#include "battle/eft_d.h"
+#include "battle/btl_task.h"
 #include "sys/math3d.h"
 #include "battle/btl_scene.h"
 
@@ -27,7 +30,7 @@
  *                                     through it. The particle pools are eft_f.c (0x142CA0..), same module.
  *                                     Visual only, and entirely off in split-screen.
  *
- * Task classes (BtlTaskClass: update, init, term, postUpdate, reset, draw), from the data at 0x2C35D0..:
+ * Task classes (BtlTaskCls: update, init, term, postUpdate, reset, draw), from the data at 0x2C35D0..:
  *   0x2C35D0  layer 4            {EftBurstLayer_Update, EftBurstLayer_Init, EftBurstLayer_Term, 0, 0, 0}
  *   0x2C35E8  gEftBurstClass     {EftBurst_Update, EftBurst_Init, EftBurst_Term, EftBurst_PostUpdate,
  *                                 EftBurst_Reset, EftBurst_Draw}
@@ -50,44 +53,12 @@ typedef struct EftEVec {
 /* ---- stage-change transition ------------------------------------------------------------------------- */
 
 /* One particle of the transition ("EftBurstPtcl" in eft_d.h, which has the full layout). */
-typedef struct EftTransPart {
-    /* 0x00 */ u8 unk0[0x50];
-    /* 0x50 */ s32 flags;                                 /* 0x10 (scale applies to x) set here on the two rings */
-    /* 0x54 */ s32 (*update)(struct EftTransPart *part);  /* NULL = free slot; non-zero result = draw it */
-    /* 0x58 */ void (*draw)(struct EftTransPart *part);
-    /* 0x5C */ s32 unk5C;
-    /* 0x60 */ s32 alpha;                                 /* 0x20 / 0x40 / 0x45 written here after the init */
-    /* 0x64 */ s32 visible;                               /* result of update this frame */
-    /* 0x68 */ f32 size;                                  /* peak scale: 70 / 50 for the two rings */
-    /* 0x6C */ s32 unk6C;
-} EftTransPart; /* size 0x70 */
 
 #define EFT_TRANS_PART_COUNT 350
 
 /* Work of the transition task: Heap_Alloc(0x9B70), gEftBurst (gp 0x2FE9C8; "EftBurstWork" in eft_d.h). */
-typedef struct EftTransWork {
-    /* 0x0000 */ s32 spawnWait;      /* frames until the next glow particle: (rand() & 3) + 5 */
-    /* 0x0004 */ s32 frame;          /* 0..151, stops counting at 151 */
-    /* 0x0008 */ f32 fadeDist;       /* starts at 8, +0.4 per frame up to 50 (the model's fade distance, eft_d.c) */
-    /* 0x000C */ f32 unkC;           /* starts at 20, *0.995 per frame */
-    /* 0x0010 */ f32 sway;           /* mean of the sines of 1..6 times the phase, -1..1 (added to a spark's scale) */
-    /* 0x0014 */ s32 phase;          /* degrees, + (rand() & 7) + 3 per frame, wraps at 360 */
-    /* 0x0018 */ s32 camArg[3];      /* {transition file entry 1, -1, -1}: camera animation given to EftCam_Start */
-    /* 0x0024 */ u8 unk24[0x21C];
-    /* 0x0240 */ EftTransPart part[EFT_TRANS_PART_COUNT];
-    /* 0x9B60 */ s32 seWait;         /* frames until the next rumble: 60, then rand() % 80 + 60 */
-    /* 0x9B64 */ u8 unk9B64[0xC];
-} EftTransWork; /* size 0x9B70 */
 
 /* Static state of the transition, gEftBurstRes (0x31BE60; "EftBurstRes" in eft_d.h). */
-typedef struct EftTransRes {
-    /* 0x00 */ void *list;      /* child list of the layer 4 task: one task, 4 bytes of work */
-    /* 0x04 */ void *file3;     /* transition file entry 3 (texture pack), relocated in place */
-    /* 0x08 */ void *file1;     /* transition file entry 1 (camera animation) */
-    /* 0x0C */ void *file2;     /* transition file entry 2 (model) */
-    /* 0x10 */ s32 startReq;    /* set by EftBurst_Start, consumed by EftBurstLayer_Update */
-    /* 0x14 */ s32 endReq;      /* set by EftBurst_End: the task ends on its next update and is not drawn */
-} EftTransRes; /* size 0x18 */
 
 /* ---- steam emitters ---------------------------------------------------------------------------------- */
 
@@ -95,7 +66,7 @@ typedef struct EftTransRes {
 typedef struct EftSteamTask {
     /* 0x00 */ u8 flags;            /* bit 0: dead (set by BtlTask_SetDead; the list update then kills the task) */
     /* 0x01 */ u8 unk1[0x27];
-    /* 0x28 */ BtlTaskClass *cls;
+    /* 0x28 */ BtlTaskCls *cls;
     /* 0x2C */ u8 unk2C[0xC];
     /* 0x38 */ void *work;          /* workSize bytes given to BtlTask_CreateChildList */
     /* 0x3C */ s32 unk3C;
@@ -134,21 +105,6 @@ typedef struct EftSteamShared {
 } EftSteamShared; /* size 0x90 */
 
 /* Creation argument of an emitter (0x60 bytes, copied to the start of its work). */
-typedef struct EftSteamArg {
-    /* 0x00 */ EftEVec pos;
-    /* 0x10 */ EftEVec dir;     /* (0, -1, 0, 1) for the stage's emitters: up. Not read by the code here */
-    /* 0x20 */ EftEVec color;
-    /* 0x30 */ f32 speed;
-    /* 0x34 */ f32 accel;       /* added to a particle's vertical speed every frame */
-    /* 0x38 */ f32 size;
-    /* 0x3C */ s32 life;        /* frames */
-    /* 0x40 */ f32 posRange;    /* random spread of the start position, sideways as seen from the camera */
-    /* 0x44 */ f32 dirRange;    /* random spread of the direction */
-    /* 0x48 */ f32 speedRange;
-    /* 0x4C */ f32 sizeRange;
-    /* 0x50 */ s32 lifeRange;
-    /* 0x54 */ u8 unk54[0xC];
-} EftSteamArg; /* size 0x60 */
 
 /* Work of an emitter task. */
 typedef struct EftSteamWork {
@@ -166,15 +122,7 @@ typedef struct EftSteamWork {
 #define EFT_STEAM_STARTED 4  /* set by the first update: one new particle per frame from the second on */
 
 /* A record of the stage's third effect list (BtlStage_GetFxResC2; BtlStage_GetFxResC() of them). */
-typedef struct EftStageMarker {
-    /* 0x00 */ f32 pos[3];
-    /* 0x0C */ f32 speed;
-    /* 0x10 */ f32 accel;
-    /* 0x14 */ f32 size;
-    /* 0x18 */ u16 life;
-    /* 0x1A */ u8 color[4];
-    /* 0x1E */ u8 unk1E[0x12];
-} EftStageMarker; /* size 0x30 */
+
 
 /* ---- water effects ----------------------------------------------------------------------------------- */
 
@@ -262,12 +210,10 @@ typedef struct EftWaterBlast {
 #define EFT_WATER_SPLASH_BLAST 1 /* a ki blast */
 #define EFT_WATER_SPLASH_TECH 2  /* a technique */
 
-extern EftTransRes gEftBurstRes;
-extern EftTransWork *gEftBurst;
 extern EftSteamShared *gEftSteam;
 extern EftWater *gEftDust;
-extern BtlTaskClass gEftBurstClass;
-extern BtlTaskClass gEftSteamClass;
+extern BtlTaskCls gEftBurstClass;
+extern BtlTaskCls gEftSteamClass;
 
 /* stage-change transition */
 void EftBurstLayer_Init(void *task);
@@ -289,7 +235,6 @@ s32 Eft_IsScreenPosInFront(s32 *pos);
 /* steam emitters */
 void *EftSteam_Create(EftSteamArg *arg);
 void EftSteam_Stop(EftSteamTask *task);
-void EftSteam_SetPaused(EftSteamTask *task, s32 paused);
 EftSteamWork *EftSteam_GetWork(EftSteamTask *task);
 void EftSteam_SetPos(EftSteamTask *task, Vec4 *pos);
 void EftSteamMgr_Init(void *task);

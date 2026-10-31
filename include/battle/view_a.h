@@ -2,6 +2,9 @@
 #define BATTLE_VIEW_A_H
 
 #include "types.h"
+#include "sys/progress.h"
+#include "battle/textbox_types.h"
+#include "sys/flash_core.h"
 #include "sys/job.h"
 #include "sys/list.h"
 
@@ -23,36 +26,17 @@
 /* ---- The Flash-like movie player (0x10D4F0.., not decompiled). Local view. ---- */
 
 /* A playing movie. */
-typedef struct Flash {
-    /* 0x00 */ s32 unk0[3];
-    /* 0x0C */ s32 flags;   /* bit 0: a labelled animation is running (GetWin_IsAnimating) */
-    /* 0x10 */ s32 unk10[7];
-} Flash; /* size 0x2C */
 
 /* What Flash_FindLabel fills in: a handle to one movie clip. */
-typedef struct FlashRef {
-    /* 0x00 */ s32 id;      /* negative: not found */
-    /* 0x04 */ s32 unk4;
-} FlashRef; /* size 8 */
+ /* size 8 */
 
 /* Texture rectangle of a movie clip (argument of Flash_ClipSetUv). */
-typedef struct FlashUv {
-    /* 0x00 */ s32 x0;
-    /* 0x04 */ s32 y0;
-    /* 0x08 */ s32 x1;
-    /* 0x0C */ s32 y1;
-    /* 0x10 */ s32 unk10;
-} FlashUv; /* size 0x14 */
 
 /* Properties set with Flash_ClipSetFlags. */
 #define FLASH_PROP_VISIBLE 2
 #define FLASH_PROP_UV 0x200
 
 /* Header of an unpacked sprite resource after Res_RelocateOffsets: the textures are 0x40-byte entries. */
-typedef struct FlashTexRes {
-    /* 0x00 */ s32 unk0[4];
-    /* 0x10 */ u8 *tex;
-} FlashTexRes;
 
 #define FLASH_TEX_SIZE 0x40
 
@@ -66,22 +50,6 @@ typedef struct FlashTexRes {
 #define TEXTBOX_FLAG_COLOR2 4
 
 /* A text file with the style its lines are drawn in. */
-typedef struct TextBox {
-    /* 0x00 */ s32 flags;      /* TEXTBOX_FLAG_* */
-    /* 0x04 */ void *text;     /* text file: line n is at text + (((u32 *)text)[n + 1] & ~3) */
-    /* 0x08 */ s32 unk8;
-    /* 0x0C */ s32 unkC;       /* TextBox_SetUnkC: 0 or 0x100 */
-    /* 0x10 */ s32 unk10;
-    /* 0x14 */ u8 unk14[0x1C];
-    /* 0x30 */ u8 color[4];    /* r, g, b, a */
-    /* 0x34 */ u8 color2[4];
-    /* 0x38 */ s32 rect[4];    /* TextBox_SetRect stores its arguments as [0], [2], [1], [3] */
-    /* 0x48 */ u8 unk48[8];
-    /* 0x50 */ s32 unk50;      /* 0 or 2 in the presets, 1 in the reward window */
-    /* 0x54 */ u8 unk54[0x2C];
-    /* 0x80 */ s32 unk80;
-    /* 0x84 */ u8 unk84[8];
-} TextBox; /* size 0x8C */
 
 void TextBox_Init(TextBox *box, void *text, u32 preset);
 void TextBox_SetUnk50(TextBox *box, s32 value);
@@ -252,39 +220,9 @@ void ChrView_Term(void);
 
 /* ---- Progress and the menu helpers (view_a_e.c) ---- */
 
-#define PROGRESS_FLAG_40 0x40
-#define PROGRESS_FLAG_FREEZE 0x100 /* the clip animations of this file do nothing while it is set */
-
 /* 0x30 bytes; two arrays of five in the progress block. */
-typedef struct ProgressEntry {
-    /* 0x00 */ s32 unk0;
-    /* 0x04 */ s32 unk4[11];
-} ProgressEntry;
 
 /* gProgress: the 0x7FC-byte block of state that survives between the menu and the battle. Local view. */
-typedef struct ViewProgress {
-    /* 0x000 */ s32 unk0;
-    /* 0x004 */ s32 unk4;          /* 0x1C1 at start */
-    /* 0x008 */ void *loadPack;    /* 0x3000 bytes */
-    /* 0x00C */ void *loadRes;     /* 0x6800 bytes */
-    /* 0x010 */ void *loadSprites; /* 0x380 bytes */
-    /* 0x014 */ s32 flags;         /* PROGRESS_FLAG_* */
-    /* 0x018 */ s32 mode;          /* the menu screen / game mode */
-    /* 0x01C */ s32 unk1C[2];
-    /* 0x024 */ s32 unk24;         /* -1 at start */
-    /* 0x028 */ s32 unk28[2];
-    /* 0x030 */ u8 unk30[0x4C];    /* cleared per session */
-    /* 0x07C */ u8 unk7C[0x3C4];   /* cleared per session */
-    /* 0x440 */ ProgressEntry unk440[5]; /* cleared per session; unk0 = 0 */
-    /* 0x530 */ ProgressEntry unk530[5]; /* unk0 = 1 */
-    /* 0x620 */ s32 unk620;
-    /* 0x624 */ s32 unk624;        /* 2 in mode 0x28: the character list is shown without the unlock test */
-    /* 0x628 */ s32 unk628[3];
-    /* 0x634 */ u8 unk634[0x58];   /* cleared per session */
-    /* 0x68C */ u8 unk68C[0x144];  /* cleared per session */
-    /* 0x7D0 */ s32 unk7D0;        /* cleared per session */
-    /* 0x7D4 */ u8 unk7D4[0x28];   /* cleared per session */
-} ViewProgress; /* size 0x7FC */
 
 /* Character grid: 7 columns. A cell is a character or a marker. */
 #define CHRGRID_COLS 7

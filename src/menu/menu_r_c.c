@@ -18,9 +18,9 @@ SimResult *gSimResult = NULL;
 
 /* Sends the yes / no row under the cursor to `label`. */
 void SimResult_YesNoGoto(char *label) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[0x40];
-    MFlash *flash = &gSimResult->flash[0];
+    Flash *flash = &gSimResult->flash[0];
 
     sprintf(name, "mc_yes_no_text%02d", gSimResult->pick[SIMRESULT_ST_CONTINUE] + 1);
     Flash_FindLabel(flash, NULL, name, &ref);
@@ -33,7 +33,7 @@ void SimResult_YesNoGoto(char *label) {
  * the outcome of the fight (once per save: SimSave.simCleared).
  */
 void SimResult_Init(s32 section) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
     s32 i;
 
     gSimResult = Heap_Alloc(sizeof(SimResult), 0x20, 0, 2);
@@ -41,17 +41,17 @@ void SimResult_Init(s32 section) {
     gSimResult->pack = (u32 *)MPACK_AT(gMenuArc3, section);
     gSimResult->res = Sprite_Unpack(gSimResult->pack, NULL, NULL);
 
-    res = (MTexRes *)MPACK_AT(gSimResult->res, 6);
+    res = (FlashTexRes *)MPACK_AT(gSimResult->res, 6);
     Res_RelocateOffsets(&res, res, res);
     gSimResult->bg = res;
 
-    res = (MTexRes *)MPACK_AT(gSimResult->res, 7);
+    res = (FlashTexRes *)MPACK_AT(gSimResult->res, 7);
     Res_RelocateOffsets(&res, res, res);
     gSimResult->tex[46] = MTEX(res, 5);
     gSimResult->tex[47] = MTEX(res, 6);
     gSimResult->tex[48] = MTEX(res, 8);
 
-    res = (MTexRes *)MPACK_AT(gSimResult->res, 4);
+    res = (FlashTexRes *)MPACK_AT(gSimResult->res, 4);
     Res_RelocateOffsets(&res, res, res);
     gSimResult->tex[0] = MTEX(res, 1);
     gSimResult->tex[3] = MTEX(res, 2);
@@ -104,7 +104,7 @@ void SimResult_Init(s32 section) {
     Flash_Play(&gSimResult->flash[0], 1);
     gSimResult->blink = Rand_Libc() % 32;
 
-    res = (MTexRes *)MPACK_AT(gSimResult->res, 8);
+    res = (FlashTexRes *)MPACK_AT(gSimResult->res, 8);
     Res_RelocateOffsets(&res, res, res);
     IconWin_Init(MPACK_AT(gSimResult->res, 9), res);
     IconWin_Open();
@@ -172,10 +172,10 @@ void SimResult_Term(void) {
 
 /* Sets up the movie's clips (texts, numbers, texture rectangles) and draws it. */
 void SimResult_Draw(void) {
-    MFlashRef ref;
-    MFlashUv uv;
+    FlashRef ref;
+    FlashUv uv;
     char name[0x40];
-    MFlash *flash;
+    Flash *flash;
     s32 i;
     s32 x;
 
@@ -205,19 +205,19 @@ void SimResult_Draw(void) {
         TextBox_AttachLine(flash, &ref, 0, 0, 0x142, &gSimResult->box[4]);
     }
 
-    uv.x0 = 0;
-    uv.y0 = 0x40;
-    uv.x1 = 0x200;
-    uv.y1 = 0x80;
+    uv.u0 = 0;
+    uv.v0 = 0x40;
+    uv.u1 = 0x200;
+    uv.v1 = 0x80;
     Flash_FindLabel(flash, NULL, "mc_win_text02", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     Flash_FindLabel(flash, NULL, "mc_win_text03", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
 
-    uv.x0 = 0;
-    uv.y0 = 0x20;
-    uv.x1 = 0x20;
-    uv.y1 = 0x40;
+    uv.u0 = 0;
+    uv.v0 = 0x20;
+    uv.u1 = 0x20;
+    uv.v1 = 0x40;
     Flash_FindLabel(flash, NULL, "mc_yajirusi_icon_up", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     if (gSimResult->page == 0) {
@@ -226,10 +226,10 @@ void SimResult_Draw(void) {
         Flash_ClipSetFlags(flash, &ref, 2, 1);
     }
 
-    uv.x0 = 0x20;
-    uv.y0 = 0x20;
-    uv.x1 = 0x40;
-    uv.y1 = 0x40;
+    uv.u0 = 0x20;
+    uv.v0 = 0x20;
+    uv.u1 = 0x40;
+    uv.v1 = 0x40;
     Flash_FindLabel(flash, NULL, "mc_yajirusi_icon_down", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     if (gSimResult->score.bonusCount != 0 && gSimResult->page < gSimResult->pageMax) {
@@ -261,10 +261,10 @@ void SimResult_Draw(void) {
     }
 
     for (i = 1; i < 4; i++) {
-        uv.x0 = 0;
-        uv.y0 = i << 5;
-        uv.x1 = 0x100;
-        uv.y1 = (i << 5) + 0x20;
+        uv.u0 = 0;
+        uv.v0 = i << 5;
+        uv.u1 = 0x100;
+        uv.v1 = (i << 5) + 0x20;
         sprintf(name, "mc_point_plate%02d", i + 1);
         Flash_FindLabel(flash, name, "mc_bonus_text", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
@@ -276,24 +276,24 @@ void SimResult_Draw(void) {
     Num_Draw(flash, "mc_time_suji%02d", 2, 2, gSimResult->score.minutes, 0x20, 0x20, 1);
     Num_Draw(flash, "mc_time_suji%02d", 0, 2, gSimResult->score.seconds, 0x20, 0x20, 1);
 
-    uv.x0 = 0;
-    uv.y0 = 0x80;
-    uv.x1 = 0x100;
-    uv.y1 = 0xA0;
+    uv.u0 = 0;
+    uv.v0 = 0x80;
+    uv.u1 = 0x100;
+    uv.v1 = 0xA0;
     Flash_FindLabel(flash, NULL, "mc_bonus_title", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
 
-    uv.x0 = 0;
-    uv.y0 = 0x80;
-    uv.x1 = 0x200;
-    uv.y1 = 0xC0;
+    uv.u0 = 0;
+    uv.v0 = 0x80;
+    uv.u1 = 0x200;
+    uv.v1 = 0xC0;
     Flash_FindLabel(flash, NULL, "mc_win_text04", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
 
-    uv.x0 = 0;
-    uv.y0 = 0x20;
-    uv.x1 = 0x100;
-    uv.y1 = 0x40;
+    uv.u0 = 0;
+    uv.v0 = 0x20;
+    uv.u1 = 0x100;
+    uv.v1 = 0x40;
     sprintf(name, "mc_yes_no_text%02d", 2);
     Flash_FindLabel(flash, name, "mc_yes_no_text_on", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
@@ -303,52 +303,52 @@ void SimResult_Draw(void) {
     Flash_FindLabel(flash, NULL, "mc_sim_text_kari", &ref);
     TextBox_AttachLine(flash, &ref, 0, 0, 0xF, &gSimResult->box[5]);
 
-    uv.x0 = 0;
-    uv.y0 = 0x40;
-    uv.x1 = 0x200;
-    uv.y1 = 0x80;
+    uv.u0 = 0;
+    uv.v0 = 0x40;
+    uv.u1 = 0x200;
+    uv.v1 = 0x80;
     Flash_FindLabel(flash, NULL, "mc_clear_text01", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
 
-    uv.x0 = 0;
-    uv.y0 = 0x80;
-    uv.x1 = 0x200;
-    uv.y1 = 0xC0;
+    uv.u0 = 0;
+    uv.v0 = 0x80;
+    uv.u1 = 0x200;
+    uv.v1 = 0xC0;
     Flash_FindLabel(flash, NULL, "mc_clear_text02", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
 
-    uv.x0 = 0;
-    uv.y0 = 0x40;
-    uv.x1 = 0x200;
-    uv.y1 = 0x80;
+    uv.u0 = 0;
+    uv.v0 = 0x40;
+    uv.u1 = 0x200;
+    uv.v1 = 0x80;
     Flash_FindLabel(flash, NULL, "mc_clear_text01", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
 
     Num_Draw(flash, "mc_henkan_suji%02d", 0, 6, gSimResult->score.convert, 0x20, 0x20, 0);
 
-    uv.x0 = 0;
-    uv.y0 = 0x40;
-    uv.x1 = 0x100;
-    uv.y1 = 0x60;
+    uv.u0 = 0;
+    uv.v0 = 0x40;
+    uv.u1 = 0x100;
+    uv.v1 = 0x60;
     Flash_FindLabel(flash, NULL, "mc_time_text03", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
 
     Num_Draw(flash, "mc_zpoint_suji%02d", 0, 9, SIM_SAVE->money, 0x20, 0x20, 0);
 
-    uv.x0 = 0;
-    uv.y0 = 0x20;
-    uv.x1 = 0x100;
-    uv.y1 = 0x40;
+    uv.u0 = 0;
+    uv.v0 = 0x20;
+    uv.u1 = 0x100;
+    uv.v1 = 0x40;
     Flash_FindLabel(flash, NULL, "mc_time_text02", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
 
     Num_Draw(flash, "mc_score_suji%02d", 0, 9, gSimResult->score.total * 100, 0x20, 0x20, 0);
 
     x = gSimResult->score.rank << 6;
-    uv.x0 = x;
-    uv.y0 = 0;
-    uv.x1 = x + 0x40;
-    uv.y1 = 0x40;
+    uv.u0 = x;
+    uv.v0 = 0;
+    uv.u1 = x + 0x40;
+    uv.v1 = 0x40;
     Flash_FindLabel(flash, NULL, "mc_rankmoji_anime", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
 
@@ -369,8 +369,8 @@ void SimResult_Draw(void) {
 
 /* Advances the movie and acts on its triggers: 1 = intro over, 4 = a page is in place, 8 = a plate may come in. */
 void SimResult_Update(void) {
-    MFlashRef ref;
-    MFlash *flash;
+    FlashRef ref;
+    Flash *flash;
     s32 i;
 
     if (gProgress->flags & MPROG_FREEZE) {

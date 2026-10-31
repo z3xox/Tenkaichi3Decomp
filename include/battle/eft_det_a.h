@@ -2,6 +2,7 @@
 #define BATTLE_EFT_DET_A_H
 
 #include "types.h"
+#include "sys/math3d.h"
 
 /*
  * src/battle/eft_det_a.c, 0x1AE2A8..0x1B16F0 (the brief's range starts at 0x1AE200, which is inside the function
@@ -24,7 +25,7 @@
  * battle/btl_char_coll.h, the stage in battle/stg_a.h and battle/eft_det_b.h).
  */
 
-/* 16-byte aligned vector (EftVec of battle/eft_a.h). */
+/* 16-byte aligned vector (Vec4Array of battle/eft_a.h). */
 typedef union EftDetVec {
     struct {
         /* 0x0 */ f32 x;

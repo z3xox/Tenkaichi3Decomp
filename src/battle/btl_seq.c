@@ -1,4 +1,5 @@
 #include "common.h"
+#include "sys/save.h"
 #include "battle/btl_seq.h"
 #include "battle/battle_setup.h"
 #include "battle/battle_work.h"
@@ -20,7 +21,6 @@
  *   compiler only does for a function it has marked `const` itself, and it only does that for static ones. */
 
 extern f32 gBtlTextAlpha;
-extern u64 *gSaveData; /* local view: only charaBits (+0xC10) is used here */
 
 extern BtlTextWork *BtlMenu_GetWork(void);
 extern u16 *BtlMenu_GetScript(void);
@@ -48,7 +48,6 @@ extern void Font_SetColor2RGBA(s32 r, s32 g, s32 b, s32 a);
 extern void Font_SetShadowColorRGBA(s32 r, s32 g, s32 b, s32 a);
 extern s32 FontIcon_GetPadTagSize(u16 *str);
 extern s32 Battle_IsSplitScreen(void);
-
 
 /* Draws one part of the list sprite sheet: a w x h rectangle at (x, y); a negative h flips it vertically. */
 void BtlText_DrawPart(void *pkt, s32 x, s32 y, s32 w, s32 h, s32 part) {
@@ -153,7 +152,7 @@ s32 BtlText_CheckUnlock(u16 **cursor) {
                 ret = 0;
             }
         } else {
-            ret = (gSaveData[0xC10 / 8 + id / 64] >> (id % 64)) & 1;
+            ret = (SAVE_CHARA_WORD(gSaveData, id) >> (id % 64)) & 1;
         }
     }
     *cursor = p;
@@ -469,7 +468,6 @@ u16 *BtlText_FindEntry(s32 n) {
     s32 go = 1;
     u16 *ret = NULL;
 
-
     p = BtlMenu_GetScript2();
     if (p == NULL) {
         return;
@@ -569,7 +567,7 @@ extern s32 DemoCam_IsActive(void);             /* camera cut still playing */
 extern s32 DemoCam_IsInUse(void);
 extern void DemoCam_Stop(void);            /* stop the camera cut */
 extern void ScrXfade_RequestCapture(void);
-extern void ScrXfade_Start(s32 a, f32 seconds);
+extern void ScrXfade_Start(f32 seconds, s32 a);
 extern s32 BtlScript_IsEventRunning(void);
 extern void BtlScript_AbortEvents(void);
 extern u8 *BtlScript_GetCurrentEvent(void);
@@ -598,7 +596,6 @@ extern void Hud_ShowNotice(s32 on);
 extern void Hud_ShowCombo(s32 on);
 extern void Hud_ShowPrompt(s32 on);
 extern void Fade_Start(s32 idx, s32 dir, f32 seconds);
-
 
 s32 BtlSeqIntroTalk_Setup(BtlSeqTalkCtx *ctx);
 s32 BtlSeqWinTalk_Setup(BtlSeqTalkCtx *ctx);
@@ -906,11 +903,11 @@ s32 BtlSeqIntroTalk_Update(BtlSeqTalkCtx *ctx) {
         if (BtlCtrl_IsPoseReached(ctx->side[0])) {
             if (Voice_IsStopped(ctx->side[0])) {
                 ScrXfade_RequestCapture();
-                ScrXfade_Start(1, 1.0f);
+                ScrXfade_Start(1.0f, 1);
                 ctx->step++;
             } else if (Ramp_Step(&ctx->timer)) {
                 ScrXfade_RequestCapture();
-                ScrXfade_Start(1, 1.0f);
+                ScrXfade_Start(1.0f, 1);
                 ctx->step++;
             }
         }
@@ -920,7 +917,7 @@ s32 BtlSeqIntroTalk_Update(BtlSeqTalkCtx *ctx) {
         if (BtlCtrl_IsPoseReached(ctx->side[1])) {
             if (Voice_IsStopped(ctx->side[1]) || Ramp_Step(&ctx->timer)) {
                 ScrXfade_RequestCapture();
-                ScrXfade_Start(1, 1.0f);
+                ScrXfade_Start(1.0f, 1);
                 ctx->step++;
             }
         }
@@ -930,7 +927,7 @@ s32 BtlSeqIntroTalk_Update(BtlSeqTalkCtx *ctx) {
     case 99:
         if (ctx->skip) {
             ScrXfade_RequestCapture();
-            ScrXfade_Start(1, 1.0f);
+            ScrXfade_Start(1.0f, 1);
             goto done;
         }
         break;
@@ -939,7 +936,7 @@ s32 BtlSeqIntroTalk_Update(BtlSeqTalkCtx *ctx) {
         if (ctx->poll()) {
             if (ctx->step != 4) {
                 ScrXfade_RequestCapture();
-                ScrXfade_Start(1, 1.0f);
+                ScrXfade_Start(1.0f, 1);
                 if (BtlScript_IsEventRunning()) {
                     BtlScript_AbortEvents();
                 }
@@ -1024,7 +1021,7 @@ s32 BtlSeqWinTalk_Setup(BtlSeqTalkCtx *ctx) {
 s32 BtlSeqWinTalk_Enter(BtlSeqTalkCtx *ctx) {
     Battle_GetWork()->flags |= BATTLE_FLAG_DEMO;
     ScrXfade_RequestCapture();
-    ScrXfade_Start(1, 1.0f);
+    ScrXfade_Start(1.0f, 1);
     if (Battle_GetMode() == 1) {
         if (*BtlScript_GetCurrentEvent() & 0x10) {
             ctx->skip = 0;
@@ -1167,7 +1164,7 @@ s32 BtlSeqStageIntro_Update(BtlSeqWaitCtx *ctx) {
     case 3:
         if (!DemoCam_IsActive()) {
             ScrXfade_RequestCapture();
-            ScrXfade_Start(1, 1.0f);
+            ScrXfade_Start(1.0f, 1);
             ctx->step++;
         }
         break;
@@ -1195,7 +1192,7 @@ s32 BtlSeqStageIntro_Exit(BtlSeqWaitCtx *ctx) {
         DemoCam_Stop();
     }
     ScrXfade_RequestCapture();
-    ScrXfade_Start(1, 1.0f);
+    ScrXfade_Start(1.0f, 1);
     return 1;
 }
 

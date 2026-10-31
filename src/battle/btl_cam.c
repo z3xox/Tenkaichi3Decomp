@@ -222,7 +222,7 @@ void View_Apply(View *view, s32 scissor) {
     Vu0Screen_LoadMtx(&view->world2screen);
     Vu0Clip_LoadMtx(&view->world2clip);
     if (scissor != 0) {
-        View_ApplyScissor((ViewScissor *)view);
+        View_ApplyScissor(view);
     }
     gBtlCamView = view;
 }

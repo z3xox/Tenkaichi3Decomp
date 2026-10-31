@@ -107,8 +107,8 @@ static int quit_init(void) {
 
     /* The native object allocates from the game's heap; an online session must keep that heap deterministic. */
     if (Port_NetActive()) { return -1; }
-    if (gProgress == NULL || gProgress->unk0[1] <= 0 || !File_IsPartitionLoaded(1)) { return 0; }
-    sQuitArchive = File_LoadSync(gProgress->unk0[1] + 0x19, NULL, 0);
+    if (gProgress == NULL || gProgress->baseFile <= 0 || !File_IsPartitionLoaded(1)) { return 0; }
+    sQuitArchive = File_LoadSync(gProgress->baseFile + 0x19, NULL, 0);
     if (sQuitArchive == NULL) { return -1; }
     sQuitResource = Sprite_Unpack(QUIT_PACK_AT(sQuitArchive, 2), NULL, NULL);
     if (sQuitResource == NULL) { return -1; }

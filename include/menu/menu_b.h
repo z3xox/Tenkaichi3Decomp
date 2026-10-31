@@ -11,7 +11,7 @@
  *   menu_b_d.c  0x33CFC8..0x33F700  HistSel    the saga select (mode 6), merged with its tail (the former menu_c.c);
  *                                              it includes menu/menu_c.h, not this header
  *
- * ModeMenu is the story mode's episode list (mode 7): gProgress->subMenu is the saga (0..7), an item an episode.
+ * ModeMenu is the story mode's episode list (mode 7): gProgress->menu.subMenu is the saga (0..7), an item an episode.
  */
 #include "menu/menu_a.h"
 
@@ -30,11 +30,11 @@ typedef struct ModeMenu {
     /* 0x008 */ void *file;         /* file baseFile + 0x10 + subMenu (compressed) */
     /* 0x00C */ u32 *fileRes;       /* the same unpacked: this sub menu's own pack */
     /* 0x010 */ void *imageFile;    /* 0x1C000 bytes: the compressed large picture of the current item */
-    /* 0x014 */ MTexRes *imageRes;  /* 0x20800 bytes: the same unpacked */
+    /* 0x014 */ FlashTexRes *imageRes;  /* 0x20800 bytes: the same unpacked */
     /* 0x018 */ void *msgText;      /* fileRes section 4 */
     /* 0x01C */ void *subtitles;    /* fileRes section 5 */
     /* 0x020 */ void *text;         /* res section 6: text of the three description lines */
-    /* 0x024 */ MFlash flash[MODEMENU_FLASH_NUM];
+    /* 0x024 */ Flash flash[MODEMENU_FLASH_NUM];
     /* 0x050 */ u8 *tex[41];
     /* 0x0F4 */ s32 flags;          /* MODEMENU_ */
     /* 0x0F8 */ s32 cursor[2];      /* indexed with `focus`; only [0], the index into items, is ever used */
@@ -60,7 +60,7 @@ typedef struct ModeMenu {
     /* 0x188 */ s32 narrLine;       /* description line being read out */
     /* 0x18C */ s32 loadState;      /* MODEMENU_LOAD_ */
     /* 0x190 */ f32 imageAlpha;
-    /* 0x194 */ MTextBox box[3];
+    /* 0x194 */ TextBox box[3];
     /* 0x338 */ ModeMenuDescr *descr; /* fileRes section 6 */
 } ModeMenu; /* 0x33C */
 
@@ -96,7 +96,7 @@ s32 ModeMenu_Run(s32 section);
 /* ---- ModeBg (menu_b_b.c) ---- */
 
 typedef struct ModeBg {
-    /* 0x00 */ MFlash flash[1];     /* section 9 of the sub menu's pack; not created for sub menu 3 */
+    /* 0x00 */ Flash flash[1];     /* section 9 of the sub menu's pack; not created for sub menu 3 */
     /* 0x2C */ void *bg;            /* section 1: the still picture */
     /* 0x30 */ u8 *tex[14];         /* textures of section 10, in the order the movie wants them */
     /* 0x68 */ f32 scrollX[2];      /* horizontal offset of the cloud layers ("mc_kumo") */
@@ -121,7 +121,7 @@ typedef struct HistOutro {
     /* 0x010 */ void *msgText;      /* fileRes section 4 */
     /* 0x014 */ void *subtitles;    /* fileRes section 5 */
     /* 0x018 */ void *text;         /* res section 6 */
-    /* 0x01C */ MFlash flash[HISTOUTRO_FLASH_NUM];
+    /* 0x01C */ Flash flash[HISTOUTRO_FLASH_NUM];
     /* 0x048 */ u8 *tex[32];        /* 1 + 3 * n: the three face textures of guide n (0..8) */
     /* 0x0C8 */ s32 flags;          /* HISTOUTRO_ */
     /* 0x0CC */ s32 unkCC;
@@ -141,7 +141,7 @@ typedef struct HistOutro {
     /* 0x10C */ f32 scrollMax;      /* lines * 40 + 230 */
     /* 0x110 */ s32 narrWait;
     /* 0x114 */ s32 narrLine;
-    /* 0x118 */ MTextBox box[3];
+    /* 0x118 */ TextBox box[3];
     /* 0x2BC */ ModeMenuDescr *descr; /* fileRes section 6 */
 } HistOutro; /* 0x2C0 */
 

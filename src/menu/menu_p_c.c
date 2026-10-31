@@ -21,7 +21,7 @@ static const s32 sUbMenuIdleScript[3] = { 21, 41, 61 };
 static const s32 sUbMenuLeaveScript[3] = { 81, 101, 121 };
 
 #define UM_RES(n) \
-    res = (MTexRes *)MPACK_AT(gUbMenu->res, n); \
+    res = (FlashTexRes *)MPACK_AT(gUbMenu->res, n); \
     Res_RelocateOffsets(&res, res, res)
 
 #define UM_CUR gUbMenu->cur[gUbMenu->level]
@@ -31,11 +31,10 @@ static const s32 sUbMenuLeaveScript[3] = { 81, 101, 121 };
 
 /* Row n of the plate texture (0x200 x 0x20 each). */
 #define UM_ROW_UV(n) \
-    uv.x0 = 0; \
-    uv.y0 = (n) << 5; \
-    uv.x1 = 0x200; \
-    uv.y1 = uv.y0 + 0x20
-
+    uv.u0 = 0; \
+    uv.v0 = (n) << 5; \
+    uv.u1 = 0x200; \
+    uv.v1 = uv.v0 + 0x20
 
 /* The guide's comment on the plate under the cursor: lines 2..5, spoken by guide 0 for plates 1 and 3. */
 #define UM_SAY_PLATE() \
@@ -65,7 +64,7 @@ void UbMenu_CursorDown(void) {
 
 /* Loads the screen: section `section` of archive 3. */
 void UbMenu_Init(s32 section) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
     s32 i;
 
     gUbMenu = Heap_Alloc(sizeof(UbMenu), 0x20, 0, 2);
@@ -132,10 +131,10 @@ void UbMenu_Term(void) {
 
 /* Draws the screen: the two guides, the blinking button icon, the four plates, the message window. */
 void UbMenu_Draw(void) {
-    MFlashRef ref;
-    MFlashUv uv;
+    FlashRef ref;
+    FlashUv uv;
     char name[64];
-    MFlash *flash;
+    Flash *flash;
     s32 i;
 
 #ifdef PORT
@@ -157,10 +156,10 @@ void UbMenu_Draw(void) {
             FlashAnim_ShowNext2(flash, &ref, 0);
         }
     }
-    uv.x0 = gUbMenu->iconFrame << 6;
-    uv.y0 = 0;
-    uv.x1 = uv.x0 + 0x40;
-    uv.y1 = 0x40;
+    uv.u0 = gUbMenu->iconFrame << 6;
+    uv.v0 = 0;
+    uv.u1 = uv.u0 + 0x40;
+    uv.v1 = 0x40;
     Flash_FindLabel(flash, NULL, "mc_icon_play1", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     gUbMenu->iconFrame ^= 1;
@@ -379,9 +378,9 @@ void UbMenu_Input(s32 *result) {
 
 /* Sends the plate under the cursor of `level` to a label. */
 void UbMenu_ClipGoto(s32 movie, s32 level, char *label) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[64];
-    MFlash *flash = &gUbMenu->flash[movie];
+    Flash *flash = &gUbMenu->flash[movie];
 
     sprintf(name, "mc_menu_plate_%d", gUbMenu->cur[level] + 1);
     Flash_FindLabel(flash, NULL, name, &ref);

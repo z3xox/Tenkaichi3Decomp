@@ -2,6 +2,7 @@
 #define BATTLE_EFT_AD_H
 
 #include "types.h"
+#include "battle/eft_ac.h"
 #include "sys/math3d.h"
 
 /*
@@ -52,35 +53,8 @@ typedef struct EftAdTexSet {
  * with random steps (0x1A4C98).
  */
 
-/* A point of a chain; 35 of them live in the manager and are handed out round robin. */
-typedef struct EftZapNode {
-    /* 0x00 */ Vec4 pos;
-    /* 0x10 */ u8 unk10[0x10];
-    /* 0x20 */ s32 flags;      /* 0 = free; bit 0 = in use */
-    /* 0x24 */ struct EftZapNode *next;
-    /* 0x28 */ struct EftZapNode *prev;
-    /* 0x2C */ s32 pad2C;
-} EftZapNode; /* 0x30 */
-
+/* Point, strand and pool records are owned by battle/eft_ac.h. */
 #define EFT_ZAP_NODES 35
-
-/* One chain (allocated by the first half of the module; where it lives was not read here). */
-typedef struct EftZapLine {
-    /* 0x000 */ u8 unk0[0x30];
-    /* 0x030 */ Vec4 pos;      /* where the next point goes */
-    /* 0x040 */ u8 unk40[0xD8];
-    /* 0x118 */ EftZapNode *head;
-    /* 0x11C */ EftZapNode *tail;
-} EftZapLine;
-
-/* The module's manager block (gEftZapMgr). */
-typedef struct EftZapMgr {
-    /* 0x0000 */ void *tasks;  /* task list the zaps are created in */
-    /* 0x0004 */ u8 unk4[0x17CC];
-    /* 0x17D0 */ EftZapNode nodes[EFT_ZAP_NODES];
-    /* 0x1E60 */ u8 unk1E60[0x41];
-    /* 0x1EA1 */ u8 nodeCur;   /* where the search for a free point starts */
-} EftZapMgr;
 
 /* A texture object of an effect pack as this module uses it (0x108 bytes each in the pack's table). */
 typedef struct EftZapTexObj {
@@ -172,7 +146,7 @@ typedef struct EftZap {
 #define EFT_ZAP_FLAG_20000 0x20000 /* part definition flag 0x20 */
 
 void EftZap_LoadKey(EftZap *w, s32 idx);
-s32 EftZap_AddNode(EftZapLine *chain);
+s32 EftZap_AddNode(EftZapStrand *chain);
 void EftZap_SetTexPair(EftZap *w, EftAdTex *tbl, s32 a, s32 b);
 void EftZap_LoadTex(EftZap *w);
 void *EftZap_Create(EftZapArg *arg);

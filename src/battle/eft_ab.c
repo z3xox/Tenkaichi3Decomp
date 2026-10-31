@@ -1,4 +1,5 @@
 #include "common.h"
+#include "battle/btl_cam.h"
 #include "battle/eft_ab.h"
 
 /*
@@ -102,12 +103,6 @@ extern s32 EftPtcl_IsAlive(void *h);                                  /* is the 
 extern s32 EftPtcl_SetPos(void *h, EftAbVec *pos);
 extern s32 EftPtcl_SetDir(void *h, EftAbVec *dir);
 extern s32 EftPtcl_SetTexture(void *h, EftAbTex *tex, s32 a2, s32 a3);
-
-typedef struct EftAbView {
-    /* 0x000 */ u8 unk0[0x140];
-    /* 0x140 */ Mtx44 viewMtx;
-} EftAbView;
-extern EftAbView *gBtlCamView;
 
 /* Unlinks p from a doubly linked list (the original repeats this inline). */
 #define EFT_ORB_UNLINK(head, tail, p)       \
@@ -259,7 +254,7 @@ void EftOrbTail_Draw(EftAbTask *task) {
     EftOrbTail *w = task->work;
 
     Vu0Cur_Push();
-    Vu0Cur_LoadMtx(&gBtlCamView->viewMtx);
+    Vu0Cur_LoadMtx(&gBtlCamView->world2screen);
     EftOrbTail_DrawStreaks(w);
     Vu0Cur_Pop();
 }

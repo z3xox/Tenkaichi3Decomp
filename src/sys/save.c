@@ -156,8 +156,8 @@ void Save_SetDefaults(SaveData *opt) {
     }
     opt->flags |= SAVE_FLAG_DEFAULT;
     opt->unk1694 = 0;
-    opt->bgmVolume = SAVE_VOLUME_DEFAULT;
-    opt->seVolume = SAVE_VOLUME_DEFAULT;
+    opt->sound[SAVE_SOUND_BGM] = SAVE_VOLUME_DEFAULT;
+    opt->sound[SAVE_SOUND_SE] = SAVE_VOLUME_DEFAULT;
 }
 
 /* Empty; called with the block right after the defaults are written. */

@@ -92,7 +92,7 @@ s32 Progress_Main(s32 arg) {
             gProgress->mode = 6;
         } else if (reason & 0x1000) {
             gProgress->mode = 56;
-            gProgress->unk68C |= 1;
+            gProgress->replay.flags |= 1;
         }
 #ifdef PORT
         {   /* Tenkaichi Budokai Online's sparring fight (Train While Waiting): its "Back to Budokai Online" goes back

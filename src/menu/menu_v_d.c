@@ -111,7 +111,7 @@ void Shop_ResetScissor(void) {
 
 /* Switches to the other guide and points the guide movie's textures at it. */
 void Shop_SwapGuide(void) {
-    MTexRes *res;
+    FlashTexRes *res;
 
     gShop->guide ^= 1;
     res = gShop->guideRes[gShop->guide];
@@ -134,12 +134,12 @@ void Shop_SwapGuide(void) {
 }
 
 #define SHOP_RES(n) \
-    res = (MTexRes *)MPACK_AT(gShop->res, n); \
+    res = (FlashTexRes *)MPACK_AT(gShop->res, n); \
     Res_RelocateOffsets(&res, res, res)
 
 /* Allocates the shop, unpacks its section of archive 7, builds the six movies and the two item lists. */
 void Shop_Init(s32 section) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
     s32 k = 0;
     s32 i;
     s32 flags;
@@ -386,26 +386,26 @@ void Shop_Term(void) {
 
 /* The cost icon of an item: column by slot count, row by class. */
 #define SHOP_COST_UV(item) \
-    uv.x0 = gShop->items[item].slots * 0x20 - 0x20; \
-    uv.y0 = ItemTbl_GetClass(item, gShop->items) * 0x2A; \
-    uv.x1 = uv.x0 + 0x20; \
-    uv.y1 = uv.y0 + 0x2A; \
+    uv.u0 = gShop->items[item].slots * 0x20 - 0x20; \
+    uv.v0 = ItemTbl_GetClass(item, gShop->items) * 0x2A; \
+    uv.u1 = uv.u0 + 0x20; \
+    uv.v1 = uv.v0 + 0x2A; \
     Flash_ClipSetUv(flash, &ref, &uv); \
     Flash_ClipSetFlags(flash, &ref, 2, 1)
 
 /* The kind icon of an item. */
 #define SHOP_KIND_UV(item) \
-    uv.x0 = gShop->items[item].type * 0x40; \
-    uv.y0 = 0; \
-    uv.x1 = uv.x0 + 0x40; \
-    uv.y1 = 0x40
+    uv.u0 = gShop->items[item].type * 0x40; \
+    uv.v0 = 0; \
+    uv.u1 = uv.u0 + 0x40; \
+    uv.v1 = 0x40
 
 /* Draws the backdrop, the six movies with everything that depends on the state, the windows and the details page. */
 void Shop_Draw(void) {
-    MFlashRef ref;
-    MFlashUv uv;
+    FlashRef ref;
+    FlashUv uv;
     char name[64];
-    MFlash *flash;
+    Flash *flash;
     s32 i;
     s32 k;
     s32 count;
@@ -424,10 +424,10 @@ void Shop_Draw(void) {
 
     flash = &gShop->flash[SHOP_FL_MAIN];
     for (i = 0; i < 2; i++) {
-        uv.x0 = 0;
-        uv.y0 = i * 0x20;
-        uv.x1 = 0x200;
-        uv.y1 = uv.y0 + 0x20;
+        uv.u0 = 0;
+        uv.v0 = i * 0x20;
+        uv.u1 = 0x200;
+        uv.v1 = uv.v0 + 0x20;
         sprintf(name, "menu_plate_%d", i + 1);
         Flash_FindLabel(flash, name, "mc_menu_text_off", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
@@ -440,10 +440,10 @@ void Shop_Draw(void) {
     Flash_FindLabel(flash, NULL, "mc_bg_cloud", &ref);
     Flash_ClipSetCallbackA(flash, &ref, Shop_SetWindowScissor, NULL);
     Flash_ClipSetCallbackB(flash, &ref, Shop_ResetScissor, NULL);
-    uv.x0 = 0;
-    uv.y0 = 0;
-    uv.x1 = 0x200;
-    uv.y1 = 0x80;
+    uv.u0 = 0;
+    uv.v0 = 0;
+    uv.u1 = 0x200;
+    uv.v1 = 0x80;
     FlashAnim_Scroll(flash, &ref, &uv, &gShop->cloud, NULL, -0.14222222f, 0.0f);
     Flash_FindLabel(flash, NULL, "mc_ch_uron", &ref);
     Flash_ClipSetCallbackA(flash, &ref, Shop_SetWindowScissor, NULL);
@@ -463,10 +463,10 @@ void Shop_Draw(void) {
         flash = k != 0 ? &gShop->flash[SHOP_FL_ALL] : &gShop->flash[SHOP_FL_BUY];
 
         for (i = 0; i < SHOP_TABS; i++) {
-            uv.x0 = i * 0x40;
-            uv.y0 = 0;
-            uv.x1 = uv.x0 + 0x40;
-            uv.y1 = 0x40;
+            uv.u0 = i * 0x40;
+            uv.v0 = 0;
+            uv.u1 = uv.u0 + 0x40;
+            uv.v1 = 0x40;
             sprintf(name, "mc_tab_btn_%d", i);
             Flash_FindLabel(flash, name, "mc_icon_tab_off", &ref);
             Flash_ClipSetUv(flash, &ref, &uv);
@@ -475,10 +475,10 @@ void Shop_Draw(void) {
             Flash_FindLabel(flash, name, "mc_font_new_tab", &ref);
             Flash_ClipSetFlags(flash, &ref, 2, 0);
         }
-        uv.x0 = 0;
-        uv.y0 = gShop->list[k].tab * 0x20;
-        uv.x1 = 0x100;
-        uv.y1 = uv.y0 + 0x20;
+        uv.u0 = 0;
+        uv.v0 = gShop->list[k].tab * 0x20;
+        uv.u1 = 0x100;
+        uv.v1 = uv.v0 + 0x20;
         Flash_FindLabel(flash, NULL, "mc_tab_text", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
 
@@ -646,10 +646,10 @@ void Shop_Draw(void) {
 
         /* scroll arrows */
         for (i = 0; i < 2; i++) {
-            uv.x0 = i * 0x20;
-            uv.y0 = 0x20;
-            uv.x1 = uv.x0 + 0x20;
-            uv.y1 = 0x40;
+            uv.u0 = i * 0x20;
+            uv.v0 = 0x20;
+            uv.u1 = uv.u0 + 0x20;
+            uv.v1 = 0x40;
             Flash_FindLabel(flash, "mc_menu_yajirusi", i != 0 ? "mc_menu_yajirusi_down" : "mc_menu_yajirusi_up", &ref);
             Flash_ClipSetUv(flash, &ref, &uv);
             if (i == 0) {
@@ -677,10 +677,10 @@ void Shop_Draw(void) {
 
     flash = &gShop->flash[SHOP_FL_CONFIRM];
     for (i = 0; i < 3; i++) {
-        uv.x0 = 0;
-        uv.y0 = i * 0x20;
-        uv.x1 = 0x100;
-        uv.y1 = uv.y0 + 0x20;
+        uv.u0 = 0;
+        uv.v0 = i * 0x20;
+        uv.u1 = 0x100;
+        uv.v1 = uv.v0 + 0x20;
         sprintf(name, "mc_reconfir_plate_%d", i + 1);
         Flash_FindLabel(flash, name, "mc_reconfir_text_on", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
@@ -716,9 +716,9 @@ void Shop_Draw(void) {
  * `tab` set, the tab button) of the buy / collection list, 4 the row of the confirmation window.
  */
 void Shop_SetPlate(s32 flash, s32 level, s32 tab, char *label) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[64];
-    MFlash *fl = &gShop->flash[flash];
+    Flash *fl = &gShop->flash[flash];
 
     switch (level) {
     case SHOP_LV_MENU:

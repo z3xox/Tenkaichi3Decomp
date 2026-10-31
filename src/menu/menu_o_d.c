@@ -11,7 +11,7 @@ extern void Port_MenuFill(int on);
  * (gMisSelFaceTex, 0x3B7368), .rodata 0x3B8400..0x3B8630. Merged from two chunks: the head (0x379F58..0x37AFF8:
  * SetRank, SetupBattle, Init, Term, Draw; written as menu_o_d.c) and the last five functions (0x37AFF8..: Update,
  * UpdateVoice, Input, ClipGoto and the frame loop MisSel_Run at 0x37B640; written as menu_p.c with the MisSelP view
- * of include/menu/menu_p.h). The one view used now is MisSel / UoProgress / UoSave of include/menu/menu_o.h.
+ * of include/menu/menu_p.h). The one view used now is MisSel / UoProgress / SaveData of include/menu/menu_o.h.
  */
 
 MisSel *gMisSel = NULL; /* 0x3B7360 */
@@ -24,23 +24,23 @@ s32 gMisSelFaceTex[MISSEL_ROWS] = { 19, 22, 23, 24, 25 }; /* 0x3B7368..0x3B737C 
 
 /* Shows a mission's rank letter on its row, and enlarged when the row is under the cursor. */
 void MisSel_SetRank(s32 row, s32 rank) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[64];
-    MFlashUv uv;
-    MFlash *flash = &gMisSel->flash[0];
+    FlashUv uv;
+    Flash *flash = &gMisSel->flash[0];
 
-    uv.x0 = rank * 0x20;
-    uv.y0 = 0;
-    uv.x1 = uv.x0 + 0x20;
-    uv.y1 = 0x20;
+    uv.u0 = rank * 0x20;
+    uv.v0 = 0;
+    uv.u1 = uv.u0 + 0x20;
+    uv.v1 = 0x20;
     sprintf(name, "mc_window_plate%02d", row + 1);
     Flash_FindLabel(flash, name, "mc_rankmoji", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     if (row == gMisSel->cursor[0]) {
-        uv.x0 = rank * 0x40;
-        uv.y0 = 0;
-        uv.x1 = uv.x0 + 0x40;
-        uv.y1 = 0x40;
+        uv.u0 = rank * 0x40;
+        uv.v0 = 0;
+        uv.u1 = uv.u0 + 0x40;
+        uv.v1 = 0x40;
         Flash_FindLabel(flash, NULL, "mc_rank", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
     }
@@ -136,12 +136,12 @@ void MisSel_SetupBattle(void) {
 }
 
 #define MS_RES(n) \
-    res = (MTexRes *)MPACK_AT(gMisSel->res, n); \
+    res = (FlashTexRes *)MPACK_AT(gMisSel->res, n); \
     Res_RelocateOffsets(&res, res, res)
 
 /* Loads and unpacks the screen (section `section` of archive 3) and builds its movie. */
 void MisSel_Init(s32 section) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
     s32 i;
 
     gMisSel = Heap_Alloc(sizeof(MisSel), 0x20, 0, 2);
@@ -194,7 +194,7 @@ void MisSel_Init(s32 section) {
     gMisSel->tex[27] = NULL;
     gMisSel->chips = (u32 *)MPACK_AT(gMisSel->res, 15);
     for (i = 0; i < MISSEL_CHIP_NUM; i++) {
-        res = (MTexRes *)MPACK_AT(gMisSel->chips, i + 1);
+        res = (FlashTexRes *)MPACK_AT(gMisSel->chips, i + 1);
         Res_RelocateOffsets(&res, res, res);
     }
     Flash_Create(&gMisSel->flash[0], MPACK_AT(gMisSel->res, 1), gMisSel->tex);
@@ -217,7 +217,7 @@ void MisSel_Init(s32 section) {
     gMisSel->page = UO_PROG->missionPage;
     gMisSel->cursor[0] = UO_PROG->cursor;
     gMisSel->voiceSkip = 0;
-    gMisSel->pageCount = UO_SAVE->missionPages;
+    gMisSel->pageCount = gSaveData->unk20C;
 }
 
 /* Frees the screen. */
@@ -240,13 +240,13 @@ void MisSel_Term(void) {
 
 /* Draws the list page, the details of the mission under the cursor and its opponents' chips. */
 void MisSel_Draw(void) {
-    MFlashRef ref;
-    MFlashUv uv;
+    FlashRef ref;
+    FlashUv uv;
     char name[64];
-    MFlash *flash;
+    Flash *flash;
     s32 i;
     s32 cur;
-    MTexRes *chip;
+    FlashTexRes *chip;
 
 #ifdef PORT
     Port_MenuPage(29); /* widescreen menus: this screen's page, its backdrop filling the width */
@@ -263,10 +263,10 @@ void MisSel_Draw(void) {
     FlashAnim_Talk(flash, &ref, &gMisSel->talk, 0);
     Num_Draw(flash, "mc_pt_suji%02d", 0, 2, gMisSel->pageCount, 0x20, 0x20, 1);
     Num_Draw(flash, "mc_pt_suji%02d", 2, 2, gMisSel->page + 1, 0x20, 0x20, 1);
-    uv.x0 = 0x20;
-    uv.y0 = 0;
-    uv.x1 = 0x40;
-    uv.y1 = 0x20;
+    uv.u0 = 0x20;
+    uv.v0 = 0;
+    uv.u1 = 0x40;
+    uv.v1 = 0x20;
     Flash_FindLabel(flash, NULL, "mc_yajirusi_r", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     if (gMisSel->page == 0) {
@@ -279,7 +279,7 @@ void MisSel_Draw(void) {
     }
     for (i = 0; i < MISSEL_ROWS; i++) {
         s32 n = gMisSel->page * MISSEL_ROWS + i;
-        s32 rank = UO_SAVE->mission[n].rank;
+        s32 rank = gSaveData->mission[n].rank;
 
         sprintf(name, "mc_window_plate%02d", i + 1);
         Num_DrawChild(flash, name, "mc_window_text_off%d", 0, 3, n + 1, 0x20, 0x20, 1, 0);
@@ -296,32 +296,32 @@ void MisSel_Draw(void) {
     }
     for (i = 0; i < MISSEL_ROWS; i++) {
         if (gMisSel->opps[gMisSel->missions[cur].opp[i]].chara == MISSEL_NONE) {
-            chip = (MTexRes *)MPACK_AT(gMisSel->chips, MISSEL_CHIP_NUM);
+            chip = (FlashTexRes *)MPACK_AT(gMisSel->chips, MISSEL_CHIP_NUM);
         } else {
-            chip = (MTexRes *)MPACK_AT(gMisSel->chips, gMisSel->opps[gMisSel->missions[cur].opp[i]].chara + 1);
+            chip = (FlashTexRes *)MPACK_AT(gMisSel->chips, gMisSel->opps[gMisSel->missions[cur].opp[i]].chara + 1);
         }
         gMisSel->tex[gMisSelFaceTex[i]] = chip->tex;
     }
-    uv.x0 = 0;
-    uv.y0 = 0x20;
-    uv.x1 = 0x100;
-    uv.y1 = 0x40;
+    uv.u0 = 0;
+    uv.v0 = 0x20;
+    uv.u1 = 0x100;
+    uv.v1 = 0x40;
     Flash_FindLabel(flash, "mc_mission_plate01", "mc_misson_plate_text", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     {
-        s32 m = UO_SAVE->mission[cur].time1;
-        s32 h = UO_SAVE->mission[cur].time0;
-        s32 sec = UO_SAVE->mission[cur].time2;
+        s32 m = gSaveData->mission[cur].time1;
+        s32 h = gSaveData->mission[cur].time0;
+        s32 sec = gSaveData->mission[cur].time2;
         s32 score;
 
         Num_Draw(flash, "mc_time_suji%02d", 4, 2, h, 0x20, 0x20, 1);
         Num_Draw(flash, "mc_time_suji%02d", 2, 2, m, 0x20, 0x20, 1);
         Num_Draw(flash, "mc_time_suji%02d", 0, 2, sec, 0x20, 0x20, 1);
-        score = UO_SAVE->mission[cur].score * 100;
-        uv.x0 = 0;
-        uv.y0 = 0x20;
-        uv.x1 = 0x100;
-        uv.y1 = 0x40;
+        score = gSaveData->mission[cur].score * 100;
+        uv.u0 = 0;
+        uv.v0 = 0x20;
+        uv.u1 = 0x100;
+        uv.v1 = 0x40;
         Flash_FindLabel(flash, NULL, "mc_time_text02", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
         Num_Draw(flash, "mc_score_suji%02d", 0, 9, score, 0x20, 0x20, 0);
@@ -471,9 +471,9 @@ void MisSel_Input(s32 *result) {
 
 /* Sends the plate under the cursor of `level` to a label. */
 void MisSel_ClipGoto(s32 movie, s32 level, char *label) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[64];
-    MFlash *flash = &gMisSel->flash[movie];
+    Flash *flash = &gMisSel->flash[movie];
 
     sprintf(name, "mc_window_plate%02d", gMisSel->cursor[level] + 1);
     Flash_FindLabel(flash, NULL, name, &ref);

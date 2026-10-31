@@ -1,4 +1,5 @@
 #include "common.h"
+#include "battle/hud_types.h"
 #include "battle/hud_b.h"
 #include "battle/battle.h"
 #include "sys/randf.h"
@@ -16,7 +17,7 @@
  * node update callbacks turn it into sprite rectangles and colours, the draw callbacks draw the sprites.
  * Every animation is skipped while the battle is paused (battle flag 0x100).
  *
- * The structs are this file's views; the sprite / node layouts agree with include/battle/hud_a.h.
+ * Gauge, sprite and node records are owned by battle/hud_types.h. The fighter view below is legacy debt.
  */
 
 #define HUDG_PAUSED() (Battle_GetWork()->flags & 0x100)
@@ -27,76 +28,30 @@
 #define HUDG_BLAST_STOCK 100000
 
 /* One texture entry of a sprite sheet (0x40 bytes). */
-typedef struct HudBTex {
-    /* 0x00 */ u8 unk0[0x28];
-    /* 0x28 */ s32 mark;
-    /* 0x2C */ u8 unk2C[0x14];
-} HudBTex; /* size 0x40 */
 
 /* A sprite sheet. */
-typedef struct HudBRes {
-    /* 0x00 */ u8 unk0[0x10];
-    /* 0x10 */ HudBTex *tex;
-} HudBRes;
 
 /* The side's fighter object as BtlCtrl_GetObj returns it: only what the face drawing reads. */
 typedef struct HudBObj {
     /* 0x000 */ u8 unk0[0x50];
-    /* 0x050 */ HudBRes *faceRes; /* sheet of the face picture; NULL: no face drawn */
+    /* 0x050 */ HudRes *faceRes; /* sheet of the face picture; NULL: no face drawn */
     /* 0x054 */ u8 unk54[0xA40 - 0x54];
     /* 0xA40 */ u32 unkA40;       /* bit 0x40000: the face is tinted (0x80, 0x50, 0x70) */
 } HudBObj;
 
 /* Gauge work (gHudGauge, 0x288 bytes). */
-typedef struct HudBWork {
-    /* 0x000 */ void *res;             /* sprite sheet 0 of the HUD file */
-    /* 0x004 */ HudBSprite *spr;       /* 76 */
-    /* 0x008 */ HudBGroup *grp;        /* 12 nodes, [0] is the root */
-    /* 0x00C */ HudBShake shake[2][3]; /* by side: the panel, the health node, the ki node */
-    /* 0x024 */ s32 side;              /* side being updated / drawn */
-    /* 0x028 */ s32 hpShown[2];        /* trailing (damage) health */
-    /* 0x030 */ s32 hp[2];             /* health now (HudGauge_SetHp) */
-    /* 0x038 */ s32 auraAlpha[2];      /* 0..0x80, +-0x10 a frame: the powered-up sparks and the blue flash */
-    /* 0x040 */ Ramp lowHpPulse[2];    /* 0 <-> 1 every 0.5 s while health <= one bar: the red flash */
-    /* 0x070 */ s32 blast[2];
-    /* 0x078 */ s32 ki[2];
-    /* 0x080 */ s32 kiShown[2];        /* trailing ki */
-    /* 0x088 */ Ramp kiBarFlash[2];    /* 1 -> 0 in 1 s when a ki bar is gained */
-    /* 0x0B8 */ Ramp kiFullPulse[2];   /* 0 <-> 1 every 1 s; shown at full ki and by the powered-up lamps */
-    /* 0x0E8 */ s32 maxPower[2];
-    /* 0x0F0 */ Ramp blastFlash[2];
-    /* 0x120 */ u32 statMask[2];       /* status icons shown, bits 0..3 */
-    /* 0x128 */ u32 statPos[2];        /* icons drawn bright (positive modifier); the others are dark */
-    /* 0x130 */ s32 kiReserve[2];
-    /* 0x138 */ u32 statPrev[2];       /* statMask before the last change */
-    /* 0x140 */ s32 statTo[2][4];      /* x of each icon: 24 per shown icon before it */
-    /* 0x160 */ s32 statFrom[2][4];    /* x before the last change */
-    /* 0x180 */ Ramp statRamp[2];
-    /* 0x1B0 */ s32 statState[2];      /* 0..5 the change animation, anything else: at rest */
-    /* 0x1B8 */ Ramp hpBarFade[2];     /* 1 -> 0 in 0.2 s when the trailing health uses up a bar */
-    /* 0x1E8 */ HudBRes *faceRes[2];
-    /* 0x1F0 */ HudBObj *obj[2];
-    /* 0x1F8 */ s32 switching[2];
-    /* 0x200 */ Ramp slide[2];         /* 0 on screen .. 1 away, one side's panel */
-    /* 0x230 */ Ramp slideAll;         /* the same for the whole part */
-    /* 0x248 */ s32 hpDrain[2];        /* speed of the trailing health, per frame */
-    /* 0x250 */ s32 kiDrain[2];
-    /* 0x258 */ Ramp kiReservePulse[2];
-} HudBWork; /* size 0x288 */
-
-extern HudBWork *gHudGauge;
 
 #define HUDB_MAX(a, b) ((a) < (b) ? (b) : (a))
 
 /* Sprite / node library at 0x224B50.. (not decompiled yet). */
-extern void HudSprite_Show(HudBSprite *spr, s32 show);
-extern void HudSprite_SetColor(HudBSprite *spr, s32 r, s32 g, s32 b, s32 a);
-extern void HudNode_SetPos(HudBGroup *node, s32 x, s32 y);        /* node position */
-extern void HudSprite_SetRect(HudBSprite *spr, s32 x0, s32 x1, s32 y0, s32 y1); /* screen rectangle */
-extern void HudSprite_SetUv(HudBSprite *spr, s32 u0, s32 u1, s32 v0, s32 v1); /* texel rectangle */
-extern void HudSprite_InitPlain(HudBSprite *spr, s32 r, s32 g, s32 b, s32 a);     /* untextured, coloured */
-extern void HudSprite_Move(HudBSprite *spr, s32 dx, s32 dy);                 /* moves the rectangle */
-extern void HudNode_Show(HudBGroup *node, s32 show);
+extern void HudSprite_Show(HudSprite *spr, s32 show);
+extern void HudSprite_SetColor(HudSprite *spr, s32 r, s32 g, s32 b, s32 a);
+extern void HudNode_SetPos(HudNode *node, s32 x, s32 y);        /* node position */
+extern void HudSprite_SetRect(HudSprite *spr, s32 x0, s32 x1, s32 y0, s32 y1); /* screen rectangle */
+extern void HudSprite_SetUv(HudSprite *spr, s32 u0, s32 u1, s32 v0, s32 v1); /* texel rectangle */
+extern void HudSprite_InitPlain(HudSprite *spr, s32 r, s32 g, s32 b, s32 a);     /* untextured, coloured */
+extern void HudSprite_Move(HudSprite *spr, s32 dx, s32 dy);                 /* moves the rectangle */
+extern void HudNode_Show(HudNode *node, s32 show);
 extern void *memcpy(void *dst, const void *src, u32 n);
 extern void *memset(void *dst, s32 c, u32 n);
 extern f32 powf(f32 x, f32 y);
@@ -111,11 +66,11 @@ extern int Port_HudSwap(void);
 #else
 #define HUD_SCR(side) (side)
 #endif
-extern void HudSprite_SetMirror(HudBSprite *spr, s32 mirror);
-extern void HudSprite_InitTex(HudBSprite *spr, void *res, s32 tex, s32 sub);    /* sprite of a sheet's texture */
-extern void HudSprite_DrawAlphaClear(HudBSprite *spr);
-extern void HudSprite_DrawAt(HudBSprite *spr, void *res, s32 a, s32 b, s32 c);
-extern void HudSprite_Draw(HudBSprite *spr, void *res, s32 flag);            /* draw */
+extern void HudSprite_SetMirror(HudSprite *spr, s32 mirror);
+extern void HudSprite_InitTex(HudSprite *spr, void *res, s32 tex, s32 sub);    /* sprite of a sheet's texture */
+extern void HudSprite_DrawAlphaClear(HudSprite *spr);
+extern void HudSprite_DrawAt(HudSprite *spr, void *res, s32 a, s32 b, s32 c);
+extern void HudSprite_Draw(HudSprite *spr, void *res, s32 flag);            /* draw */
 extern void HudGauge_GsBeginMask(void);
 extern void HudGauge_GsEndMask(void);
 extern void HudGauge_GsBeginMask2(void);
@@ -137,7 +92,7 @@ void HudGauge_UpdateHpBarCount(void) {
         bars--;
     }
     for (i = 0; i < 6; i++) {
-        HudBSprite *spr = &gHudGauge->spr[9 + i];
+        HudSprite *spr = &gHudGauge->sprites[9 + i];
         HudSprite_SetColor(spr, 0x80, 0x80, 0x80, 0x80);
         if (i < bars) {
             HudSprite_Show(spr, 1);
@@ -156,7 +111,7 @@ void HudGauge_UpdateHpBarCount(void) {
 
 /* Update of node 0 (root): steps the whole-part slide once a frame (on the side 0 pass) and moves the node up to
  * (-256, -224) away. */
-void HudGauge_UpdateRoot(HudBGroup *node) {
+void HudGauge_UpdateRoot(HudNode *node) {
     if (!HUDG_PAUSED() && gHudGauge->side == 0) {
         Ramp_Step(&gHudGauge->slideAll);
     }
@@ -164,7 +119,7 @@ void HudGauge_UpdateRoot(HudBGroup *node) {
 }
 
 /* Update of node 1 (the side's panel): steps the side's slide and moves the node; at rest it sits at (-2, 8). */
-void HudGauge_UpdatePanel(HudBGroup *node) {
+void HudGauge_UpdatePanel(HudNode *node) {
     Ramp *ramp = &gHudGauge->slide[gHudGauge->side];
 
     if (!HUDG_PAUSED()) {
@@ -181,18 +136,18 @@ void HudGauge_UpdateHpTrail(void) {
     s32 i;
 
     for (i = 0; i < 3; i++) {
-        HudBShake *sh = &gHudGauge->shake[side][i];
-        HudBGroup *grp;
+        HudShake *sh = &gHudGauge->shake[side][i];
+        HudNode *grp;
 
         switch (i) {
         case 0:
-            grp = &gHudGauge->grp[1];
+            grp = &gHudGauge->nodes[1];
             break;
         case 1:
-            grp = &gHudGauge->grp[3];
+            grp = &gHudGauge->nodes[3];
             break;
         case 2:
-            grp = &gHudGauge->grp[4];
+            grp = &gHudGauge->nodes[4];
             break;
         default:
             continue;
@@ -211,12 +166,12 @@ void HudGauge_UpdateHpTrail(void) {
     }
     if (!HUDG_PAUSED()) {
         Ramp_Step(&gHudGauge->hpBarFade[side]);
-        if (gHudGauge->hp[side] < gHudGauge->hpShown[side]) {
-            if (gHudGauge->hp[side] < gHudGauge->hpShown[side] - 20000) {
+        if (gHudGauge->cur.hp[side] < gHudGauge->hpShown[side]) {
+            if (gHudGauge->cur.hp[side] < gHudGauge->hpShown[side] - 20000) {
                 gHudGauge->hpDrain[side] = HUDB_MAX(gHudGauge->hpDrain[side], 200);
-            } else if (gHudGauge->hp[side] < gHudGauge->hpShown[side] - 10000) {
+            } else if (gHudGauge->cur.hp[side] < gHudGauge->hpShown[side] - 10000) {
                 gHudGauge->hpDrain[side] = HUDB_MAX(gHudGauge->hpDrain[side], 150);
-            } else if (gHudGauge->hp[side] < gHudGauge->hpShown[side] - 5000) {
+            } else if (gHudGauge->cur.hp[side] < gHudGauge->hpShown[side] - 5000) {
                 gHudGauge->hpDrain[side] = HUDB_MAX(gHudGauge->hpDrain[side], 120);
             }
             if (gHudGauge->hpShown[side] > 10000 && gHudGauge->hpShown[side] % 10000 > 0 &&
@@ -224,47 +179,17 @@ void HudGauge_UpdateHpTrail(void) {
                 Ramp_Start(&gHudGauge->hpBarFade[side], 0.2f, 1.0f, 0.0f);
             }
             gHudGauge->hpShown[side] -= gHudGauge->hpDrain[side];
-            if (gHudGauge->hpShown[side] < gHudGauge->hp[side]) {
-                gHudGauge->hpShown[side] = gHudGauge->hp[side];
+            if (gHudGauge->hpShown[side] < gHudGauge->cur.hp[side]) {
+                gHudGauge->hpShown[side] = gHudGauge->cur.hp[side];
             }
         } else {
-            gHudGauge->hpShown[side] = gHudGauge->hp[side];
+            gHudGauge->hpShown[side] = gHudGauge->cur.hp[side];
             gHudGauge->hpDrain[side] = 100;
         }
     }
 }
 
-/* Update of node 10 (aura). While the fighter is powered up (BtlSide_IsPoweredUp and alive) auraAlpha rises to
- * 0x80, else falls to 0. Ten sparks (sprites 53..62, a 5 x 2 grid 46 x 20 apart) each take a new random frame of
- * the 10-frame table every frame (never the same twice running: redrawn until it differs) and jitter by +-5.
- * Sprite 62 is then re-made into a blue flash of alpha auraAlpha / 128 * 44, sprite 63 into a red one that pulses
- * while health is at most one bar.
- * Random draws (Rand_IntRange, libc rand): per spark 1 or more for the frame, then 2 for the jitter; none while
- * paused. While paused the frame index is the spark's own number.
- *
- * Not matching (behaviour is the same). With the do-while below every register is the original's, but the
- * compiler rotates the loop: the third and fourth compare are placed in front of the Rand_IntRange call and the
- * loop is entered by a jump (351 instructions against 349). Written as `retry: n = Rand_IntRange(0, 9);
- * if (same) goto retry;` the order is the original's, but n * 8 is kept in $a2 (i * 8 in $s1, the sprite in
- * $s0) where the original has one register $s0 for both offsets and the sprite in $s1; `for (;;)` with one
- * compound `if (differs) break;` gives that too. No form tried gave both.
- * Cleanup 4 (RTL dumps; 50 more loop forms, all in one of the two families above: 19 or 41 to 45 differing):
- * - The rotation is made when the loop is expanded (expand_end_loop "roll a loop exit at the top to the end"):
- *   it scans from the loop top for conditional jumps to the loop's exit label and stops 30 RTL instructions
- *   after the top once it has one. The `&&` chain's first two tests (13 instructions each) are inside that
- *   window, so everything behind the second test is moved in front of the loop. `break` statements count as
- *   exits too (`if (a) break; if (b) break; ...` rotates the same way); one compound `if (a || b || c || d)
- *   break;`, `continue` forms, a ternary chain, a flag variable or `goto retry` do not rotate.
- * - In every unrotated form the registers go wrong for ONE reason: gcse (PRE) makes `n * 8` behind the `if`
- *   partially redundant and puts `n8 = i8` on the edge "paused -> join". In the rotated form the if-conversion
- *   pass (15.ce) moves that copy in front of the paused test, so i8 lives in one block, local-alloc gives it
- *   s0 and n8 follows by preference (the original's registers). Unrotated, the copy stays in its own block
- *   behind the loop, i8 becomes a global pseudo crossing the call, n8 (no call crossed) takes a2 first, the
- *   sprite gets s0 and i8 s1. So the original needs: no qualified exit in the first 30 instructions AND the
- *   copy hoisted (or `i * 8` and `n * 8` one pseudo from the start). Not found: `spr[53 + n]` after `n = i`,
- *   `n = i` in front of / behind `spr`, a `same` flag, nested do-while (0). */
-void HudGauge_UpdateAura(void);
-#if 0
+
 void HudGauge_UpdateAura(void) {
     s32 ofs[2];
     s16 tbl[10][4] = {
@@ -274,7 +199,7 @@ void HudGauge_UpdateAura(void) {
     };
     s32 n;
     s32 i;
-    HudBSprite *spr;
+    HudSprite *spr;
     Ramp *ramp;
 
     if (BtlSide_IsPoweredUp(gHudGauge->side) && !BtlCtrl_IsActiveDead(gHudGauge->side)) {
@@ -289,18 +214,22 @@ void HudGauge_UpdateAura(void) {
         }
     }
     for (i = 0; i < 10; i++) {
-        spr = &gHudGauge->spr[53 + i];
-        n = i;
-        if (!HUDG_PAUSED()) {
-            do {
+        spr = &gHudGauge->sprites[53 + i];
+        if (HUDG_PAUSED()) {
+            n = i;
+        } else {
+            for (;;) {
                 n = Rand_IntRange(0, 9);
-            } while (tbl[n][0] == spr->uv[0] && tbl[n][1] == spr->uv[1] && tbl[n][2] == spr->uv[2] &&
-                     tbl[n][3] == spr->uv[3]);
+                if (tbl[n][0] != spr->uv.x0 || tbl[n][1] != spr->uv.x1 || tbl[n][2] != spr->uv.y0 ||
+                    tbl[n][3] != spr->uv.y1) {
+                    break;
+                }
+            }
         }
-        spr->uv[0] = tbl[n][0];
-        spr->uv[1] = tbl[n][1];
-        spr->uv[2] = tbl[n][2];
-        spr->uv[3] = tbl[n][3];
+        spr->uv.x0 = tbl[n][0];
+        spr->uv.x1 = tbl[n][1];
+        spr->uv.y0 = tbl[n][2];
+        spr->uv.y1 = tbl[n][3];
         if (HUDG_PAUSED()) {
             ofs[0] = 0;
             ofs[1] = -8;
@@ -312,11 +241,11 @@ void HudGauge_UpdateAura(void) {
         HudSprite_Move(spr, (i % 5) * 46 + ofs[0], (i / 5) * 20 + ofs[1]);
         HudSprite_SetColor(spr, 0x80, 0x80, 0x80, (u8)gHudGauge->auraAlpha[gHudGauge->side]);
     }
-    spr = &gHudGauge->spr[62];
+    spr = &gHudGauge->sprites[62];
     HudSprite_InitPlain(spr, 0, 0, 0xFF, (u8)((f32)gHudGauge->auraAlpha[gHudGauge->side] * 0.0078125f * 44.0f));
     HudSprite_SetRect(spr, 0, 0x180, 0, 0x6C);
     ramp = &gHudGauge->lowHpPulse[gHudGauge->side];
-    if (gHudGauge->hp[gHudGauge->side] <= 10000 && !BtlCtrl_IsActiveDead(gHudGauge->side)) {
+    if (gHudGauge->cur.hp[gHudGauge->side] <= 10000 && !BtlCtrl_IsActiveDead(gHudGauge->side)) {
         if (!HUDG_PAUSED() && Ramp_Step(ramp)) {
             if (ramp->value == 0.0f) {
                 Ramp_Start(ramp, 0.5f, 0.0f, 1.0f);
@@ -329,13 +258,10 @@ void HudGauge_UpdateAura(void) {
             Ramp_Start(ramp, 0.5f, 1.0f, 0.0f);
         }
     }
-    spr = &gHudGauge->spr[63];
+    spr = &gHudGauge->sprites[63];
     HudSprite_InitPlain(spr, 0xFF, 0, 0, (u8)(ramp->value * 44.0f));
     HudSprite_SetRect(spr, 0, 0x180, 0, 0x6C);
 }
-#endif
-INCLUDE_RODATA("asm/nonmatchings/battle/hud_b", D_002F1B90);
-INCLUDE_ASM("asm/nonmatchings/battle/hud_b", HudGauge_UpdateAura);
 
 /* Update of node 4 (ki): trailing ki (400 a frame, at least 606 / 800 for a gap over 20000 / 40000), then three
  * layers of five bars: the trailing ki (sprites 20..24), the ki (25..29) and the reserve (15..19, pulsing red).
@@ -347,7 +273,7 @@ void HudGauge_UpdateKi(void) {
     s32 i;
     s32 lo;
     s32 n;
-    HudBSprite *spr;
+    HudSprite *spr;
 
     if (ki < shown - 40000) {
         gHudGauge->kiDrain[gHudGauge->side] = HUDB_MAX(gHudGauge->kiDrain[gHudGauge->side], 800);
@@ -365,7 +291,7 @@ void HudGauge_UpdateKi(void) {
     }
     shown = gHudGauge->kiShown[gHudGauge->side];
     for (i = 0; i < 5; i++) {
-        spr = &gHudGauge->spr[20 + i];
+        spr = &gHudGauge->sprites[20 + i];
         if (shown >= i * 20000 + 20000) {
             HudSprite_Show(spr, 1);
             HudSprite_SetRect(spr, 0, 0xE, 0, 0x11);
@@ -381,7 +307,7 @@ void HudGauge_UpdateKi(void) {
         HudSprite_Move(spr, i * 8, 0);
     }
     for (i = 0; i < 5; i++) {
-        spr = &gHudGauge->spr[25 + i];
+        spr = &gHudGauge->sprites[25 + i];
         if (ki >= i * 20000 + 20000) {
             HudSprite_Show(spr, 1);
             HudSprite_SetRect(spr, 0, 0xE, 0, 0x11);
@@ -406,7 +332,7 @@ void HudGauge_UpdateKi(void) {
     }
     n = extra / 20000;
     for (i = 0; i < 5; i++) {
-        spr = &gHudGauge->spr[15 + i];
+        spr = &gHudGauge->sprites[15 + i];
         HudSprite_SetColor(spr, (u8)(gHudGauge->kiReservePulse[gHudGauge->side].value * 192.0f), 0, 0, 0x40);
         if (extra >= i * 20000 + 20000) {
             HudSprite_Show(spr, 1);
@@ -431,10 +357,10 @@ void HudGauge_UpdateMaxPower(void) {
     s32 v = p[gHudGauge->side];
     s32 i;
     s32 n;
-    HudBSprite *spr;
+    HudSprite *spr;
 
     for (i = 0; i < 5; i++) {
-        spr = &gHudGauge->spr[30 + i];
+        spr = &gHudGauge->sprites[30 + i];
         if (v >= i * 6000 + 6000) {
             HudSprite_Show(spr, 1);
             HudSprite_SetRect(spr, 0, 0xE, 0, 0x11);
@@ -461,7 +387,7 @@ void HudGauge_UpdateKiLamps(void) {
     s32 i;
     s32 r;
     u8 alpha;
-    HudBSprite *spr;
+    HudSprite *spr;
 
     if (!HUDG_PAUSED()) {
         r = Ramp_Step(a);
@@ -484,7 +410,7 @@ void HudGauge_UpdateKiLamps(void) {
         if (ki > 99999) {
             alpha = b->value * 128.0f;
             for (i = 0; i < 5; i++) {
-                spr = &gHudGauge->spr[65 + i];
+                spr = &gHudGauge->sprites[65 + i];
                 HudSprite_Show(spr, 1);
                 HudSprite_SetColor(spr, 0x80, 0x80, 0x80, alpha);
             }
@@ -493,7 +419,7 @@ void HudGauge_UpdateKiLamps(void) {
     }
     alpha = a->value * 128.0f;
     for (i = 0; i < 5; i++) {
-        spr = &gHudGauge->spr[65 + i];
+        spr = &gHudGauge->sprites[65 + i];
         if (bars == i + 1) {
             HudSprite_Show(spr, 1);
             HudSprite_SetColor(spr, 0x80, 0x80, 0x80, alpha);
@@ -505,23 +431,23 @@ void HudGauge_UpdateKiLamps(void) {
 
 /* Update of node 7: one lamp (sprites 70..74) per full bar of the powered-up timer, at 0.8 * kiFullPulse; a lit
  * lamp hides the ki lamp under it. */
-void HudGauge_UpdateMaxPowerLamps(HudBGroup *node) {
+void HudGauge_UpdateMaxPowerLamps(HudNode *node) {
     s32 v = gHudGauge->maxPower[gHudGauge->side];
     Ramp *b = &gHudGauge->kiFullPulse[gHudGauge->side];
     s32 bars;
     s32 i;
     u8 alpha;
-    HudBSprite *spr;
+    HudSprite *spr;
 
     HudNode_Show(node, 1);
     bars = v / 6000;
     alpha = b->value * 0.8f * 128.0f;
     for (i = 0; i < 5; i++) {
-        spr = &gHudGauge->spr[70 + i];
+        spr = &gHudGauge->sprites[70 + i];
         if (bars >= i + 1) {
             HudSprite_Show(spr, 1);
             HudSprite_SetColor(spr, 0x80, 0x80, 0x80, alpha);
-            HudSprite_Show(&gHudGauge->spr[65 + i], 0);
+            HudSprite_Show(&gHudGauge->sprites[65 + i], 0);
         } else {
             HudSprite_Show(spr, 0);
         }
@@ -539,12 +465,12 @@ void HudGauge_UpdateBlast(void) {
         { 0x00, 0x20, 0x20, 0x40 }, { 0x20, 0x40, 0x20, 0x40 }, { 0x40, 0x60, 0x20, 0x40 }, { 0x60, 0x80, 0x20, 0x40 },
     };
     s32 max = BtlSide_GetBlastMax(gHudGauge->side);
-    HudBSprite *spr;
+    HudSprite *spr;
     u32 n;
     s32 r;
 
     n = blast / 100000;
-    spr = &gHudGauge->spr[35];
+    spr = &gHudGauge->sprites[35];
     if (n >= 8) {
         n = 7;
     }
@@ -567,7 +493,7 @@ void HudGauge_UpdateBlast(void) {
             Ramp_Start(ramp, 1.0f, 1.0f, 0.0f);
         }
     }
-    spr = &gHudGauge->spr[75];
+    spr = &gHudGauge->sprites[75];
     HudSprite_SetRect(spr, -0x20, 0, 0, 0x20);
     HudSprite_SetUv(spr, tbl[n][0], tbl[n][1], tbl[n][2], tbl[n][3]);
     HudSprite_Move(spr, 10, -16);
@@ -579,19 +505,19 @@ void HudGauge_UpdateBlast(void) {
     HudSprite_SetColor(spr, 0x80, 0x80, 0x80, (u8)(ramp->value * 128.0f));
     n = blast % 100000;
     n = n * 25 / 100000;
-    spr = &gHudGauge->spr[37];
+    spr = &gHudGauge->sprites[37];
     HudSprite_SetRect(spr, n, n + 0x1A, 0, 6);
     HudSprite_Move(spr, 5, 3);
     if (blast >= max) {
-        HudSprite_Show(&gHudGauge->spr[36], 0);
-        HudSprite_Show(&gHudGauge->spr[38], 0);
-        HudSprite_Show(&gHudGauge->spr[37], 0);
+        HudSprite_Show(&gHudGauge->sprites[36], 0);
+        HudSprite_Show(&gHudGauge->sprites[38], 0);
+        HudSprite_Show(&gHudGauge->sprites[37], 0);
     } else {
-        HudSprite_Show(&gHudGauge->spr[36], 1);
-        HudSprite_Show(&gHudGauge->spr[38], 1);
-        HudSprite_Show(&gHudGauge->spr[37], 1);
+        HudSprite_Show(&gHudGauge->sprites[36], 1);
+        HudSprite_Show(&gHudGauge->sprites[38], 1);
+        HudSprite_Show(&gHudGauge->sprites[37], 1);
     }
-    spr = &gHudGauge->spr[48];
+    spr = &gHudGauge->sprites[48];
     if (blast >= max) {
         HudSprite_Show(spr, 0);
     } else {
@@ -611,9 +537,9 @@ void HudGauge_UpdateStatIcons(void) {
     s32 *state = &gHudGauge->statState[side];
     s32 *to = gHudGauge->statTo[side];
     Ramp *ramp = &gHudGauge->statRamp[side];
-    HudBSprite *icon = &gHudGauge->spr[43];
-    HudBSprite *frames = &gHudGauge->spr[39];
-    HudBSprite *shades = &gHudGauge->spr[49];
+    HudSprite *icon = &gHudGauge->sprites[43];
+    HudSprite *frames = &gHudGauge->sprites[39];
+    HudSprite *shades = &gHudGauge->sprites[49];
     u8 col[2][4] = { { 0x80, 0x80, 0x80, 0x80 }, { 0x40, 0x40, 0x40, 0x80 } };
     s32 *from = gHudGauge->statFrom[side];
     u32 removed = (mask ^ prev) & prev;
@@ -818,9 +744,9 @@ static s32 HudGauge_WideHpExtra(void) {
 }
 
 /* Extends the life-bar frame and its flash mask through a plain strip; the portrait and lower gauges stay put. */
-static void HudGauge_DrawWideFrame(HudBSprite *spr, s32 clear) {
+static void HudGauge_DrawWideFrame(HudSprite *spr, s32 clear) {
     s32 extra = HudGauge_WideHpExtra();
-    HudBSprite piece;
+    HudSprite piece;
     s32 i;
 
     if (!extra) {
@@ -832,19 +758,19 @@ static void HudGauge_DrawWideFrame(HudBSprite *spr, s32 clear) {
     for (i = 0; i < 4; i++) {
         piece = *spr;
         if (i == 3) {
-            piece.pos[2] = piece.uv[2] = 27;
+            piece.pos.y0 = piece.uv.y0 = 27;
         } else {
-            piece.pos[3] = piece.uv[3] = 27;
+            piece.pos.y1 = piece.uv.y1 = 27;
             if (i == 0) {
-                piece.pos[1] = piece.uv[1] = 210;
+                piece.pos.x1 = piece.uv.x1 = 210;
             } else if (i == 1) {
-                piece.pos[0] = piece.uv[0] = 210;
-                piece.uv[1] = 220;
-                piece.pos[1] = 220 + extra;
+                piece.pos.x0 = piece.uv.x0 = 210;
+                piece.uv.x1 = 220;
+                piece.pos.x1 = 220 + extra;
             } else {
-                piece.uv[0] = 220;
-                piece.pos[0] = 220 + extra;
-                piece.pos[1] += extra;
+                piece.uv.x0 = 220;
+                piece.pos.x0 = 220 + extra;
+                piece.pos.x1 += extra;
             }
         }
         if (clear) { HudSprite_DrawAlphaClear(&piece); }
@@ -858,11 +784,11 @@ static void HudGauge_DrawWideFrame(HudBSprite *spr, s32 clear) {
 /* Extends the bar's straight middle, keeping the step and angled tip. The moving mask follows the health
  * fraction over the new width. */
 static void HudGauge_DrawHpSprite(s32 index, s32 flag, s32 clear) {
-    HudBSprite *spr = &gHudGauge->spr[index];
+    HudSprite *spr = &gHudGauge->sprites[index];
     s32 extra = HudGauge_WideHpExtra();
     s32 cuts[4] = {0, 64, 144, 160};
-    s32 i, origin = spr->pos[0] * (160 + extra) / 160;
-    HudBSprite piece;
+    s32 i, origin = spr->pos.x0 * (160 + extra) / 160;
+    HudSprite piece;
 
     if (!extra) {
         if (clear) { HudSprite_DrawAlphaClear(spr); }
@@ -871,10 +797,10 @@ static void HudGauge_DrawHpSprite(s32 index, s32 flag, s32 clear) {
     }
     for (i = 0; i < 3; i++) {
         piece = *spr;
-        piece.pos[0] = origin + cuts[i] + (i == 2 ? extra : 0);
-        piece.pos[1] = origin + cuts[i + 1] + (i >= 1 ? extra : 0);
-        piece.uv[0] = cuts[i];
-        piece.uv[1] = cuts[i + 1];
+        piece.pos.x0 = origin + cuts[i] + (i == 2 ? extra : 0);
+        piece.pos.x1 = origin + cuts[i + 1] + (i >= 1 ? extra : 0);
+        piece.uv.x0 = cuts[i];
+        piece.uv.x1 = cuts[i + 1];
         if (clear) { HudSprite_DrawAlphaClear(&piece); }
         else { HudSprite_Draw(&piece, gHudGauge->res, flag); }
     }
@@ -882,13 +808,13 @@ static void HudGauge_DrawHpSprite(s32 index, s32 flag, s32 clear) {
 #define HUDG_HP_DRAW(i, flag) HudGauge_DrawHpSprite(i, flag, 0)
 #define HUDG_HP_CLEAR() HudGauge_DrawHpSprite(8, 0, 1)
 #else
-#define HUDG_HP_DRAW(i, flag) HudSprite_Draw(&gHudGauge->spr[i], gHudGauge->res, flag)
-#define HUDG_HP_CLEAR() HudSprite_DrawAlphaClear(&gHudGauge->spr[8])
+#define HUDG_HP_DRAW(i, flag) HudSprite_Draw(&gHudGauge->sprites[i], gHudGauge->res, flag)
+#define HUDG_HP_CLEAR() HudSprite_DrawAlphaClear(&gHudGauge->sprites[8])
 #endif
 
 /* Draw of node 3: the health bar is drawn three times (sprites 1..3, 4..6, 7..8), each through the alpha mask of
  * sprite 8; HudGauge_UpdateHp (hud_a_d.c) sets the rectangles first. */
-void HudGauge_DrawHp(void) {
+void HudGauge_DrawHp(HudNode *node) {
 #ifdef PORT
     HudGauge_HpAnchor(1);
 #endif
@@ -918,8 +844,8 @@ void HudGauge_DrawHp(void) {
 #undef HUDG_HP_CLEAR
 
 /* Draw of node 10: sprite 47 as mask, the panel pieces, the red flash and the node's ten sparks. */
-void HudGauge_DrawAura(HudBGroup *node) {
-    HudBSprite *spr = &gHudGauge->spr[47];
+void HudGauge_DrawAura(HudNode *node) {
+    HudSprite *spr = &gHudGauge->sprites[47];
     u32 i;
 
 #ifdef PORT
@@ -933,42 +859,42 @@ void HudGauge_DrawAura(HudBGroup *node) {
 #else
     HudSprite_Draw(spr, gHudGauge->res, 0);
 #endif
-    HudSprite_Draw(&gHudGauge->spr[48], gHudGauge->res, 0);
-    HudSprite_Draw(&gHudGauge->spr[49], gHudGauge->res, 0);
-    HudSprite_Draw(&gHudGauge->spr[50], gHudGauge->res, 0);
-    HudSprite_Draw(&gHudGauge->spr[51], gHudGauge->res, 0);
-    HudSprite_Draw(&gHudGauge->spr[52], gHudGauge->res, 0);
-    HudSprite_Draw(&gHudGauge->spr[63], gHudGauge->res, 1);
-    for (i = 0; i < node->sprCount; i++) {
-        HudSprite_Draw(node->sprList[i], gHudGauge->res, 1);
+    HudSprite_Draw(&gHudGauge->sprites[48], gHudGauge->res, 0);
+    HudSprite_Draw(&gHudGauge->sprites[49], gHudGauge->res, 0);
+    HudSprite_Draw(&gHudGauge->sprites[50], gHudGauge->res, 0);
+    HudSprite_Draw(&gHudGauge->sprites[51], gHudGauge->res, 0);
+    HudSprite_Draw(&gHudGauge->sprites[52], gHudGauge->res, 0);
+    HudSprite_Draw(&gHudGauge->sprites[63], gHudGauge->res, 1);
+    for (i = 0; i < node->spriteCount; i++) {
+        HudSprite_Draw(node->sprites[i], gHudGauge->res, 1);
     }
     HudGfx_CallEnd(HudGauge_GsEndMask2);
 #ifdef PORT
     HudGauge_DrawWideFrame(spr, 1);
 #else
-    HudSprite_DrawAlphaClear(&gHudGauge->spr[47]);
+    HudSprite_DrawAlphaClear(&gHudGauge->sprites[47]);
 #endif
 }
 
 /* Draw of node 2: the bars-in-reserve markers. */
-void HudGauge_DrawHpBarCount(HudBGroup *node) {
+void HudGauge_DrawHpBarCount(HudNode *node) {
     u32 i;
 
     HudGauge_UpdateHpBarCount();
-    for (i = 0; i < node->sprCount; i++) {
-        HudSprite_Draw(node->sprList[i], gHudGauge->res, 0);
+    for (i = 0; i < node->spriteCount; i++) {
+        HudSprite_Draw(node->sprites[i], gHudGauge->res, 0);
     }
 }
 
 /* Draw of node 8: the fill bar through the mask of sprite 38, then the digit and its flash. */
-void HudGauge_DrawBlast(void) {
-    HudSprite_DrawAlphaClear(&gHudGauge->spr[38]);
+void HudGauge_DrawBlast(HudNode *node) {
+    HudSprite_DrawAlphaClear(&gHudGauge->sprites[38]);
     HudGfx_CallBegin(HudGauge_GsBeginMask);
-    HudSprite_Draw(&gHudGauge->spr[37], gHudGauge->res, 1);
-    HudSprite_Draw(&gHudGauge->spr[38], gHudGauge->res, 0);
+    HudSprite_Draw(&gHudGauge->sprites[37], gHudGauge->res, 1);
+    HudSprite_Draw(&gHudGauge->sprites[38], gHudGauge->res, 0);
     HudGfx_CallEnd(HudGauge_GsEndMask);
-    HudSprite_Draw(&gHudGauge->spr[35], gHudGauge->res, 0);
-    HudSprite_Draw(&gHudGauge->spr[75], gHudGauge->res, 0);
+    HudSprite_Draw(&gHudGauge->sprites[35], gHudGauge->res, 0);
+    HudSprite_Draw(&gHudGauge->sprites[75], gHudGauge->res, 0);
 }
 
 /* Clears the mark of texture i of side i's face sheet. */
@@ -977,7 +903,7 @@ void HudGauge_ClearFaceTexMark(void) {
 
     for (i = 0; i < 2; i++) {
         if (gHudGauge->faceRes[i] != NULL) {
-            HudBTex *tex = gHudGauge->faceRes[i]->tex;
+            HudTex *tex = gHudGauge->faceRes[i]->tex;
 
             tex += HUD_SCR(i);
             tex->mark = 0;
@@ -986,15 +912,15 @@ void HudGauge_ClearFaceTexMark(void) {
 }
 
 /* Draw of node 11: the fighter's face. The sheet is taken from the fighter object every frame. */
-void HudGauge_DrawFace(HudBGroup *node) {
+void HudGauge_DrawFace(HudNode *node) {
     u32 i;
-    HudBSprite *spr;
+    HudSprite *spr;
 
     gHudGauge->faceRes[gHudGauge->side] = gHudGauge->obj[gHudGauge->side]->faceRes;
     if (gHudGauge->faceRes[gHudGauge->side] != NULL) {
         HudGauge_ClearFaceTexMark();
-        for (i = 0; i < node->sprCount; i++) {
-            spr = node->sprList[i];
+        for (i = 0; i < node->spriteCount; i++) {
+            spr = node->sprites[i];
             /* (PC build: a fighter's face sheet has two pictures, one drawn for the left place and one for the right;
                with the sides swapped the picture is the one of the place, not of the side) */
             HudSprite_InitTex(spr, gHudGauge->faceRes[gHudGauge->side], HUD_SCR(gHudGauge->side), 0);
@@ -1010,17 +936,17 @@ void HudGauge_DrawFace(HudBGroup *node) {
 }
 
 /* Draw callback of the plain nodes: every sprite of the node. */
-void HudGauge_DrawSprites(HudBGroup *node) {
+void HudGauge_DrawSprites(HudNode *node) {
     u32 i;
 
-    for (i = 0; i < node->sprCount; i++) {
+    for (i = 0; i < node->spriteCount; i++) {
 #ifdef PORT
-        if (node->sprList[i] == &gHudGauge->spr[0]) {
-            HudGauge_DrawWideFrame(node->sprList[i], 0);
+        if (node->sprites[i] == &gHudGauge->sprites[0]) {
+            HudGauge_DrawWideFrame(node->sprites[i], 0);
             continue;
         }
 #endif
-        HudSprite_Draw(node->sprList[i], gHudGauge->res, 0);
+        HudSprite_Draw(node->sprites[i], gHudGauge->res, 0);
     }
 }
 
@@ -1042,17 +968,17 @@ void HudGauge_SelectSide(s32 side) {
 #ifdef PORT
     Port_GsMarker(HUD_SCR(side) ? PORT_2D_RIGHT : PORT_2D_LEFT);
 #endif
-    gHudGauge->grp->flags = (gHudGauge->grp->flags & ~2) | (flip << 1);
-    HudSprite_SetMirror(&gHudGauge->spr[35], flip);
-    HudSprite_SetMirror(&gHudGauge->spr[75], flip);
+    gHudGauge->nodes->flags = (gHudGauge->nodes->flags & ~2) | (flip << 1);
+    HudSprite_SetMirror(&gHudGauge->sprites[35], flip);
+    HudSprite_SetMirror(&gHudGauge->sprites[75], flip);
     for (i = 0; i < 4; i++) {
-        HudSprite_SetMirror(&gHudGauge->spr[43 + i], flip);
+        HudSprite_SetMirror(&gHudGauge->sprites[43 + i], flip);
     }
 }
 
 /* --- Setters fed by Hud_PreUpdate, by side. --- */
 void HudGauge_SetHp(s32 side, s32 hp) {
-    gHudGauge->hp[side] = hp;
+    gHudGauge->cur.hp[side] = hp;
 }
 
 /* Gaining a ki bar restarts the bar's lamp; reaching full ki restarts the pulse. */
@@ -1158,17 +1084,17 @@ void HudGauge_SetSwitching(s32 side, s32 switching) {
 /* Builds the part: the work, 76 sprites, 12 nodes. Tree: 0 root > 1 panel > { 10 aura, 2 bars in reserve,
  * 3 health, 4 ki > 5 ki lamps, 6 powered-up timer > 7 its lamps, 8 blast stock, 9 status icons, 11 face }.
  * `res` is sprite sheet 0 of the HUD file; the root is returned through `out`. */
-void HudGauge_Init(HudBGroup **out, void *res) {
-    HudBSprite *spr;
-    HudBGroup *grp;
+void HudGauge_Init(HudNode **out, void *res) {
+    HudSprite *spr;
+    HudNode *grp;
     s32 i;
 
-    gHudGauge = Heap_Alloc(sizeof(HudBWork), 0x20, 0, HEAP_ANY);
-    memset(gHudGauge, 0, sizeof(HudBWork));
-    gHudGauge->spr = Heap_Alloc(76 * sizeof(HudBSprite), 0x20, 0, HEAP_ANY);
-    memset(gHudGauge->spr, 0, 76 * sizeof(HudBSprite));
-    gHudGauge->grp = Heap_Alloc(12 * sizeof(HudBGroup), 0x20, 0, HEAP_ANY);
-    memset(gHudGauge->grp, 0, 12 * sizeof(HudBGroup));
+    gHudGauge = Heap_Alloc(sizeof(HudGauge), 0x20, 0, HEAP_ANY);
+    memset(gHudGauge, 0, sizeof(HudGauge));
+    gHudGauge->sprites = Heap_Alloc(76 * sizeof(HudSprite), 0x20, 0, HEAP_ANY);
+    memset(gHudGauge->sprites, 0, 76 * sizeof(HudSprite));
+    gHudGauge->nodes = Heap_Alloc(12 * sizeof(HudNode), 0x20, 0, HEAP_ANY);
+    memset(gHudGauge->nodes, 0, 12 * sizeof(HudNode));
     gHudGauge->res = res;
     for (i = 0; i < 2; i++) {
         gHudGauge->statState[i] = -1;
@@ -1177,561 +1103,561 @@ void HudGauge_Init(HudBGroup **out, void *res) {
         gHudGauge->faceRes[i] = NULL;
         gHudGauge->obj[i] = NULL;
     }
-    spr = &gHudGauge->spr[0];
+    spr = &gHudGauge->sprites[0];
     HudSprite_InitTex(spr, res, 6, 0);
     HudSprite_Move(spr, 0, 0);
-    spr = &gHudGauge->spr[7];
+    spr = &gHudGauge->sprites[7];
     HudSprite_InitTex(spr, res, 8, 0);
     HudSprite_SetRect(spr, 0, 0xA0, 0, 0x10);
     HudSprite_SetUv(spr, 0, 0xA0, 0x30, 0x40);
     HudSprite_Move(spr, 0xA0, 0);
-    spr = &gHudGauge->spr[8];
+    spr = &gHudGauge->sprites[8];
     HudSprite_InitTex(spr, res, 8, 1);
     HudSprite_SetRect(spr, 0, 0xA0, 0, 0x10);
     HudSprite_SetUv(spr, 0, 0xA0, 0, 0x10);
     HudSprite_Move(spr, 0, 0);
-    spr = &gHudGauge->spr[5];
+    spr = &gHudGauge->sprites[5];
     HudSprite_InitTex(spr, res, 8, 0);
     HudSprite_SetRect(spr, 0, 0xA0, 0, 0x10);
     HudSprite_SetUv(spr, 0, 0xA0, 0x30, 0x40);
     HudSprite_Move(spr, 0xA0, 0);
-    spr = &gHudGauge->spr[6];
+    spr = &gHudGauge->sprites[6];
     HudSprite_InitTex(spr, res, 8, 2);
     HudSprite_SetRect(spr, 0, 0xA0, 0, 0x10);
     HudSprite_SetUv(spr, 0, 0xA0, 0, 0x10);
     HudSprite_Move(spr, 0, 0);
-    spr = &gHudGauge->spr[2];
+    spr = &gHudGauge->sprites[2];
     HudSprite_InitTex(spr, res, 8, 0);
     HudSprite_SetRect(spr, 0, 0xA0, 0, 0x10);
     HudSprite_SetUv(spr, 0, 0xA0, 0x30, 0x40);
     HudSprite_Move(spr, 0xA0, 0);
-    spr = &gHudGauge->spr[3];
+    spr = &gHudGauge->sprites[3];
     HudSprite_InitTex(spr, res, 8, 1);
     HudSprite_SetRect(spr, 0, 0xA0, 0, 0x10);
     HudSprite_SetUv(spr, 0, 0xA0, 0, 0x10);
     HudSprite_Move(spr, 0, 0);
-    spr = &gHudGauge->spr[1];
+    spr = &gHudGauge->sprites[1];
     HudSprite_InitTex(spr, res, 8, 2);
     HudSprite_SetRect(spr, 0, 0xA0, 0, 0x10);
     HudSprite_SetUv(spr, 0, 0xA0, 0, 0x10);
     HudSprite_Move(spr, 0, 0);
-    spr = &gHudGauge->spr[4];
+    spr = &gHudGauge->sprites[4];
     HudSprite_InitTex(spr, res, 8, 0);
     HudSprite_SetRect(spr, 0, 0xA0, 0, 0x10);
     HudSprite_SetUv(spr, 0, 0xA0, 0, 0x10);
     HudSprite_Move(spr, 0, 0);
-    spr = &gHudGauge->spr[9];
+    spr = &gHudGauge->sprites[9];
     HudSprite_InitTex(spr, res, 8, 1);
     HudSprite_SetRect(spr, 0, 0x10, 0, 0x10);
     HudSprite_SetUv(spr, 0, 0x10, 0x10, 0x20);
     HudSprite_Move(spr, 0, 0);
-    spr = &gHudGauge->spr[10];
+    spr = &gHudGauge->sprites[10];
     HudSprite_InitTex(spr, res, 8, 1);
     HudSprite_SetRect(spr, 0, 0x10, 0, 0x10);
     HudSprite_SetUv(spr, 0, 0x10, 0x10, 0x20);
     HudSprite_Move(spr, 9, 0);
-    spr = &gHudGauge->spr[11];
+    spr = &gHudGauge->sprites[11];
     HudSprite_InitTex(spr, res, 8, 1);
     HudSprite_SetRect(spr, 0, 0x10, 0, 0x10);
     HudSprite_SetUv(spr, 0, 0x10, 0x10, 0x20);
     HudSprite_Move(spr, 0x12, 0);
-    spr = &gHudGauge->spr[12];
+    spr = &gHudGauge->sprites[12];
     HudSprite_InitTex(spr, res, 8, 1);
     HudSprite_SetRect(spr, 0, 0x10, 0, 0x10);
     HudSprite_SetUv(spr, 0, 0x10, 0x10, 0x20);
     HudSprite_Move(spr, 0x1B, 0);
-    spr = &gHudGauge->spr[13];
+    spr = &gHudGauge->sprites[13];
     HudSprite_InitTex(spr, res, 8, 1);
     HudSprite_SetRect(spr, 0, 0x10, 0, 0x10);
     HudSprite_SetUv(spr, 0, 0x10, 0x10, 0x20);
     HudSprite_Move(spr, 0x24, 0);
-    spr = &gHudGauge->spr[14];
+    spr = &gHudGauge->sprites[14];
     HudSprite_InitTex(spr, res, 8, 1);
     HudSprite_SetRect(spr, 0, 0x10, 0, 0x10);
     HudSprite_SetUv(spr, 0, 0x10, 0x10, 0x20);
     HudSprite_Move(spr, 0x2D, 0);
-    spr = &gHudGauge->spr[15];
+    spr = &gHudGauge->sprites[15];
     HudSprite_InitTex(spr, res, 8, 3);
     HudSprite_SetRect(spr, 0, 0xE, 0, 0x11);
     HudSprite_SetUv(spr, 0x10, 0x1E, 0x10, 0x21);
     HudSprite_Move(spr, 0x20, 0);
-    spr = &gHudGauge->spr[16];
+    spr = &gHudGauge->sprites[16];
     HudSprite_InitTex(spr, res, 8, 3);
     HudSprite_SetRect(spr, 0, 0xE, 0, 0x11);
     HudSprite_SetUv(spr, 0x10, 0x1E, 0x10, 0x21);
     HudSprite_Move(spr, 0x18, 0);
-    spr = &gHudGauge->spr[17];
+    spr = &gHudGauge->sprites[17];
     HudSprite_InitTex(spr, res, 8, 3);
     HudSprite_SetRect(spr, 0, 0xE, 0, 0x11);
     HudSprite_SetUv(spr, 0x10, 0x1E, 0x10, 0x21);
     HudSprite_Move(spr, 0x10, 0);
-    spr = &gHudGauge->spr[18];
+    spr = &gHudGauge->sprites[18];
     HudSprite_InitTex(spr, res, 8, 3);
     HudSprite_SetRect(spr, 0, 0xE, 0, 0x11);
     HudSprite_SetUv(spr, 0x10, 0x1E, 0x10, 0x21);
     HudSprite_Move(spr, 8, 0);
-    spr = &gHudGauge->spr[19];
+    spr = &gHudGauge->sprites[19];
     HudSprite_InitTex(spr, res, 8, 3);
     HudSprite_SetRect(spr, 0, 0xE, 0, 0x11);
     HudSprite_SetUv(spr, 0x10, 0x1E, 0x10, 0x21);
     HudSprite_Move(spr, 0, 0);
-    spr = &gHudGauge->spr[20];
+    spr = &gHudGauge->sprites[20];
     HudSprite_InitTex(spr, res, 8, 2);
     HudSprite_SetRect(spr, 0, 0x10, 0, 0x11);
     HudSprite_SetUv(spr, 0x10, 0x20, 0x10, 0x21);
     HudSprite_Move(spr, 0x1C, 0);
-    spr = &gHudGauge->spr[21];
+    spr = &gHudGauge->sprites[21];
     HudSprite_InitTex(spr, res, 8, 2);
     HudSprite_SetRect(spr, 0, 0x10, 0, 0x11);
     HudSprite_SetUv(spr, 0x10, 0x20, 0x10, 0x21);
     HudSprite_Move(spr, 0x15, 0);
-    spr = &gHudGauge->spr[22];
+    spr = &gHudGauge->sprites[22];
     HudSprite_InitTex(spr, res, 8, 2);
     HudSprite_SetRect(spr, 0, 0x10, 0, 0x11);
     HudSprite_SetUv(spr, 0x10, 0x20, 0x10, 0x21);
     HudSprite_Move(spr, 0xE, 0);
-    spr = &gHudGauge->spr[23];
+    spr = &gHudGauge->sprites[23];
     HudSprite_InitTex(spr, res, 8, 2);
     HudSprite_SetRect(spr, 0, 0x10, 0, 0x11);
     HudSprite_SetUv(spr, 0x10, 0x20, 0x10, 0x21);
     HudSprite_Move(spr, 7, 0);
-    spr = &gHudGauge->spr[24];
+    spr = &gHudGauge->sprites[24];
     HudSprite_InitTex(spr, res, 8, 2);
     HudSprite_SetRect(spr, 0, 0x10, 0, 0x11);
     HudSprite_SetUv(spr, 0x10, 0x20, 0x10, 0x21);
     HudSprite_Move(spr, 0, 0);
-    spr = &gHudGauge->spr[25];
+    spr = &gHudGauge->sprites[25];
     HudSprite_InitTex(spr, res, 8, 1);
     HudSprite_SetRect(spr, 0, 0x10, 0, 0x11);
     HudSprite_SetUv(spr, 0x10, 0x20, 0x10, 0x21);
     HudSprite_Move(spr, 0x1C, 0);
-    spr = &gHudGauge->spr[26];
+    spr = &gHudGauge->sprites[26];
     HudSprite_InitTex(spr, res, 8, 1);
     HudSprite_SetRect(spr, 0, 0x10, 0, 0x11);
     HudSprite_SetUv(spr, 0x10, 0x20, 0x10, 0x21);
     HudSprite_Move(spr, 0x15, 0);
-    spr = &gHudGauge->spr[27];
+    spr = &gHudGauge->sprites[27];
     HudSprite_InitTex(spr, res, 8, 1);
     HudSprite_SetRect(spr, 0, 0x10, 0, 0x11);
     HudSprite_SetUv(spr, 0x10, 0x20, 0x10, 0x21);
     HudSprite_Move(spr, 0xE, 0);
-    spr = &gHudGauge->spr[28];
+    spr = &gHudGauge->sprites[28];
     HudSprite_InitTex(spr, res, 8, 1);
     HudSprite_SetRect(spr, 0, 0x10, 0, 0x11);
     HudSprite_SetUv(spr, 0x10, 0x20, 0x10, 0x21);
     HudSprite_Move(spr, 7, 0);
-    spr = &gHudGauge->spr[29];
+    spr = &gHudGauge->sprites[29];
     HudSprite_InitTex(spr, res, 8, 1);
     HudSprite_SetRect(spr, 0, 0x10, 0, 0x11);
     HudSprite_SetUv(spr, 0x10, 0x20, 0x10, 0x21);
     HudSprite_Move(spr, 0, 0);
-    spr = &gHudGauge->spr[30];
+    spr = &gHudGauge->sprites[30];
     HudSprite_InitTex(spr, res, 8, 5);
     HudSprite_SetRect(spr, 0, 0x10, 0, 0x11);
     HudSprite_SetUv(spr, 0x10, 0x20, 0x10, 0x21);
     HudSprite_Move(spr, 0x1C, 0);
-    spr = &gHudGauge->spr[31];
+    spr = &gHudGauge->sprites[31];
     HudSprite_InitTex(spr, res, 8, 5);
     HudSprite_SetRect(spr, 0, 0x10, 0, 0x11);
     HudSprite_SetUv(spr, 0x10, 0x20, 0x10, 0x21);
     HudSprite_Move(spr, 0x15, 0);
-    spr = &gHudGauge->spr[32];
+    spr = &gHudGauge->sprites[32];
     HudSprite_InitTex(spr, res, 8, 5);
     HudSprite_SetRect(spr, 0, 0x10, 0, 0x11);
     HudSprite_SetUv(spr, 0x10, 0x20, 0x10, 0x21);
     HudSprite_Move(spr, 0xE, 0);
-    spr = &gHudGauge->spr[33];
+    spr = &gHudGauge->sprites[33];
     HudSprite_InitTex(spr, res, 8, 5);
     HudSprite_SetRect(spr, 0, 0x10, 0, 0x11);
     HudSprite_SetUv(spr, 0x10, 0x20, 0x10, 0x21);
     HudSprite_Move(spr, 7, 0);
-    spr = &gHudGauge->spr[34];
+    spr = &gHudGauge->sprites[34];
     HudSprite_InitTex(spr, res, 8, 5);
     HudSprite_SetRect(spr, 0, 0x10, 0, 0x11);
     HudSprite_SetUv(spr, 0x10, 0x20, 0x10, 0x21);
     HudSprite_Move(spr, 0, 0);
-    spr = &gHudGauge->spr[35];
+    spr = &gHudGauge->sprites[35];
     HudSprite_InitTex(spr, res, 0xE, 0);
     HudSprite_SetRect(spr, -32, 0, 0, 0x20);
     HudSprite_SetUv(spr, 0, 0x20, 0, 0x20);
     HudSprite_Move(spr, 0xA, -6);
-    spr = &gHudGauge->spr[36];
+    spr = &gHudGauge->sprites[36];
     HudSprite_InitTex(spr, res, 0xF, 0);
     HudSprite_SetRect(spr, 0, 0x30, 0, 0xC);
     HudSprite_SetUv(spr, 0, 0x30, 0, 0xC);
     HudSprite_Move(spr, 0x1B, 0x2E);
-    spr = &gHudGauge->spr[37];
+    spr = &gHudGauge->sprites[37];
     HudSprite_InitTex(spr, res, 8, 0);
     HudSprite_SetRect(spr, 0, 0x1A, 0, 6);
     HudSprite_SetUv(spr, 0xC0, 0xDA, 0, 6);
     HudSprite_Move(spr, 5, 3);
-    spr = &gHudGauge->spr[38];
+    spr = &gHudGauge->sprites[38];
     HudSprite_InitTex(spr, res, 8, 1);
     HudSprite_SetRect(spr, 0, 0x1A, 0, 6);
     HudSprite_SetUv(spr, 0xA1, 0xBB, 0, 6);
     HudSprite_Move(spr, 5, 3);
-    spr = &gHudGauge->spr[39];
+    spr = &gHudGauge->sprites[39];
     HudSprite_InitTex(spr, res, 0xF, 0);
     HudSprite_SetRect(spr, 0, 0x2A, 0, 0x16);
     HudSprite_SetUv(spr, 0, 0x2A, 0x16, 0x2C);
     HudSprite_Move(spr, 0, 0);
     HudSprite_Move(spr, 0x66, 0x18);
-    spr = &gHudGauge->spr[40];
+    spr = &gHudGauge->sprites[40];
     HudSprite_InitTex(spr, res, 0xF, 0);
     HudSprite_SetRect(spr, 0, 0x2A, 0, 0x16);
     HudSprite_SetUv(spr, 0, 0x2A, 0x16, 0x2C);
     HudSprite_Move(spr, 0x18, 0);
     HudSprite_Move(spr, 0x66, 0x18);
-    spr = &gHudGauge->spr[41];
+    spr = &gHudGauge->sprites[41];
     HudSprite_InitTex(spr, res, 0xF, 0);
     HudSprite_SetRect(spr, 0, 0x2A, 0, 0x16);
     HudSprite_SetUv(spr, 0, 0x2A, 0x16, 0x2C);
     HudSprite_Move(spr, 0x30, 0);
     HudSprite_Move(spr, 0x66, 0x18);
-    spr = &gHudGauge->spr[42];
+    spr = &gHudGauge->sprites[42];
     HudSprite_InitTex(spr, res, 0xF, 0);
     HudSprite_SetRect(spr, 0, 0x2A, 0, 0x16);
     HudSprite_SetUv(spr, 0, 0x2A, 0x16, 0x2C);
     HudSprite_Move(spr, 0x48, 0);
     HudSprite_Move(spr, 0x66, 0x18);
-    spr = &gHudGauge->spr[43];
+    spr = &gHudGauge->sprites[43];
     HudSprite_InitTex(spr, res, 0x13, 0);
     HudSprite_Move(spr, 5, -5);
     HudSprite_Move(spr, 0, 0);
-    spr = &gHudGauge->spr[44];
+    spr = &gHudGauge->sprites[44];
     HudSprite_InitTex(spr, res, 0x14, 0);
     HudSprite_Move(spr, 5, -5);
     HudSprite_Move(spr, 0x18, 0);
-    spr = &gHudGauge->spr[45];
+    spr = &gHudGauge->sprites[45];
     HudSprite_InitTex(spr, res, 0x15, 0);
     HudSprite_Move(spr, 5, -5);
     HudSprite_Move(spr, 0x30, 0);
-    spr = &gHudGauge->spr[46];
+    spr = &gHudGauge->sprites[46];
     HudSprite_InitTex(spr, res, 0x16, 0);
     HudSprite_Move(spr, 5, -5);
     HudSprite_Move(spr, 0x48, 0);
-    spr = &gHudGauge->spr[47];
+    spr = &gHudGauge->sprites[47];
     HudSprite_InitTex(spr, res, 7, 0);
-    spr = &gHudGauge->spr[48];
+    spr = &gHudGauge->sprites[48];
     HudSprite_InitTex(spr, res, 0xF, 0);
     HudSprite_SetRect(spr, 0, 0x30, 1, 0xB);
     HudSprite_SetUv(spr, 0, 0x30, 0xC, 0x16);
     HudSprite_Move(spr, 0x1B, 0x2E);
-    spr = &gHudGauge->spr[49];
+    spr = &gHudGauge->sprites[49];
     HudSprite_InitTex(spr, res, 0xF, 0);
     HudSprite_SetRect(spr, 3, 0x27, 1, 0x15);
     HudSprite_SetUv(spr, 0, 0x24, 0x2C, 0x40);
     HudSprite_Move(spr, 0, 0);
     HudSprite_Move(spr, 0x66, 0x18);
-    spr = &gHudGauge->spr[50];
+    spr = &gHudGauge->sprites[50];
     HudSprite_InitTex(spr, res, 0xF, 0);
     HudSprite_SetRect(spr, 3, 0x27, 1, 0x15);
     HudSprite_SetUv(spr, 0, 0x24, 0x2C, 0x40);
     HudSprite_Move(spr, 0x18, 0);
     HudSprite_Move(spr, 0x66, 0x18);
-    spr = &gHudGauge->spr[51];
+    spr = &gHudGauge->sprites[51];
     HudSprite_InitTex(spr, res, 0xF, 0);
     HudSprite_SetRect(spr, 3, 0x27, 1, 0x15);
     HudSprite_SetUv(spr, 0, 0x24, 0x2C, 0x40);
     HudSprite_Move(spr, 0x30, 0);
     HudSprite_Move(spr, 0x66, 0x18);
-    spr = &gHudGauge->spr[52];
+    spr = &gHudGauge->sprites[52];
     HudSprite_InitTex(spr, res, 0xF, 0);
     HudSprite_SetRect(spr, 3, 0x27, 1, 0x15);
     HudSprite_SetUv(spr, 0, 0x24, 0x2C, 0x40);
     HudSprite_Move(spr, 0x48, 0);
     HudSprite_Move(spr, 0x66, 0x18);
-    spr = &gHudGauge->spr[53];
+    spr = &gHudGauge->sprites[53];
     HudSprite_InitTex(spr, res, 0x10, 0);
     HudSprite_SetRect(spr, 0, 0x40, 0, 0x40);
     HudSprite_SetUv(spr, 0, 0x40, 0, 0x40);
-    spr = &gHudGauge->spr[54];
+    spr = &gHudGauge->sprites[54];
     HudSprite_InitTex(spr, res, 0x10, 0);
     HudSprite_SetRect(spr, 0, 0x40, 0, 0x40);
     HudSprite_SetUv(spr, 0x40, 0x80, 0, 0x40);
-    spr = &gHudGauge->spr[55];
+    spr = &gHudGauge->sprites[55];
     HudSprite_InitTex(spr, res, 0x10, 0);
     HudSprite_SetRect(spr, 0, 0x40, 0, 0x40);
     HudSprite_SetUv(spr, 0x80, 0xC0, 0, 0x40);
-    spr = &gHudGauge->spr[56];
+    spr = &gHudGauge->sprites[56];
     HudSprite_InitTex(spr, res, 0x10, 0);
     HudSprite_SetRect(spr, 0, 0x40, 0, 0x40);
     HudSprite_SetUv(spr, 0xC0, 0x100, 0, 0x40);
-    spr = &gHudGauge->spr[57];
+    spr = &gHudGauge->sprites[57];
     HudSprite_InitTex(spr, res, 0x10, 0);
     HudSprite_SetRect(spr, 0, 0x40, 0, 0x40);
     HudSprite_SetUv(spr, 0, 0x40, 0x40, 0x80);
-    spr = &gHudGauge->spr[58];
+    spr = &gHudGauge->sprites[58];
     HudSprite_InitTex(spr, res, 0x10, 0);
     HudSprite_SetRect(spr, 0, 0x40, 0, 0x40);
     HudSprite_SetUv(spr, 0x40, 0x80, 0x40, 0x80);
-    spr = &gHudGauge->spr[59];
+    spr = &gHudGauge->sprites[59];
     HudSprite_InitTex(spr, res, 0x10, 0);
     HudSprite_SetRect(spr, 0, 0x40, 0, 0x40);
     HudSprite_SetUv(spr, 0x80, 0xC0, 0x40, 0x80);
-    spr = &gHudGauge->spr[60];
+    spr = &gHudGauge->sprites[60];
     HudSprite_InitTex(spr, res, 0x10, 0);
     HudSprite_SetRect(spr, 0, 0x40, 0, 0x40);
     HudSprite_SetUv(spr, 0xC0, 0x100, 0x40, 0x80);
-    spr = &gHudGauge->spr[61];
+    spr = &gHudGauge->sprites[61];
     HudSprite_InitTex(spr, res, 0x10, 0);
     HudSprite_SetRect(spr, 0, 0x40, 0, 0x40);
     HudSprite_SetUv(spr, 0x40, 0x80, 0, 0x40);
-    spr = &gHudGauge->spr[62];
+    spr = &gHudGauge->sprites[62];
     HudSprite_InitTex(spr, res, 0x10, 0);
     HudSprite_SetRect(spr, 0, 0x40, 0, 0x40);
     HudSprite_SetUv(spr, 0x80, 0xC0, 0, 0x40);
-    spr = &gHudGauge->spr[64];
+    spr = &gHudGauge->sprites[64];
     HudSprite_Show(spr, 1);
     HudSprite_InitPlain(spr, 0x80, 0x80, 0x80, 0x80);
     HudSprite_SetRect(spr, 0, 0x40, 0, 0x40);
-    spr = &gHudGauge->spr[65];
+    spr = &gHudGauge->sprites[65];
     HudSprite_Show(spr, 0);
     HudSprite_InitTex(spr, res, 0x11, 0);
     HudSprite_SetRect(spr, 0, 0x13, 0, 0x16);
     HudSprite_SetUv(spr, 0, 0x13, 0, 0x16);
     HudSprite_Move(spr, 0, 0);
-    spr = &gHudGauge->spr[66];
+    spr = &gHudGauge->sprites[66];
     HudSprite_Show(spr, 0);
     HudSprite_InitTex(spr, res, 0x11, 0);
     HudSprite_SetRect(spr, 0, 0x13, 0, 0x16);
     HudSprite_SetUv(spr, 0, 0x13, 0, 0x16);
     HudSprite_Move(spr, 8, 0);
-    spr = &gHudGauge->spr[67];
+    spr = &gHudGauge->sprites[67];
     HudSprite_Show(spr, 0);
     HudSprite_InitTex(spr, res, 0x11, 0);
     HudSprite_SetRect(spr, 0, 0x13, 0, 0x16);
     HudSprite_SetUv(spr, 0, 0x13, 0, 0x16);
     HudSprite_Move(spr, 0x10, 0);
-    spr = &gHudGauge->spr[68];
+    spr = &gHudGauge->sprites[68];
     HudSprite_Show(spr, 0);
     HudSprite_InitTex(spr, res, 0x11, 0);
     HudSprite_SetRect(spr, 0, 0x13, 0, 0x16);
     HudSprite_SetUv(spr, 0, 0x13, 0, 0x16);
     HudSprite_Move(spr, 0x18, 0);
-    spr = &gHudGauge->spr[69];
+    spr = &gHudGauge->sprites[69];
     HudSprite_Show(spr, 0);
     HudSprite_InitTex(spr, res, 0x11, 0);
     HudSprite_SetRect(spr, 0, 0x13, 0, 0x16);
     HudSprite_SetUv(spr, 0, 0x13, 0, 0x16);
     HudSprite_Move(spr, 0x20, 0);
-    spr = &gHudGauge->spr[70];
+    spr = &gHudGauge->sprites[70];
     HudSprite_Show(spr, 0);
     HudSprite_InitTex(spr, res, 0x11, 0);
     HudSprite_SetRect(spr, 0, 0x13, 0, 0x16);
     HudSprite_SetUv(spr, 0x20, 0x33, 0, 0x16);
     HudSprite_Move(spr, 0, 0);
-    spr = &gHudGauge->spr[71];
+    spr = &gHudGauge->sprites[71];
     HudSprite_Show(spr, 0);
     HudSprite_InitTex(spr, res, 0x11, 0);
     HudSprite_SetRect(spr, 0, 0x13, 0, 0x16);
     HudSprite_SetUv(spr, 0x20, 0x33, 0, 0x16);
     HudSprite_Move(spr, 8, 0);
-    spr = &gHudGauge->spr[72];
+    spr = &gHudGauge->sprites[72];
     HudSprite_Show(spr, 0);
     HudSprite_InitTex(spr, res, 0x11, 0);
     HudSprite_SetRect(spr, 0, 0x13, 0, 0x16);
     HudSprite_SetUv(spr, 0x20, 0x33, 0, 0x16);
     HudSprite_Move(spr, 0x10, 0);
-    spr = &gHudGauge->spr[73];
+    spr = &gHudGauge->sprites[73];
     HudSprite_Show(spr, 0);
     HudSprite_InitTex(spr, res, 0x11, 0);
     HudSprite_SetRect(spr, 0, 0x13, 0, 0x16);
     HudSprite_SetUv(spr, 0x20, 0x33, 0, 0x16);
     HudSprite_Move(spr, 0x18, 0);
-    spr = &gHudGauge->spr[74];
+    spr = &gHudGauge->sprites[74];
     HudSprite_Show(spr, 0);
     HudSprite_InitTex(spr, res, 0x11, 0);
     HudSprite_SetRect(spr, 0, 0x13, 0, 0x16);
     HudSprite_SetUv(spr, 0x20, 0x33, 0, 0x16);
     HudSprite_Move(spr, 0x20, 0);
-    spr = &gHudGauge->spr[75];
+    spr = &gHudGauge->sprites[75];
     HudSprite_Show(spr, 1);
     HudSprite_InitTex(spr, res, 0x12, 0);
     HudSprite_SetRect(spr, -32, 0, 0, 0x20);
     HudSprite_SetUv(spr, 0, 0x20, 0, 0x20);
     HudSprite_Move(spr, 0xA, -6);
-    grp = &gHudGauge->grp[9];
+    grp = &gHudGauge->nodes[9];
     grp->x = 102;
     grp->y = 24;
-    grp->sprCount = 4;
-    grp->sprList = Heap_Alloc(grp->sprCount * sizeof(void *), 0x20, 0, HEAP_ANY);
-    memset(grp->sprList, 0, grp->sprCount * sizeof(void *));
-    grp->sprList[0] = &gHudGauge->spr[43];
-    grp->sprList[1] = &gHudGauge->spr[44];
-    grp->sprList[2] = &gHudGauge->spr[45];
-    grp->sprList[3] = &gHudGauge->spr[46];
+    grp->spriteCount = 4;
+    grp->sprites = Heap_Alloc(grp->spriteCount * sizeof(void *), 0x20, 0, HEAP_ANY);
+    memset(grp->sprites, 0, grp->spriteCount * sizeof(void *));
+    grp->sprites[0] = &gHudGauge->sprites[43];
+    grp->sprites[1] = &gHudGauge->sprites[44];
+    grp->sprites[2] = &gHudGauge->sprites[45];
+    grp->sprites[3] = &gHudGauge->sprites[46];
     grp->update = HudGauge_UpdateStatIcons;
     grp->draw = HudGauge_DrawSprites;
-    grp = &gHudGauge->grp[10];
-    grp->sprCount = 10;
-    grp->sprList = Heap_Alloc(grp->sprCount * sizeof(void *), 0x20, 0, HEAP_ANY);
-    memset(grp->sprList, 0, grp->sprCount * sizeof(void *));
-    grp->sprList[0] = &gHudGauge->spr[53];
-    grp->sprList[1] = &gHudGauge->spr[54];
-    grp->sprList[2] = &gHudGauge->spr[55];
-    grp->sprList[3] = &gHudGauge->spr[56];
-    grp->sprList[4] = &gHudGauge->spr[57];
-    grp->sprList[5] = &gHudGauge->spr[58];
-    grp->sprList[6] = &gHudGauge->spr[59];
-    grp->sprList[7] = &gHudGauge->spr[60];
-    grp->sprList[8] = &gHudGauge->spr[61];
-    grp->sprList[9] = &gHudGauge->spr[62];
+    grp = &gHudGauge->nodes[10];
+    grp->spriteCount = 10;
+    grp->sprites = Heap_Alloc(grp->spriteCount * sizeof(void *), 0x20, 0, HEAP_ANY);
+    memset(grp->sprites, 0, grp->spriteCount * sizeof(void *));
+    grp->sprites[0] = &gHudGauge->sprites[53];
+    grp->sprites[1] = &gHudGauge->sprites[54];
+    grp->sprites[2] = &gHudGauge->sprites[55];
+    grp->sprites[3] = &gHudGauge->sprites[56];
+    grp->sprites[4] = &gHudGauge->sprites[57];
+    grp->sprites[5] = &gHudGauge->sprites[58];
+    grp->sprites[6] = &gHudGauge->sprites[59];
+    grp->sprites[7] = &gHudGauge->sprites[60];
+    grp->sprites[8] = &gHudGauge->sprites[61];
+    grp->sprites[9] = &gHudGauge->sprites[62];
     grp->update = HudGauge_UpdateAura;
     grp->draw = HudGauge_DrawAura;
-    grp = &gHudGauge->grp[8];
+    grp = &gHudGauge->nodes[8];
     grp->x = 29;
     grp->y = 46;
-    grp->sprCount = 3;
-    grp->sprList = Heap_Alloc(grp->sprCount * sizeof(void *), 0x20, 0, HEAP_ANY);
-    memset(grp->sprList, 0, grp->sprCount * sizeof(void *));
-    grp->sprList[0] = &gHudGauge->spr[35];
-    grp->sprList[1] = &gHudGauge->spr[38];
-    grp->sprList[2] = &gHudGauge->spr[75];
+    grp->spriteCount = 3;
+    grp->sprites = Heap_Alloc(grp->spriteCount * sizeof(void *), 0x20, 0, HEAP_ANY);
+    memset(grp->sprites, 0, grp->spriteCount * sizeof(void *));
+    grp->sprites[0] = &gHudGauge->sprites[35];
+    grp->sprites[1] = &gHudGauge->sprites[38];
+    grp->sprites[2] = &gHudGauge->sprites[75];
     grp->update = HudGauge_UpdateBlast;
     grp->draw = HudGauge_DrawBlast;
-    grp = &gHudGauge->grp[3];
+    grp = &gHudGauge->nodes[3];
     grp->x = 69;
     grp->y = 9;
-    grp->sprCount = 8;
-    grp->sprList = Heap_Alloc(grp->sprCount * sizeof(void *), 0x20, 0, HEAP_ANY);
-    memset(grp->sprList, 0, grp->sprCount * sizeof(void *));
-    grp->sprList[0] = &gHudGauge->spr[1];
-    grp->sprList[1] = &gHudGauge->spr[2];
-    grp->sprList[2] = &gHudGauge->spr[3];
-    grp->sprList[3] = &gHudGauge->spr[4];
-    grp->sprList[4] = &gHudGauge->spr[5];
-    grp->sprList[5] = &gHudGauge->spr[6];
-    grp->sprList[6] = &gHudGauge->spr[7];
-    grp->sprList[7] = &gHudGauge->spr[8];
+    grp->spriteCount = 8;
+    grp->sprites = Heap_Alloc(grp->spriteCount * sizeof(void *), 0x20, 0, HEAP_ANY);
+    memset(grp->sprites, 0, grp->spriteCount * sizeof(void *));
+    grp->sprites[0] = &gHudGauge->sprites[1];
+    grp->sprites[1] = &gHudGauge->sprites[2];
+    grp->sprites[2] = &gHudGauge->sprites[3];
+    grp->sprites[3] = &gHudGauge->sprites[4];
+    grp->sprites[4] = &gHudGauge->sprites[5];
+    grp->sprites[5] = &gHudGauge->sprites[6];
+    grp->sprites[6] = &gHudGauge->sprites[7];
+    grp->sprites[7] = &gHudGauge->sprites[8];
     grp->update = HudGauge_UpdateHpTrail;
     grp->draw = HudGauge_DrawHp;
-    grp = &gHudGauge->grp[2];
+    grp = &gHudGauge->nodes[2];
     grp->x = 73;
     grp->y = 2;
-    grp->sprCount = 6;
-    grp->sprList = Heap_Alloc(grp->sprCount * sizeof(void *), 0x20, 0, HEAP_ANY);
-    memset(grp->sprList, 0, grp->sprCount * sizeof(void *));
-    grp->sprList[0] = &gHudGauge->spr[9];
-    grp->sprList[1] = &gHudGauge->spr[10];
-    grp->sprList[2] = &gHudGauge->spr[11];
-    grp->sprList[3] = &gHudGauge->spr[12];
-    grp->sprList[4] = &gHudGauge->spr[13];
-    grp->sprList[5] = &gHudGauge->spr[14];
+    grp->spriteCount = 6;
+    grp->sprites = Heap_Alloc(grp->spriteCount * sizeof(void *), 0x20, 0, HEAP_ANY);
+    memset(grp->sprites, 0, grp->spriteCount * sizeof(void *));
+    grp->sprites[0] = &gHudGauge->sprites[9];
+    grp->sprites[1] = &gHudGauge->sprites[10];
+    grp->sprites[2] = &gHudGauge->sprites[11];
+    grp->sprites[3] = &gHudGauge->sprites[12];
+    grp->sprites[4] = &gHudGauge->sprites[13];
+    grp->sprites[5] = &gHudGauge->sprites[14];
     grp->draw = HudGauge_DrawHpBarCount;
     grp->update = NULL;
-    grp = &gHudGauge->grp[5];
+    grp = &gHudGauge->nodes[5];
     grp->x = -3;
     grp->y = -3;
-    grp->sprCount = 5;
-    grp->sprList = Heap_Alloc(grp->sprCount * sizeof(void *), 0x20, 0, HEAP_ANY);
-    memset(grp->sprList, 0, grp->sprCount * sizeof(void *));
-    grp->sprList[0] = &gHudGauge->spr[65];
-    grp->sprList[1] = &gHudGauge->spr[66];
-    grp->sprList[2] = &gHudGauge->spr[67];
-    grp->sprList[3] = &gHudGauge->spr[68];
-    grp->sprList[4] = &gHudGauge->spr[69];
+    grp->spriteCount = 5;
+    grp->sprites = Heap_Alloc(grp->spriteCount * sizeof(void *), 0x20, 0, HEAP_ANY);
+    memset(grp->sprites, 0, grp->spriteCount * sizeof(void *));
+    grp->sprites[0] = &gHudGauge->sprites[65];
+    grp->sprites[1] = &gHudGauge->sprites[66];
+    grp->sprites[2] = &gHudGauge->sprites[67];
+    grp->sprites[3] = &gHudGauge->sprites[68];
+    grp->sprites[4] = &gHudGauge->sprites[69];
     grp->update = HudGauge_UpdateKiLamps;
     grp->draw = HudGauge_DrawSprites;
-    grp = &gHudGauge->grp[7];
+    grp = &gHudGauge->nodes[7];
     grp->x = -3;
     grp->y = -3;
-    grp->sprCount = 5;
-    grp->sprList = Heap_Alloc(grp->sprCount * sizeof(void *), 0x20, 0, HEAP_ANY);
-    memset(grp->sprList, 0, grp->sprCount * sizeof(void *));
-    grp->sprList[0] = &gHudGauge->spr[70];
-    grp->sprList[1] = &gHudGauge->spr[71];
-    grp->sprList[2] = &gHudGauge->spr[72];
-    grp->sprList[3] = &gHudGauge->spr[73];
-    grp->sprList[4] = &gHudGauge->spr[74];
+    grp->spriteCount = 5;
+    grp->sprites = Heap_Alloc(grp->spriteCount * sizeof(void *), 0x20, 0, HEAP_ANY);
+    memset(grp->sprites, 0, grp->spriteCount * sizeof(void *));
+    grp->sprites[0] = &gHudGauge->sprites[70];
+    grp->sprites[1] = &gHudGauge->sprites[71];
+    grp->sprites[2] = &gHudGauge->sprites[72];
+    grp->sprites[3] = &gHudGauge->sprites[73];
+    grp->sprites[4] = &gHudGauge->sprites[74];
     grp->update = HudGauge_UpdateMaxPowerLamps;
     grp->draw = HudGauge_DrawSprites;
-    grp = &gHudGauge->grp[4];
-    grp->sprCount = 15;
+    grp = &gHudGauge->nodes[4];
+    grp->spriteCount = 15;
     grp->x = 64;
     grp->y = 27;
-    grp->sprList = Heap_Alloc(grp->sprCount * sizeof(void *), 0x20, 0, HEAP_ANY);
-    memset(grp->sprList, 0, grp->sprCount * sizeof(void *));
-    grp->sprList[0] = &gHudGauge->spr[15];
-    grp->sprList[1] = &gHudGauge->spr[16];
-    grp->sprList[2] = &gHudGauge->spr[17];
-    grp->sprList[3] = &gHudGauge->spr[18];
-    grp->sprList[4] = &gHudGauge->spr[19];
-    grp->sprList[5] = &gHudGauge->spr[20];
-    grp->sprList[6] = &gHudGauge->spr[21];
-    grp->sprList[7] = &gHudGauge->spr[22];
-    grp->sprList[8] = &gHudGauge->spr[23];
-    grp->sprList[9] = &gHudGauge->spr[24];
-    grp->sprList[10] = &gHudGauge->spr[25];
-    grp->sprList[11] = &gHudGauge->spr[26];
-    grp->sprList[12] = &gHudGauge->spr[27];
-    grp->sprList[13] = &gHudGauge->spr[28];
-    grp->sprList[14] = &gHudGauge->spr[29];
+    grp->sprites = Heap_Alloc(grp->spriteCount * sizeof(void *), 0x20, 0, HEAP_ANY);
+    memset(grp->sprites, 0, grp->spriteCount * sizeof(void *));
+    grp->sprites[0] = &gHudGauge->sprites[15];
+    grp->sprites[1] = &gHudGauge->sprites[16];
+    grp->sprites[2] = &gHudGauge->sprites[17];
+    grp->sprites[3] = &gHudGauge->sprites[18];
+    grp->sprites[4] = &gHudGauge->sprites[19];
+    grp->sprites[5] = &gHudGauge->sprites[20];
+    grp->sprites[6] = &gHudGauge->sprites[21];
+    grp->sprites[7] = &gHudGauge->sprites[22];
+    grp->sprites[8] = &gHudGauge->sprites[23];
+    grp->sprites[9] = &gHudGauge->sprites[24];
+    grp->sprites[10] = &gHudGauge->sprites[25];
+    grp->sprites[11] = &gHudGauge->sprites[26];
+    grp->sprites[12] = &gHudGauge->sprites[27];
+    grp->sprites[13] = &gHudGauge->sprites[28];
+    grp->sprites[14] = &gHudGauge->sprites[29];
     grp->childCount = 1;
-    grp->childList = Heap_Alloc(grp->childCount * sizeof(void *), 0x20, 0, HEAP_ANY);
-    memset(grp->childList, 0, grp->childCount * sizeof(void *));
-    grp->childList[0] = &gHudGauge->grp[5];
+    grp->children = Heap_Alloc(grp->childCount * sizeof(void *), 0x20, 0, HEAP_ANY);
+    memset(grp->children, 0, grp->childCount * sizeof(void *));
+    grp->children[0] = &gHudGauge->nodes[5];
     grp->draw = HudGauge_DrawSprites;
     grp->update = HudGauge_UpdateKi;
-    grp = &gHudGauge->grp[6];
+    grp = &gHudGauge->nodes[6];
     grp->x = 64;
     grp->y = 27;
-    grp->sprCount = 5;
-    grp->sprList = Heap_Alloc(grp->sprCount * sizeof(void *), 0x20, 0, HEAP_ANY);
-    memset(grp->sprList, 0, grp->sprCount * sizeof(void *));
-    grp->sprList[0] = &gHudGauge->spr[30];
-    grp->sprList[1] = &gHudGauge->spr[31];
-    grp->sprList[2] = &gHudGauge->spr[32];
-    grp->sprList[3] = &gHudGauge->spr[33];
-    grp->sprList[4] = &gHudGauge->spr[34];
+    grp->spriteCount = 5;
+    grp->sprites = Heap_Alloc(grp->spriteCount * sizeof(void *), 0x20, 0, HEAP_ANY);
+    memset(grp->sprites, 0, grp->spriteCount * sizeof(void *));
+    grp->sprites[0] = &gHudGauge->sprites[30];
+    grp->sprites[1] = &gHudGauge->sprites[31];
+    grp->sprites[2] = &gHudGauge->sprites[32];
+    grp->sprites[3] = &gHudGauge->sprites[33];
+    grp->sprites[4] = &gHudGauge->sprites[34];
     grp->childCount = 1;
-    grp->childList = Heap_Alloc(grp->childCount * sizeof(void *), 0x20, 0, HEAP_ANY);
-    memset(grp->childList, 0, grp->childCount * sizeof(void *));
-    grp->childList[0] = &gHudGauge->grp[7];
+    grp->children = Heap_Alloc(grp->childCount * sizeof(void *), 0x20, 0, HEAP_ANY);
+    memset(grp->children, 0, grp->childCount * sizeof(void *));
+    grp->children[0] = &gHudGauge->nodes[7];
     grp->draw = HudGauge_DrawSprites;
     grp->update = HudGauge_UpdateMaxPower;
-    grp = &gHudGauge->grp[11];
+    grp = &gHudGauge->nodes[11];
     grp->x = 16;
     grp->y = 3;
-    grp->sprCount = 1;
-    grp->sprList = Heap_Alloc(grp->sprCount * sizeof(void *), 0x20, 0, HEAP_ANY);
-    memset(grp->sprList, 0, grp->sprCount * sizeof(void *));
-    grp->sprList[0] = &gHudGauge->spr[64];
+    grp->spriteCount = 1;
+    grp->sprites = Heap_Alloc(grp->spriteCount * sizeof(void *), 0x20, 0, HEAP_ANY);
+    memset(grp->sprites, 0, grp->spriteCount * sizeof(void *));
+    grp->sprites[0] = &gHudGauge->sprites[64];
     grp->draw = HudGauge_DrawFace;
     grp->update = NULL;
-    grp = &gHudGauge->grp[1];
+    grp = &gHudGauge->nodes[1];
     grp->x = -2;
-    grp->sprCount = 6;
+    grp->spriteCount = 6;
     grp->y = 8;
-    grp->sprList = Heap_Alloc(grp->sprCount * sizeof(void *), 0x20, 0, HEAP_ANY);
-    memset(grp->sprList, 0, grp->sprCount * sizeof(void *));
-    grp->sprList[0] = &gHudGauge->spr[0];
-    grp->sprList[1] = &gHudGauge->spr[36];
-    grp->sprList[2] = &gHudGauge->spr[39];
-    grp->sprList[3] = &gHudGauge->spr[40];
-    grp->sprList[4] = &gHudGauge->spr[41];
-    grp->sprList[5] = &gHudGauge->spr[42];
+    grp->sprites = Heap_Alloc(grp->spriteCount * sizeof(void *), 0x20, 0, HEAP_ANY);
+    memset(grp->sprites, 0, grp->spriteCount * sizeof(void *));
+    grp->sprites[0] = &gHudGauge->sprites[0];
+    grp->sprites[1] = &gHudGauge->sprites[36];
+    grp->sprites[2] = &gHudGauge->sprites[39];
+    grp->sprites[3] = &gHudGauge->sprites[40];
+    grp->sprites[4] = &gHudGauge->sprites[41];
+    grp->sprites[5] = &gHudGauge->sprites[42];
     grp->childCount = 8;
-    grp->childList = Heap_Alloc(grp->childCount * sizeof(void *), 0x20, 0, HEAP_ANY);
-    memset(grp->childList, 0, grp->childCount * sizeof(void *));
-    grp->childList[0] = &gHudGauge->grp[10];
-    grp->childList[1] = &gHudGauge->grp[2];
-    grp->childList[2] = &gHudGauge->grp[3];
-    grp->childList[3] = &gHudGauge->grp[4];
-    grp->childList[4] = &gHudGauge->grp[6];
-    grp->childList[5] = &gHudGauge->grp[8];
-    grp->childList[6] = &gHudGauge->grp[9];
-    grp->childList[7] = &gHudGauge->grp[11];
+    grp->children = Heap_Alloc(grp->childCount * sizeof(void *), 0x20, 0, HEAP_ANY);
+    memset(grp->children, 0, grp->childCount * sizeof(void *));
+    grp->children[0] = &gHudGauge->nodes[10];
+    grp->children[1] = &gHudGauge->nodes[2];
+    grp->children[2] = &gHudGauge->nodes[3];
+    grp->children[3] = &gHudGauge->nodes[4];
+    grp->children[4] = &gHudGauge->nodes[6];
+    grp->children[5] = &gHudGauge->nodes[8];
+    grp->children[6] = &gHudGauge->nodes[9];
+    grp->children[7] = &gHudGauge->nodes[11];
     grp->update = HudGauge_UpdatePanel;
     grp->draw = HudGauge_DrawSprites;
-    grp = &gHudGauge->grp[0];
+    grp = &gHudGauge->nodes[0];
     grp->childCount = 1;
     grp->x = 0;
     grp->y = 0;
-    grp->childList = Heap_Alloc(grp->childCount * sizeof(void *), 0x20, 0, HEAP_ANY);
-    memset(grp->childList, 0, grp->childCount * sizeof(void *));
-    grp->childList[0] = &gHudGauge->grp[1];
+    grp->children = Heap_Alloc(grp->childCount * sizeof(void *), 0x20, 0, HEAP_ANY);
+    memset(grp->children, 0, grp->childCount * sizeof(void *));
+    grp->children[0] = &gHudGauge->nodes[1];
     grp->update = HudGauge_UpdateRoot;
     grp->draw = NULL;
-    *out = gHudGauge->grp;
+    *out = gHudGauge->nodes;
 }

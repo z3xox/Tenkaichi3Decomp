@@ -27,14 +27,14 @@ Option *gOption = NULL; /* 0x3BC364 */
  */
 
 #define OPT_RES(n) \
-    res = (MTexRes *)MPACK_AT(gOption->res, n); \
+    res = (FlashTexRes *)MPACK_AT(gOption->res, n); \
     Res_RelocateOffsets(&res, res, res)
 
 /* Loads and unpacks the screen (section `section` of archive 10) and sets the first state. */
 s32 Option_Init(s32 section) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[0x40];
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
     s32 i;
 
     gOption = Heap_Alloc(sizeof(Option), 0x20, 0, 2);
@@ -151,8 +151,8 @@ s32 Option_Init(s32 section) {
         MsgWin_Open();
         gOption->cursor = OPT_ITEM_SAVE;
         gOption->state = OPT_ST_START;
-        gOption->bgmVolume = gSaveData->bgmVolume;
-        gOption->seVolume = gSaveData->seVolume;
+        gOption->bgmVolume = gSaveData->sound[SAVE_SOUND_BGM];
+        gOption->seVolume = gSaveData->sound[SAVE_SOUND_SE];
         gOption->voiceLine = 0;
         gOption->picker = 0;
         gOption->page = 0;
@@ -562,7 +562,7 @@ s32 Option_Input(void) {
                 gOption->value = 1;
                 OPT_PLATE(OPT_CLIP_PICK, "fl_off_start");
                 OPT_PLATE(OPT_CLIP_ROW_SOUND, "fl_ok");
-                gOption->value = gSaveData->soundMode;
+                gOption->value = gSaveData->sound[SAVE_SOUND_MODE];
                 gOption->valueOld = gOption->value;
                 gOption->picker = 3;
                 gOption->state = gOption->cursor;
@@ -573,8 +573,8 @@ s32 Option_Input(void) {
                 OPT_PLATE(OPT_CLIP_ROW_SOUND, "fl_ok");
                 gOption->value = 0;
                 gOption->picker = 7;
-                gOption->bgmVolume = gSaveData->bgmVolume;
-                gOption->seVolume = gSaveData->seVolume;
+                gOption->bgmVolume = gSaveData->sound[SAVE_SOUND_BGM];
+                gOption->seVolume = gSaveData->sound[SAVE_SOUND_SE];
                 OPT_PLATE(OPT_CLIP_VOL_BGM, "fl_on_start");
                 OPT_PLATE(OPT_CLIP_VOL_SE, "fl_off_start");
                 gOption->state = gOption->cursor;
@@ -637,8 +637,8 @@ s32 Option_Input(void) {
             OPT_PLATE(OPT_CLIP_VOL_BGM, "fl_off_start");
             OPT_PLATE(OPT_CLIP_VOL_SE, "fl_off_start");
             OPT_PLATE(OPT_CLIP_ROW_SOUND, "fl_on_start");
-            gSaveData->bgmVolume = gOption->bgmVolume;
-            gSaveData->seVolume = gOption->seVolume;
+            gSaveData->sound[SAVE_SOUND_BGM] = gOption->bgmVolume;
+            gSaveData->sound[SAVE_SOUND_SE] = gOption->seVolume;
             Bgm_SetVolume(0x40);
             gOption->state = OPT_ITEM_SOUND;
             Flash_GotoLabel(&gOption->flash[0], "fl_value_out", 1);
@@ -647,48 +647,48 @@ s32 Option_Input(void) {
         } else if (gOption->value == 0) {
             if (gPad[0].gameRepeat & PADG_LEFT) {
                 OPT_PLATE(OPT_CLIP_VOL_BGM, "fl_off_start");
-                if (--gSaveData->bgmVolume < 0) {
-                    gSaveData->bgmVolume = 9;
+                if (--gSaveData->sound[SAVE_SOUND_BGM] < 0) {
+                    gSaveData->sound[SAVE_SOUND_BGM] = 9;
                 }
                 OPT_PLATE(OPT_CLIP_VOL_BGM, "fl_on_start");
                 Bgm_SetVolume(0x40);
                 Snd_PlaySe(1, 0);
             } else if (gPad[0].gameRepeat & PADG_RIGHT) {
                 OPT_PLATE(OPT_CLIP_VOL_BGM, "fl_off_start");
-                if (++gSaveData->bgmVolume > 9) {
-                    gSaveData->bgmVolume = 0;
+                if (++gSaveData->sound[SAVE_SOUND_BGM] > 9) {
+                    gSaveData->sound[SAVE_SOUND_BGM] = 0;
                 }
                 OPT_PLATE(OPT_CLIP_VOL_BGM, "fl_on_start");
                 Bgm_SetVolume(0x40);
                 Snd_PlaySe(1, 0);
             } else if (gPad[0].gamePressed & PADG_CROSS) {
-                if (gOption->bgmVolume != gSaveData->bgmVolume) {
+                if (gOption->bgmVolume != gSaveData->sound[SAVE_SOUND_BGM]) {
                     gOption->dirty = 1;
                 }
-                gOption->bgmVolume = gSaveData->bgmVolume;
+                gOption->bgmVolume = gSaveData->sound[SAVE_SOUND_BGM];
                 OPT_PLATE(OPT_CLIP_VOL_BGM, "fl_ok");
                 Snd_PlaySe(1, 1);
             }
         } else {
             if (gPad[0].gameRepeat & PADG_LEFT) {
                 OPT_PLATE(OPT_CLIP_VOL_SE, "fl_off_start");
-                if (--gSaveData->seVolume < 0) {
-                    gSaveData->seVolume = 9;
+                if (--gSaveData->sound[SAVE_SOUND_SE] < 0) {
+                    gSaveData->sound[SAVE_SOUND_SE] = 9;
                 }
                 OPT_PLATE(OPT_CLIP_VOL_SE, "fl_on_start");
                 Snd_PlaySe(1, 0);
             } else if (gPad[0].gameRepeat & PADG_RIGHT) {
                 OPT_PLATE(OPT_CLIP_VOL_SE, "fl_off_start");
-                if (++gSaveData->seVolume > 9) {
-                    gSaveData->seVolume = 0;
+                if (++gSaveData->sound[SAVE_SOUND_SE] > 9) {
+                    gSaveData->sound[SAVE_SOUND_SE] = 0;
                 }
                 OPT_PLATE(OPT_CLIP_VOL_SE, "fl_on_start");
                 Snd_PlaySe(1, 0);
             } else if (gPad[0].gamePressed & PADG_CROSS) {
-                if (gOption->seVolume != gSaveData->seVolume) {
+                if (gOption->seVolume != gSaveData->sound[SAVE_SOUND_SE]) {
                     gOption->dirty = 1;
                 }
-                gOption->seVolume = gSaveData->seVolume;
+                gOption->seVolume = gSaveData->sound[SAVE_SOUND_SE];
                 OPT_PLATE(OPT_CLIP_VOL_SE, "fl_ok");
                 Snd_PlaySe(1, 1);
             }
@@ -1138,7 +1138,7 @@ s32 Option_Input(void) {
                     gOption->dirty = 1;
                 }
                 gOption->state = OPT_ITEM_SOUND;
-                gSaveData->soundMode = gOption->value;
+                gSaveData->sound[SAVE_SOUND_MODE] = gOption->value;
                 SndOpt_Apply();
                 Flash_GotoLabel(&gOption->flash[0], "fl_value_out", 1);
                 OPT_PLATE(OPT_CLIP_ROW_SOUND, "fl_on_start");
@@ -1174,7 +1174,7 @@ s32 Option_Input(void) {
             Snd_PlaySe(1, 2);
             OPT_PLATE(OPT_CLIP_PICK, "fl_off_start");
             if (gOption->state == OPT_ITEM_STEREO) {
-                gOption->value = gSaveData->soundMode;
+                gOption->value = gSaveData->sound[SAVE_SOUND_MODE];
                 OPT_PLATE(OPT_CLIP_PICK, "fl_on_start");
                 gOption->state = OPT_ITEM_SOUND;
                 OPT_PLATE(OPT_CLIP_ROW_SOUND, "fl_on_start");
@@ -1234,43 +1234,43 @@ s32 Option_Input(void) {
 }
 
 /*
- * The key-caption loop of the controller page (the default layout). Case 5 of the first switch leaves uv.x0
+ * The key-caption loop of the controller page (the default layout). Case 5 of the first switch leaves uv.u0
  * alone (it is 0 already); cases 6 and 7 store it again. The order of the `uv` stores in each block of
  * Option_Draw was found by search (build/scratch_menu_y/perm.py).
  */
 #define DEFAULT_KEYS_LOOP() \
                     for (i = 0; i < 8; i++) { \
-                        uv.y0 = 0; \
-                        uv.x0 = 0; \
+                        uv.v0 = 0; \
+                        uv.u0 = 0; \
                         switch (gOption->key[gOption->pad][i]) { \
                             case 2: \
-                                uv.y0 = 0x50; \
-                                uv.x0 = 0x80; \
+                                uv.v0 = 0x50; \
+                                uv.u0 = 0x80; \
                                 break; \
                             case 1: \
-                                uv.y0 = 0x78; \
-                                uv.x0 = 0x80; \
+                                uv.v0 = 0x78; \
+                                uv.u0 = 0x80; \
                                 break; \
                             case 0: \
-                                uv.y0 = 0x28; \
-                                uv.x0 = 0x80; \
+                                uv.v0 = 0x28; \
+                                uv.u0 = 0x80; \
                                 break; \
                             case 3: \
-                                uv.y0 = 0; \
-                                uv.x0 = 0x80; \
+                                uv.v0 = 0; \
+                                uv.u0 = 0x80; \
                                 break; \
                             case 4: \
                                 break; \
                             case 5: \
-                                uv.y0 = 0x28; \
+                                uv.v0 = 0x28; \
                                 break; \
                             case 6: \
-                                uv.x0 = 0; \
-                                uv.y0 = 0x50; \
+                                uv.u0 = 0; \
+                                uv.v0 = 0x50; \
                                 break; \
                             case 7: \
-                                uv.x0 = 0; \
-                                uv.y0 = 0x78; \
+                                uv.u0 = 0; \
+                                uv.v0 = 0x78; \
                                 break; \
                         } \
                         switch (i) { \
@@ -1299,8 +1299,8 @@ s32 Option_Input(void) {
                                 text = 7; \
                                 break; \
                         } \
-                        uv.y1 = uv.y0 + 0x28; \
-                        uv.x1 = uv.x0 + 0x80; \
+                        uv.v1 = uv.v0 + 0x28; \
+                        uv.u1 = uv.u0 + 0x80; \
                         sprintf(name, "mc_button_text_%d", text); \
                         Flash_FindLabel(flash, NULL, name, &ref); \
                         Flash_ClipSetUv(flash, &ref, &uv); \
@@ -1308,12 +1308,12 @@ s32 Option_Input(void) {
 
 /* Per frame: sets up every clip of the movie from the screen's state and draws the screen. */
 void Option_Draw(void) {
-    MFlashRef ref;
-    MFlashRef eye;
-    MFlashRef mouth;
+    FlashRef ref;
+    FlashRef eye;
+    FlashRef mouth;
     char name[0x40];
-    MFlashUv uv;
-    MFlash *flash;
+    FlashUv uv;
+    Flash *flash;
     s32 i;
     s32 text = 0;
     s32 num = 0;
@@ -1365,10 +1365,10 @@ void Option_Draw(void) {
         case 0:
             rows4 = 4;
             for (i = 0; i < rows4; i++) {
-                uv.x0 = 0;
-                uv.y0 = i * 0x20;
-                uv.x1 = 0x200;
-                uv.y1 = i * 0x20 + 0x20;
+                uv.u0 = 0;
+                uv.v0 = i * 0x20;
+                uv.u1 = 0x200;
+                uv.v1 = i * 0x20 + 0x20;
                 sprintf(name, "mc_menu_plate_%d", i + 1);
                 Option_SetMenuText(flash, &ref, name, uv);
             }
@@ -1378,10 +1378,10 @@ void Option_Draw(void) {
                        shift written in place) the constants 0x80 / 0x200 and the picker's base come out in
                        each other's saved registers. */
                     baseY = rows4 << 5;
-                    uv.x0 = 0;
-                    uv.y0 = i * 0x20 + baseY;
-                    uv.x1 = 0x200;
-                    uv.y1 = i * 0x20 + 0xA0;
+                    uv.u0 = 0;
+                    uv.v0 = i * 0x20 + baseY;
+                    uv.u1 = 0x200;
+                    uv.v1 = i * 0x20 + 0xA0;
                     sprintf(name, "mc_menu_plate_%d", i + 5);
                     Option_SetMenuText(flash, &ref, name, uv);
                 }
@@ -1389,17 +1389,17 @@ void Option_Draw(void) {
                 Flash_FindLabel(flash, NULL, name, &ref);
                 Flash_ClipSetFlags(flash, &ref, 2, 0);
             } else if (gOption->fromPage == 2 || gOption->fromPage == 3) {
-                uv.x0 = 0;
-                uv.y0 = 0xE0;
-                uv.y1 = 0x100;
-                uv.x1 = 0x200;
+                uv.u0 = 0;
+                uv.v0 = 0xE0;
+                uv.v1 = 0x100;
+                uv.u1 = 0x200;
                 sprintf(name, "mc_menu_plate_%d", 5);
                 Option_SetMenuText(flash, &ref, name, uv);
                 for (i = 0; i < 3; i++) {
-                    uv.x0 = 0;
-                    uv.y0 = i * 0x20;
-                    uv.x1 = 0x200;
-                    uv.y1 = i * 0x20 + 0x20;
+                    uv.u0 = 0;
+                    uv.v0 = i * 0x20;
+                    uv.u1 = 0x200;
+                    uv.v1 = i * 0x20 + 0x20;
                     sprintf(name, "mc_menu_plate_%d", i + 6);
                     Flash_FindLabel(flash, name, "mc_menu_text_off", &ref);
                     Flash_ClipSetUv(flash, &ref, &uv);
@@ -1415,10 +1415,10 @@ void Option_Draw(void) {
                 }
             } else {
                 for (i = 0; i < 2; i++) {
-                    uv.x0 = 0;
-                    uv.y0 = i * 0x20 + 0x60;
-                    uv.x1 = 0x200;
-                    uv.y1 = i * 0x20 + 0x80;
+                    uv.u0 = 0;
+                    uv.v0 = i * 0x20 + 0x60;
+                    uv.u1 = 0x200;
+                    uv.v1 = i * 0x20 + 0x80;
                     sprintf(name, "mc_menu_plate_%d", i + 5);
                     Flash_FindLabel(flash, name, "mc_menu_text_off", &ref);
                     Flash_ClipSetUv(flash, &ref, &uv);
@@ -1434,28 +1434,28 @@ void Option_Draw(void) {
                 Flash_FindLabel(flash, NULL, name, &ref);
                 Flash_ClipSetFlags(flash, &ref, 2, 0);
             }
-            uv.y0 = 0;
-            uv.y1 = 0x20;
-            uv.x0 = 0;
-            uv.x1 = 0x100;
+            uv.v0 = 0;
+            uv.v1 = 0x20;
+            uv.u0 = 0;
+            uv.u1 = 0x100;
             sprintf(name, "mc_bottom_plate_%d", 1);
             Flash_FindLabel(flash, name, "mc_bottom_text_off", &ref);
             Flash_ClipSetUv(flash, &ref, &uv);
             Flash_FindLabel(flash, name, "mc_bottom_text_on", &ref);
             Flash_ClipSetUv(flash, &ref, &uv);
-            uv.x0 = 0;
-            uv.y0 = 0x20;
-            uv.y1 = 0x40;
-            uv.x1 = 0x100;
+            uv.u0 = 0;
+            uv.v0 = 0x20;
+            uv.v1 = 0x40;
+            uv.u1 = 0x100;
             sprintf(name, "mc_bottom_plate_%d", 2);
             Option_SetBottomText(flash, &ref, name, uv);
             break;
         case 1:
             for (i = 0; i < 3; i++) {
-                uv.x0 = 0;
-                uv.y0 = i * 0x20 + 0x80;
-                uv.x1 = 0x200;
-                uv.y1 = i * 0x20 + 0xA0;
+                uv.u0 = 0;
+                uv.v0 = i * 0x20 + 0x80;
+                uv.u1 = 0x200;
+                uv.v1 = i * 0x20 + 0xA0;
                 sprintf(name, "mc_menu_plate_%d", i + 1);
                 Option_SetMenuText(flash, &ref, name, uv);
             }
@@ -1463,10 +1463,10 @@ void Option_Draw(void) {
             Flash_FindLabel(flash, NULL, name, &ref);
             Flash_ClipSetFlags(flash, &ref, 2, 0);
             for (i = 0; i < 4; i++) {
-                uv.x0 = 0;
-                uv.x1 = 0x200;
-                uv.y1 = i * 0x20 + 0x20;
-                uv.y0 = i * 0x20;
+                uv.u0 = 0;
+                uv.u1 = 0x200;
+                uv.v1 = i * 0x20 + 0x20;
+                uv.v0 = i * 0x20;
                 sprintf(name, "mc_menu_plate_%d", i + 5);
                 Option_SetMenuText(flash, &ref, name, uv);
             }
@@ -1474,45 +1474,45 @@ void Option_Draw(void) {
             Flash_ClipSetTex(flash, &ref, gSaveData->unk1694 * 2);
             Flash_FindLabel(flash, NULL, "mc_layout_window", &ref);
             Flash_ClipSetTex(flash, &ref, 0);
-            uv.x0 = 0;
-            uv.y0 = 0x20;
-            uv.x1 = 0x100;
-            uv.y1 = 0x40;
+            uv.u0 = 0;
+            uv.v0 = 0x20;
+            uv.u1 = 0x100;
+            uv.v1 = 0x40;
             sprintf(name, "mc_bottom_plate_%d", 1);
             Option_SetBottomText(flash, &ref, name, uv);
-            uv.y0 = 0;
-            uv.x0 = 0;
-            uv.x1 = 0x100;
-            uv.y1 = 0x20;
+            uv.v0 = 0;
+            uv.u0 = 0;
+            uv.u1 = 0x100;
+            uv.v1 = 0x20;
             sprintf(name, "mc_bottom_plate_%d", 2);
             Option_SetBottomText(flash, &ref, name, uv);
-            uv.y0 = 0;
-            uv.y1 = 0x100;
-            uv.x0 = 0;
-            uv.x1 = 0x100;
+            uv.v0 = 0;
+            uv.v1 = 0x100;
+            uv.u0 = 0;
+            uv.u1 = 0x100;
             sprintf(name, "mc_type_image_%d", 1);
             Flash_FindLabel(flash, NULL, name, &ref);
             Flash_ClipSetUv(flash, &ref, &uv);
             typeY = gOption->type * 0x28;
-            uv.y0 = typeY;
-            uv.x0 = 0;
-            uv.x1 = 0x200;
-            uv.y1 = typeY + 0x28;
+            uv.v0 = typeY;
+            uv.u0 = 0;
+            uv.u1 = 0x200;
+            uv.v1 = typeY + 0x28;
             sprintf(name, "mc_type_text_%d", 1);
             Flash_FindLabel(flash, NULL, name, &ref);
             Flash_ClipSetUv(flash, &ref, &uv);
             prevY = gOption->typePrev * 0x28;
-            uv.y0 = prevY;
-            uv.x0 = 0;
-            uv.x1 = 0x200;
-            uv.y1 = prevY + 0x28;
+            uv.v0 = prevY;
+            uv.u0 = 0;
+            uv.u1 = 0x200;
+            uv.v1 = prevY + 0x28;
             sprintf(name, "mc_type_text_%d", 2);
             Flash_FindLabel(flash, NULL, name, &ref);
             Flash_ClipSetUv(flash, &ref, &uv);
-            uv.y0 = 0;
-            uv.y1 = 0x100;
-            uv.x1 = 0x100;
-            uv.x0 = 0;
+            uv.v0 = 0;
+            uv.v1 = 0x100;
+            uv.u1 = 0x100;
+            uv.u0 = 0;
             sprintf(name, "mc_type_image_%d", 1);
             Flash_FindLabel(flash, NULL, name, &ref);
             Flash_ClipSetUv(flash, &ref, &uv);
@@ -1523,17 +1523,17 @@ void Option_Draw(void) {
             Flash_ClipSetTex(flash, &ref, gOption->typePrev);
             break;
         case 2:
-            uv.x0 = 0;
-            uv.y0 = 0xE0;
-            uv.y1 = 0x100;
-            uv.x1 = 0x200;
+            uv.u0 = 0;
+            uv.v0 = 0xE0;
+            uv.v1 = 0x100;
+            uv.u1 = 0x200;
             sprintf(name, "mc_menu_plate_%d", 1);
             Option_SetMenuText(flash, &ref, name, uv);
             for (i = 0; i < 3; i++) {
-                uv.x0 = 0;
-                uv.y0 = i * 0x20;
-                uv.x1 = 0x200;
-                uv.y1 = i * 0x20 + 0x20;
+                uv.u0 = 0;
+                uv.v0 = i * 0x20;
+                uv.u1 = 0x200;
+                uv.v1 = i * 0x20 + 0x20;
                 sprintf(name, "mc_menu_plate_%d", i + 2);
                 Flash_FindLabel(flash, name, "mc_menu_text_off", &ref);
                 Flash_ClipSetUv(flash, &ref, &uv);
@@ -1543,33 +1543,33 @@ void Option_Draw(void) {
                 Flash_ClipSetTex(flash, &ref, 1);
             }
             for (i = 0; i < 4; i++) {
-                uv.x0 = 0;
-                uv.x1 = 0x200;
-                uv.y1 = i * 0x20 + 0x20;
-                uv.y0 = i * 0x20;
+                uv.u0 = 0;
+                uv.u1 = 0x200;
+                uv.v1 = i * 0x20 + 0x20;
+                uv.v0 = i * 0x20;
                 sprintf(name, "mc_menu_plate_%d", i + 5);
                 Option_SetMenuText(flash, &ref, name, uv);
                 Flash_ClipSetTex(flash, &ref, 0);
             }
-            uv.y0 = 0x20;
-            uv.x0 = 0;
-            uv.x1 = 0x100;
-            uv.y1 = 0x40;
+            uv.v0 = 0x20;
+            uv.u0 = 0;
+            uv.u1 = 0x100;
+            uv.v1 = 0x40;
             sprintf(name, "mc_bottom_plate_%d", 1);
             Option_SetBottomText(flash, &ref, name, uv);
-            uv.y0 = 0;
-            uv.x0 = 0;
-            uv.y1 = 0x20;
-            uv.x1 = 0x100;
+            uv.v0 = 0;
+            uv.u0 = 0;
+            uv.v1 = 0x20;
+            uv.u1 = 0x100;
             sprintf(name, "mc_bottom_plate_%d", 2);
             Option_SetBottomText(flash, &ref, name, uv);
             break;
         case 3:
             for (i = 0; i < 2; i++) {
-                uv.x0 = 0;
-                uv.y0 = i * 0x20 + 0x60;
-                uv.x1 = 0x200;
-                uv.y1 = i * 0x20 + 0x80;
+                uv.u0 = 0;
+                uv.v0 = i * 0x20 + 0x60;
+                uv.u1 = 0x200;
+                uv.v1 = i * 0x20 + 0x80;
                 sprintf(name, "mc_menu_plate_%d", i + 1);
                 Flash_FindLabel(flash, name, "mc_menu_text_off", &ref);
                 Flash_ClipSetUv(flash, &ref, &uv);
@@ -1579,10 +1579,10 @@ void Option_Draw(void) {
                 Flash_ClipSetTex(flash, &ref, 1);
             }
             for (i = 0; i < 4; i++) {
-                uv.x0 = 0;
-                uv.x1 = 0x200;
-                uv.y1 = i * 0x20 + 0x20;
-                uv.y0 = i * 0x20;
+                uv.u0 = 0;
+                uv.u1 = 0x200;
+                uv.v1 = i * 0x20 + 0x20;
+                uv.v0 = i * 0x20;
                 sprintf(name, "mc_menu_plate_%d", i + 5);
                 Option_SetMenuText(flash, &ref, name, uv);
             }
@@ -1592,19 +1592,19 @@ void Option_Draw(void) {
             sprintf(name, "mc_menu_plate_%d", 4);
             Flash_FindLabel(flash, NULL, name, &ref);
             Flash_ClipSetFlags(flash, &ref, 2, 0);
-            uv.y0 = 0x20;
-            uv.x0 = 0;
-            uv.x1 = 0x100;
-            uv.y1 = 0x40;
+            uv.v0 = 0x20;
+            uv.u0 = 0;
+            uv.u1 = 0x100;
+            uv.v1 = 0x40;
             sprintf(name, "mc_bottom_plate_%d", 1);
             Flash_FindLabel(flash, name, "mc_bottom_text_off", &ref);
             Flash_ClipSetUv(flash, &ref, &uv);
             Flash_FindLabel(flash, name, "mc_bottom_text_on", &ref);
             Flash_ClipSetUv(flash, &ref, &uv);
-            uv.y0 = 0;
-            uv.y1 = 0x20;
-            uv.x0 = 0;
-            uv.x1 = 0x100;
+            uv.v0 = 0;
+            uv.v1 = 0x20;
+            uv.u0 = 0;
+            uv.u1 = 0x100;
             sprintf(name, "mc_bottom_plate_%d", 2);
             Flash_FindLabel(flash, name, "mc_bottom_text_off", &ref);
             Flash_ClipSetUv(flash, &ref, &uv);
@@ -1612,44 +1612,44 @@ void Option_Draw(void) {
             Flash_ClipSetUv(flash, &ref, &uv);
 
             /* the eight key names: the assignment being edited */
-            uv.y0 = 0;
-            uv.y1 = 0xA0;
-            uv.x0 = 0x30;
-            uv.x1 = 0x60;
+            uv.v0 = 0;
+            uv.v1 = 0xA0;
+            uv.u0 = 0x30;
+            uv.u1 = 0x60;
             Flash_FindLabel(flash, NULL, "mc_button_mark_off", &ref);
             Flash_ClipSetUv(flash, &ref, &uv);
             for (i = 0; i < 8; i++) {
-                uv.y0 = 0;
-                uv.x0 = 0;
+                uv.v0 = 0;
+                uv.u0 = 0;
                 switch (gSaveData->keyEdit[gOption->pad][i]) {
                     case 2:
-                        uv.y0 = 0x50;
-                        uv.x0 = 0x80;
+                        uv.v0 = 0x50;
+                        uv.u0 = 0x80;
                         break;
                     case 1:
-                        uv.y0 = 0x78;
-                        uv.x0 = 0x80;
+                        uv.v0 = 0x78;
+                        uv.u0 = 0x80;
                         break;
                     case 0:
-                        uv.y0 = 0x28;
-                        uv.x0 = 0x80;
+                        uv.v0 = 0x28;
+                        uv.u0 = 0x80;
                         break;
                     case 3:
-                        uv.y0 = 0;
-                        uv.x0 = 0x80;
+                        uv.v0 = 0;
+                        uv.u0 = 0x80;
                         break;
                     case 4:
                         break;
                     case 5:
-                        uv.y0 = 0x28;
+                        uv.v0 = 0x28;
                         break;
                     case 6:
-                        uv.x0 = 0;
-                        uv.y0 = 0x50;
+                        uv.u0 = 0;
+                        uv.v0 = 0x50;
                         break;
                     case 7:
-                        uv.x0 = 0;
-                        uv.y0 = 0x78;
+                        uv.u0 = 0;
+                        uv.v0 = 0x78;
                         break;
                 }
                 switch (i) {
@@ -1678,8 +1678,8 @@ void Option_Draw(void) {
                         text = 2;
                         break;
                 }
-                uv.y1 = uv.y0 + 0x28;
-                uv.x1 = uv.x0 + 0x80;
+                uv.v1 = uv.v0 + 0x28;
+                uv.u1 = uv.u0 + 0x80;
                 sprintf(name, "mc_button_text_%d", text);
                 Flash_FindLabel(flash, NULL, name, &ref);
                 Flash_ClipSetUv(flash, &ref, &uv);
@@ -1710,40 +1710,40 @@ void Option_Draw(void) {
             if (gOption->keyEdit) {
                 switch (gOption->keyRow) {
                     case 0:
-                        uv.y0 = 0x50;
-                        uv.x0 = 0x30;
+                        uv.v0 = 0x50;
+                        uv.u0 = 0x30;
                         break;
                     case 1:
-                        uv.y0 = 0x78;
-                        uv.x0 = 0x30;
+                        uv.v0 = 0x78;
+                        uv.u0 = 0x30;
                         break;
                     case 2:
-                        uv.x0 = 0;
-                        uv.y0 = 0x78;
+                        uv.u0 = 0;
+                        uv.v0 = 0x78;
                         break;
                     case 3:
-                        uv.x0 = 0;
-                        uv.y0 = 0x50;
+                        uv.u0 = 0;
+                        uv.v0 = 0x50;
                         break;
                     case 4:
-                        uv.x0 = 0;
-                        uv.y0 = 0x28;
+                        uv.u0 = 0;
+                        uv.v0 = 0x28;
                         break;
                     case 5:
-                        uv.y0 = 0;
-                        uv.x0 = 0;
+                        uv.v0 = 0;
+                        uv.u0 = 0;
                         break;
                     case 6:
-                        uv.y0 = 0x28;
-                        uv.x0 = 0x30;
+                        uv.v0 = 0x28;
+                        uv.u0 = 0x30;
                         break;
                     case 7:
-                        uv.y0 = 0;
-                        uv.x0 = 0x30;
+                        uv.v0 = 0;
+                        uv.u0 = 0x30;
                         break;
                 }
-                uv.y1 = uv.y0 + 0x28;
-                uv.x1 = uv.x0 + 0x30;
+                uv.v1 = uv.v0 + 0x28;
+                uv.u1 = uv.u0 + 0x30;
                 Flash_FindLabel(flash, NULL, "mc_button_mark_on", &ref);
                 Flash_ClipSetUv(flash, &ref, &uv);
                 Flash_ClipSetOffset(flash, &ref, gOption->markX, gOption->markY);
@@ -1766,10 +1766,10 @@ void Option_Draw(void) {
         baseY = 0xC0;
     }
     for (i = 0; i < 2; i++) {
-        uv.x0 = 0;
-        uv.y1 = baseY + i * 0x20 + 0x20;
-        uv.x1 = 0x100;
-        uv.y0 = baseY + i * 0x20;
+        uv.u0 = 0;
+        uv.v1 = baseY + i * 0x20 + 0x20;
+        uv.u1 = 0x100;
+        uv.v0 = baseY + i * 0x20;
         sprintf(name, "mc_select_plate_%d", i + 1);
         if (gOption->picker < 7) {
             Flash_FindLabel(flash, name, "mc_select_text_off", &ref);
@@ -1792,10 +1792,10 @@ void Option_Draw(void) {
         ctrlY = 0x40;
     }
     for (i = 0; i < 2; i++) {
-        uv.y0 = ctrlY + i * 0x20;
-        uv.y1 = ctrlY + i * 0x20 + 0x20;
-        uv.x1 = 0x100;
-        uv.x0 = 0;
+        uv.v0 = ctrlY + i * 0x20;
+        uv.v1 = ctrlY + i * 0x20 + 0x20;
+        uv.u1 = 0x100;
+        uv.u0 = 0;
         sprintf(name, "mc_select_plate_%d", i + 3);
         if (gOption->picker != 3 && gOption->picker != 4 && gOption->picker != 0 && gOption->picker != 6 &&
             gOption->picker < 7) {
@@ -1814,10 +1814,10 @@ void Option_Draw(void) {
     /* the volume window: ten numbered plates per volume */
     for (i = 0; i < 3; i++) {
         for (col = 0; col < 4; col++) {
-            uv.y0 = i * 0x20;
-            uv.x0 = col * 0x20;
-            uv.x1 = col * 0x20 + 0x20;
-            uv.y1 = i * 0x20 + 0x20;
+            uv.v0 = i * 0x20;
+            uv.u0 = col * 0x20;
+            uv.u1 = col * 0x20 + 0x20;
+            uv.v1 = i * 0x20 + 0x20;
             sprintf(name, "mc_vol_plate_bgm_%d", num);
             if (gOption->picker < 7) {
                 Flash_FindLabel(flash, NULL, name, &ref);
@@ -1863,35 +1863,35 @@ void Option_Draw(void) {
                 Flash_ClipSetCallbackB(flash, &ref, Option_ResetScissor, NULL);
             }
             bgmY = gOption->bgmIds[gOption->bgmTop + i] % 8 * 0x20;
-            uv.y0 = bgmY;
-            uv.x0 = 0;
-            uv.x1 = 0x200;
-            uv.y1 = bgmY + 0x20;
-            uv.unk10 = gOption->bgmIds[gOption->bgmTop + i] / 8;
+            uv.v0 = bgmY;
+            uv.u0 = 0;
+            uv.u1 = 0x200;
+            uv.v1 = bgmY + 0x20;
+            uv.tex = gOption->bgmIds[gOption->bgmTop + i] / 8;
             sprintf(name, "mc_bgm_plate_%d", i + 1);
             Flash_FindLabel(flash, name, "mc_bgm_text_off", &ref);
             Flash_ClipSetUv(flash, &ref, &uv);
-            Flash_ClipSetTex(flash, &ref, uv.unk10);
+            Flash_ClipSetTex(flash, &ref, uv.tex);
             Flash_FindLabel(flash, name, "mc_bgm_text_on", &ref);
             Flash_ClipSetUv(flash, &ref, &uv);
-            Flash_ClipSetTex(flash, &ref, uv.unk10);
+            Flash_ClipSetTex(flash, &ref, uv.tex);
         }
         Flash_FindLabel(flash, NULL, "mc_bgm_plate_7", &ref);
         Flash_ClipSetCallbackA(flash, &ref, Option_SetBgmScissor, NULL);
         Flash_ClipSetCallbackB(flash, &ref, Option_ResetScissor, NULL);
         rows = 6.0f;
         bgmY = gOption->bgmIds[gOption->bgmExtra] % 8 * 0x20;
-        uv.y1 = bgmY + 0x20;
-        uv.x1 = 0x200;
-        uv.y0 = bgmY;
-        uv.x0 = 0;
-        uv.unk10 = gOption->bgmIds[gOption->bgmExtra] / 8;
+        uv.v1 = bgmY + 0x20;
+        uv.u1 = 0x200;
+        uv.v0 = bgmY;
+        uv.u0 = 0;
+        uv.tex = gOption->bgmIds[gOption->bgmExtra] / 8;
         Flash_FindLabel(flash, "mc_bgm_plate_7", "mc_bgm_text_off", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
-        Flash_ClipSetTex(flash, &ref, uv.unk10);
+        Flash_ClipSetTex(flash, &ref, uv.tex);
         Flash_FindLabel(flash, "mc_bgm_plate_7", "mc_bgm_text_on", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
-        Flash_ClipSetTex(flash, &ref, uv.unk10);
+        Flash_ClipSetTex(flash, &ref, uv.tex);
         len = 7.3f;
         y = 255.49999f / gOption->bgmCount * gOption->bgmTop;
         scale = rows / gOption->bgmCount * len;
@@ -1901,10 +1901,10 @@ void Option_Draw(void) {
     }
 
     /* the volume marks and the arrows */
-    uv.y0 = 0;
-    uv.x0 = 0;
-    uv.x1 = 0x40;
-    uv.y1 = 0x80;
+    uv.v0 = 0;
+    uv.u0 = 0;
+    uv.u1 = 0x40;
+    uv.v1 = 0x80;
     Flash_FindLabel(flash, NULL, "mc_vol_now_bgm", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     Flash_ClipSetOffset(flash, &ref, gOption->bgmVolume * 0x23, 0);
@@ -1915,22 +1915,22 @@ void Option_Draw(void) {
     Flash_ClipSetFlags(flash, &ref, 2, gOption->bgmTop != 0);
     Flash_FindLabel(flash, "mc_yajirusi_down", "mc_yajirusi_icon_down", &ref);
     Flash_ClipSetFlags(flash, &ref, 2, gOption->bgmBottom < gOption->bgmCount);
-    uv.y0 = 0x20;
-    uv.y1 = 0x40;
-    uv.x0 = 0;
-    uv.x1 = 0x20;
+    uv.v0 = 0x20;
+    uv.v1 = 0x40;
+    uv.u0 = 0;
+    uv.u1 = 0x20;
     Flash_FindLabel(flash, "mc_yajirusi_up", "mc_yajirusi_icon_up", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
-    uv.y0 = 0x20;
-    uv.y1 = 0x40;
-    uv.x0 = 0x20;
-    uv.x1 = 0x40;
+    uv.v0 = 0x20;
+    uv.v1 = 0x40;
+    uv.u0 = 0x20;
+    uv.u1 = 0x40;
     Flash_FindLabel(flash, "mc_yajirusi_down", "mc_yajirusi_icon_down", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
-    uv.y0 = 0;
-    uv.y1 = 0x20;
-    uv.x0 = 0x20;
-    uv.x1 = 0x40;
+    uv.v0 = 0;
+    uv.v1 = 0x20;
+    uv.u0 = 0x20;
+    uv.u1 = 0x40;
     Flash_FindLabel(flash, "mc_yajirusi_right", "mc_yajirusi_icon_right", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     if (gOption->state == YOPT_VOLUME && gOption->value == 1) {
@@ -1977,9 +1977,9 @@ void Option_Draw(void) {
 
 /* Sends one of the screen's plates to a label of its timeline. */
 void Option_PlateGoto(s32 unused, s32 clip, char *label) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[0x40];
-    MFlash *flash = gOption->flash;
+    Flash *flash = gOption->flash;
 
     switch (clip) {
         case OPT_CLIP_ROW:
@@ -2009,10 +2009,10 @@ void Option_PlateGoto(s32 unused, s32 clip, char *label) {
             sprintf(name, "mc_bgm_plate_%d", gOption->bgmCursor - gOption->bgmTop + 1);
             break;
         case OPT_CLIP_VOL_BGM:
-            sprintf(name, "mc_vol_plate_bgm_%d", gSaveData->bgmVolume);
+            sprintf(name, "mc_vol_plate_bgm_%d", gSaveData->sound[SAVE_SOUND_BGM]);
             break;
         case OPT_CLIP_VOL_SE:
-            sprintf(name, "mc_vol_plate_se_%d", gSaveData->seVolume);
+            sprintf(name, "mc_vol_plate_se_%d", gSaveData->sound[SAVE_SOUND_SE]);
             break;
         case OPT_CLIP_ROW_CTRL:
             sprintf(name, "mc_menu_plate_%d", gOption->cursor - 16);
@@ -2125,13 +2125,13 @@ void Option_UpdateReset(void) {
                 }
                 gSaveData->screenX = gSaveData->screenY = 0;
             } else if (gOption->state == YOPT_SND_RESET) {
-                if (gSaveData->soundMode != 0 || gSaveData->bgmVolume != 9 || gSaveData->seVolume != 9 ||
+                if (gSaveData->sound[SAVE_SOUND_MODE] != 0 || gSaveData->sound[SAVE_SOUND_BGM] != 9 || gSaveData->sound[SAVE_SOUND_SE] != 9 ||
                     !(gSaveData->flags & SAVE_FLAG_VOICE)) {
                     gOption->dirty = 1;
                 }
-                gSaveData->soundMode = 0;
-                gSaveData->bgmVolume = 9;
-                gSaveData->seVolume = 9;
+                gSaveData->sound[SAVE_SOUND_MODE] = 0;
+                gSaveData->sound[SAVE_SOUND_BGM] = 9;
+                gSaveData->sound[SAVE_SOUND_SE] = 9;
                 gSaveData->flags |= SAVE_FLAG_VOICE;
                 SndOpt_Apply();
             } else if (gOption->state == YOPT_CTRL_RESET) {
@@ -2186,7 +2186,7 @@ void Option_UpdateReset(void) {
 }
 
 /* Gives the two text clips of a bottom plate their rectangle and their first picture. */
-void Option_SetBottomText(MFlash *flash, MFlashRef *ref, char *name, MFlashUv uv) {
+void Option_SetBottomText(Flash *flash, FlashRef *ref, char *name, FlashUv uv) {
     Flash_FindLabel(flash, name, "mc_bottom_text_off", ref);
     Flash_ClipSetUv(flash, ref, &uv);
     Flash_ClipSetTex(flash, ref, 0);
@@ -2196,7 +2196,7 @@ void Option_SetBottomText(MFlash *flash, MFlashRef *ref, char *name, MFlashUv uv
 }
 
 /* The same for a menu plate. */
-void Option_SetMenuText(MFlash *flash, MFlashRef *ref, char *name, MFlashUv uv) {
+void Option_SetMenuText(Flash *flash, FlashRef *ref, char *name, FlashUv uv) {
     Flash_FindLabel(flash, name, "mc_menu_text_off", ref);
     Flash_ClipSetUv(flash, ref, &uv);
     Flash_ClipSetTex(flash, ref, 0);
@@ -2207,9 +2207,9 @@ void Option_SetMenuText(MFlash *flash, MFlashRef *ref, char *name, MFlashUv uv) 
 
 /* Dims the four picker plates. */
 void Option_DimPickers(void) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[0x40];
-    MFlash *flash = gOption->flash;
+    Flash *flash = gOption->flash;
 
     sprintf(name, "mc_select_plate_%d", 1);
     Flash_FindLabel(flash, NULL, name, &ref);

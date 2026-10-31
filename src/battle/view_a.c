@@ -115,25 +115,25 @@ void GetWin_Draw(void) {
         Flash_Advance(&gGetWin->flash[i]);
     }
 
-    uv.y0 = 0;
+    uv.v0 = 0;
     switch (kind) {
     case 3:
     case 4:
     case 5:
     case 9:
-        uv.y0 = 0x80;
+        uv.v0 = 0x80;
         break;
     case 1:
     case 8:
-        uv.y0 = 0x40;
+        uv.v0 = 0x40;
         break;
     case 6:
-        uv.y0 = 0xC0;
+        uv.v0 = 0xC0;
         break;
     }
-    uv.y1 = uv.y0 + 0x40;
-    uv.x1 = 0x200;
-    uv.x0 = 0;
+    uv.v1 = uv.v0 + 0x40;
+    uv.u1 = 0x200;
+    uv.u0 = 0;
     Flash_FindLabel(flash, NULL, "title_get", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     if (kind >= 7 && kind <= 9) {
@@ -142,54 +142,54 @@ void GetWin_Draw(void) {
         Flash_ClipSetTex(flash, &ref, 0);
     }
 
-    uv.x0 = 0;
-    uv.y0 = 0;
-    uv.x1 = 0x40;
-    uv.y1 = 0x40;
+    uv.u0 = 0;
+    uv.v0 = 0;
+    uv.u1 = 0x40;
+    uv.v1 = 0x40;
     switch (kind) {
     case 0:
-        uv.x0 = 0x40;
-        uv.x1 = 0x80;
+        uv.u0 = 0x40;
+        uv.u1 = 0x80;
         break;
     case 1:
-        uv.x0 = 0x80;
-        uv.x1 = 0xC0;
+        uv.u0 = 0x80;
+        uv.u1 = 0xC0;
         break;
     case 3:
-        uv.x0 = 0xC0;
-        uv.x1 = 0x100;
+        uv.u0 = 0xC0;
+        uv.u1 = 0x100;
         break;
     case 4:
-        uv.y0 = 0x40;
-        uv.y1 = 0x80;
+        uv.v0 = 0x40;
+        uv.v1 = 0x80;
         break;
     case 5:
-        uv.y0 = 0x40;
-        uv.x0 = 0x40;
-        uv.y1 = 0x80;
-        uv.x1 = 0x80;
+        uv.v0 = 0x40;
+        uv.u0 = 0x40;
+        uv.v1 = 0x80;
+        uv.u1 = 0x80;
         break;
     case 6:
-        uv.y0 = 0x40;
-        uv.y1 = 0x80;
-        uv.x0 = 0x80;
-        uv.x1 = 0xC0;
+        uv.v0 = 0x40;
+        uv.v1 = 0x80;
+        uv.u0 = 0x80;
+        uv.u1 = 0xC0;
         break;
     case 8:
-        uv.x1 = 0x80;
-        uv.x0 = 0;
-        uv.y1 = uv.y0 + 0x80;
+        uv.u1 = 0x80;
+        uv.u0 = 0;
+        uv.v1 = uv.v0 + 0x80;
         break;
     case 7:
-        uv.x1 = 0x40;
-        uv.x0 = 0;
-        uv.y1 = uv.y0 + 0x40;
+        uv.u1 = 0x40;
+        uv.u0 = 0;
+        uv.v1 = uv.v0 + 0x40;
         break;
     case 9:
-        uv.y0 = 0x40;
-        uv.y1 = 0x80;
-        uv.x0 = 0xC0;
-        uv.x1 = 0x100;
+        uv.v0 = 0x40;
+        uv.v1 = 0x80;
+        uv.u0 = 0xC0;
+        uv.u1 = 0x100;
         break;
     }
     Flash_FindLabel(flash, NULL, kind != 8 ? "mc_icon_get_1_loop" : "mc_icon_get_2_loop", &ref);
@@ -263,7 +263,7 @@ void GetWin_Next(void) {
 
 /* Non-zero while one of the three animations runs. */
 s32 GetWin_IsAnimating(void) {
-    if (gGetWin->flash[0].flags & 1) {
+    if (gGetWin->flash[0].trig & 1) {
         return 1;
     }
     return 0;

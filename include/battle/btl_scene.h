@@ -2,6 +2,7 @@
 #define BATTLE_BTL_SCENE_H
 
 #include "types.h"
+#include "battle/btl_task.h"
 
 /*
  * Battle effect scene: src/battle/btl_scene.c = 0x12C9F0..0x12DD80 (53 functions).
@@ -80,14 +81,6 @@
 #define BTL_SCENE_RATE_COUNT 6
 
 /* Callbacks of a task class (the tables at 0x2C3490, 0x2C3550...). Names from how 0x1AD150..0x1ADA80 call them. */
-typedef struct BtlTaskClass {
-    /* 0x00 */ void (*update)(void *task);      /* BtlTaskList_Update */
-    /* 0x04 */ void (*init)(void *task, void *arg);
-    /* 0x08 */ void (*term)(void *task);        /* BtlTask_Kill */
-    /* 0x0C */ void (*postUpdate)(void *task);  /* BtlTaskList_PostUpdate */
-    /* 0x10 */ void (*reset)(void *task);       /* BtlTaskList_Reset */
-    /* 0x14 */ void (*draw)(void *task);        /* BtlTaskList_Draw */
-} BtlTaskClass; /* size 0x18 */
 
 /* Per-character effect rates, gBtlScene->rates[character]. */
 typedef struct BtlSceneRate {

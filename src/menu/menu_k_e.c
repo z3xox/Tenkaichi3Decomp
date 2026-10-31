@@ -11,30 +11,30 @@
 
 /* Sets the texture rectangles, positions and visibility of every clip that depends on the bracket's state. */
 void Bracket_SetupDraw(Bracket *b) {
-    MFlashRef ref;
-    MFlashUv uv;
+    FlashRef ref;
+    FlashUv uv;
     char name[0x40];
-    MFlash *flash;
+    Flash *flash;
     s32 i;
 
     /* title plate: the round's name; result banner */
     flash = &b->flash[BRK_FL_TITLE];
-    uv.x0 = 0;
-    uv.y0 = b->round * 0x20;
-    uv.x1 = 0x100;
-    uv.y1 = uv.y0 + 0x20;
+    uv.u0 = 0;
+    uv.v0 = b->round * 0x20;
+    uv.u1 = 0x100;
+    uv.v1 = uv.v0 + 0x20;
     Flash_FindLabel(flash, "mc_menu_title_plate", "mc_menu_title_text02", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
-    uv.y0 = 0x80;
-    uv.x1 = 0x200;
-    uv.x0 = 0;
-    uv.y1 = 0x100;
+    uv.v0 = 0x80;
+    uv.u1 = 0x200;
+    uv.u0 = 0;
+    uv.v1 = 0x100;
     Flash_FindLabel(flash, NULL, "mc_victory_lose_result_text01", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
-    uv.y0 = (b->flags & BRK_RUNNER_UP) ? 0x40 : 0;
-    uv.y1 = uv.y0 + 0x40;
-    uv.x1 = 0x100;
-    uv.x0 = 0;
+    uv.v0 = (b->flags & BRK_RUNNER_UP) ? 0x40 : 0;
+    uv.v1 = uv.v0 + 0x40;
+    uv.u1 = 0x100;
+    uv.u0 = 0;
     Flash_FindLabel(flash, "mc_victory_plate", "mc_menu_victory_text", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
 
@@ -96,10 +96,10 @@ void Bracket_SetupDraw(Bracket *b) {
     Flash_FindLabel(flash, NULL, "mc_scroll_yazirusi", &ref);
     Flash_ClipSetOffset(flash, &ref, -(s32)b->scroll, 0);
     for (i = 0; i < 2; i++) {
-        uv.x0 = i * 0x40;
-        uv.y0 = 0;
-        uv.x1 = uv.x0 + 0x40;
-        uv.y1 = 0x40;
+        uv.u0 = i * 0x40;
+        uv.v0 = 0;
+        uv.u1 = uv.u0 + 0x40;
+        uv.v1 = 0x40;
         Flash_FindLabel(flash, "mc_scroll_yazirusi", i ? "mc_yajirusi_l" : "mc_yajirusi_r", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
         if (b->flags & BRK_INPUT) {
@@ -119,10 +119,10 @@ void Bracket_SetupDraw(Bracket *b) {
         sprintf(name, "mc_tournament_frame_%d", i);
         Flash_FindLabel(flash, NULL, name, &ref);
         if (BK_ENT(i).flags & TOUR_ENT_PLAYER) {
-            uv.x0 = (BK_ENT(i).player % 4) * 0x40;
-            uv.y0 = (BK_ENT(i).player / 4) * 0x40;
-            uv.y1 = uv.y0 + 0x40;
-            uv.x1 = uv.x0 + 0x40;
+            uv.u0 = (BK_ENT(i).player % 4) * 0x40;
+            uv.v0 = (BK_ENT(i).player / 4) * 0x40;
+            uv.v1 = uv.v0 + 0x40;
+            uv.u1 = uv.u0 + 0x40;
             Flash_ClipSetTex(flash, &ref, 1);
             Flash_ClipSetUv(flash, &ref, &uv);
         }
@@ -149,10 +149,10 @@ void Bracket_SetupDraw(Bracket *b) {
 
         for (i = 0; i < 2; i++) {
             if (BK_ENT(BK_MATCH.ent[i]).flags & TOUR_ENT_PLAYER) {
-                uv.x0 = (BK_ENT(BK_MATCH.ent[i]).player % 4) * 0x40;
-                uv.y0 = (BK_ENT(BK_MATCH.ent[i]).player / 4) * 0x40;
-                uv.y1 = uv.y0 + 0x40;
-                uv.x1 = uv.x0 + 0x40;
+                uv.u0 = (BK_ENT(BK_MATCH.ent[i]).player % 4) * 0x40;
+                uv.v0 = (BK_ENT(BK_MATCH.ent[i]).player / 4) * 0x40;
+                uv.v1 = uv.v0 + 0x40;
+                uv.u1 = uv.u0 + 0x40;
                 Flash_FindLabel(flash, NULL, i ? "mc_tournament_frame_1" : "mc_tournament_frame_0", &ref);
                 Flash_ClipSetTex(flash, &ref, 1);
                 Flash_ClipSetUv(flash, &ref, &uv);
@@ -169,10 +169,10 @@ void Bracket_SetupDraw(Bracket *b) {
 
         for (i = 0; i < 2; i++) {
             if (BK_ENT(BK_MATCH.ent[i]).flags & TOUR_ENT_PLAYER) {
-                uv.x0 = (BK_ENT(BK_MATCH.ent[i]).player % 4) * 0x40;
-                uv.y0 = (BK_ENT(BK_MATCH.ent[i]).player / 4) * 0x40;
-                uv.y1 = uv.y0 + 0x40;
-                uv.x1 = uv.x0 + 0x40;
+                uv.u0 = (BK_ENT(BK_MATCH.ent[i]).player % 4) * 0x40;
+                uv.v0 = (BK_ENT(BK_MATCH.ent[i]).player / 4) * 0x40;
+                uv.v1 = uv.v0 + 0x40;
+                uv.u1 = uv.u0 + 0x40;
                 Flash_FindLabel(flash, NULL, i ? "mc_tournament_frame_1" : "mc_tournament_frame_0", &ref);
                 Flash_ClipSetTex(flash, &ref, 1);
                 Flash_ClipSetUv(flash, &ref, &uv);
@@ -211,15 +211,15 @@ void Bracket_SetupDraw(Bracket *b) {
             Flash_FindLabel(flash, NULL, i ? "mc_form_text_r" : "mc_form_text_l", &ref);
             TextBox_AttachLine(flash, &ref, 0, 0, chara, &b->formBox[i]);
             if (BK_ENT(BK_MATCH.ent[i]).flags & TOUR_ENT_PLAYER) {
-                uv.x0 = (BK_ENT(BK_MATCH.ent[i]).player % cols) * 0x60;
-                uv.y0 = (BK_ENT(BK_MATCH.ent[i]).player / cols) * 0x40;
-                uv.x1 = uv.x0 + 0x60;
-                uv.y1 = uv.y0 + 0x40;
+                uv.u0 = (BK_ENT(BK_MATCH.ent[i]).player % cols) * 0x60;
+                uv.v0 = (BK_ENT(BK_MATCH.ent[i]).player / cols) * 0x40;
+                uv.u1 = uv.u0 + 0x60;
+                uv.v1 = uv.v0 + 0x40;
             } else {
-                uv.x0 = 0x120;
-                uv.y0 = 0x40;
-                uv.x1 = 0x180;
-                uv.y1 = 0x80;
+                uv.u0 = 0x120;
+                uv.v0 = 0x40;
+                uv.u1 = 0x180;
+                uv.v1 = 0x80;
             }
             Flash_FindLabel(flash, NULL, i ? "mc_vs_number_r" : "mc_vs_number_l", &ref);
             Flash_ClipSetUv(flash, &ref, &uv);
@@ -228,10 +228,10 @@ void Bracket_SetupDraw(Bracket *b) {
             } else {
                 plate = b->winSide == i;
             }
-            uv.x1 = 0x100;
-            uv.x0 = 0;
-            uv.y0 = plate * 0x40;
-            uv.y1 = uv.y0 + 0x40;
+            uv.u1 = 0x100;
+            uv.u0 = 0;
+            uv.v0 = plate * 0x40;
+            uv.v1 = uv.v0 + 0x40;
             Flash_FindLabel(flash, NULL, i ? "mc_victory_or_defeat_r" : "mc_victory_or_defeat_l", &ref);
             Flash_ClipSetUv(flash, &ref, &uv);
         }

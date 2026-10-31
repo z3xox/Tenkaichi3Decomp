@@ -14,10 +14,9 @@ extern void Port_MenuFill(int on);
  * menu_za.c 0x3AC440..0x3AE648 = the slot list, init / draw / input / run; merged here.) The work structure is a
  * local variable of DcPass_Run, so there is no work pointer; the object's `.data` is the key table at 0x3BC928
  * (0x8C bytes). Its read-only data is 0x3BD700 ("mc_input_code_%d_%02d") .. 0x3BE16C (the two jump tables of
- * DcPass_Input); with the `#if 0` attempts compiled in, the strings come out exactly as in the original.
+ * DcPass_Input); the live C strings and padding match the original linked image.
  *
- * Two functions are INCLUDE_ASM. What they refer to in the object's data:
- *   DcPass_WrapPos     nothing
+ * All DcPass functions are live C. DcPass_DrawStatus owns these seven strings:
  *   DcPass_DrawStatus  its own seven strings, 0x3BD850..0x3BD914 ("mc_status_ability_plus_%d" 0x3BD850,
  *                      "mc_status_ability_base2_1" 0x3BD870, "mc_text_ability_&d" 0x3BD890,
  *                      "mc_status_ability_base1_%d" 0x3BD8A8, "mc_status_ability_minus_%d" 0x3BD8C8,
@@ -48,35 +47,35 @@ char gDcPassKeys[DCPASS_PAGES][DCPASS_ROWS][DCPASS_COLS] = {
 };
 
 /* Keeps a value in lo..hi as a ring. */
-static inline s32 DcPass_Wrap(s32 value, s32 lo, s32 hi) {
-    if (value < lo) {
-        return hi;
+static inline s32 DcPass_Wrap(s32 value, s32 count) {
+    if (value < 0) {
+        return count - 1;
     }
-    if (value > hi) {
-        return lo;
+    if (value > count - 1) {
+        return 0;
     }
     return value;
 }
 
-/* Sets the texture rectangle of a clip found by name (each use has its own MFlashRef on the stack). */
-static inline void DcPass_SetUv(MFlash *flash, char *parent, char *name, MFlashUv *uv) {
-    MFlashRef ref;
+/* Sets the texture rectangle of a clip found by name (each use has its own FlashRef on the stack). */
+static inline void DcPass_SetUv(Flash *flash, char *parent, char *name, FlashUv *uv) {
+    FlashRef ref;
 
     Flash_FindLabel(flash, parent, name, &ref);
     Flash_ClipSetUv(flash, &ref, uv);
 }
 
 /* Texture rectangle of one cell of a sheet. */
-static inline void DcPass_SetCell(MFlashUv *uv, s32 col, s32 row, s32 w, s32 h) {
-    uv->x0 = col * w;
-    uv->y0 = row * h;
-    uv->x1 = uv->x0 + w;
-    uv->y1 = uv->y0 + h;
+static inline void DcPass_SetCell(FlashUv *uv, s32 col, s32 row, s32 w, s32 h) {
+    uv->u0 = col * w;
+    uv->v0 = row * h;
+    uv->u1 = uv->u0 + w;
+    uv->v1 = uv->v0 + h;
 }
 
 /* Keeps a three-way cursor in 0..2. */
 s32 DcPass_Wrap3(s32 value) {
-    return DcPass_Wrap(value, 0, 2);
+    return DcPass_Wrap(value, 3);
 }
 
 /* The character (or DCKEY_ code) of a keyboard cell; the wide "0" key gives '0'. */
@@ -90,33 +89,12 @@ char DcPass_GetKey(DcKeyPos *pos) {
 }
 
 /* Keeps a keyboard position inside the keyboard (every axis is a ring). */
-/*
- * NOT MATCHING: the three wraps compile to the same conditional-move sequence here; the original has that
- * sequence for the row only and another (the one DcPass_Wrap3 has as a function of its own) for page and
- * column. Same results for every input.
- *
- * What the difference is (cleanup, build/scratch_cleanup2_I/t/): one source form gives BOTH original sequences;
- * which one comes out depends on whether the first scheduling pass moved `slt` above the `bltz` (speculative
- * motion between blocks). Here it does (`li v0,hi / li a1,hi / bltz / slt` for all three); in the original it did
- * not, so the constant's register is free for the result, the result shares v0 with the compare, and reload
- * then picks the other conditional-move alternative (`movn v1,zero,v0 / move v0,v1`) wherever the result is in
- * v0 (page, column) and keeps `move a1,zero / movz a1,v1,v0` where v0 is still busy with the previous result
- * (row). The scheduler only moves instructions between blocks while the function is one "region" of at most 10
- * basic blocks: five wraps in one function (11 blocks) reproduce the original's page sequence exactly, three
- * (7 blocks) do not. So the original function had more than 10 basic blocks when it was scheduled, i.e. source
- * that is not visible in the code any more; what it was is not found (nested inlines, scopes, `do { } while
- * (0)`, a third and fourth dead wrap were tried). The order `lw / li / sw` of the row (the store of the page
- * after the row's constant) is not reproduced either.
- */
-#if 0
+
 void DcPass_WrapPos(DcKeyPos *pos) {
-    pos->page = DcPass_Wrap(pos->page, 0, DCPASS_PAGES - 1);
-    pos->row = DcPass_Wrap(pos->row, 0, DCPASS_ROWS - 1);
-    pos->col = DcPass_Wrap(pos->col, 0, DCPASS_COLS - 1);
+    pos->page = DcPass_Wrap(pos->page, DCPASS_PAGES);
+    pos->row = DcPass_Wrap(pos->row, DCPASS_ROWS);
+    pos->col = DcPass_Wrap(pos->col, DCPASS_COLS);
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/menu/menu_z_d", DcPass_WrapPos);
-#endif
 
 /* Puts a keyboard position on the middle (1) or right (2) button of the bottom row. */
 void DcPass_GotoButton(s32 button, DcKeyPos *pos) {
@@ -197,10 +175,10 @@ DcKeyPos DcPass_FindKey(char c) {
  * Cuts the caps of the four rows of keys from the sheet. The kind of key (small letter, wide key) is taken from
  * the key at *cur, not from the cell being drawn.
  */
-void DcPass_DrawKeys(MFlash *flash, DcKeyPos *cur) {
+void DcPass_DrawKeys(Flash *flash, DcKeyPos *cur) {
     DcKeyPos out;
     DcKeyPos pos;
-    MFlashUv uv;
+    FlashUv uv;
     char name[0x100];
     char key;
     s32 shift;
@@ -213,7 +191,7 @@ void DcPass_DrawKeys(MFlash *flash, DcKeyPos *cur) {
             shift = (key >= 'a' && key <= 'z') ? 4 : 0;
             DcPass_SetCell(&uv, out.col, out.row + shift, 0x20, 0x28);
             sprintf(name, "mc_input_code_%d_%02d", out.row + 1, out.col + 1);
-            /* no braces: each use keeps its own MFlashRef */
+            /* no braces: each use keeps its own FlashRef */
             if (key == DCKEY_WIDE_D1 || key == DCKEY_WIDE_D2)
                 DcPass_SetUv(flash, name, "mc_text_input_code_d_on", &uv);
             else if (key == DCKEY_WIDE_E)
@@ -225,9 +203,9 @@ void DcPass_DrawKeys(MFlash *flash, DcKeyPos *cur) {
 }
 
 /* Cuts the captions of the three bottom buttons and the keyboard's lettering for the page shown. */
-void DcPass_DrawButtons(MFlash *flash, s32 page) {
+void DcPass_DrawButtons(Flash *flash, s32 page) {
     char name[0x100];
-    MFlashUv uv;
+    FlashUv uv;
 
     DcPass_SetCell(&uv, 0, 1, 0x100, 0x40);
     sprintf(name, "mc_input_code_5_%02d", 1);
@@ -236,10 +214,10 @@ void DcPass_DrawButtons(MFlash *flash, s32 page) {
     if (page == 0) {
         DcPass_SetCell(&uv, 0, 3, 0x100, 0x40);
     } else {
-        uv.x0 = 0;
-        uv.x1 = 0x100;
-        uv.y0 = 0x80;
-        uv.y1 = 0xC0;
+        uv.u0 = 0;
+        uv.u1 = 0x100;
+        uv.v0 = 0x80;
+        uv.v1 = 0xC0;
     }
     sprintf(name, "mc_input_code_5_%02d", 2);
     DcPass_SetUv(flash, name, "mc_text_input_code_c_on", &uv);
@@ -248,16 +226,16 @@ void DcPass_DrawButtons(MFlash *flash, s32 page) {
     sprintf(name, "mc_input_code_5_%02d", 3);
     DcPass_SetUv(flash, name, "mc_text_input_code_b_on", &uv);
     DcPass_SetUv(flash, name, "mc_text_input_code_b_off", &uv);
-    uv.x0 = 0;
-    uv.x1 = 0x200;
-    uv.y0 = page << 7;
-    uv.y1 = (page << 7) + 0x80;
+    uv.u0 = 0;
+    uv.u1 = 0x200;
+    uv.v0 = page << 7;
+    uv.v1 = (page << 7) + 0x80;
     DcPass_SetUv(flash, NULL, "mc_text_keyboard", &uv);
 }
 
 /* Wraps a keyboard position and lights or dims its key. */
-void DcPass_LightKey(MFlash *flash, DcKeyPos *pos, s32 on) {
-    MFlashRef ref;
+void DcPass_LightKey(Flash *flash, DcKeyPos *pos, s32 on) {
+    FlashRef ref;
     DcKeyPos out;
     char name[0x100];
 
@@ -273,8 +251,8 @@ void DcPass_LightKey(MFlash *flash, DcKeyPos *pos, s32 on) {
 }
 
 /* Plays the "pressed" animation of a key. */
-void DcPass_FlashKey(MFlash *flash, DcKeyPos *pos) {
-    MFlashRef ref;
+void DcPass_FlashKey(Flash *flash, DcKeyPos *pos) {
+    FlashRef ref;
     DcKeyPos out;
     char name[0x100];
 
@@ -286,7 +264,7 @@ void DcPass_FlashKey(MFlash *flash, DcKeyPos *pos) {
 
 /* Draws the keyboard of the page shown. */
 void DcPass_DrawKeyboard(DcPass *pass) {
-    MFlash *flash = &pass->view.flash[0];
+    Flash *flash = &pass->view.flash[0];
     DcKeyPos *pos = &pass->keyPos;
 
     DcPass_DrawKeys(flash, pos);
@@ -343,8 +321,8 @@ s32 DcPassText_IsFull(DcPassText *text) {
 }
 
 /* Shows the text: every cell gets the cap of the key that types its character. */
-void DcPass_DrawText(MFlash *flash, char *text) {
-    MFlashUv uv;
+void DcPass_DrawText(Flash *flash, char *text) {
+    FlashUv uv;
     char name[0x100];
     DcKeyPos pos;
     s32 i;
@@ -368,9 +346,9 @@ void DcPass_DrawText(MFlash *flash, char *text) {
 }
 
 /* Puts the cursor clip under the cell the next character goes to. */
-void DcPass_DrawCursor(MFlash *flash, DcPassText *text) {
+void DcPass_DrawCursor(Flash *flash, DcPassText *text) {
     char name[0x100];
-    MFlashRef ref;
+    FlashRef ref;
     s32 x;
     s32 y;
     s32 cx;
@@ -523,7 +501,7 @@ s32 DcPass_Decode(DcPass *pass) {
 
 /* Loads the decoded character's large picture in the background and fades it in. */
 void DcPass_UpdateFace(DcPass *pass) {
-    MTexRes *res;
+    FlashTexRes *res;
 
     if (pass->flags & DCPASS_FACE_CHANGE) {
         File_CancelRequests();
@@ -553,24 +531,24 @@ void DcPass_UpdateFace(DcPass *pass) {
 
 /* Draws the typed text and its cursor. */
 void DcPass_DrawTextLine(DcPass *pass) {
-    MFlash *flash = &pass->view.flash[0];
+    Flash *flash = &pass->view.flash[0];
     DcPassText *text = &pass->text;
 
     DcPass_DrawText(flash, text->text);
     DcPass_DrawCursor(flash, text);
 }
 
-/* Shows or hides a clip found by name (each use has its own MFlashRef on the stack). */
-static inline void DcPass_SetVisible(MFlash *flash, char *parent, char *name, s32 on) {
-    MFlashRef ref;
+/* Shows or hides a clip found by name (each use has its own FlashRef on the stack). */
+static inline void DcPass_SetVisible(Flash *flash, char *parent, char *name, s32 on) {
+    FlashRef ref;
 
     Flash_FindLabel(flash, parent, name, &ref);
     Flash_ClipSetFlags(flash, &ref, 2, on);
 }
 
 /* Sets the picture of a clip found by name. */
-static inline void DcPass_SetTex(MFlash *flash, char *parent, char *name, s32 tex) {
-    MFlashRef ref;
+static inline void DcPass_SetTex(Flash *flash, char *parent, char *name, s32 tex) {
+    FlashRef ref;
 
     Flash_FindLabel(flash, parent, name, &ref);
     Flash_ClipSetTex(flash, &ref, tex);
@@ -580,10 +558,8 @@ static inline void DcPass_SetTex(MFlash *flash, char *parent, char *name, s32 te
  * Fills the status page of a character: hides the item-slot marks beyond the slots it has, lights the marks of
  * the four bars (minus marks for a negative value, plus marks for a positive one) and sets the attribute icon.
  */
-/* Texture rectangle of row i of the 0x80 x 0x14 caption sheet. */
-#define DCPASS_ROW(uv, i) DcPass_SetCell(uv, 0, i, 0x80, 0x14)
-
 /*
+ * Historical controls, superseded by the 2026-10-30 row-helper recovery below.
  * NOT MATCHING: 27 of 233 instructions: the attempt keeps the constant 0x80 of the row rectangle in a saved
  * register from the end of the loop to the rectangle after it, the original loads it again each time (and so
  * has one saved register free: registers shift in that part). Calls, arguments and stores are the same.
@@ -593,21 +569,43 @@ static inline void DcPass_SetTex(MFlash *flash, char *parent, char *name, s32 te
  * loads mean that pass did not see the two as one path. The same shows in the movie pointer: the original
  * uses the function-level `view + 0x2C` (s6) in the loop's last two calls, the attempt the loop's hoisted copy
  * (s2). An inline helper for the caption (own `uv`) is worse (50..87 differences).
+ *
+ * Lane 4 (2026-10-29, RTL): the movie pointer comes from loop.c, not CSE2: in the i-loop the caption's `flash`
+ * parameter (a copy of the PRE register for `view + 0x2C`, s6) is a movable that combine_movables matches with
+ * the j-loop's already hoisted parameter (s2). The 0x80 is CSE2 on the plain fall-through out of the i-loop
+ * (-fno-cse-follow-jumps and -fno-cse-skip-blocks change nothing, flag probes). So the original had an
+ * unmatched movable there and a CSE boundary between the loop's caption and the code behind the loop. Tried:
+ * DcPass_SetTex for the attribute (22: an inline's argument `status->attr` is read before Flash_FindLabel),
+ * a local `Flash *flash` for every call (88), the loop's caption as a block with direct calls (47: `&ref`
+ * hoisted). The matched sibling DcView_SetStatus (menu_y_b.c) has the same layout with view-taking helpers.
  */
-#if 0
+/* PR143's width carrier remains rejected. The matched sibling DcView_SetStatus uses a dedicated
+   DcUv_SetRow helper, rather than the generic cell constructor with column zero. Recovering that
+   same row helper here gives 233/233 instructions, zero differences and all 53 referents identical.
+   Width is the helper's real dimension parameter; no dummy local or CSE carrier is present.
+   Reader review and the complete DBZP image gate also pass with this helper active. */
+/* Texture rectangle of a row of a sheet of w x h pictures (DcUv_SetRow's shared source idiom). */
+static inline void DcPass_SetRow(FlashUv *uv, s32 row, s32 w, s32 h) {
+    uv->u0 = 0;
+    uv->v0 = row * h;
+    uv->u1 = w;
+    uv->v1 = row * h + h;
+}
+
 void DcPass_DrawStatus(DcPassView *view, ZStatus *status) {
     char name[0x100];
     char sub[0x100];
-    MFlashUv uv;
+    FlashUv uv;
     s32 i;
     s32 j;
+    Flash *flash = &view->flash[1];
 
     for (i = status->val[0]; i < 7; i++) {
         sprintf(name, "mc_status_ability_plus_%d", i + 4);
         DcPass_SetVisible(&view->flash[1], "mc_status_ability_base2_1", name, 0);
     }
-    DCPASS_ROW(&uv, i);
-    DcPass_SetUv(&view->flash[1], "mc_status_ability_base2_1", "mc_text_ability_&d", &uv);
+    DcPass_SetRow(&uv, i, 0x80, 0x14);
+    DcPass_SetUv(flash, "mc_status_ability_base2_1", "mc_text_ability_&d", &uv);
     for (i = 0; i < 4; i++) {
         s32 value = status->val[i + 1];
 
@@ -625,23 +623,20 @@ void DcPass_DrawStatus(DcPassView *view, ZStatus *status) {
                 DcPass_SetVisible(&view->flash[1], name, sub, 1);
             }
         }
-        DCPASS_ROW(&uv, i);
+        DcPass_SetRow(&uv, i, 0x80, 0x14);
         sprintf(name, "mc_status_ability_base1_%d", i);
-        DcPass_SetUv(&view->flash[1], name, "mc_text_ability_1", &uv);
+        DcPass_SetUv(flash, name, "mc_text_ability_1", &uv);
     }
     {
-        MFlashRef ref;
+        FlashRef ref;
 
-        Flash_FindLabel(&view->flash[1], NULL, "mc_status_attribute", &ref);
-        Flash_ClipSetTex(&view->flash[1], &ref, status->attr);
+        Flash_FindLabel(flash, NULL, "mc_status_attribute", &ref);
+        Flash_ClipSetTex(flash, &ref, status->attr);
     }
-    DCPASS_ROW(&uv, i);
+    DcPass_SetRow(&uv, i, 0x80, 0x14);
     sprintf(name, "mc_status_ability_base1_%d", i);
-    DcPass_SetUv(&view->flash[1], name, "mc_text_ability_1", &uv);
+    DcPass_SetUv(flash, name, "mc_text_ability_1", &uv);
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/menu/menu_z_d", DcPass_DrawStatus);
-#endif
 
 /*
  * Sets the transparency of the character's large picture. Inline in the original and defined here, behind
@@ -649,8 +644,8 @@ INCLUDE_ASM("asm/nonmatchings/menu/menu_z_d", DcPass_DrawStatus);
  * first string of DcPass_SetListClip, although only DcPass_Draw (far below) uses it.
  */
 static inline void DcPass_SetFaceAlpha(DcPass *pass) {
-    MFlashRef ref;
-    MFlash *flash = &pass->view.flash[1];
+    FlashRef ref;
+    Flash *flash = &pass->view.flash[1];
 
     Flash_FindLabel(flash, NULL, "mc_single_chara_r", &ref);
     Flash_ClipSetAlpha(flash, &ref, pass->faceAlpha);
@@ -672,18 +667,18 @@ static inline void DcPass_Say(DcPass *pass, s32 line) {
  * halves of this file were written separately and DcPass_DrawArrows only matches with this order (x0, x1, y0,
  * y1: with DcPass_SetCell two stores of it swap), the head's functions only with the other.
  */
-static inline void DcPass_SetCellB(MFlashUv *uv, s32 col, s32 row, s32 w, s32 h) {
-    uv->x0 = col * w;
-    uv->x1 = uv->x0 + w;
-    uv->y0 = row * h;
-    uv->y1 = uv->y0 + h;
+static inline void DcPass_SetCellB(FlashUv *uv, s32 col, s32 row, s32 w, s32 h) {
+    uv->u0 = col * w;
+    uv->u1 = uv->u0 + w;
+    uv->v0 = row * h;
+    uv->v1 = uv->v0 + h;
 }
 
 /* Makes the four plates of the slot list draw inside the list's window. */
 void DcPass_SetListClip(DcPassView *view) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[0x100];
-    MFlash *flash = &view->flash[1];
+    Flash *flash = &view->flash[1];
     s32 i;
 
     for (i = 0; i < 4; i++) {
@@ -696,10 +691,10 @@ void DcPass_SetListClip(DcPassView *view) {
 
 /* Hides the up or the down arrow of the slot list. */
 void DcPass_HideArrow(DcPassView *view, s32 up) {
-    MFlashRef ref;
+    FlashRef ref;
     char parent[0x100];
     char name[0x100];
-    MFlash *flash = &view->flash[1];
+    Flash *flash = &view->flash[1];
 
     if (up) {
         strcpy(parent, "mc_yajirusi_up");
@@ -714,8 +709,8 @@ void DcPass_HideArrow(DcPassView *view, s32 up) {
 
 /* Sets the pictures of the two arrows and hides the one that leads nowhere. */
 void DcPass_DrawArrows(DcPassView *view, DcPassList *list) {
-    MFlashUv uv;
-    MFlash *flash = &view->flash[1];
+    FlashUv uv;
+    Flash *flash = &view->flash[1];
     s32 top;
 
     DcPass_SetCellB(&uv, 0, 1, 0x20, 0x20);
@@ -732,8 +727,8 @@ void DcPass_DrawArrows(DcPassView *view, DcPassList *list) {
 
 /* Places the scroll bar's knob. */
 void DcPass_DrawScrollBar(DcPassView *view, DcPassList *list) {
-    MFlashRef ref;
-    MFlash *flash = &view->flash[1];
+    FlashRef ref;
+    Flash *flash = &view->flash[1];
     s32 range = 0xB5;
     s32 num = SAVE_REC_COUNT;
     s32 y = list->top * range / num;
@@ -745,9 +740,9 @@ void DcPass_DrawScrollBar(DcPassView *view, DcPassList *list) {
 
 /* Lights or dims the plate the list's cursor is on. */
 void DcPass_LightRow(DcPassView *view, DcPassList *list, s32 on) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[0x100];
-    MFlash *flash = &view->flash[1];
+    Flash *flash = &view->flash[1];
 
     sprintf(name, "mc_menu_plate2_%d", list->cursor + 1);
     Flash_FindLabel(flash, NULL, name, &ref);
@@ -788,7 +783,7 @@ s32 DcPass_ClampTop(DcPassList *list) {
  * `&view->flash[1]` written at every use, not a local.
  */
 void DcPass_DrawRows(DcPassView *view, DcPassList *list) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[0x100];
     s32 i;
     s32 chara;
@@ -842,8 +837,8 @@ void DcPass_DrawList(DcPass *pass) {
 
 /* Blinks the guide's eyes and moves her mouth while a voice plays. */
 void DcPass_AnimGuide(DcPass *pass) {
-    MFlashRef ref;
-    MFlash *flash = &pass->view.flash[pass->movie];
+    FlashRef ref;
+    Flash *flash = &pass->view.flash[pass->movie];
 
     Flash_FindLabel(flash, NULL, "mc_guide_blma_eye", &ref);
     FlashAnim_Blink(flash, &ref, &pass->view.blink, 0);
@@ -857,14 +852,14 @@ void DcPass_AnimGuide(DcPass *pass) {
 
 /* Scrolls the backdrop pattern of both movies. */
 void DcPass_AnimBg(DcPass *pass) {
-    MFlashRef ref;
-    MFlashUv uv;
+    FlashRef ref;
+    FlashUv uv;
     s32 i;
 
-    uv.y0 = 0;
-    uv.y1 = 0x40;
-    uv.x0 = 0;
-    uv.x1 = 0x40;
+    uv.v0 = 0;
+    uv.v1 = 0x40;
+    uv.u0 = 0;
+    uv.u1 = 0x40;
     for (i = 0; i < DCPASS_FLASH_NUM; i++) {
         Flash_FindLabel(&pass->view.flash[i], NULL, "mc_compane_3", &ref);
         FlashAnim_Scroll(&pass->view.flash[i], &ref, &uv, &pass->view.scroll, NULL, -0.152380944f, 0.0f);
@@ -873,8 +868,8 @@ void DcPass_AnimBg(DcPass *pass) {
 
 /* Puts the new character's name and form name on the two pairs of plates. */
 void DcPass_DrawNames(DcPass *pass) {
-    MFlashRef ref;
-    MFlash *flash = &pass->view.flash[1];
+    FlashRef ref;
+    Flash *flash = &pass->view.flash[1];
     s32 chara = pass->status.chara;
 
     Flash_FindLabel(flash, NULL, "mc_name_text_l", &ref);
@@ -944,12 +939,12 @@ static inline u8 *DcPass_Section(DcPass *pass, s32 n, const char *host) {
 #define DP_HOST "host:data/ps2/test/datacenter/password_input/"
 
 #define DP_RES(n, host) \
-    res = (MTexRes *)DcPass_Section(pass, n, host); \
+    res = (FlashTexRes *)DcPass_Section(pass, n, host); \
     Res_RelocateOffsets(&res, res, res)
 
 /* Unpacks the screen (section `section` of archive 8) and builds its two movies, text boxes and windows. */
 void DcPass_Init(DcPass *pass, s32 section) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
     s32 i;
 
     pass->pack = MPACK_AT(gMenuArc8, section);
@@ -1098,7 +1093,7 @@ void DcPass_Term(DcPass *pass) {
 
 /* Draws the frame. */
 void DcPass_Draw(DcPass *pass) {
-    MFlash *flash0 = &pass->view.flash[0];
+    Flash *flash0 = &pass->view.flash[0];
 
     if (!(pass->flags & DCPASS_STARTED)) {
         DcPass_LightKey(pass->view.flash, &pass->keyPos, 1);
@@ -1132,9 +1127,9 @@ void DcPass_Draw(DcPass *pass) {
 
 /* Plays the "chosen" animation of the plate the list's cursor is on. */
 void DcPass_ConfirmRow(DcPass *pass) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[0x100];
-    MFlash *flash = &pass->view.flash[1];
+    Flash *flash = &pass->view.flash[1];
 
     sprintf(name, "mc_menu_plate2_%d", pass->list.cursor + 1);
     Flash_FindLabel(flash, NULL, name, &ref);

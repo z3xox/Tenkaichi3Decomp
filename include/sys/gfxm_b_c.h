@@ -2,6 +2,7 @@
 #define SYS_GFXM_B_C_H
 
 #include "types.h"
+#include "sys/flash_core.h"
 
 /* First 8 bytes of a FOD file: 'F' 'O' 'D' 0x11, then "LIT" and a NUL. */
 typedef struct FlashHeader {
@@ -18,9 +19,6 @@ typedef struct FlashTag {
 } FlashTag;
 
 /* 3x3 matrix read from the bit stream: [0] [4] scale, [1] [3] skew, [2] [5] translation, [8] = 1. */
-typedef struct FlashMtx {
-    f32 m[9];
-} FlashMtx;
 
 s32 Flash_CheckHeader(u8 *data);
 u8 *Flash_FindTag(u8 *data, u8 code);

@@ -3,7 +3,7 @@
 
 /*
  * The event scripts (src/menu/menu_s_d.c, menu_t_b.c, menu_u*.c; their headers see the work area through views of
- * their own, TSimDay / USimDay, so they are declared here with this file's type).
+ * their own, SimDay / SimDay, so they are declared here with this file's type).
  */
 extern s32 SimEv00(SimDay *day);
 extern s32 SimEv01(SimDay *day);

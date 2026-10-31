@@ -1,4 +1,6 @@
 #include "common.h"
+#include "sys/vector_types.h"
+#include "sys/math3d.h"
 #include "battle/eft_d.h"
 #include "sys/dma.h"
 #include "sys/gfx_ot.h"
@@ -17,7 +19,7 @@
  *   callers pass `&col[0]` of the inlined local array straight into $a0 at the first Vec4_Copy and compute
  *   the same address again for the loop pointer, where a hand-written copy of the body shares one register
  *   (an inlined parameter that is frame base + constant is substituted into each use);
- * - vectors on the stack are 16-byte aligned arrays (EftFVec / EftIVec), copied with 64-bit loads;
+ * - vectors on the stack are 16-byte aligned arrays (FVec4 / IVec4Array), copied with 64-bit loads;
  * - GS PRIM is built in a u64 local: constant 0x1B, then the ABE bit stored through a bit-field from an
  *   `abe` variable set at the top of the function (the compiler then keeps 0x40 and 0x1B apart). `abe` is
  *   a u64: with an s32 the loop pass hoists the 0x40 only in its second run and it lands behind the other
@@ -31,8 +33,6 @@ extern void Vec4_Copy(Vec4 *dst, Vec4 *src);
 
 /* Local vectors as plain arrays (sceVu0FVECTOR / sceVu0IVECTOR style): 16-byte aligned, so the compiler
    copies them with 64-bit loads. */
-typedef f32 EftFVec[4] __attribute__((aligned(16)));
-typedef s32 EftIVec[4] __attribute__((aligned(16)));
 
 /* The same as a struct, for a vector passed by value. */
 typedef struct EftVec16 {
@@ -43,7 +43,7 @@ extern s32 StgTint_IsOn(s32 idx);
 extern s32 BtlScene_IsSingleView(void);
 extern s32 BtlScene_IsSecondView(void);
 extern s32 ClipPoly_ClipPlane(EftSurfVtxD *poly, Vec4 *plane, s32 count); /* clips a polygon in place, returns the new count */
-extern void ClipPoly_ProjectCur(EftIVec *scr, EftFVec *st, EftSurfVtxD *poly, s32 count); /* projects; st = s/w, t/w, 1/w */
+extern void ClipPoly_ProjectCur(IVec4Array *scr, FVec4 *st, EftSurfVtxD *poly, s32 count); /* projects; st = s/w, t/w, 1/w */
 extern void Vec4_ToInt(s32 *dst, Vec4 *src); /* float vector to integer vector */
 
 /* GS XYZF2 register. */
@@ -226,8 +226,8 @@ void EftSurf_DrawPolyOtClipped(EftSurfVtxD *poly, s32 unused, u64 *tex, Vec4 *fo
     __builtin_memcpy(portPoly, poly, 3 * sizeof(EftSurfVtxD));
     poly = portPoly;
 #endif
-    EftIVec scr[9];
-    EftFVec st[9];
+    IVec4Array scr[9];
+    FVec4 st[9];
     Vec4 *plane = gEftSurf->clipPlanes;
     s32 count = 3;
     s32 k;
@@ -305,8 +305,8 @@ static inline s32 EftSurf_IsOffScreen(s32 *xyz) {
 /* Queues one triangle unless all three vertices are off screen (no clipping). With a fog alpha above
    0.01 it is queued twice: plain with tex[0], then with the alpha scaled by the fog and tex[1]. No caller. */
 void EftSurf_DrawTriOt(EftSurfVtxD *tri, s32 unused, u64 *tex, Vec4 *fog, s32 zBias) {
-    EftIVec scr[3];
-    EftFVec st[3];
+    IVec4Array scr[3];
+    FVec4 st[3];
 
     ClipPoly_ProjectCur(scr, st, tri, 3);
     if (EftSurf_IsOffScreen(scr[0]) && EftSurf_IsOffScreen(scr[1]) && EftSurf_IsOffScreen(scr[2])) {
@@ -335,7 +335,7 @@ void EftSurf_DrawTriOtEx(EftScrPos *scr0, EftScrPos *scr1, EftScrPos *scr2, Vec4
 void EftSurf_DrawTriDirect(EftScrPos *scr0, EftScrPos *scr1, EftScrPos *scr2, Vec4 *col0, Vec4 *col1, Vec4 *col2,
                            Vec4 *st0, Vec4 *st1, Vec4 *st2, s32 blend, u64 *tex, Vec4 *fog, s32 count) {
     u64 tex0[2];
-    EftIVec col[6];
+    IVec4Array col[6];
     EftTriGs *p;
     s32 i;
     s32 abe = 1;

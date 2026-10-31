@@ -31,16 +31,16 @@ static inline u8 *PassWin_Section(u32 *pack, s32 n, const char *host) {
 }
 
 /* Texture rectangle of one cell of a sheet. */
-static inline void PassWin_SetCell(MFlashUv *uv, s32 col, s32 row, s32 w, s32 h) {
-    uv->x0 = col * w;
-    uv->x1 = uv->x0 + w;
-    uv->y0 = row * h;
-    uv->y1 = uv->y0 + h;
+static inline void PassWin_SetCell(FlashUv *uv, s32 col, s32 row, s32 w, s32 h) {
+    uv->u0 = col * w;
+    uv->u1 = uv->u0 + w;
+    uv->v0 = row * h;
+    uv->v1 = uv->v0 + h;
 }
 
 /* Sets the texture rectangle of a clip found by name. */
-static inline void PassWin_SetUv(MFlash *flash, char *parent, char *name, MFlashUv *uv) {
-    MFlashRef ref;
+static inline void PassWin_SetUv(Flash *flash, char *parent, char *name, FlashUv *uv) {
+    FlashRef ref;
 
     Flash_FindLabel(flash, parent, name, &ref);
     Flash_ClipSetUv(flash, &ref, uv);
@@ -48,16 +48,16 @@ static inline void PassWin_SetUv(MFlash *flash, char *parent, char *name, MFlash
 
 /* Builds the window from its pack (movie, three texture lists). */
 void PassWin_Init(u32 *pack) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
 
     gPassWin = Heap_Alloc(sizeof(PassWin), 0x20, 0, 2);
     memset(gPassWin, 0, sizeof(PassWin));
-    res = (MTexRes *)PassWin_Section(pack, 2, PASSWIN_HOST "PWD_password_Wii_.dbt");
+    res = (FlashTexRes *)PassWin_Section(pack, 2, PASSWIN_HOST "PWD_password_Wii_.dbt");
     Res_RelocateOffsets(&res, res, res);
     gPassWin->tex[0] = MTEX(res, 0);
     gPassWin->tex[1] = MTEX(res, 1);
     gPassWin->tex[3] = MTEX(res, 2);
-    res = (MTexRes *)PassWin_Section(pack, 3, PASSWIN_HOST "PWD_password_text_JP_Wii_.dbt");
+    res = (FlashTexRes *)PassWin_Section(pack, 3, PASSWIN_HOST "PWD_password_text_JP_Wii_.dbt");
     Res_RelocateOffsets(&res, res, res);
     gPassWin->tex[2] = MTEX(res, 0);
     Flash_Create(&gPassWin->flash[0], PassWin_Section(pack, 1, PASSWIN_HOST "password_Wii_.fod"), gPassWin->tex);
@@ -101,7 +101,7 @@ void PassWin_Draw(void) {
 #ifdef PORT
     Port_MenuPage(40); /* widescreen menus: this screen's page */
 #endif
-    MFlashUv uv;
+    FlashUv uv;
     char name[0x100];
     s32 col;
     s32 row;

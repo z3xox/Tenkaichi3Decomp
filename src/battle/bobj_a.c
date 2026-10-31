@@ -13,6 +13,8 @@
  * calls the same passes.
  */
 #include "common.h"
+#include "sys/save.h"
+#include "sys/progress.h"
 #include "battle/bobj_a.h"
 
 extern void *memset(void *dst, s32 c, u32 n);
@@ -1890,22 +1892,11 @@ extern Vec4 D_002EC2C0;
 /* Written by BtlObj_InitChains (0.1, 0, 0, 0); no reader found. */
 extern Vec4 D_003337D0;
 
-typedef struct BObjProgress {
-    /* 0x00 */ s32 unk00;
-} BObjProgress;
-
-typedef struct BObjSave {
-    /* 0x0000 */ u8 unk0000[0x1608];
-    /* 0x1608 */ u32 flags; /* bit 0: second voice language */
-} BObjSave;
-
 typedef struct BObjCommon {
     /* 0x00 */ s32 unk00;
     /* 0x04 */ BObjFile file3; /* only buf is real: the pointers of the three common files follow each other */
 } BObjCommon;
 
-extern BObjProgress *gProgress;
-extern BObjSave *gSaveData;
 extern BObjCommon *gCommonRes;
 
 /* Offset of BObj.nodes: the two accessors only match with the index added to the object first. */
@@ -2333,7 +2324,7 @@ void BtlObj_BindTables(BObj *obj) {
     for (i = 0; i < 4; i++) {
         mdl->unk8F0[i] = BObjFile_GetEntry(&slot->file[0], i + 0x25);
     }
-    mdl->unkA4 = BObjFile_GetEntry(&slot->file[0], gProgress->unk00 + 0x2D);
+    mdl->unkA4 = BObjFile_GetEntry(&slot->file[0], gProgress->unk0 + 0x2D);
     base = 0x64;
     if (!(gSaveData->flags & 1)) {
         base = 0;

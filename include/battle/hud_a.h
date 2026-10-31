@@ -2,6 +2,7 @@
 #define BATTLE_HUD_A_H
 
 #include "types.h"
+#include "battle/hud_types.h"
 #include "sys/ramp.h"
 
 /*
@@ -18,55 +19,12 @@
  */
 
 /* A rectangle of a sprite: left, right, top, bottom. */
-typedef struct HudRect {
-    /* 0x00 */ s16 x0;
-    /* 0x02 */ s16 x1;
-    /* 0x04 */ s16 y0;
-    /* 0x06 */ s16 y1;
-} HudRect;
 
 /* One 2D sprite (0x1C bytes). Setters are at 0x224B90..0x224CA0 (not in this range). */
-typedef struct HudSprite {
-    /* 0x00 */ u32 flags;      /* bit 0: hidden (0x224B90(sprite, show)); bit 1: mirrored (0x224BB0) */
-    /* 0x04 */ s16 tex;        /* texture entry of the sheet, -1: untextured (0x224C00(sprite, tex, sub)) */
-    /* 0x06 */ s16 texSub;     /* added to tex for a second entry (0x225A50) */
-    /* 0x08 */ HudRect pos;    /* screen rectangle relative to the node: 0x224BD0(sprite, x0, x1, y0, y1);
-                                  0x224CA0(sprite, dx, dy) moves it */
-    /* 0x10 */ HudRect uv;     /* texel rectangle: 0x224BE8(sprite, u0, u1, v0, v1) */
-    /* 0x18 */ u8 r, g, b, a;  /* 0x224C10(sprite, r, g, b, a); 0x80 is neutral */
-} HudSprite; /* size 0x1C */
 
 /* One texture entry of a sprite sheet (0x40 bytes); only what this range touches. */
-typedef struct HudTex {
-    /* 0x00 */ u8 unk0[0x28];
-    /* 0x28 */ s32 mark;       /* cleared for every entry at the end of Hud_Draw */
-    /* 0x2C */ u8 unk2C[0x14];
-} HudTex;
 
 /* A sprite sheet after Res_RelocateOffsets. */
-typedef struct HudRes {
-    /* 0x00 */ s32 texCount;
-    /* 0x04 */ s32 unk4[3];
-    /* 0x10 */ HudTex *tex;
-} HudRes;
-
-typedef struct HudNode HudNode;
-struct HudNode {
-    /* 0x00 */ u32 flags;      /* HUD_NODE_HIDDEN, HUD_NODE_MIRROR */
-    /* 0x04 */ f32 rot;        /* rotation about Z, radians */
-    /* 0x08 */ s32 unk8[2];
-    /* 0x10 */ s32 x;          /* set with 0x2264C8(node, x, y) */
-    /* 0x14 */ s32 y;
-    /* 0x18 */ s32 ofsX;       /* added to x / y */
-    /* 0x1C */ s32 ofsY;
-    /* 0x20 */ u32 spriteCount;
-    /* 0x24 */ HudSprite **sprites;
-    /* 0x28 */ u32 childCount;
-    /* 0x2C */ HudNode **children;
-    /* 0x30 */ void (*update)(); /* called without arguments; a callee that wants the node reads $a0, which
-                                    still holds it (HudTeam_UpdateRoot) */
-    /* 0x34 */ void (*draw)(HudNode *node);
-}; /* size 0x38 */
 
 #define HUD_NODE_HIDDEN 1 /* 0x2264A8(node, show) writes !show here */
 #define HUD_NODE_MIRROR 2 /* draw mirrored about x = 255.5 (the second player's copy of a part) */
@@ -149,25 +107,14 @@ typedef struct HudCaption {
     /* 0x0C */ Ramp pulse;
 } HudCaption;
 
-/* Health gauge work (gHudGauge): only the fields used before 0x21CA60. The full layout is HudBWork in
+/* Health gauge work (gHudGauge): only the fields used before 0x21CA60. The full layout is HudGauge in
  * src/battle/hud_b.c, whose matching setters fix which word is which: HudGauge_SetHp writes +0x30. */
-typedef struct HudGauge {
-    /* 0x00 */ HudRes *res;
-    /* 0x04 */ HudSprite *sprites;
-    /* 0x08 */ u8 unk8[0x1C];
-    /* 0x24 */ s32 side;        /* side being updated / drawn */
-    /* 0x28 */ s32 hpShown[2];  /* the health the trailing (damage) bar shows; falls towards cur.hp */
-    /* 0x30 */ struct {         /* a nested structure (addressed like the pairs of HudTeam) */
-        s32 hp[2];              /* health now (HudGauge_SetHp) */
-    } cur;
-} HudGauge;
 
 #define HUD_GAUGE_BAR 10000  /* health per bar */
 
 extern Hud *gHud;
 extern HudTeam *gHudTeam;
 extern HudCaption *gHudCaption;
-extern HudGauge *gHudGauge;
 
 /* hud_a.c */
 void Hud_ClearTexMarks(void);

@@ -2,6 +2,7 @@
 #define BATTLE_BTL_SCRIPT_CMD_H
 
 #include "types.h"
+#include "sys/progress.h"
 
 /*
  * Battle script command handlers: src/battle/btl_script_cmd.c = 0x259EC8..0x25C2A8 (46 functions).
@@ -162,21 +163,8 @@ typedef struct BtlScriptCmdButton {
 } BtlScriptCmdButton;
 
 /* What command 16 fills: gProgress + 0x40. */
-typedef struct BtlScriptCmdReward {
-    /* 0x00 */ s32 unk0[3];  /* operands 0..2 */
-    /* 0x0C */ s32 unkC[3];  /* operands 3..5 */
-    /* 0x18 */ s32 unk18[3]; /* operands 9..11 */
-    /* 0x24 */ s32 unk24[3]; /* operands 6..8 */
-    /* 0x30 */ s32 unk30[3]; /* operands 12..14 */
-} BtlScriptCmdReward; /* size 0x3C */
 
 /* The part of the progress struct (gProgress) the handlers touch; local view. */
-typedef struct BtlScriptCmdProgress {
-    /* 0x00 */ s32 unk0;       /* 0 / 1: picks the text file set (language) */
-    /* 0x04 */ u8 unk4[0x38];
-    /* 0x3C */ s32 difficulty; /* 1: CPU level + 6, 2: + 9 */
-    /* 0x40 */ BtlScriptCmdReward reward;
-} BtlScriptCmdProgress;
 
 s32 BtlScriptCmd_SetCamera(u32 phase, void *taskWork);
 s32 BtlScriptCmd_ClearCamera(u32 phase, void *taskWork);

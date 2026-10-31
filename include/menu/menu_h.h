@@ -25,15 +25,15 @@ extern char *strcpy(char *, const char *);
 extern s32 Job_Run(void);
 extern void Sprite_SetScissor(s32 x0, s32 x1, s32 y0, s32 y1);
 extern s32 Font_GetHeight(u16 *str);
-extern void Flash_ClipSetCallbackA(MFlash *flash, MFlashRef *ref, void *fn, void *arg);
-extern void Flash_ClipSetCallbackB(MFlash *flash, MFlashRef *ref, void *fn, void *arg);
-extern void Flash_ClipSetScale(MFlash *flash, MFlashRef *ref, f32 x, f32 y);
-extern void Flash_ClipSetOffset(MFlash *flash, MFlashRef *ref, s32 x, s32 y);
-extern void Flash_ClipGetPos(MFlash *flash, MFlashRef *ref, s32 *x, s32 *y);
-extern void TextBox_Init(MTextBox *box, void *text, u32 preset);
-extern void TextBox_SetRect(MTextBox *box, s32 x0, s32 x1, s32 y0, s32 y1);
-extern void TextBox_SetUnk80(MTextBox *box, s32 value);
-extern void TextBox_AttachLine(MFlash *flash, MFlashRef *ref, s32 x, s32 y, s32 line, MTextBox *box);
+extern void Flash_ClipSetCallbackA(Flash *flash, FlashRef *ref, void *fn, void *arg);
+extern void Flash_ClipSetCallbackB(Flash *flash, FlashRef *ref, void *fn, void *arg);
+extern void Flash_ClipSetScale(Flash *flash, FlashRef *ref, f32 x, f32 y);
+extern void Flash_ClipSetOffset(Flash *flash, FlashRef *ref, s32 x, s32 y);
+extern void Flash_ClipGetPos(Flash *flash, FlashRef *ref, s32 *x, s32 *y);
+extern void TextBox_Init(TextBox *box, void *text, u32 preset);
+extern void TextBox_SetRect(TextBox *box, s32 x0, s32 x1, s32 y0, s32 y1);
+extern void TextBox_SetUnk80(TextBox *box, s32 value);
+extern void TextBox_AttachLine(Flash *flash, FlashRef *ref, s32 x, s32 y, s32 line, TextBox *box);
 extern void MsgWin_SetSide(s32 side);
 extern void Voice_Stop(s32 voice);
 extern void Voice_StopWithLip(void);
@@ -91,14 +91,14 @@ typedef struct CharRefEntry {
 typedef struct CharRef {
     /* 0x0000 */ u32 *pack;          /* this screen's section of archive 9 (compressed) */
     /* 0x0004 */ void *imageFile;    /* 0x16800 bytes: the compressed large picture of the current character */
-    /* 0x0008 */ MTexRes *imageRes;  /* 0x20800 bytes: the same unpacked */
+    /* 0x0008 */ FlashTexRes *imageRes;  /* 0x20800 bytes: the same unpacked */
     /* 0x000C */ u32 *res;           /* the pack unpacked: 29 sections */
     /* 0x0010 */ void *msgText;      /* section 21 */
     /* 0x0014 */ void *subtitles;    /* section 20 */
     /* 0x0018 */ void *text[4];      /* sections 22 (names), 23 (forms), 25, 25 (voice labels and profiles) */
     /* 0x0028 */ void *nameText[9];  /* section 22; five used */
     /* 0x004C */ void *formText[9];  /* section 23; five used */
-    /* 0x0070 */ MFlash flash[CHARREF_FLASH_NUM];
+    /* 0x0070 */ Flash flash[CHARREF_FLASH_NUM];
     /* 0x009C */ void *bg;           /* section 15: background picture */
     /* 0x00A0 */ u8 *tex[44];
     /* 0x0150 */ u8 unk150[0x3C];
@@ -108,7 +108,7 @@ typedef struct CharRef {
     /* 0x0E28 */ s32 *commentTbl;    /* section 26: first comment line per list position */
     /* 0x0E2C */ s32 *commentNumTbl; /* section 28: comment line count per list position */
     /* 0x0E30 */ s32 *poseTbl;       /* section 27: the guide's pose (0 / 1) per comment line */
-    /* 0x0E34 */ MTextBox box[CHARREF_BOX_NUM];
+    /* 0x0E34 */ TextBox box[CHARREF_BOX_NUM];
     /* 0x15DC */ s32 cursor;         /* list index of the current character */
     /* 0x15E0 */ s32 count;          /* listed characters */
     /* 0x15E4 */ s32 total;          /* 161: list positions */

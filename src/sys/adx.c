@@ -1,4 +1,5 @@
 #include "common.h"
+#include "sys/save.h"
 #include "sys/adx.h"
 
 /* CRI ADX */
@@ -20,7 +21,6 @@ extern s32 BtlScript_IsSlotBusy(s32 voice, s32 kind); /* D_00334788[voice][kind]
 
 extern AdxPlayer gAdxPlayerTbl[];
 extern s32 gAdxChannelGainTbl[];
-extern AdxSaveView *gSaveData;
 
 /* Converts a 0..0x80 volume to the ADXT output level (0.1 dB units, 0 = full, -960 = mute), applying the channel gain and the volume option. */
 s32 Adx_CalcOutVol(s32 ch, s32 vol) {
@@ -36,7 +36,7 @@ s32 Adx_CalcOutVol(s32 ch, s32 vol) {
         kind = ADX_OPT_VOL_VOICE;
         break;
     }
-    vol = vol * gAdxChannelGainTbl[ch] * gSaveData->volume[kind];
+    vol = vol * gAdxChannelGainTbl[ch] * gSaveData->sound[kind];
     vol = vol / ADX_VOL_DIVISOR;
     v = ADX_CLAMP(vol, 0, ADX_VOL_MAX);
     vol = v;
@@ -72,7 +72,7 @@ s32 Adx_CalcVolume(s32 ch, s32 vol) {
         kind = ADX_OPT_VOL_VOICE;
         break;
     }
-    vol = vol * gAdxChannelGainTbl[ch] * gSaveData->volume[kind];
+    vol = vol * gAdxChannelGainTbl[ch] * gSaveData->sound[kind];
     vol = vol / ADX_VOL_DIVISOR;
     v = ADX_CLAMP(vol, 0, ADX_VOL_MAX);
     vol = v;

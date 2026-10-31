@@ -1,12 +1,8 @@
 #include "common.h"
+#include "sys/progress.h"
 #include "sys/heap.h"
 #include "sys/pad.h"
 #include "sys/dialog.h"
-
-typedef struct DialogProgress {
-    /* 0x00 */ u8 unk0[0x14];
-    /* 0x14 */ s32 flags; /* Progress.flags: bit 0x100 blocks dialog input */
-} DialogProgress;
 
 typedef struct DialogRect {
     s32 x0, y0, x1, y1;
@@ -16,8 +12,6 @@ typedef struct DialogResHdr {
     /* 0x00 */ u8 unk0[0x10];
     /* 0x10 */ u8 *data;
 } DialogResHdr;
-
-extern DialogProgress *gProgress;
 
 /* The one window; NULL while none exists. Defined here: it is this object's .sdata (0x2FF160). */
 Dialog *gDialog = NULL;
@@ -280,7 +274,6 @@ void Dialog_Term(void) {
     }
 }
 
-
 /* Per frame: advances the animation, shows / hides the choice plates, prints the texts and draws the window. */
 void Dialog_Draw(s32 visible) {
     DialogFlashRef ref;
@@ -380,7 +373,6 @@ void Dialog_Start(s32 cmd) {
         return;
     }
 }
-
 
 /*
  * Reads the operating controller: game-button repeat bits 1 / 2 move the cursor (wrapping, SE 0),

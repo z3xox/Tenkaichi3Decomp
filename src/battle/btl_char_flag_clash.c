@@ -1,4 +1,5 @@
 #include "common.h"
+#include "sys/progress.h"
 #include "battle/btl_char_flag.h"
 
 /*
@@ -50,12 +51,6 @@ extern void BtlMember_Damage(BtlFlagChr *chr, s32 damage, s32 flags);    /* appl
 
 extern BtlFlagRoster *gBtlChars;
 extern Vec4 D_002EC2A0; /* zero vector */
-
-typedef struct BtlClashProgress {
-    /* 0x00 */ u8 unk0[0x3C];
-    /* 0x3C */ s32 unk3C; /* difficulty */
-} BtlClashProgress;
-extern BtlClashProgress *gProgress;
 
 /* 1 while both fighters are in actions 0x130..0x132. */
 s32 BtlClash_BothInClashA(void) {
@@ -469,7 +464,7 @@ s32 BtlClash_UpdateC(s32 state) {
         c->prevPick = -1;
         c->pick = (BtlChar_Rand() >> 2) & 3;
         if (Battle_GetMode() == 1) {
-            c->level = gProgress->unk3C;
+            c->level = gProgress->menu.difficulty;
         } else {
             c->level = 1;
         }

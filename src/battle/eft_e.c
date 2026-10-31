@@ -1,4 +1,6 @@
 #include "common.h"
+#include "battle/btl_task.h"
+#include "battle/btl_cam.h"
 #include "battle/eft_e.h"
 #include "sys/gfx_ot.h"
 
@@ -30,15 +32,12 @@ extern s32 BtlPool_GetCurrent(void);
 extern void *BtlPool_Alloc(s32 slot, s32 size);
 extern void BtlPool_Free(s32 slot, void *ptr);
 extern void *BtlTask_CreateChildList(void *task, s32 capacity, s32 workSize);
-extern void *BtlTaskList_AddTail(void *list, BtlTaskClass *cls, void *arg);
+extern void *BtlTaskList_AddTail(void *list, BtlTaskCls *cls, void *arg);
 extern void BtlTask_SetDead(void *task);
 extern void EftCam_Start(s32 *arg);
 extern void EftCam_SetHold(s32 arg);
 extern void EftCam_Stop(void);
 extern void Gfx_AddDefaultEnv(void);
-extern void EftBurst_DrawModel(void *model, s32 arg);
-extern void EftBurst_SetTexture(void *tex, s32 x, s32 y);
-extern void EftBurst_RelocateModel(void *model);
 extern void Res_RelocateOffsets(void *dst, void *base, void *table);
 extern void Vec4_Copy(Vec4 *dst, Vec4 *src);
 
@@ -70,15 +69,6 @@ typedef struct EftStageState {
 extern EftStageState *gBtlStage;
 
 /* The view being drawn (btl_cam.h); only the matrices and position used here. */
-typedef struct EftView {
-    /* 0x000 */ Mtx44 world2view;
-    /* 0x040 */ Mtx44 world2view2;
-    /* 0x080 */ u8 unk80[0xC0];
-    /* 0x140 */ Mtx44 world2screen;
-    /* 0x180 */ u8 unk180[0xA0];
-    /* 0x220 */ Vec4 pos;
-} EftView;
-extern EftView *gBtlCamView;
 
 extern f32 sqrtf(f32 x);
 extern f32 atan2f(f32 y, f32 x);
@@ -163,13 +153,13 @@ extern EftBattleWork *Battle_GetWork(void);
 
 extern EftEVec D_002C3630; /* (0, 0, 0, 1) */
 
-extern EftTransPart *EftBurst_AllocPtcl(void);
-extern void EftBurst_InitSpark(EftTransPart *part, s32 idx);
-extern void EftBurst_InitStreak(EftTransPart *part);
-extern void EftBurst_InitFlash(EftTransPart *part);
-extern void EftBurst_InitRing(EftTransPart *part);
-extern void EftBurst_InitGlow(EftTransPart *part);
-extern void EftBurst_InitDebris(EftTransPart *part);
+extern EftBurstPtcl *EftBurst_AllocPtcl(void);
+extern void EftBurst_InitSpark(EftBurstPtcl *part, s32 idx);
+extern void EftBurst_InitStreak(EftBurstPtcl *part);
+extern void EftBurst_InitFlash(EftBurstPtcl *part);
+extern void EftBurst_InitRing(EftBurstPtcl *part);
+extern void EftBurst_InitGlow(EftBurstPtcl *part);
+extern void EftBurst_InitDebris(EftBurstPtcl *part);
 extern s32 Snd_PlaySeEx(u32 mask, s32 id, s32 volume, s32 pan, s32 pitch);
 
 extern f32 EftStage_GetTintScale(void);
@@ -212,7 +202,6 @@ typedef struct EftSteamPkt {
     } v[4];
     /* 0x78 */ u64 pad;
 } EftSteamPkt; /* size 0x80 */
-
 
 typedef struct EftCommonRes {
     u8 unk0[0x34];
@@ -1312,13 +1301,7 @@ typedef struct EftWaterBattleWork {
     /* 0x19F0 */ u64 flags; /* 0x100 = paused */
 } EftWaterBattleWork;
 
-typedef struct EftWaterCamView {
-    /* 0x000 */ u8 unk0[0x140];
-    /* 0x140 */ EftWaterMtx world2screen;
-} EftWaterCamView;
-
 #define Battle_GetWork ((EftWaterBattleWork *(*)(void))Battle_GetWork)
-#define gBtlCamView ((EftWaterCamView *)gBtlCamView)
 #define D_002C3630 (*(EftWaterVec *)&D_002C3630) /* (0, 0, 0, 1) */
 
 extern void *memset(void *dst, s32 c, u32 n);

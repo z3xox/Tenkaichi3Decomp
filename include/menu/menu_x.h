@@ -22,8 +22,8 @@ extern s32 Snd_PlaySe(u32 mask, s32 id);
 /* ---- Main executable, beyond what menu_a.h declares ---- */
 
 extern void Sprite_SetScissor(s32 x0, s32 x1, s32 y0, s32 y1);
-extern void Flash_ClipSetCallbackA(MFlash *flash, MFlashRef *ref, void *fn, void *arg);
-extern void Flash_ClipSetCallbackB(MFlash *flash, MFlashRef *ref, void *fn, void *arg);
+extern void Flash_ClipSetCallbackA(Flash *flash, FlashRef *ref, void *fn, void *arg);
+extern void Flash_ClipSetCallbackB(Flash *flash, FlashRef *ref, void *fn, void *arg);
 extern void StreamSe_FadeOutStep(s32 se);
 extern void Bgm_Stop(void);
 extern void Bgm_SetVolume(s32 volume);
@@ -64,7 +64,7 @@ extern s32 DcSave_IsStarted(void);
 typedef struct EvoTop {
     /* 0x00 */ u32 *pack;           /* this screen's section of archive 7 (compressed) */
     /* 0x04 */ u32 *res;            /* the same unpacked */
-    /* 0x08 */ MFlash flash[EVOTOP_FLASH_NUM];
+    /* 0x08 */ Flash flash[EVOTOP_FLASH_NUM];
     /* 0x34 */ void *bg;            /* background picture */
     /* 0x38 */ u8 *tex[13];
     /* 0x6C */ s32 blink;
@@ -109,7 +109,7 @@ void EvoTop_Init(EvoTop *m, s32 section);
 typedef struct Option {
     /* 0x000 */ u32 *pack;          /* this screen's section of archive 10 (compressed) */
     /* 0x004 */ u32 *res;           /* the same unpacked: a pack of 39 sections */
-    /* 0x008 */ MFlash flash[OPTION_FLASH_NUM];
+    /* 0x008 */ Flash flash[OPTION_FLASH_NUM];
     /* 0x034 */ void *bg;           /* section 30: background picture */
     /* 0x038 */ u8 *tex[51];
     /* 0x104 */ s32 cursor;         /* OPT_ITEM_: the row the cursor is on */

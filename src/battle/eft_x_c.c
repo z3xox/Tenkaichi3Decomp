@@ -1,4 +1,5 @@
 #include "common.h"
+#include "battle/btl_cam.h"
 #include "battle/eft_x.h"
 
 /*
@@ -13,15 +14,10 @@
  */
 
 /* The view being drawn (include/battle/btl_cam.h). */
-typedef struct EftXcView {
-    /* 0x000 */ u8 unk0[0x140];
-    /* 0x140 */ Mtx44 world2screen;
-} EftXcView;
 
 #define V(p) ((Vec4 *)(p))
 
 extern EftPart9Mgr *gEftQuadMgr;
-extern EftXcView *gBtlCamView;
 
 extern s32 rand(void);
 extern void *memset(void *dst, s32 c, u32 n);

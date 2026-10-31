@@ -2,6 +2,7 @@
 #define BATTLE_EFT_M_H
 
 #include "types.h"
+#include "sys/vector_types.h"
 #include "sys/math3d.h"
 
 /*
@@ -14,12 +15,6 @@
 
 /* A vector passed by value. The original vector type is 16-byte aligned (argument copies use ld / sd);
    Vec4 in sys/math3d.h is not, so this file casts between the two. */
-typedef struct EftVec {
-    /* 0x0 */ f32 x;
-    /* 0x4 */ f32 y;
-    /* 0x8 */ f32 z;
-    /* 0xC */ f32 w;
-} __attribute__((aligned(16))) EftVec;
 
 /* ---- speed lines ---------------------------------------------------------------------------------------- */
 
@@ -89,12 +84,12 @@ void EftSpdLine_Update(void);
 void EftSpdLine_Stub(void);
 void EftSpdLine_Draw(void);
 EftSpdTrail *EftSpdLine_AllocTrail(void);
-void EftSpdLine_AddTrail(s32 objId, EftVec pos, EftVec dir);
+void EftSpdLine_AddTrail(s32 objId, Vec4Aligned pos, Vec4Aligned dir);
 void EftSpdLine_UpdateTrails(void);
 s32 EftSpdLine_StepTrail(EftSpdTrail *p);
 void EftSpdLine_DrawTrails(void);
 EftSpdStreak *EftSpdLine_AllocStreak(void);
-void EftSpdLine_AddStreak(s32 objId, EftVec pos, EftVec tail, EftVec dir, f32 speed, f32 life, f32 width);
+void EftSpdLine_AddStreak(s32 objId, Vec4Aligned pos, Vec4Aligned tail, Vec4Aligned dir, f32 speed, f32 life, f32 width);
 void EftSpdLine_UpdateStreaks(void);
 s32 EftSpdLine_StepStreak(EftSpdStreak *p);
 void EftSpdLine_DrawStreaks(void);

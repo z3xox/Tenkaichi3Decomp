@@ -32,8 +32,8 @@ const s32 gSimTopIdleVoice[2] = { 4, 5 };
 
 /* Shows or hides the star of ranking plate `parent`. */
 void SimTop_ShowStar(char *parent, s32 on) {
-    MFlashRef ref;
-    MFlash *flash = &gSimTop->flash[0];
+    FlashRef ref;
+    Flash *flash = &gSimTop->flash[0];
 
     Flash_FindLabel(flash, parent, "mc_icon_star", &ref);
     if (on) {
@@ -48,7 +48,7 @@ void SimTop_ShowStar(char *parent, s32 on) {
  * health 100 %, points 0, no items, turn 0, one fighter, no DP rule.
  */
 void SimTop_Init(s32 section) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
     s32 i;
 
     gSimTop = Heap_Alloc(sizeof(SimTop), 0x20, 0, 2);
@@ -56,17 +56,17 @@ void SimTop_Init(s32 section) {
     gSimTop->pack = (u32 *)MPACK_AT(gMenuArc3, section);
     gSimTop->res = Sprite_Unpack(gSimTop->pack, NULL, NULL);
 
-    res = (MTexRes *)MPACK_AT(gSimTop->res, 4);
+    res = (FlashTexRes *)MPACK_AT(gSimTop->res, 4);
     Res_RelocateOffsets(&res, res, res);
     gSimTop->bg = res;
 
-    res = (MTexRes *)MPACK_AT(gSimTop->res, 5);
+    res = (FlashTexRes *)MPACK_AT(gSimTop->res, 5);
     Res_RelocateOffsets(&res, res, res);
     gSimTop->tex[32] = MTEX(res, 5);
     gSimTop->tex[33] = MTEX(res, 6);
     gSimTop->tex[34] = MTEX(res, 8);
 
-    res = (MTexRes *)MPACK_AT(gSimTop->res, 2);
+    res = (FlashTexRes *)MPACK_AT(gSimTop->res, 2);
     Res_RelocateOffsets(&res, res, res);
     gSimTop->tex[20] = NULL;
     gSimTop->tex[22] = NULL;
@@ -108,14 +108,14 @@ void SimTop_Init(s32 section) {
 
     gSimTop->faces = (u32 *)MPACK_AT(gSimTop->res, 7);
     for (i = 0; i < SIMTOP_FACE_NUM; i++) {
-        res = (MTexRes *)MPACK_AT(gSimTop->faces, i + 1);
+        res = (FlashTexRes *)MPACK_AT(gSimTop->faces, i + 1);
         Res_RelocateOffsets(&res, res, res);
     }
 
     Flash_Create(&gSimTop->flash[0], MPACK_AT(gSimTop->res, 1), gSimTop->tex);
     Flash_Play(&gSimTop->flash[0], 1);
 
-    res = (MTexRes *)MPACK_AT(gSimTop->res, 3);
+    res = (FlashTexRes *)MPACK_AT(gSimTop->res, 3);
     Res_RelocateOffsets(&res, res, res);
     IconWin_Init(MPACK_AT(gSimTop->res, 6), res);
     IconWin_Open();
@@ -167,17 +167,17 @@ void SimTop_Term(void) {
 
 /* Sets up the movie's clips (ranking rows, portraits, the description) and draws it. */
 void SimTop_Draw(void) {
-    MFlashRef ref;
-    MFlashUv uv;
+    FlashRef ref;
+    FlashUv uv;
     char name[0x40];
-    MFlash *flash;
+    Flash *flash;
     s32 i;
     s32 x;
     s32 n;
     s32 score;
     s32 star;
     s32 chara;
-    MTexRes *face;
+    FlashTexRes *face;
 
 #ifdef PORT
     Port_MenuPage(34); /* widescreen menus: this screen's page, its backdrop filling the width */
@@ -194,19 +194,19 @@ void SimTop_Draw(void) {
     FlashAnim_Talk(flash, &ref, &gSimTop->mouth, 0);
 
     x = gSimTop->iconFrame << 6;
-    uv.x0 = x;
-    uv.y0 = 0;
-    uv.x1 = x + 0x40;
-    uv.y1 = 0x40;
+    uv.u0 = x;
+    uv.v0 = 0;
+    uv.u1 = x + 0x40;
+    uv.v1 = 0x40;
     Flash_FindLabel(flash, NULL, "mc_icon_play1", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     gSimTop->iconFrame ^= 1;
 
     for (i = 1; i < 3; i++) {
-        uv.x0 = 0;
-        uv.y0 = i << 5;
-        uv.x1 = 0x200;
-        uv.y1 = (i << 5) + 0x20;
+        uv.u0 = 0;
+        uv.v0 = i << 5;
+        uv.u1 = 0x200;
+        uv.v1 = (i << 5) + 0x20;
         sprintf(name, "mc_sim_plate%02d", i + 1);
         Flash_FindLabel(flash, name, "mc_friend_text_on", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
@@ -214,10 +214,10 @@ void SimTop_Draw(void) {
         Flash_ClipSetUv(flash, &ref, &uv);
     }
 
-    uv.x0 = 0;
-    uv.y0 = 0x20;
-    uv.x1 = 0x20;
-    uv.y1 = 0x40;
+    uv.u0 = 0;
+    uv.v0 = 0x20;
+    uv.u1 = 0x20;
+    uv.v1 = 0x40;
     Flash_FindLabel(flash, NULL, "mc_menu_yajirusi_up", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     if (gSimTop->top == 0) {
@@ -226,10 +226,10 @@ void SimTop_Draw(void) {
         Flash_ClipSetFlags(flash, &ref, 2, 1);
     }
 
-    uv.x0 = 0x20;
-    uv.y0 = 0x20;
-    uv.x1 = 0x40;
-    uv.y1 = 0x40;
+    uv.u0 = 0x20;
+    uv.v0 = 0x20;
+    uv.u1 = 0x40;
+    uv.v1 = 0x40;
     Flash_FindLabel(flash, NULL, "mc_menu_yajirusi_down", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     if (gSimTop->top == 5) {
@@ -245,10 +245,10 @@ void SimTop_Draw(void) {
         } else {
             n = gSimTop->cursor + 1;
         }
-        uv.x0 = (n % 4) << 6;
-        uv.y0 = (n / 4) << 6;
-        uv.x1 = ((n % 4) << 6) + 0x40;
-        uv.y1 = ((n / 4) << 6) + 0x40;
+        uv.u0 = (n % 4) << 6;
+        uv.v0 = (n / 4) << 6;
+        uv.u1 = ((n % 4) << 6) + 0x40;
+        uv.v1 = ((n / 4) << 6) + 0x40;
         Flash_FindLabel(flash, name, "mc_jyuni_suji", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
         Flash_FindLabel(flash, name, "mc_jyuni_suji_ef", &ref);
@@ -256,11 +256,11 @@ void SimTop_Draw(void) {
 
         if (i != 5) {
             chara = SIM_SAVE->rank[gSimTop->top + i].chara;
-            face = (MTexRes *)MPACK_AT(gSimTop->faces, chara + 1);
+            face = (FlashTexRes *)MPACK_AT(gSimTop->faces, chara + 1);
             gSimTop->tex[gSimTopFaceTex[i]] = face->tex;
         } else {
             chara = SIM_SAVE->rank[gSimTop->cursor].chara;
-            face = (MTexRes *)MPACK_AT(gSimTop->faces, chara + 1);
+            face = (FlashTexRes *)MPACK_AT(gSimTop->faces, chara + 1);
             gSimTop->tex[SIMTOP_TEX_CURSOR_FACE] = face->tex;
         }
         if (i != 5) {
@@ -276,10 +276,10 @@ void SimTop_Draw(void) {
         }
         SimTop_ShowStar(name, star);
 
-        uv.x0 = 0;
-        uv.y0 = 0;
-        uv.x1 = 0x20;
-        uv.y1 = 0x20;
+        uv.u0 = 0;
+        uv.v0 = 0;
+        uv.u1 = 0x20;
+        uv.v1 = 0x20;
         Flash_FindLabel(flash, name, "mc_icon_star", &ref);
         FlashAnim_Sheet(flash, &ref, &gSimTop->starTimer, &gSimTop->starFrame, &uv, 2, 2, 0x80);
     }
@@ -476,9 +476,9 @@ void SimTop_Input(s32 *result) {
 
 /* Sends the plate under the cursor of `level` to a label. */
 void SimTop_ClipGoto(s32 movie, s32 level, char *label) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[64];
-    MFlash *flash = &gSimTop->flash[movie];
+    Flash *flash = &gSimTop->flash[movie];
 
     sprintf(name, "mc_sim_plate%02d", gSimTop->cur[level] + 1);
     Flash_FindLabel(flash, NULL, name, &ref);

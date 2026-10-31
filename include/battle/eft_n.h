@@ -2,6 +2,7 @@
 #define BATTLE_EFT_N_H
 
 #include "types.h"
+#include "sys/vector_types.h"
 #include "sys/math3d.h"
 #include "battle/eft_m.h"
 
@@ -301,14 +302,14 @@ extern EftBoltPool *gEftBoltPool;
 
 s32 EftBolt_AllocSegs(EftBolt *bolt, s32 count);
 void EftBolt_FreeSegs(EftBolt *bolt);
-void EftBolt_Shape(EftBolt *bolt, EftVec start, EftVec end, f32 scale);
+void EftBolt_Shape(EftBolt *bolt, Vec4Aligned start, Vec4Aligned end, f32 scale);
 s32 EftBolt_Step(EftBolt *bolt, f32 scale);
 void EftBolt_Draw(EftBoltWork *work, EftBolt *bolt, f32 alpha);
-s32 EftBolt_Start(EftBoltWork *work, EftBolt *bolt, s32 objId, s32 kind, s32 nodeA, s32 nodeB, EftVec dirA,
-                  EftVec dirB, f32 length, f32 follow);
+s32 EftBolt_Start(EftBoltWork *work, EftBolt *bolt, s32 objId, s32 kind, s32 nodeA, s32 nodeB, Vec4Aligned dirA,
+                  Vec4Aligned dirB, f32 length, f32 follow);
 void EftBolt_UpdateAll(EftBoltWork *work, s32 objId);
 void EftBolt_DrawAll(EftBoltWork *work, f32 alpha);
-s32 EftBolt_AddFlash(EftBoltWork *work, s32 kind, s32 nodeA, s32 nodeB, EftVec vel, f32 size, f32 follow);
+s32 EftBolt_AddFlash(EftBoltWork *work, s32 kind, s32 nodeA, s32 nodeB, Vec4Aligned vel, f32 size, f32 follow);
 void EftBolt_UpdateFlashes(EftBoltWork *work, s32 objId);
 void EftBolt_DrawFlashes(EftBoltWork *work, f32 alpha);
 void EftBolt_Spawn(EftBoltWork *work, s32 objId);

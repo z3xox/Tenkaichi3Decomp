@@ -1,4 +1,5 @@
 #include "common.h"
+#include "sys/progress.h"
 #include "battle/btl_script_cmd.h"
 #include "battle/btl_script.h"
 #include "sys/gsc.h"
@@ -45,7 +46,6 @@ extern void BtlStage_GetStartPlace(s32 side, Vec4 *pos, Vec4 *rot, s32 arg);
 /* called with a second argument (0) that BtlFacade_SetCpuParam8 does not take */
 extern void BtlFacade_SetCpuParam8Ex(s32 value, s32 unused) __asm__("BtlFacade_SetCpuParam8");
 
-extern BtlScriptCmdProgress *gProgress;
 extern BtlScriptWork gBtlScript;
 
 #define SCRIPT_SIDE(v) (((v) >> 15) & 1)
@@ -1020,7 +1020,7 @@ s32 BtlScriptCmd_SetMember(u32 phase, void *taskWork) {
         items.id[6] = Gsc_GetInt();
         items.id[7] = item7;
         if (chara >= 0) {
-            switch (gProgress->difficulty) {
+            switch (gProgress->menu.difficulty) {
             case 1:
                 cpuLevel += 6;
                 break;
@@ -1124,7 +1124,7 @@ s32 BtlScriptCmd_SetStatus1(u32 phase, void *taskWork) {
         }
         if (Gsc_FindOption('l')) {
             value = Gsc_GetInt();
-            switch (gProgress->difficulty) {
+            switch (gProgress->menu.difficulty) {
             case 1:
                 value += 6;
                 break;
@@ -1214,24 +1214,24 @@ s32 BtlScriptCmd_SetSpeakers(u32 phase, void *taskWork) {
 
 /* Command 16 "rewards": 15 numbers stored in the progress block at +0x40. */
 s32 BtlScriptCmd_SetRewards(u32 phase, void *taskWork) {
-    BtlScriptCmdReward *reward = &gProgress->reward;
+    ProgressReward *reward = &gProgress->menu.reward;
 
     if (phase == GSC_PHASE_BEGIN || phase == GSC_PHASE_BEGIN_ABORT) {
-        reward->unk0[0] = Gsc_GetInt();
-        reward->unk0[1] = Gsc_GetInt();
-        reward->unk0[2] = Gsc_GetInt();
-        reward->unkC[0] = Gsc_GetInt();
-        reward->unkC[1] = Gsc_GetInt();
-        reward->unkC[2] = Gsc_GetInt();
-        reward->unk24[0] = Gsc_GetInt();
-        reward->unk24[1] = Gsc_GetInt();
-        reward->unk24[2] = Gsc_GetInt();
-        reward->unk18[0] = Gsc_GetInt();
-        reward->unk18[1] = Gsc_GetInt();
-        reward->unk18[2] = Gsc_GetInt();
-        reward->unk30[0] = Gsc_GetInt();
-        reward->unk30[1] = Gsc_GetInt();
-        reward->unk30[2] = Gsc_GetInt();
+        reward->points[0] = Gsc_GetInt();
+        reward->points[1] = Gsc_GetInt();
+        reward->points[2] = Gsc_GetInt();
+        reward->item[0] = Gsc_GetInt();
+        reward->item[1] = Gsc_GetInt();
+        reward->item[2] = Gsc_GetInt();
+        reward->stage[0] = Gsc_GetInt();
+        reward->stage[1] = Gsc_GetInt();
+        reward->stage[2] = Gsc_GetInt();
+        reward->chara[0] = Gsc_GetInt();
+        reward->chara[1] = Gsc_GetInt();
+        reward->chara[2] = Gsc_GetInt();
+        reward->episode[0] = Gsc_GetInt();
+        reward->episode[1] = Gsc_GetInt();
+        reward->episode[2] = Gsc_GetInt();
     }
     return 1;
 }

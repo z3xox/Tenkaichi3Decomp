@@ -46,11 +46,11 @@ TeamSel *gTeamSel = NULL;
 
 extern s32 ChrTbl_GetCost(s32 chara);
 extern s32 ChrTbl_IsRelated(s32 a, s32 b);
-extern void TextBox_Init(MTextBox *box, void *text, u32 preset);
-extern void TextBox_SetUnk80(MTextBox *box, s32 value);
-extern void TextBox_AttachLine(MFlash *flash, MFlashRef *ref, s32 x, s32 y, s32 line, MTextBox *box);
-extern void Flash_ClipSetOffset(MFlash *flash, MFlashRef *ref, s32 x, s32 y);
-extern void Num_Draw(MFlash *flash, char *fmt, s32 first, s32 count, s32 value, s32 w, s32 h, s32 mode);
+extern void TextBox_Init(TextBox *box, void *text, u32 preset);
+extern void TextBox_SetUnk80(TextBox *box, s32 value);
+extern void TextBox_AttachLine(Flash *flash, FlashRef *ref, s32 x, s32 y, s32 line, TextBox *box);
+extern void Flash_ClipSetOffset(Flash *flash, FlashRef *ref, s32 x, s32 y);
+extern void Num_Draw(Flash *flash, char *fmt, s32 first, s32 count, s32 value, s32 w, s32 h, s32 mode);
 extern s32 ChrGrid_IsSelectable(TsCell *cells, s32 index);
 extern s32 StgGrid_IsSelectable(s32 *ids, s32 index);
 extern void ChrGrid_Build(s32 *outCount, TsCell *out, s32 *inCount, TsCell *in, s32 *customCount, TsCell *custom);
@@ -140,7 +140,7 @@ void TeamSel_SetStageChips(void) {
 
     for (i = 0; i < 6; i++) {
         s32 id = gTeamSel->stageIds[gTeamSel->stage->row * TS_STAGE_COLS + i];
-        MTexRes *res;
+        FlashTexRes *res;
 
         gTeamSel->stage->chip[1][i] = gTeamSel->stage->chip[0][i];
         gTeamSel->stage->chip[0][i] = id;
@@ -149,10 +149,10 @@ void TeamSel_SetStageChips(void) {
         {
             /* (a stage added from outside the disc, id 0x24 on, borrows an icon as in the duel's select) */
             s32 icon = id == STGGRID_ID_LOCKED ? 37 : (id == STGGRID_ID_EMPTY ? 38 : (id >= 0x24 ? 1 + (id - 0x24) % 36 : id + 1));
-            res = (MTexRes *)MPACK_AT(gTeamSel->stagePack, icon);
+            res = (FlashTexRes *)MPACK_AT(gTeamSel->stagePack, icon);
         }
 #else
-        res = (MTexRes *)MPACK_AT(gTeamSel->stagePack, id + 1);
+        res = (FlashTexRes *)MPACK_AT(gTeamSel->stagePack, id + 1);
 #endif
         gTeamSel->tex[41 + i] = gTeamSel->tex[slot[i]];
         gTeamSel->tex[slot[i]] = res->tex;
@@ -166,11 +166,11 @@ void TeamSel_SetChips(s32 side) {
 
     for (i = 0; i < 7; i++) {
         s32 id = gTeamSel->cells[side][gTeamSel->side[side]->member[gTeamSel->side[side]->cur].row * 7 + i].id;
-        MTexRes *res;
+        FlashTexRes *res;
 
         gTeamSel->side[side]->chip[1][i] = gTeamSel->side[side]->chip[0][i];
         gTeamSel->side[side]->chip[0][i] = id;
-        res = (MTexRes *)MPACK_AT(gTeamSel->chipPack, id + 1);
+        res = (FlashTexRes *)MPACK_AT(gTeamSel->chipPack, id + 1);
         gTeamSel->sideTex[side][18 + i] = gTeamSel->sideTex[side][slot[i]];
         gTeamSel->sideTex[side][slot[i]] = res->tex;
     }
@@ -183,7 +183,7 @@ void TeamSel_SetGridFormChips(s32 side) {
 
     for (i = 0; i < 7; i++) {
         s32 id;
-        MTexRes *res;
+        FlashTexRes *res;
 
         if (i < gTeamSel->cells[side][gTeamSel->side[side]->member[gTeamSel->side[side]->cur].col +
                                       gTeamSel->side[side]->member[gTeamSel->side[side]->cur].row * 7].formCount) {
@@ -194,7 +194,7 @@ void TeamSel_SetGridFormChips(s32 side) {
         }
         gTeamSel->side[side]->chip[1][i] = gTeamSel->side[side]->chip[0][i];
         gTeamSel->side[side]->chip[0][i] = id;
-        res = (MTexRes *)MPACK_AT(gTeamSel->chipPack, id + 1);
+        res = (FlashTexRes *)MPACK_AT(gTeamSel->chipPack, id + 1);
         gTeamSel->sideTex[side][18 + i] = gTeamSel->sideTex[side][slot[i]];
         gTeamSel->sideTex[side][slot[i]] = res->tex;
     }
@@ -207,11 +207,11 @@ void TeamSel_SetCustomChips(s32 side) {
 
     for (i = 0; i < 7; i++) {
         s32 id = gTeamSel->custom[side][i + gTeamSel->side[side]->member[gTeamSel->side[side]->cur].customRow * 7].id;
-        MTexRes *res;
+        FlashTexRes *res;
 
         gTeamSel->side[side]->chip[1][i] = gTeamSel->side[side]->chip[0][i];
         gTeamSel->side[side]->chip[0][i] = id;
-        res = (MTexRes *)MPACK_AT(gTeamSel->chipPack, id + 1);
+        res = (FlashTexRes *)MPACK_AT(gTeamSel->chipPack, id + 1);
         gTeamSel->sideTex[side][18 + i] = gTeamSel->sideTex[side][slot[i]];
         gTeamSel->sideTex[side][slot[i]] = res->tex;
     }
@@ -224,7 +224,7 @@ void TeamSel_SetFormChips(s32 side) {
 
     for (i = 0; i < 7; i++) {
         s32 id;
-        MTexRes *res;
+        FlashTexRes *res;
 
         if (i < gTeamSel->custom[side][gTeamSel->side[side]->member[gTeamSel->side[side]->cur].customCol +
                                        gTeamSel->side[side]->member[gTeamSel->side[side]->cur].customRow * 7].formCount) {
@@ -235,7 +235,7 @@ void TeamSel_SetFormChips(s32 side) {
         }
         gTeamSel->side[side]->chip[1][i] = gTeamSel->side[side]->chip[0][i];
         gTeamSel->side[side]->chip[0][i] = id;
-        res = (MTexRes *)MPACK_AT(gTeamSel->chipPack, id + 1);
+        res = (FlashTexRes *)MPACK_AT(gTeamSel->chipPack, id + 1);
         gTeamSel->sideTex[side][18 + i] = gTeamSel->sideTex[side][slot[i]];
         gTeamSel->sideTex[side][slot[i]] = res->tex;
     }
@@ -253,7 +253,7 @@ void TeamSel_SetTeamTex(s32 side) {
         gTeamSel->teamTex[side][slot[i]] = NULL;
         if (i < gTeamSel->side[side]->memberCount) {
             s32 id = gTeamSel->side[side]->member[i].chara;
-            MTexRes *res = (MTexRes *)MPACK_AT(gTeamSel->chipPack, id + 1);
+            FlashTexRes *res = (FlashTexRes *)MPACK_AT(gTeamSel->chipPack, id + 1);
 
             gTeamSel->teamTex[side][slot[i]] = res->tex;
             if (gTeamSel->battleType == 2) {
@@ -265,7 +265,7 @@ void TeamSel_SetTeamTex(s32 side) {
 
 /* One step of the background loader of the two portraits. */
 void TeamSel_UpdateFaceLoad(void) {
-    MTexRes *res;
+    FlashTexRes *res;
 
     switch (gTeamSel->faceState) {
     case TEAMSEL_LOAD_ABORT:
@@ -351,7 +351,7 @@ void TeamSel_RequestFace(s32 side) {
 
 /* One step of the background loader of the stage picture. */
 void TeamSel_UpdateStageLoad(void) {
-    MTexRes *res;
+    FlashTexRes *res;
 
     switch (gTeamSel->stageState) {
     case TEAMSEL_LOAD_ABORT:
@@ -411,9 +411,9 @@ void TeamSel_RequestStage(void) {
 
 /* Sends the clip of one chip or plate of a movie to a label; `kind` says which clip and from which cursor. */
 void TeamSel_ClipGoto(s32 flash, s32 side, s32 kind, char *label) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[64];
-    MFlash *f = &gTeamSel->flash[flash];
+    Flash *f = &gTeamSel->flash[flash];
 
     switch (kind) {
     case TEAMSEL_CLIP_CHIP:
@@ -462,12 +462,12 @@ void TeamSel_ClipGoto(s32 flash, s32 side, s32 kind, char *label) {
 }
 
 #define TS_RES(n) \
-    res = (MTexRes *)MPACK_AT(gTeamSel->res, n); \
+    res = (FlashTexRes *)MPACK_AT(gTeamSel->res, n); \
     Res_RelocateOffsets(&res, res, res)
 
 /* Loads and unpacks the screen (section `section` of archive 5), builds the grids and restores the last choices. */
 void TeamSel_Init(s32 section) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
     s32 i;
     s32 j;
 
@@ -633,12 +633,12 @@ void TeamSel_Init(s32 section) {
     gTeamSel->formText = MPACK_AT(gTeamSel->res, 44);
     gTeamSel->chipPack = (u32 *)MPACK_AT(gTeamSel->res, 45);
     for (i = 0; i < TS_CELL_MAX; i++) {
-        res = (MTexRes *)MPACK_AT(gTeamSel->chipPack, i + 1);
+        res = (FlashTexRes *)MPACK_AT(gTeamSel->chipPack, i + 1);
         Res_RelocateOffsets(&res, res, res);
     }
     gTeamSel->stagePack = (u32 *)MPACK_AT(gTeamSel->res, 46);
     for (i = 0; i < 38; i++) {
-        res = (MTexRes *)MPACK_AT(gTeamSel->stagePack, i + 1);
+        res = (FlashTexRes *)MPACK_AT(gTeamSel->stagePack, i + 1);
         Res_RelocateOffsets(&res, res, res);
     }
     gTeamSel->stageIds = (s32 *)(MPACK_AT(gTeamSel->res, 39) + 0x10);
@@ -908,13 +908,13 @@ void TeamSel_Term(void) {
 
 /* Draws the two stage pictures (cross fade), sets up every clip of the seven movies and draws them and the windows. */
 void TeamSel_Draw(void) {
-    MFlashRef ref;
-    MFlashUv uv;
+    FlashRef ref;
+    FlashUv uv;
     char name[64];
     char name2[64];
     s32 i;
     s32 j;
-    MFlash *flash;
+    Flash *flash;
     s32 chara;
     s32 cost;
 
@@ -976,15 +976,15 @@ void TeamSel_Draw(void) {
         Flash_FindLabel(flash, NULL, i ? "mc_form_text_r" : "mc_form_text_l", &ref);
         TextBox_AttachLine(flash, &ref, 0, 0, gTeamSel->side[i]->chara, &gTeamSel->formBox[i]);
     }
-    uv.x0 = 0;
-    uv.x1 = 0x200;
+    uv.u0 = 0;
+    uv.u1 = 0x200;
 #ifdef PORT
     gUiNameIdx = -1; /* set below only for a stage added from outside the disc */
     Flash_FindLabel(flash, NULL, "mc_map_name", &ref);
     {
         /* PC build: an added stage has no picture of its name on the disc: the port draws it at the clip's place
            (as in menu_c_e.c, which has the notes). */
-        extern void Flash_ClipGetPos(MFlash *flash, MFlashRef *ref, s32 *x, s32 *y);
+        extern void Flash_ClipGetPos(Flash *flash, FlashRef *ref, s32 *x, s32 *y);
         s32 nameId = gTeamSel->stage->stage;
 
         if (nameId >= 0x24) {
@@ -992,7 +992,7 @@ void TeamSel_Draw(void) {
             Flash_ClipSetFlags(flash, &ref, 2, 0);
             sPortStageNameHidden = 1;
             Flash_ClipGetPos(flash, &ref, &nx, &ny);
-            if (ref.id >= 0 && idx >= 0 && idx < gPortExtraStageCount) {
+            if (ref.index >= 0 && idx >= 0 && idx < gPortExtraStageCount) {
                 if (gUiNameReady) {
                     gUiNameX = nx + 64;
                     gUiNameY = ny + 14;
@@ -1015,11 +1015,11 @@ void TeamSel_Draw(void) {
                 }
             }
         } else {
-            uv.y0 = (nameId % 4) * 0x40;
-            uv.y1 = uv.y0 + 0x40;
-            uv.unk10 = nameId / 4;
+            uv.v0 = (nameId % 4) * 0x40;
+            uv.v1 = uv.v0 + 0x40;
+            uv.tex = nameId / 4;
             Flash_ClipSetUv(flash, &ref, &uv);
-            Flash_ClipSetTex(flash, &ref, uv.unk10);
+            Flash_ClipSetTex(flash, &ref, uv.tex);
             if (sPortStageNameHidden) {
                 Flash_ClipSetFlags(flash, &ref, 2, 1);
                 sPortStageNameHidden = 0;
@@ -1027,19 +1027,19 @@ void TeamSel_Draw(void) {
         }
     }
 #else
-    uv.y0 = (gTeamSel->stage->stage % 4) * 0x40;
-    uv.y1 = uv.y0 + 0x40;
-    uv.unk10 = gTeamSel->stage->stage / 4;
+    uv.v0 = (gTeamSel->stage->stage % 4) * 0x40;
+    uv.v1 = uv.v0 + 0x40;
+    uv.tex = gTeamSel->stage->stage / 4;
     Flash_FindLabel(flash, NULL, "mc_map_name", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
-    Flash_ClipSetTex(flash, &ref, uv.unk10);
+    Flash_ClipSetTex(flash, &ref, uv.tex);
 #endif
     if (gTeamSel->battleType == 2) {
         for (i = 0; i < TEAMSEL_SIDES; i++) {
-            uv.x0 = (gTeamSel->dpLevel % 2) * 0x40;
-            uv.y0 = (gTeamSel->dpLevel / 2) * 0x20;
-            uv.x1 = uv.x0 + 0x40;
-            uv.y1 = uv.y0 + 0x20;
+            uv.u0 = (gTeamSel->dpLevel % 2) * 0x40;
+            uv.v0 = (gTeamSel->dpLevel / 2) * 0x20;
+            uv.u1 = uv.u0 + 0x40;
+            uv.v1 = uv.v0 + 0x20;
             Flash_FindLabel(flash, NULL, i ? "mc_dp_max_r" : "mc_dp_max_l", &ref);
             Flash_ClipSetUv(flash, &ref, &uv);
             Num_Draw(flash, i ? "mc_dp_total_r_%d" : "mc_dp_total_l_%d", 0, 2, gTeamSel->side[i]->cost, 0x20, 0x40, 1);
@@ -1057,35 +1057,35 @@ void TeamSel_Draw(void) {
         Flash_ClipSetFlags(flash, &ref, 0x80, (u8)gTeamSel->stage->mask);
     }
     for (i = 0; i < 2; i++) {
-        uv.x0 = i * 0x20;
-        uv.x1 = uv.x0 + 0x20;
-        uv.y0 = 0x20;
-        uv.y1 = 0x40;
+        uv.u0 = i * 0x20;
+        uv.u1 = uv.u0 + 0x20;
+        uv.v0 = 0x20;
+        uv.v1 = 0x40;
         Flash_FindLabel(flash, i ? "mc_yajirusi_down" : "mc_yajirusi_up",
                         i ? "mc_yajirusi_icon_down" : "mc_yajirusi_icon_up", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
     }
-    uv.x0 = 0;
-    uv.x1 = 0x200;
+    uv.u0 = 0;
+    uv.u1 = 0x200;
 #ifdef PORT
     gUiSongIdx = -1; /* set below only for a song added from outside the disc */
     {
         /* PC build: an added song has no picture of its name on the disc: the port draws it (as in menu_c_e.c,
            which has the notes on the two name clips and their places). */
-        extern void Flash_ClipGetPos(MFlash *flash, MFlashRef *ref, s32 *x, s32 *y);
+        extern void Flash_ClipGetPos(Flash *flash, FlashRef *ref, s32 *x, s32 *y);
         s32 bgm = gTeamSel->bgmIds[gTeamSel->stage->bgmCursor];
 
         if (bgm >= PORT_SONG_FIRST_OFFSET) {
             s32 idx = bgm - PORT_SONG_FIRST_OFFSET;
             s32 cx = 0, cy = 0, px, py, have = 0, shown = 0;
             Flash_FindLabel(flash, "mc_bgm_now", "mc_bgm_now_text_off", &ref);
-            if (ref.id >= 0) {
+            if (ref.index >= 0) {
                 Flash_ClipGetPos(flash, &ref, &cx, &cy);
                 have = 1;
             }
             Flash_ClipSetFlags(flash, &ref, 2, 0);
             Flash_FindLabel(flash, "mc_bgm_now", "mc_bgm_now_text_on", &ref);
-            if (!have && ref.id >= 0) {
+            if (!have && ref.index >= 0) {
                 Flash_ClipGetPos(flash, &ref, &cx, &cy);
                 shown = 1;
             }
@@ -1116,18 +1116,18 @@ void TeamSel_Draw(void) {
                 gFontStyle = saved;
             }
         } else {
-            uv.y0 = (bgm % 8) * 0x20;
-            uv.y1 = uv.y0 + 0x20;
-            uv.unk10 = bgm / 8;
+            uv.v0 = (bgm % 8) * 0x20;
+            uv.v1 = uv.v0 + 0x20;
+            uv.tex = bgm / 8;
             Flash_FindLabel(flash, "mc_bgm_now", "mc_bgm_now_text_off", &ref);
             Flash_ClipSetUv(flash, &ref, &uv);
-            Flash_ClipSetTex(flash, &ref, uv.unk10);
+            Flash_ClipSetTex(flash, &ref, uv.tex);
             if (sPortSongNameHidden) {
                 Flash_ClipSetFlags(flash, &ref, 2, 1);
             }
             Flash_FindLabel(flash, "mc_bgm_now", "mc_bgm_now_text_on", &ref);
             Flash_ClipSetUv(flash, &ref, &uv);
-            Flash_ClipSetTex(flash, &ref, uv.unk10);
+            Flash_ClipSetTex(flash, &ref, uv.tex);
             if (sPortSongNameHidden) {
                 Flash_ClipSetFlags(flash, &ref, 2, 1);
                 sPortSongNameHidden = 0;
@@ -1135,29 +1135,29 @@ void TeamSel_Draw(void) {
         }
     }
 #else
-    uv.y0 = (gTeamSel->bgmIds[gTeamSel->stage->bgmCursor] % 8) * 0x20;
-    uv.y1 = uv.y0 + 0x20;
-    uv.unk10 = gTeamSel->bgmIds[gTeamSel->stage->bgmCursor] / 8;
+    uv.v0 = (gTeamSel->bgmIds[gTeamSel->stage->bgmCursor] % 8) * 0x20;
+    uv.v1 = uv.v0 + 0x20;
+    uv.tex = gTeamSel->bgmIds[gTeamSel->stage->bgmCursor] / 8;
     Flash_FindLabel(flash, "mc_bgm_now", "mc_bgm_now_text_off", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
-    Flash_ClipSetTex(flash, &ref, uv.unk10);
+    Flash_ClipSetTex(flash, &ref, uv.tex);
     Flash_FindLabel(flash, "mc_bgm_now", "mc_bgm_now_text_on", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
-    Flash_ClipSetTex(flash, &ref, uv.unk10);
+    Flash_ClipSetTex(flash, &ref, uv.tex);
 #endif
     for (i = 0; i < TEAMSEL_SIDES; i++) {
         flash = &gTeamSel->flash[5 + i];
-        uv.x0 = (i ^ 1) * 0x20;
-        uv.x1 = uv.x0 + 0x20;
-        uv.y0 = 0;
-        uv.y1 = 0x20;
+        uv.u0 = (i ^ 1) * 0x20;
+        uv.u1 = uv.u0 + 0x20;
+        uv.v0 = 0;
+        uv.v1 = 0x20;
         Flash_FindLabel(flash, NULL, "mc_yajirusi", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
         for (j = 0; j < 4; j++) {
-            uv.x0 = 0;
-            uv.x1 = 0x100;
-            uv.y0 = j * 0x20;
-            uv.y1 = uv.y0 + 0x20;
+            uv.u0 = 0;
+            uv.u1 = 0x100;
+            uv.v0 = j * 0x20;
+            uv.v1 = uv.v0 + 0x20;
             sprintf(name, "mc_custom_plate_%d", j + 1);
             Flash_FindLabel(flash, NULL, name, &ref);
             Flash_ClipSetColor(flash, &ref, j < gTeamSel->plateCount[i] ? 1.0f : 0.3f);
@@ -1177,10 +1177,10 @@ void TeamSel_Draw(void) {
             }
         }
         for (j = 0; j < 4; j++) {
-            uv.x0 = (j % 2) * 0x40;
-            uv.x1 = uv.x0 + 0x40;
-            uv.y0 = (j / 2) * 0x20;
-            uv.y1 = uv.y0 + 0x20;
+            uv.u0 = (j % 2) * 0x40;
+            uv.u1 = uv.u0 + 0x40;
+            uv.v0 = (j / 2) * 0x20;
+            uv.v1 = uv.v0 + 0x20;
             sprintf(name, "mc_color_plate_%d", j + 1);
             Flash_FindLabel(flash, NULL, name, &ref);
             if (j < gTeamSel->colorCount[i]) {
@@ -1219,18 +1219,18 @@ void TeamSel_Draw(void) {
             break;
         }
         /* the cell of the "1P / 2P / COM" text; the original takes the remainder by subtraction, not `& 1` */
-        uv.y0 = (n / 2) * 0x20;
-        uv.x0 = (n - (n / 2) * 2) * 0x40;
-        uv.y1 = uv.y0 + 0x20;
-        uv.x1 = uv.x0 + 0x40;
+        uv.v0 = (n / 2) * 0x20;
+        uv.u0 = (n - (n / 2) * 2) * 0x40;
+        uv.v1 = uv.v0 + 0x20;
+        uv.u1 = uv.u0 + 0x40;
         Flash_FindLabel(flash, NULL, "mc_plate_text", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
         if (gTeamSel->rows[i] >= 2) {
             for (j = 0; j < 2; j++) {
-                uv.x0 = j * 0x20;
-                uv.y0 = 0x20;
-                uv.x1 = uv.x0 + 0x20;
-                uv.y1 = 0x40;
+                uv.u0 = j * 0x20;
+                uv.v0 = 0x20;
+                uv.u1 = uv.u0 + 0x20;
+                uv.v1 = 0x40;
                 Flash_FindLabel(flash, j ? "mc_yajirusi_down" : "mc_yajirusi_up",
                                 j ? "mc_yajirusi_icon_down" : "mc_yajirusi_icon_up", &ref);
                 Flash_ClipSetUv(flash, &ref, &uv);
@@ -1284,10 +1284,10 @@ void TeamSel_Draw(void) {
                 sprintf(name2, "mc_dp_num_%03d", j);
                 Flash_FindLabel(flash, name, name2, &ref);
                 if (chara < TS_RANDOM) {
-                    uv.x0 = (cost % 4) * 0x20;
-                    uv.x1 = uv.x0 + 0x20;
-                    uv.y0 = (cost / 4) * 0x20;
-                    uv.y1 = uv.y0 + 0x20;
+                    uv.u0 = (cost % 4) * 0x20;
+                    uv.u1 = uv.u0 + 0x20;
+                    uv.v0 = (cost / 4) * 0x20;
+                    uv.v1 = uv.v0 + 0x20;
                     Flash_ClipSetUv(flash, &ref, &uv);
                     Flash_ClipSetFlags(flash, &ref, 2, 1);
                 } else {
@@ -1309,15 +1309,15 @@ void TeamSel_Draw(void) {
         for (j = 0; j < TS_MEMBER_MAX; j++) {
             sprintf(name, "mc_team_%d", j);
             if (i == 0) {
-                uv.x0 = (j % 4) * 0x40;
-                uv.x1 = uv.x0 + 0x40;
-                uv.y0 = (j / 4) * 0x48;
-                uv.y1 = uv.y0 + 0x48;
+                uv.u0 = (j % 4) * 0x40;
+                uv.u1 = uv.u0 + 0x40;
+                uv.v0 = (j / 4) * 0x48;
+                uv.v1 = uv.v0 + 0x48;
             } else {
-                uv.x0 = ((j + 5) % 4) * 0x40;
-                uv.x1 = uv.x0 + 0x40;
-                uv.y0 = ((j + 5) / 4) * 0x48;
-                uv.y1 = uv.y0 + 0x48;
+                uv.u0 = ((j + 5) % 4) * 0x40;
+                uv.u1 = uv.u0 + 0x40;
+                uv.v0 = ((j + 5) / 4) * 0x48;
+                uv.v1 = uv.v0 + 0x48;
             }
             sprintf(name2, "mc_team_plate_%d", j);
             Flash_FindLabel(flash, name, name2, &ref);
@@ -1326,10 +1326,10 @@ void TeamSel_Draw(void) {
             Flash_FindLabel(flash, name, name2, &ref);
             if (j < gTeamSel->side[i]->memberCount) {
                 cost = ChrTbl_GetCost(gTeamSel->side[i]->member[j].chara);
-                uv.x0 = (cost % 4) * 0x20;
-                uv.x1 = uv.x0 + 0x20;
-                uv.y0 = (cost / 4) * 0x20;
-                uv.y1 = uv.y0 + 0x20;
+                uv.u0 = (cost % 4) * 0x20;
+                uv.u1 = uv.u0 + 0x20;
+                uv.v0 = (cost / 4) * 0x20;
+                uv.v1 = uv.v0 + 0x20;
                 Flash_ClipSetFlags(flash, &ref, 2, 1);
                 Flash_ClipSetUv(flash, &ref, &uv);
             } else {

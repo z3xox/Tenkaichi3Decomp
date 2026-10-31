@@ -24,11 +24,11 @@
 /* ---- Main executable, beyond what menu_a.h declares ---- */
 
 extern void *memcpy(void *, const void *, u32);
-extern void Flash_ClipSetOffset(MFlash *flash, MFlashRef *ref, s32 x, s32 y);
-extern void Flash_SetOffset(MFlash *flash, s32 x, s32 y);
-extern void TextBox_Init(MTextBox *box, void *text, u32 preset);
-extern void TextBox_SetUnk80(MTextBox *box, s32 value);
-extern void TextBox_AttachLine(MFlash *flash, MFlashRef *ref, s32 x, s32 y, s32 line, MTextBox *box);
+extern void Flash_ClipSetOffset(Flash *flash, FlashRef *ref, s32 x, s32 y);
+extern void Flash_SetOffset(Flash *flash, s32 x, s32 y);
+extern void TextBox_Init(TextBox *box, void *text, u32 preset);
+extern void TextBox_SetUnk80(TextBox *box, s32 value);
+extern void TextBox_AttachLine(Flash *flash, FlashRef *ref, s32 x, s32 y, s32 line, TextBox *box);
 extern s32 ChrTbl_WrapCostume(s32 chara, s32 *costume);
 extern s32 ChrTbl_GetCost(s32 chara);
 extern void Battle_ClearWork(void);
@@ -252,9 +252,9 @@ typedef struct LBracket {
     /* 0x0024 */ void *nameText;
     /* 0x0028 */ void *formText;
     /* 0x002C */ void *file;
-    /* 0x0030 */ MFlash flash[LBRACKET_FLASH_NUM]; /* 0 tree, 1 the two chips meeting, 2 the winner moving up, ... */
+    /* 0x0030 */ Flash flash[LBRACKET_FLASH_NUM]; /* 0 tree, 1 the two chips meeting, 2 the winner moving up, ... */
     /* 0x0138 */ s32 unk138;
-    /* 0x013C */ MTexRes *guideTex[2]; /* sections 43 / 44: the two picture sets of the guide */
+    /* 0x013C */ FlashTexRes *guideTex[2]; /* sections 43 / 44: the two picture sets of the guide */
     /* 0x0144 */ s32 unk144;
     /* 0x0148 */ u8 *texTree[26];    /* textures of flash[0]; 6 and 9..24 are the seventeen chips */
     /* 0x01B0 */ u8 *texTitle[38];
@@ -285,8 +285,8 @@ typedef struct LBracket {
     /* 0x1A60 */ s32 talk[2];
     /* 0x1A68 */ LTourEntrant entrant[LTOUR_ENTRANT_MAX];
     /* 0x1D10 */ LTourMatch match_[LTOUR_MATCH_MAX];
-    /* 0x1E10 */ MTextBox nameBox[2];
-    /* 0x1F28 */ MTextBox formBox[2];
+    /* 0x1E10 */ TextBox nameBox[2];
+    /* 0x1F28 */ TextBox formBox[2];
     /* 0x2040 */ LTourCpu *cpu;      /* section 31 */
     /* 0x2044 */ LTourPrize *prize;  /* section 41 */
     /* 0x2048 */ LBracketReward reward[8];
@@ -385,7 +385,7 @@ typedef struct SoloSel {
     /* 0x0018 */ void *formText;     /* section 29 */
     /* 0x001C */ void *msgText;      /* section 25 */
     /* 0x0020 */ void *subtitles;    /* section 26 */
-    /* 0x0024 */ MFlash flash[SOLOSEL_FLASH_NUM]; /* 0 picture and guides, 1 chips, 2 custom / colour plates */
+    /* 0x0024 */ Flash flash[SOLOSEL_FLASH_NUM]; /* 0 picture and guides, 1 chips, 2 custom / colour plates */
     /* 0x00A8 */ void *bg;           /* section 32: background picture */
     /* 0x00AC */ u8 *texA[20];
     /* 0x00FC */ u8 *texC[11];
@@ -410,7 +410,7 @@ typedef struct SoloSel {
     /* 0x1974 */ s32 talker;         /* which of the two guides is talking */
     /* 0x1978 */ s32 blink[2];
     /* 0x1980 */ s32 talk[2];
-    /* 0x1988 */ MTextBox box[2];    /* character name, form name */
+    /* 0x1988 */ TextBox box[2];    /* character name, form name */
     /* 0x1AA0 */ void *items;        /* item table of common file 4 */
 } SoloSel; /* 0x1AA4 */
 

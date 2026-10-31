@@ -2,6 +2,7 @@
 #define BATTLE_BTL_CHAR_FX_H
 
 #include "types.h"
+#include "sys/save.h"
 #include "sys/math3d.h"
 
 /*
@@ -214,10 +215,6 @@ typedef struct FxLineArg {
 } __attribute__((aligned(16))) FxLineArg; /* size 0x60 */
 
 /* The part of the save block read here. */
-typedef struct FxSave {
-    /* 0x0000 */ u8 unk0[0x1608];
-    /* 0x1608 */ s32 flags;   /* bit 0: alternate voices (voice line base 0xCC32 instead of 0x8D4E) */
-} FxSave;
 
 /* btl_char_fx.c */
 void BtlFx_SpawnFlashReq20(FxChr *chr);

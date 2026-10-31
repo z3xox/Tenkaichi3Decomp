@@ -1,4 +1,5 @@
 #include "common.h"
+#include "sys/progress.h"
 #include "battle/view_b.h"
 #include "battle/battle_setup.h"
 #include "battle/battle_work.h"
@@ -29,7 +30,6 @@ s32 gLipSyncOpen = 0;    /* the mouth is open on this frame */
 s32 gLipSyncWaiting = 0; /* the voice has not started playing yet */
 
 extern LipSync gLipSync; /* 0x31E570, .bss */
-extern MenuUtilProgress *gProgress;
 
 /* Plays menu voice line `base + line` (in the language of the save's bit 0) and starts its mouth movement,
    if a lip data pack is given. */
@@ -56,7 +56,7 @@ void Voice_StopWithLip(void) {
 /* Applies the sound options of the save: music volume back to 0x40, stereo or mono. */
 void SndOpt_Apply(void) {
     Bgm_SetVolume(0x40);
-    Snd_SetStereo(gSaveData->soundMode ^ 1);
+    Snd_SetStereo(gSaveData->sound[SAVE_SOUND_MODE] ^ 1);
 }
 
 /* Empties the seven team records of the progress block: every character id becomes "no character". */
@@ -65,11 +65,11 @@ void Progress_ClearTeams(void) {
     s32 j;
     s32 k;
 
-    memset(gProgress->team, 0, sizeof(gProgress->team));
+    memset(gProgress->replay.team, 0, sizeof(gProgress->replay.team));
     for (i = 0; i < PROGRESS_TEAM_COUNT; i++) {
         for (j = 0; j < 2; j++) {
             for (k = 0; k < 5; k++) {
-                gProgress->team[i].chara[j][k] = PROGRESS_TEAM_EMPTY;
+                gProgress->replay.team[i].chara[j][k] = PROGRESS_TEAM_EMPTY;
             }
         }
     }

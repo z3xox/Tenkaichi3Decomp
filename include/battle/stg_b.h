@@ -226,7 +226,7 @@ void ScrXfade_Term(void);
 void ScrXfade_Reset(void);
 void ScrXfade_Update(void);
 void ScrXfade_PostDraw(void);
-void ScrXfade_Start(s32 request, f32 seconds);
+void ScrXfade_Start(f32 seconds, s32 request);
 void ScrXfade_RequestCapture(void);
 s32 ScrXfade_IsActive(void);
 

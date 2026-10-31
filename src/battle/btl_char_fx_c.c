@@ -1,4 +1,5 @@
 #include "common.h"
+#include "sys/save.h"
 #include "battle/btl_char_fx.h"
 
 /*
@@ -80,7 +81,6 @@ extern FxObj *BtlObj_Get(s32 id);
 extern s32 BtlObj_Destroy(s32 id);
 extern void BtlRes_Free(s32 number);
 extern void Vec4_Scale(Vec4 *out, Vec4 *in, f32 s);
-extern FxSave *gSaveData;
 
 /*
  * Animation events 0x100 / 0x80 (light / heavy impact): flash at the event's model part and camera shake (only while

@@ -1,4 +1,6 @@
 #include "common.h"
+#include "battle/btl_cam.h"
+#include "sys/gfx_ot.h"
 #include "battle/eft_aa.h"
 
 /*
@@ -11,28 +13,6 @@ typedef struct EftAaBattleWork {
     /* 0x0000 */ u8 unk0[0x19F0];
     /* 0x19F0 */ u64 flags;     /* 0x100: paused */
 } EftAaBattleWork;
-
-/* The part of the camera view (gBtlCamView) read here. */
-typedef struct EftAaView {
-    /* 0x000 */ u8 unk0[0x40];
-    /* 0x040 */ f32 m[4][4];    /* view matrix; column 2 is the view axis */
-    /* 0x080 */ u8 unk80[0xC0];
-    /* 0x140 */ Mtx44 world2screen;
-} EftAaView;
-
-typedef struct EftAaOtEntry {
-    struct EftAaOtPrim *head;
-    struct EftAaOtPrim *tail;
-} EftAaOtEntry;
-
-typedef struct EftAaOtPrim {
-    u32 tag;
-    void *next;
-} EftAaOtPrim;
-
-typedef struct EftAaOtSlot {
-    EftAaOtEntry layer[2];
-} EftAaOtSlot;
 
 extern void *memset(void *dst, s32 c, u32 n);
 extern s32 rand(void);
@@ -100,11 +80,6 @@ extern void EftSprAnim_KeepTextures(void *obj);                                 
 extern void BtlTask_SetDead(EftAaTask *task);                            /* kills the task */
 extern u64 EftVram_AddTex(void *entry, s32 a1, s32 a2);                 /* advances a texture, returns TEX0 */
 extern void EftTexSet_Load16(u8 *res, s32 *entry);                        /* binds a resource set */
-
-extern EftAaView *gBtlCamView;
-extern u8 *gOtCur;
-extern EftAaOtSlot *gOtZ;
-extern EftAaOtSlot *gOtLast;
 
 extern EftGroundWork *gEftGndDust;
 extern EftDelaySeMgr *gEftDelaySe;
@@ -217,7 +192,6 @@ EftGroundPiece *EftGndDust_SpawnPiece(EftGroundWork *w, EftGroundDef *def, s32 f
     return p;
 }
 
-
 /* Starts one piece from explicit values. One draw of the VU0 generator: spin direction. */
 EftGroundPiece *EftGndDust_SpawnPieceEx(EftGroundWork *w, Vec4 *pos, Vec4 *dir, EftGroundRgba *colA, EftGroundRgba *colB,
                                        f32 sizeX, f32 sizeY, f32 growX, f32 growY, f32 speed, f32 drag, f32 rot,
@@ -257,11 +231,9 @@ EftGroundPiece *EftGndDust_SpawnPieceEx(EftGroundWork *w, Vec4 *pos, Vec4 *dir, 
     return p;
 }
 
-
 /* Dust rising from a fighter's body: pieces along ten node-to-node segments, one per quarter body height
    (6 units at least), each flying away from node 3. Five libc rand() per piece, two of them unused. */
-#if 0 /* NON-MATCHING: 12 of 347 instructions (was 21), register choices only, in the position sum of the piece loop: the original keeps (f32)j in f0 and start.z in f1 (this C the other way round) and has step.y in f6 and the 0.7f constant in f7 (here f7 / f6). Same instructions, same calls, same stack layout.
-   Permuter round 2: the definition's scalars are stored in the order fade, grow, drag, gravity (that fixed the order of the 0.1f / 0.01f / 0.8f loads and of the stores: 9 instructions). Without effect on the rest: every order and operand order of the three position lines, a local for (f32)j, the 0.7f added in a second statement or at the use, the life statement moved behind the position lines (67). */
+#if 0 /* Pending: shared dust owner and function signature. */
 void EftGndDust_SpawnBodyDust(EftGroundWork *w, EftGroundDef *def, f32 scale) {
     EftGroundSeg seg[10] = {
         { 3, -1, 0 },       { 0xB, 8, 0 },      { 0xF, 0xC, 0 },    { 0x15, -1, 0 },    { 0x23, -1, 0 },
@@ -313,7 +285,8 @@ void EftGndDust_SpawnBodyDust(EftGroundWork *w, EftGroundDef *def, f32 scale) {
             f32 life;
 
             rand();
-            extra = ((f32)rand() / 2147483647.0f * 1.5f + h) * scale;
+            extra = (f32)rand() / 2147483647.0f * 1.5f + h;
+            extra *= scale;
             rand();
             life = (f32)rand() / 2147483647.0f * 0.5f + 0.7f;
             pos.x = start.x + (f32)j * step.x;
@@ -383,9 +356,9 @@ void EftGndDust_MakeFacingMtx(Mtx44 *out, Vec4 *dir, Vec4 *pos) {
     f32 d;
     f32 half = 0.0f;
 
-    cam.x = gBtlCamView->m[0][2];
-    cam.y = gBtlCamView->m[1][2];
-    cam.z = gBtlCamView->m[2][2];
+    cam.x = gBtlCamView->world2view2.m[0][2];
+    cam.y = gBtlCamView->world2view2.m[1][2];
+    cam.z = gBtlCamView->world2view2.m[2][2];
     cam.w = 1.0f;
     d = Vec3_Dot((Vec4 *)&cam, dir);
     if (d < 0.0f) {
@@ -451,14 +424,14 @@ s32 EftGndDust_IsOnScreen(EftAaScr *p) {
 
 /* Queues one textured quad in the plane of mtx's X and Z axes: X from -width / 2 to width / 2, Z from z0 to z1,
    all scaled. Nothing is drawn during the stage-change transition, with zero alpha, or when a corner is off screen. */
-void EftGndDust_DrawQuad(Vec4 *pos, Vec4 *color, Mtx44 *mtx, u64 tex0, f32 scale, f32 z0, f32 z1, f32 width, f32 u0,
-                        f32 v0, f32 u1, f32 v1, u8 layer) {
+void EftGndDust_DrawQuad(Vec4 *pos, Vec4 *color, Mtx44 *mtx, f32 scale, f32 z0, f32 z1, f32 width, f32 u0, f32 v0,
+                        f32 u1, f32 v1, u64 tex0, u8 layer) {
     EftAaVec c[4];
     EftAaVec stq[4];
     EftAaVec uv[4];
     EftAaScr scr[4];
     EftGroundQuadPkt *p;
-    EftAaOtEntry *e;
+    OtEntry *e;
     f32 hw;
     f32 n;
     f32 f;
@@ -495,7 +468,7 @@ void EftGndDust_DrawQuad(Vec4 *pos, Vec4 *color, Mtx44 *mtx, u64 tex0, f32 scale
         }
     }
     p = (EftGroundQuadPkt *)gOtCur;
-    gOtCur = (u8 *)(p + 1);
+    gOtCur = (u32 *)(p + 1);
     if (p == NULL) {
         return;
     }
@@ -563,29 +536,26 @@ void EftGndDust_DrawQuad(Vec4 *pos, Vec4 *color, Mtx44 *mtx, u64 tex0, f32 scale
     } else {
         e = &gOtZ[z].layer[l];
     }
-    e->tail->next = p;
-    e->tail = (EftAaOtPrim *)p;
+    e->tail->next = (OtPrim *)p;
+    e->tail = (OtPrim *)p;
 }
 
-/* Draws one piece: a quad lying along dir, or a camera-facing sprite. */
-#if 0 /* NON-MATCHING: 2 of 57 instructions: the original sets up f15 (width) before a3 (tex0) for the EftGndDust_DrawQuad call, this C after. No parameter order of either function changes it.
-   Cleanup E: all 1287 interleavings of EftGndDust_DrawQuad's five integer and eight float parameters were compiled; none gives the
-   original order (175 give these 2, the rest more). It is the first scheduling pass: with `$a3 = tex0`, `$f13 = h`
-   and `$f15 = w` all ready, it takes the one that comes first in the instruction stream; the original took the two
-   float moves first, i.e. the tex0 move ranked lower there (as if tex0 did not die in it). */
-void EftGndDust_DrawPiece(Vec4 *pos, Vec4 *color, Vec4 *dir, s32 layer, u64 tex0, s32 along, f32 w, f32 h, f32 rot) {
+/* Draws one piece: a quad lying along dir, or a camera-facing sprite. The parameter order is the one of the callers
+   in eft_z.c; with EftGndDust_DrawQuad's tex0 declared after its float parameters, the order the two calls load
+   their argument registers in is the original's. */
+#if 0 /* Pending: shared D_002EC2C0 declaration is not yet canonical. */
+void EftGndDust_DrawPiece(Vec4 *pos, Vec4 *color, Vec4 *dir, s32 layer, f32 w, f32 h, f32 rot, u64 tex0, s32 along) {
     Mtx44 m;
 
     if (along != 0) {
         EftGndDust_MakeFacingMtx(&m, dir, &D_002EC2C0);
-        EftGndDust_DrawQuad(pos, color, &m, tex0, 1.0f, h, 0.0f, w, 0.0f, 0.0f, 1.0f, 1.0f, layer);
+        EftGndDust_DrawQuad(pos, color, &m, 1.0f, h, 0.0f, w, 0.0f, 0.0f, 1.0f, 1.0f, tex0, layer);
     } else {
         EftGfx_DrawSprite(pos, color, w, h, 0.0f, 0.0f, 1.0f, 1.0f, rot, layer, 0, tex0);
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/battle/eft_aa", EftGndDust_DrawPiece);
 #endif
+INCLUDE_ASM("asm/nonmatchings/battle/eft_aa", EftGndDust_DrawPiece);
 
 /* ---- delayed sound effects ------------------------------------------------------------------------------ */
 
@@ -1085,7 +1055,7 @@ void EftBlade_Draw(EftAaTask *task) {
         }
         for (k = 0; k < 2; k++) {
             EftBladeTriPkt *p;
-            EftAaOtEntry *e;
+            OtEntry *e;
             s32 abe = 1;
             s32 layer;
             s32 l;
@@ -1132,7 +1102,7 @@ void EftBlade_Draw(EftAaTask *task) {
                 continue;
             }
             p = (EftBladeTriPkt *)gOtCur;
-            gOtCur = (u8 *)(p + 1);
+            gOtCur = (u32 *)(p + 1);
             layer = def->layer;
             p->prim = EftBlade_MakePrim(0xB, abe, layer >= 2);
             p->dmaTag = 0x20000005;
@@ -1180,8 +1150,8 @@ void EftBlade_Draw(EftAaTask *task) {
             } else {
                 e = &gOtZ[z].layer[l];
             }
-            e->tail->next = p;
-            e->tail = (EftAaOtPrim *)p;
+            e->tail->next = (OtPrim *)p;
+            e->tail = (OtPrim *)p;
         }
     }
 }
@@ -1365,11 +1335,11 @@ static inline void EftBlind_SetRect(EftBlindPkt *p, s32 x0, s32 y0, s32 x1, s32 
 void EftBlind_DrawOverlay(s32 view, s32 full, f32 alpha) {
     EftAaVec c;
     EftBlindPkt *p;
-    EftAaOtEntry *e;
+    OtEntry *e;
 
     Vec4_Set((Vec4 *)&c, 128.0f, 128.0f, 128.0f, alpha);
     p = (EftBlindPkt *)gOtCur;
-    gOtCur = (u8 *)(p + 1);
+    gOtCur = (u32 *)(p + 1);
     p->prim = 0x46;
     p->dmaTag = 0x20000003;
     p->vif1 = 0x50000003;
@@ -1392,8 +1362,8 @@ void EftBlind_DrawOverlay(s32 view, s32 full, f32 alpha) {
         EftBlind_SetRect(p, 0x7000, 0x7200, -0x7000, -0x7200);
     }
     e = &gOtLast[0].layer[1];
-    e->tail->next = p;
-    e->tail = (EftAaOtPrim *)p;
+    e->tail->next = (OtPrim *)p;
+    e->tail = (OtPrim *)p;
 }
 
 /* ---- effect pack part kind 14 --------------------------------------------------------------------------- */

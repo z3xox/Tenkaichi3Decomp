@@ -17,11 +17,11 @@ HistOutro *gHistOutro = NULL; /* 0x3B12F8 */
  */
 
 extern char *strcpy(char *, const char *);
-extern void TextBox_Init(MTextBox *box, void *text, u32 preset);
-extern void TextBox_SetUnk80(MTextBox *box, s32 value);
-extern void TextBox_SetUnk50(MTextBox *box, s32 value);
-extern void TextBox_AttachLine(MFlash *flash, MFlashRef *ref, s32 x, s32 y, s32 line, MTextBox *box);
-extern void Flash_StepFrames(MFlash *flash, s32 step);
+extern void TextBox_Init(TextBox *box, void *text, u32 preset);
+extern void TextBox_SetUnk80(TextBox *box, s32 value);
+extern void TextBox_SetUnk50(TextBox *box, s32 value);
+extern void TextBox_AttachLine(Flash *flash, FlashRef *ref, s32 x, s32 y, s32 line, TextBox *box);
+extern void Flash_StepFrames(Flash *flash, s32 step);
 extern void Voice_StopWithLip(void);
 extern void StreamSe_FadeOutStep(s32 se);
 extern void Movie_PlayEnding(void);
@@ -31,13 +31,13 @@ extern s32 HistSave_Run(s32 section);
 
 /* Moves one of the two guides in or out: side 0 is the saga's own guide (right), side 1 the partner (left). */
 void HistOutro_GuideGoto(s32 movie, s32 side, s32 out) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[64];
     char label[64];
-    MFlash *flash = &gHistOutro->flash[movie];
+    Flash *flash = &gHistOutro->flash[movie];
 
     if (side == 0) {
-        sprintf(name, "mc_guide_%02d", gProgress->subMenu);
+        sprintf(name, "mc_guide_%02d", gProgress->menu.subMenu);
         strcpy(label, out ? "fl_right_out" : "fl_right_in");
     } else {
         sprintf(name, "mc_guide_%02d", gHistOutro->partner);
@@ -48,7 +48,7 @@ void HistOutro_GuideGoto(s32 movie, s32 side, s32 out) {
 }
 
 #define OUTRO_RES(pack, n) \
-    res = (MTexRes *)MPACK_AT(pack, n); \
+    res = (FlashTexRes *)MPACK_AT(pack, n); \
     Res_RelocateOffsets(&res, res, res)
 
 #define OUTRO_ICONS(a, b, c) \
@@ -73,7 +73,7 @@ void HistOutro_GuideGoto(s32 movie, s32 side, s32 out) {
 
 /* Loads the screen (section `section` of archive 2 and the saga's own file) and starts the music. */
 void HistOutro_Init(s32 section) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
     s32 i;
     SaveSlot *slot;
 
@@ -81,7 +81,7 @@ void HistOutro_Init(s32 section) {
     memset(gHistOutro, 0, 0x2C0);
     gHistOutro->pack = (u32 *)MPACK_AT(gMenuArc2, section);
     gHistOutro->res = Sprite_Unpack(gHistOutro->pack, NULL, NULL);
-    switch (gProgress->subMenu) {
+    switch (gProgress->menu.subMenu) {
     case 0:
         OUTRO_SETUP(3, 0x8537, 8, 1);
         break;
@@ -107,11 +107,11 @@ void HistOutro_Init(s32 section) {
         OUTRO_SETUP(4, 0x8466, 8, 8);
         break;
     }
-    gHistOutro->file = File_LoadSync(gProgress->baseFile + gProgress->subMenu + 0x10, NULL, 0);
+    gHistOutro->file = File_LoadSync(gProgress->baseFile + gProgress->menu.subMenu + 0x10, NULL, 0);
     gHistOutro->fileRes = Sprite_Unpack(gHistOutro->file, NULL, NULL);
     ModeBg_Init(gHistOutro->fileRes);
     OUTRO_RES(gHistOutro->fileRes, 7);
-    switch (gProgress->subMenu) {
+    switch (gProgress->menu.subMenu) {
     case 0:
         OUTRO_ICONS(1, 2, 3);
         break;
@@ -192,7 +192,7 @@ void HistOutro_Init(s32 section) {
         TextBox_SetUnk50(&gHistOutro->box[i], 1);
     }
 
-    switch (gProgress->subMenu) {
+    switch (gProgress->menu.subMenu) {
     case 0:
         Bgm_Play(OUTRO_BGM);
         StreamSe_PlayDefault(0, 0x10BDC);
@@ -226,7 +226,7 @@ void HistOutro_Init(s32 section) {
         break;
     }
     slot = gSaveData->slot;
-    slot += gProgress->subMenu;
+    slot += gProgress->menu.subMenu;
     slot->flags |= SAVESLOT_OUTRO_SEEN;
 }
 
@@ -256,12 +256,12 @@ void HistOutro_Draw(void) {
 #ifdef PORT
     Port_MenuPage(12); /* widescreen menus: this screen's page */
 #endif
-    MFlashRef ref;
+    FlashRef ref;
     char name[64];
     char sub[64];
     s32 i;
     s32 guide;
-    MFlash *flash;
+    Flash *flash;
 
     ModeBg_Draw();
     flash = &gHistOutro->flash[0];
@@ -269,7 +269,7 @@ void HistOutro_Draw(void) {
         if (i != 0) {
             guide = gHistOutro->partner;
         } else {
-            guide = gProgress->subMenu;
+            guide = gProgress->menu.subMenu;
         }
         sprintf(name, "mc_guide_%02d", guide);
         sprintf(sub, "mc_guide_%02d_eye", guide);
@@ -312,7 +312,7 @@ void HistOutro_Update(void) {
     }
     if (!(gHistOutro->flags & HISTOUTRO_STARTED) && (gHistOutro->flash[0].trig & 2)) {
         MsgWin_Open();
-        switch (gProgress->subMenu) {
+        switch (gProgress->menu.subMenu) {
         case 4:
             HistOutro_GuideGoto(0, 0, 0);
         case 7:
@@ -409,13 +409,13 @@ void HistOutro_UpdateStep(void) {
     switch (gHistOutro->step) {
     case 1:
         slot = gSaveData->slot;
-        slot += gProgress->subMenu;
+        slot += gProgress->menu.subMenu;
         slot->flags |= SAVESLOT_OUTRO_STARTED;
         gHistOutro->step++;
         gHistOutro->voiceLine = -1;
         break;
     case 2:
-        gHistOutro->step = gProgress->subMenu * 50 + 101;
+        gHistOutro->step = gProgress->menu.subMenu * 50 + 101;
         break;
     case OUTRO_STEP_CLOSE:
         Flash_StepFrames(&gHistOutro->flash[0], 1);
@@ -818,7 +818,7 @@ s32 HistOutro_Run(s32 section) {
             HistOutro_Input(&result);
         }
     }
-    if (gProgress->subMenu == 6 && !(gSaveData->slot[8].flags & 1)) {
+    if (gProgress->menu.subMenu == 6 && !(gSaveData->slot[8].flags & 1)) {
         result = 1;
     } else {
         result = 0;

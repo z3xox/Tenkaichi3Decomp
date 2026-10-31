@@ -2,6 +2,7 @@
 #define SYS_MCFLOW_A_H
 
 #include "types.h"
+#include "sys/save.h"
 
 /*
  * Memory-card dialog flows (0x1198D8..0x11EC10, src/sys/mcflow_a.c). Proper file name: sys/mc_flow.c.
@@ -62,9 +63,6 @@ typedef struct McFlowReq {
 } McFlowReq; /* size 0x420 */
 
 /* The system save as this code sees it (SaveData, include/sys/save.h). Its first 8 bytes are its checksum. */
-typedef struct McFlowSave {
-    /* 0x0000 */ u64 unk0[0x4000 / 8];
-} McFlowSave; /* size 0x4000 */
 
 /* Local view of the replay block (BtlReplay, include/battle/battle_setup.h). */
 typedef struct McFlowReplayMember {
@@ -108,7 +106,7 @@ typedef struct McFlow {
     /* 0x0002C */ s32 timer;       /* frames */
     /* 0x00030 */ s32 msg;         /* message index given to Dialog_SetMsg every frame */
     /* 0x00034 */ s32 unk34;
-    /* 0x00038 */ McFlowSave saveBuf;         /* the system data is read into this */
+    /* 0x00038 */ SaveData saveBuf;         /* the system data is read into this */
     /* 0x04038 */ McFlowReplayFile repSave;   /* built by McFlow_Init from the current replay */
     /* 0x1EC38 */ McFlowReplayFile repLoad;   /* a replay is read into this */
     /* 0x39838 */ McFlowHeader slotHdr[MCFLOW_REPLAY_SLOTS]; /* the scan reads each file's header into this */

@@ -1,4 +1,5 @@
 #include "common.h"
+#include "battle/btl_cam.h"
 #include "battle/eft_q.h"
 #include "sys/gfx_ot.h"
 
@@ -12,14 +13,6 @@ typedef struct EftQBattleWork {
 } EftQBattleWork;
 
 /* The view being drawn (include/battle/btl_cam.h). */
-typedef struct EftQView {
-    /* 0x000 */ u8 unk0[0x140];
-    /* 0x140 */ Mtx44 world2screen;
-    /* 0x180 */ u8 unk180[0xA0];
-    /* 0x220 */ Vec4 pos;
-} EftQView;
-
-extern EftQView *gBtlCamView;
 
 extern void *memset(void *dst, s32 c, u32 n);
 extern void Vec4_Set(Vec4 *dst, f32 x, f32 y, f32 z, f32 w);
@@ -1721,7 +1714,6 @@ void EftTrail_DrawSprite(u8 r, u8 g, u8 b, u8 a, f32 x, f32 y, f32 z, f32 w, f32
     e->tail->next = (OtPrim *)p;
     e->tail = (OtPrim *)p;
 }
-
 
 /* ---- 7. character body effect: characters 0x37, 0x98 and 0x99 (fighter effect request 0x3A) ---------------- */
 

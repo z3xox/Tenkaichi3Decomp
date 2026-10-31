@@ -4,6 +4,7 @@
  * Debris pieces, destructible objects, stage change, paths, file binding, placements, getters.
  */
 #include "common.h"
+#include "battle/btl_cam.h"
 #include "sys/math3d.h"
 #include "sys/common.h"
 #include "sys/heap.h"
@@ -83,7 +84,6 @@ extern StgPlace gStgDbgPlaces[6]; /* gStgDbgPlaces */
 extern Vec4 gStgLastLightVecA; /* gStgLastLightVecA */
 extern Vec4 gStgLastLightVecB;  /* gStgLastLightVecB */
 extern Vec4 D_002EC2C0;        /* zero vector */
-extern StgView *gBtlCamView;
 
 #define STG_RES ((BattleRes *)gCommonRes->unk20)
 
@@ -99,7 +99,6 @@ void StgVu_RotateY(f32 angle);
  * calls that read and write no memory); StgNode_IsRigid only reads memory (BtlStage_UpdateObjs). */
 extern f32 Stg_WrapRange(f32 lo, f32 hi, f32 v) __attribute__((const));
 extern s32 StgNode_IsRigid(StgNode *node) __attribute__((pure));
-
 
 /* Node matrix = rotation X, Y, Z then translation, through the VU0 matrix registers; returns the position. */
 #define STG_NODE_BUILD()                          \

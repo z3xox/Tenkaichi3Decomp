@@ -1,4 +1,5 @@
 #include "common.h"
+#include "battle/btl_cam.h"
 #include "battle/eft_o.h"
 
 /*
@@ -23,12 +24,6 @@ typedef struct EftOBattleWork {
 } EftOBattleWork;
 
 /* The view being drawn (gBtlCamView). */
-typedef struct EftOView {
-    /* 0x000 */ u8 unk0[0x40];
-    /* 0x040 */ Mtx44 camMtx;
-    /* 0x080 */ u8 unk80[0xC0];
-    /* 0x140 */ Mtx44 screenMtx;
-} EftOView;
 
 extern void *memset(void *dst, s32 c, u32 n);
 extern s32 rand(void);
@@ -80,8 +75,6 @@ extern void EftBolt_DrawAll(EftOBoltWork *work, f32 alpha);
 extern void EftBolt_UpdateFlashes(EftOBoltWork *work, s32 objId);
 extern void EftBolt_DrawFlashes(EftOBoltWork *work, f32 alpha);
 extern void EftBolt_Spawn(EftOBoltWork *work, s32 objId);
-
-extern EftOView *gBtlCamView;
 extern void *gEftBoltTaskClass[6];
 extern void *gEftRaysClass[6];
 
@@ -514,7 +507,7 @@ void EftRays_Draw(EftOTask *task) {
     if (!BtlScene_IsEffectHidden(arg->chr, arg->type)) {
         ray = (EftRay *)List_GetHead(&w->list);
         Vu0Cur_Push();
-        Vu0Cur_LoadMtx(&gBtlCamView->screenMtx);
+        Vu0Cur_LoadMtx(&gBtlCamView->world2screen);
         for (; ray != NULL; ray = (EftRay *)List_GetNext(&ray->node)) {
             if (ray->flags & 1) {
                 EftRays_DrawRay(w, ray);
@@ -561,7 +554,7 @@ void EftRays_DrawRay(EftRays *w, EftRay *ray) {
     Mtx_StoreIdentity(&m);
     Mtx_StoreIdentity(&cam);
     pos = &w->pos;
-    Mtx_InverseRT(&m, &gBtlCamView->camMtx);
+    Mtx_InverseRT(&m, &gBtlCamView->world2view2);
     m.m[3][0] = 0.0f;
     m.m[3][1] = 0.0f;
     m.m[3][2] = 0.0f;

@@ -8,10 +8,9 @@
  */
 
 #include "battle/eft_v.h"
+#include "battle/btl_cam.h"
 #include "sys/math3d.h"
 #include "sys/gfx_ot.h"
-
-extern EftVView *gBtlCamView;
 extern EftPtclMgr *gEftPtcl;
 extern void *gEftPtclList;
 extern void *gEftPtclClass[6];

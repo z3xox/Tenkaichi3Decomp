@@ -1,4 +1,5 @@
 #include "common.h"
+#include "battle/btl_cam.h"
 #define EFT_Z_IMPL
 #include "battle/eft_z.h"
 
@@ -150,7 +151,7 @@ void EftGndDustLand_Draw(EftZTask *task) {
         fade = 1.0f;
         Vec3_Add(&pos, &p->pos, &p->base);
         if (far) {
-            Vec3_Sub(&d, &pos, &gBtlCamView->eye);
+            Vec3_Sub(&d, &pos, &gBtlCamView->pos);
             dist = Vec3_LengthSq(&d);
             fade = (dist - 6400.0f) / 16100.0f;
             if (22500.0f < dist) {

@@ -5,8 +5,8 @@
  * Technique effects, second part: 0x14B108..0x14F230. See include/battle/eft_h.h for the layouts.
  * Everything called outside the file is declared here with this file's own view types.
  *
- * Two functions (EftShot_BuildParam, EftEmit_SpawnType0) are INCLUDE_ASM with the C attempt in `#if 0` above them and a note on what differs; turning
- * every `#if 0` into `#if 1` and dropping the INCLUDE_ASM lines gives a file that fdiff can compile.
+ * EftShot_BuildParam and EftEmit_SpawnType0 are byte-exact. Type0 uses the canonical
+ * ray creation record, a shared integer colour value and the actual by-value interfaces.
  */
 
 extern void *memset(void *dst, s32 c, u32 n);
@@ -128,9 +128,9 @@ static inline s32 EftShot_TypeRow(s32 type) {
 
 /* Fills the parameter block of technique slot `slot` of character `chr`: defaults when `blank`, otherwise a
    flat copy of the fields the effects use out of the character's skill (slots 0, 1) or technique data. */
-#if 0 /* not matched (499 instructions against 502). The defaults branch is identical except for the order of six stores; the skill and technique branches read the same fields into the same places, but the original keeps a copy of the slot index (move t8,t9 / addiu t8,t9,-2) and shares the address arithmetic of the structure-of-arrays fields differently (it spills 34 intermediate addresses to the stack, this C 30). Behaviour verified: both versions were run in an interpreter for every slot 0..4, blank 0 / 1 and 40 random source tables; the parameter block and the memory around it come out byte-identical (build/scratch_cleanup_eft/emu_buildparam.py; a deliberately wrong field is caught). Cleanup X2: making the slot index ONE function-scope variable set in both branches (`n = slot;` / `n = slot - 2;`, in front of or behind the data call), or reusing `i` for it, does not give the original's `move t8,t9` and is worse (355 to 384 instructions differ after alignment, against 317 for this form). Not tried: the element-alignment lesson (the original computes `d + n` once per access and spills each copy, the pattern that f32 [16][4] solved in EftOrbTail_DrawStreaks); the views of EftSkillSrc / EftSuperSrc are the place to look. */
 void EftShot_BuildParam(s32 chr, s32 slot, EftShotParam *p, s32 blank) {
     s32 i;
+    s32 n;
 
     memset(p, 0, sizeof(EftShotParam));
     if (blank) {
@@ -169,12 +169,12 @@ void EftShot_BuildParam(s32 chr, s32 slot, EftShotParam *p, s32 blank) {
         p->unk40 = 0;
         p->unk42 = 0;
         p->volley = 1;
-        p->unk50 = 1.0f;
-        p->unk14 = -1;
         p->unk48 = 0;
         p->unk4A = 0;
         p->unk4C = 0.0f;
         p->unk54 = 1.0f;
+        p->unk50 = 1.0f;
+        p->unk14 = -1;
         for (i = 0; i < 8; i++) {
             p->unk58[i] = -1;
             p->unk60[i] = 0.0f;
@@ -183,21 +183,22 @@ void EftShot_BuildParam(s32 chr, s32 slot, EftShotParam *p, s32 blank) {
         p->unk88 = 1.0f;
         p->unk80 = 0;
     } else if (slot < 2) {
-        EftSkillSrc *d = BtlCharApi_GetPlayerSkillData(chr);
-        s32 n = slot;
+        BtlSkillData *d = BtlCharApi_GetPlayerSkillData(chr);
 
-        p->id = d->id[n];
-        p->unk2 = d->unk14[n];
+        n = slot;
+
+        p->id = (u16)d->id[n];
+        p->unk2 = (u16)d->unk14[n];
         p->kind = 0;
-        p->unk5 = d->unk62[n];
-        p->unk6 = d->unk38[n];
+        p->unk5 = (u8)d->hitDirKind[n];
+        p->unk6 = (u8)d->unk38[n];
         p->unk7 = 0;
-        p->unk8 = d->unk3E[n];
-        p->shots = d->unk3A[n];
-        p->unkA = d->unk40[n];
+        p->unk8 = (u8)d->unk3E[n];
+        p->shots = (u8)d->shots[n];
+        p->unkA = (u8)d->hitsC[n];
         p->unkB = d->unk42[n];
         p->unkC = 0;
-        p->type = d->type[n];
+        p->type = d->shotType[n];
         p->unkE[0] = d->unk48[0][n];
         p->unkE[1] = d->unk48[1][n];
         p->unkE[2] = d->unk48[2][n];
@@ -212,21 +213,21 @@ void EftShot_BuildParam(s32 chr, s32 slot, EftShotParam *p, s32 blank) {
         p->unk16[5] = (s8)d->unk54[5][n];
         p->unk22 = 0;
         p->unk24 = 0;
-        p->life = d->time[n] * 30.0f;
+        p->life = d->shotTime[n] * 30.0f;
         p->unk2C = 0.0f;
-        p->unk30 = d->unk30[n];
-        p->unk34 = d->unk20[n];
-        p->unk38 = d->unk28[n];
-        p->flags = d->flags[n];
+        p->unk30 = d->shotUnk30[n];
+        p->unk34 = d->shotSpeed[n];
+        p->unk38 = d->shotTurn[n];
+        p->flags = d->flagsA[n];
         p->unk40 = (s8)d->unk46[n];
         p->unk42 = (s8)d->unk44[n];
-        p->volley = (s8)d->unk3C[n];
+        p->volley = (s8)d->hitsB[n];
         p->unk4C = 0.0f;
         p->unk48 = (s8)d->unk6E[n];
         p->unk4A = (s8)d->unk70[n];
+        p->unk54 = 1.0f;
         p->unk50 = 1.0f;
         p->unk14 = -1;
-        p->unk54 = 1.0f;
         for (i = 0; i < 8; i++) {
             p->unk58[i] = -1;
             p->unk60[i] = 0.0f;
@@ -235,21 +236,24 @@ void EftShot_BuildParam(s32 chr, s32 slot, EftShotParam *p, s32 blank) {
         p->unk88 = 1.0f;
         p->unk80 = 0;
     } else {
-        EftSuperSrc *d = BtlCharApi_GetPlayerSuperData(chr);
-        s32 n = slot - 2;
+        BtlSuperData *d = BtlCharApi_GetPlayerSuperData(chr);
+        s32 kind;
 
-        p->id = d->id[n];
-        p->unk2 = d->unk1E[n];
-        p->kind = slot == 4 ? 2 : 1;
-        p->unk5 = d->unk13B[n];
-        p->unk6 = d->unk90[n];
+        n = slot - 2;
+
+        p->id = (u16)d->id[n];
+        p->unk2 = (u16)d->unk1E[n];
+        kind = slot == 4 ? 2 : 1;
+        p->kind = kind;
+        p->unk5 = (u8)d->hitDirKind[n];
+        p->unk6 = (u8)d->unk90[n];
         p->unk7 = 0;
-        p->unk8 = d->unk99[n];
-        p->shots = d->unk93[n];
-        p->unkA = d->unk9C[n];
+        p->unk8 = (u8)d->unk99[n];
+        p->shots = (u8)d->shots[n];
+        p->unkA = (u8)d->hitsC[n];
         p->unkB = d->unk9F[n];
         p->unkC = 0;
-        p->type = d->type[n];
+        p->type = d->shotType[n];
         p->unkE[0] = d->unkA8[0][n];
         p->unkE[1] = d->unkA8[1][n];
         p->unkE[2] = d->unkA8[2][n];
@@ -257,22 +261,22 @@ void EftShot_BuildParam(s32 chr, s32 slot, EftShotParam *p, s32 blank) {
         p->unkE[4] = d->unkA8[4][n];
         p->unkE[5] = d->unkA8[5][n];
         p->unk16[0] = -1;
-        p->unk16[5] = -1;
         p->unk16[1] = -1;
         p->unk16[2] = -1;
         p->unk16[3] = -1;
         p->unk16[4] = -1;
+        p->unk16[5] = -1;
         p->unk22 = 0;
         p->unk24 = 0;
-        p->life = d->time[n] * 30.0f;
+        p->life = d->shotTime[n] * 30.0f;
         p->unk2C = d->unk30[n];
-        p->unk30 = d->unk6C[n];
-        p->unk34 = d->unk54[n];
-        p->unk38 = d->unk60[n];
-        p->flags = d->flags[n];
+        p->unk30 = d->shotUnk6C[n];
+        p->unk34 = d->shotSpeed[n];
+        p->unk38 = d->shotTurn[n];
+        p->flags = d->flagsA[n];
         p->unk40 = (s8)d->unkA5[n];
         p->unk42 = (s8)d->unkA2[n];
-        p->volley = (s8)d->unk96[n];
+        p->volley = (s8)d->hitsB[n];
         p->unk4C = d->unk214[n];
         p->unk48 = (s8)d->unk15C[n];
         p->unk4A = (s8)d->unk15F[n];
@@ -288,8 +292,6 @@ void EftShot_BuildParam(s32 chr, s32 slot, EftShotParam *p, s32 blank) {
         p->unk88 = d->unk3C[n];
     }
 }
-#endif
-INCLUDE_ASM("asm/nonmatchings/battle/eft_h", EftShot_BuildParam);
 
 /* The slot record of one technique of one character. */
 EftHSlot *EftShot_GetSlot(s32 chr, s32 slot) {
@@ -533,7 +535,7 @@ void EftVolley_Fire(s32 objId, EftHTask *task, s32 phase, s32 sub) {
                 }
             }
             if (w->flags & EFT_VOLLEY_EXTRA) {
-                shot->handle = EftBlastObj_CreateWithModel(&arg, ((EftSet *)BtlTask_GetParent(task)->data)->extra);
+                shot->handle = EftBlastObj_CreateWithModel(&arg, ((EftVolleyGroupWork *)BtlTask_GetParent(task)->data)->extra);
             } else {
                 shot->handle = EftBlastObj_Create(&arg);
             }
@@ -871,25 +873,25 @@ void EftVolley_Draw(EftHTask *task) {
 /* Group init: loads the technique's emitter set, makes room for two instances, and keeps pack entry 1 when the
    technique has flag 0x20000. */
 void EftVolleyGroup_Init(EftHTask *task, EftHSlot *slot) {
-    EftSet *set = task->data;
+    EftVolleyGroupWork *work = task->data;
 
-    EftShot_Nop(sizeof(EftSet));
-    memset(set, 0, sizeof(EftSet));
-    EftEmit_LoadSet(slot, set, NULL, slot->pack, 0, 4);
+    EftShot_Nop(sizeof(EftVolleyGroupWork));
+    memset(work, 0, sizeof(EftVolleyGroupWork));
+    EftEmit_LoadSet(slot, &work->set, NULL, slot->pack, 0, 4);
     BtlTask_CreateChildList(task, 2, sizeof(EftVolleyWork));
     if (slot->param->flags & 0x20000) {
-        set->extra = BtlScene_GetPackEntry(slot->pack, 1);
+        work->extra = BtlScene_GetPackEntry(slot->pack, 1);
     }
 }
 
 /* Group term: frees the set's resources. */
 void EftVolleyGroup_Term(EftHTask *task) {
-    EftEmit_FreeSet(task->data);
+    EftEmit_FreeSet(&((EftVolleyGroupWork *)task->data)->set);
 }
 
 /* Group update: per-frame clear of the set's resources. */
 void EftVolleyGroup_Update(EftHTask *task) {
-    EftEmit_BeginFrame(task->data);
+    EftEmit_BeginFrame(&((EftVolleyGroupWork *)task->data)->set);
 }
 
 /* Group reset: nothing. */
@@ -1157,7 +1159,7 @@ s32 EftEmit_IsPartDeferred(EftSet *set, s32 type, s32 idx) {
     s32 n = set->group[type].firstPart + idx;
     s32 ret = 0;
     s32 phase = set->parts[n].phase;
-    s32 a = set->parts[n].unkA;
+    s32 a = set->parts[n].node;
 
     if ((set->head->phaseMask >> phase) & 1) {
         if (a == 5) {
@@ -1216,7 +1218,7 @@ void EftEmit_InitState(EftSet *set, EftSetState *st) {
     st->unk2C0 = head->unk38 * 30.0f;
     st->unk2BC = st->unk2C0 * head->unk3C;
     st->unk2C4 = 0.0f;
-    h = st->handle[0];
+    h = st->handle[0].h;
     for (j = 0; j < 2; j++, h += 40) {
         for (i = 39; i >= 0; i--) {
             h[i] = NULL;
@@ -1381,7 +1383,7 @@ s32 EftEmit_GetFlags(EftSet *set, EftSetState *st, s32 objId, s32 type, s32 idx,
             flags |= EFT_CMD_SCALE;
         }
         if (!(f2 & 4)) {
-            s32 a = part->unkA;
+            s32 a = part->node;
 
             if (f2 & 0x20) {
                 a = part->unk36;
@@ -1407,7 +1409,7 @@ s32 EftEmit_GetResetFlags(EftSet *set, EftSetState *st, s32 type, s32 idx) {
 
     if (f & 2) {
         if (!(f & 4)) {
-            s32 a = part->unkA;
+            s32 a = part->node;
 
             if (f & 0x20) {
                 a = part->unk36;
@@ -1443,116 +1445,87 @@ void EftEmit_TagTask(void *task, s32 chr, s32 type) {
 #define H(n) (handles->h[n])
 #define ZERO_VEC { 0.0f, 0.0f, 0.0f, 0.0f }
 
-extern void *EftRay_Create(EftEmitLightArg *arg);
-#ifdef PORT /* PC build: by value, as the definition takes it (the PS2 passes a struct of this size by address) */
-extern void *EftRay_CreateByValue(EftEmitLightArg arg);
-#define EftRay_CreateByValue(arg) EftRay_CreateByValue(*(EftEmitLightArg *)(arg))
-#else
-extern void *EftRay_CreateByValue(EftEmitLightArg *arg);
-#endif
-#ifdef PORT /* PC build: by value, as the definition takes it (the PS2 passes a struct of this size by address) */
-extern void EftRay_SetPos(void *obj, Vec4 pos);
-#define EftRay_SetPos(obj, pos) EftRay_SetPos(obj, *(Vec4 *)(pos))
-#else
-extern void EftRay_SetPos(void *obj, Vec4 *pos);
-#endif
-extern void EftRay_Kill(void *obj);
-extern void EftRay_SetType(void *obj, s32 type);
+extern void *EftRay_Create(EftRayArg *arg);
+extern void *EftRay_CreateByValue(EftRayArg arg);
+extern s32 EftRay_SetPos(void *obj, Vec4Aligned pos);
+extern s32 EftRay_Kill(void *obj);
+extern s32 EftRay_SetType(void *obj, s32 type);
 
 /* Type 0: a light of kind EftSetDef.unk4 (0 or 1) at the node. */
-#if 0 /* not matched: 218 instructions in the original, 219 here; 50 differ after alignment (the form stored before: 223
-instructions, 67). What is known (cleanup X2, allocation dumps):
-- The original shares `jal EftRay_SetType` and the whole EftEmit_TagTask call between the two cases (case 0 ends
-  in a jump into case 1). The form with both calls written out in both cases is NOT merged by the compiler: after
-  the first jump pass a `(use (const_int 0))` insn follows the last call of case 1 (a call directly in front of a
-  label), so the cross-jump pass finds no common tail. It also gives chr / type five references each and puts
-  them in s5 / s6, in front of flags / handles.
-- The original's registers (flags s5, handles s6, chr s7, type fp) need chr and type to have FOUR references:
-  EftRay_SetType written in both cases, EftEmit_TagTask written once; and handles must not be referenced by the
-  shared call, so the address of the handle slot is one value set in both cases (`h` below). With that the four
-  saved arguments, the frame and the shared tail come out right.
-- Still different: `n` and the address of case 1's block exchange s3 / s4 (the original gives `n` the higher
-  priority); 0xC0 / 0x70 exchange v0 / v1 in case 0 and the alpha store comes first there; EftRay_SetType's jal is
-  not shared (here the store through `h` is scheduled in front of it in both cases, in the original only in
-  case 0); `scale` is copied to f20 in front of the switch instead of behind it. The goto is a stand-in for
-  whatever structured form shares the tag call; a `created` flag is not threaded (li v1,1 / beqz v1 remains),
-  an if / else chain on `kind` merges the two argument blocks into one frame slot (frame 304 instead of 416).
-  The values built and the calls made are the same as in the form stored before. */
-void EftEmit_SpawnType0(EftSet *set, EftSetHandles *handles, s32 flags, s32 type, s32 chr, s32 idx, Vec4 *pos,
-                        f32 size, f32 scale, f32 rate) {
+void EftEmit_SpawnType0(EftSet *set, EftSetHandles *handles, s32 flags, s32 type, s32 chr, s32 idx, f32 size,
+                        f32 scale, f32 rate, Vec4 *pos, Vec4 *dir) {
     s32 n = set->group[0].firstPart + idx;
     EftSetDef *part = &set->parts[n];
     s32 kind = part->unk4;
-    void **h;
 
     switch (kind) {
     case 0:
         if (flags & EFT_CMD_START) {
-            EftEmitLightArg arg = { ZERO_VEC,
-                                    { 0xC0, 0xC0, 0xC0, 0x70 },
-                                    rate,
-                                    scale * 100.0f,
-                                    size,
-                                    part->unk10 * scale,
-                                    part->unk14 * scale,
-                                    1,
-                                    part->unk3,
-                                    chr,
-                                    1,
-                                    0,
-                                    (f32)part->unk5,
-                                    (f32)part->unk6,
-                                    0 };
+            EftRayArg arg = { ZERO_VEC,
+                             { { 0xC0, 0xC0, 0xC0, 0x70 } },
+                             rate,
+                             scale * 100.0f,
+                             size,
+                             part->unk10 * scale,
+                             part->unk14 * scale,
+                             1,
+                             part->unk3,
+                             chr,
+                             1,
+                             0,
+                             (f32)part->unk5,
+                             (f32)part->unk6,
+                             0 };
 
             if (part->phase == 2) {
-                arg.unk50 = 1;
+                arg.autoKill = 1;
             }
             Vec4_Copy((Vec4 *)&arg.pos, pos);
-            h = &H(n);
-            *h = EftRay_Create(&arg);
-            EftRay_SetType(*h, type);
-            goto tag;
+            H(n) = EftRay_Create(&arg);
+            EftRay_SetType(H(n), type);
+            EftEmit_TagTask(H(n), chr, type);
+        }
+        if (flags & (EFT_CMD_MOVE | EFT_CMD_STOP)) {
+            EftRay_SetPos(H(n), *(Vec4Aligned *)pos);
+        }
+        if (flags & EFT_CMD_STOP) {
+            EftRay_Kill(H(n));
+            H(n) = NULL;
         }
         break;
     case 1:
         if (flags & EFT_CMD_START) {
-            EftEmitLightArg arg = { { 0.0f, 0.0f, 0.0f, 1.0f },
-                                    { 0x80, 0x80, 0x80, 0x80 },
-                                    rate,
-                                    scale * 800.0f,
-                                    2.0f,
-                                    part->unk10 * scale,
-                                    part->unk14 * scale,
-                                    3,
-                                    part->unk3,
-                                    chr,
-                                    1,
-                                    1,
-                                    (f32)part->unk5,
-                                    (f32)part->unk6,
-                                    1 };
+            EftRayArg arg = { { 0.0f, 0.0f, 0.0f, 1.0f },
+                             { { 0x80, 0x80, 0x80, 0x80 } },
+                             rate,
+                             scale * 800.0f,
+                             2.0f,
+                             part->unk10 * scale,
+                             part->unk14 * scale,
+                             3,
+                             part->unk3,
+                             chr,
+                             1,
+                             1,
+                             (f32)part->unk5,
+                             (f32)part->unk6,
+                             1 };
 
             Vec4_Copy((Vec4 *)&arg.pos, pos);
-            h = &H(n);
-            *h = EftRay_CreateByValue(&arg);
-            EftRay_SetType(*h, type);
-        tag:
-            EftEmit_TagTask(*h, chr, type);
+            H(n) = EftRay_CreateByValue(arg);
+            EftRay_SetType(H(n), type);
+            EftEmit_TagTask(H(n), chr, type);
+        }
+        if (flags & (EFT_CMD_MOVE | EFT_CMD_STOP)) {
+            EftRay_SetPos(H(n), *(Vec4Aligned *)pos);
+        }
+        if (flags & EFT_CMD_STOP) {
+            EftRay_Kill(H(n));
+            H(n) = NULL;
         }
         break;
-    default:
-        return;
-    }
-    if (flags & (EFT_CMD_MOVE | EFT_CMD_STOP)) {
-        EftRay_SetPos(H(n), pos);
-    }
-    if (flags & EFT_CMD_STOP) {
-        EftRay_Kill(H(n));
-        H(n) = NULL;
     }
 }
-#endif
-INCLUDE_ASM("asm/nonmatchings/battle/eft_h", EftEmit_SpawnType0);
 
 extern void *EftRays_Create(EftEmitArg2 *arg);
 extern void EftRays_Stop(void *obj);
@@ -1564,8 +1537,7 @@ extern void EftRays_SetFade(void *obj, f32 v);
 extern void EftRays_SetSize(void *obj, f32 size);
 
 /* Type 2. */
-void EftEmit_SpawnType2(EftSet *set, EftSetHandles *handles, s32 flags, s32 type, s32 chr, s32 idx, Vec4 *pos,
-                        Vec4 *dir, f32 size, f32 scale, f32 rate) {
+void EftEmit_SpawnType2(EftSet *set, EftSetHandles *handles, s32 flags, s32 type, s32 chr, s32 idx, f32 size, f32 scale, f32 rate, Vec4 *pos, Vec4 *dir) {
     EftSetGroup *g = &set->group[2];
     s32 n = g->firstPart + idx;
     EftSetDef *part = &set->parts[n];
@@ -1626,8 +1598,7 @@ extern s32 EftBill_SetType(void *obj, s32 type);
    scheduling pass to emit "load texA, res add, load texB". That happens only when the add has one dying operand
    (`res += x`, not `res = base + x`), stands behind texA in the source, and g->catFirst is read before
    g->firstPair. */
-void EftEmit_SpawnType16(EftSet *set, EftSetHandles *handles, s32 flags, s32 type, s32 chr, s32 idx, Vec4 *pos,
-                         Vec4 *dir, f32 size, f32 scale, f32 rate) {
+void EftEmit_SpawnType16(EftSet *set, EftSetHandles *handles, s32 flags, s32 type, s32 chr, s32 idx, f32 size, f32 scale, f32 rate, Vec4 *pos, Vec4 *dir) {
     EftSetGroup *g = &set->group[16];
     s32 n = g->firstPart + idx;
     EftSetDef *part = &set->parts[n];
@@ -1701,7 +1672,7 @@ extern s32 EftRibbon_SetUnkD8(void *obj, s32 v);
 /* Type 17: an object between two points, the node position pushed along the direction by EftSetDef.unk10 and
    pos2 pushed by EftSetDef.unk14. EFT_CMD_RESTART destroys the object and creates it again. */
 void EftEmit_SpawnType17(EftSet *set, EftSetHandles *handles, s32 flags, s32 type, s32 chr, s32 arg5, s32 idx,
-                         Vec4 *pos, Vec4 *pos2, Vec4 *dir, f32 size, f32 scale, f32 rate) {
+                         f32 size, f32 scale, f32 rate, Vec4 *pos, Vec4 *pos2, Vec4 *dir) {
     EftSetGroup *g = &set->group[17];
     s32 create = 0;
     s32 n = g->firstPart + idx;
@@ -1789,7 +1760,7 @@ extern s32 EftChain_SetType(void *obj, s32 type);
 
 /* Type 18. */
 void EftEmit_SpawnType18(EftSet *set, EftSetHandles *handles, s32 flags, s32 type, s32 chr, s32 arg5, s32 idx,
-                         Vec4 *pos, Vec4 *dir, f32 size, f32 scale, f32 rate) {
+                         f32 size, f32 scale, f32 rate, Vec4 *pos, Vec4 *dir) {
     EftSetGroup *g = &set->group[18];
     s32 n = g->firstPart + idx;
     EftSetDef *part = &set->parts[n];
@@ -1861,8 +1832,7 @@ extern s32 EftAnimPart_SetFade(void *obj, f32 v);
 /* Type 14. */
 /* Matching note: the resource pointer is built in two statements (`res = base; res += index * size;`), as in
    EftEmit_SpawnType16. Written as one expression the sum and the product exchange v1 / a2 (16 instructions). */
-void EftEmit_SpawnType14(EftSet *set, EftSetHandles *handles, s32 flags, s32 type, s32 chr, s32 idx, Vec4 *pos,
-                         Vec4 *dir, f32 size, f32 scale, f32 rate) {
+void EftEmit_SpawnType14(EftSet *set, EftSetHandles *handles, s32 flags, s32 type, s32 chr, s32 idx, f32 size, f32 scale, f32 rate, Vec4 *pos, Vec4 *dir) {
     EftSetGroup *g = &set->group[14];
     s32 n = g->firstPart + idx;
     EftSetDef *part = &set->parts[n];
@@ -1933,8 +1903,7 @@ extern s32 EftPtcl_SetType(void *obj, s32 type);
 
 /* Type 5. */
 /* Matching note: see EftEmit_SpawnType16 (same two-step resource pointer). */
-void EftEmit_SpawnType5(EftSet *set, EftSetHandles *handles, s32 flags, s32 type, s32 chr, s32 idx, Vec4 *pos,
-                        Vec4 *dir, f32 size, f32 scale, f32 rate) {
+void EftEmit_SpawnType5(EftSet *set, EftSetHandles *handles, s32 flags, s32 type, s32 chr, s32 idx, f32 size, f32 scale, f32 rate, Vec4 *pos, Vec4 *dir) {
     EftSetGroup *g = &set->group[5];
     s32 n = g->firstPart + idx;
     EftSetDef *part = &set->parts[n];

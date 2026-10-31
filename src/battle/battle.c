@@ -1,4 +1,5 @@
 #include "common.h"
+#include "battle/btl_cam.h"
 #include "battle/battle.h"
 #include "sys/adx.h"
 #include "sys/dma.h"
@@ -46,8 +47,6 @@
  *   overlays    Font_FlushAll (0x23A2D0(0)); FontIcon_Stub23D1E0 is an empty stub
  *   menu side   Gsc_Update walks the list at 0x333B80; BtlScript_Update acts in sequence states 3 and 5 only
  */
-
-extern s32 gBtlCamView;    /* current view, set by BtlCam_SelectView / BtlCam_ApplyView */
 extern s32 gBattleProf[];  /* argument of the stripped profiler stubs */
 
 extern void Gfx_BeginFrame(void);
@@ -88,8 +87,8 @@ extern void Ot_Term(void);
 extern void Ot_Draw(void);
 extern void BtlObjDraw_Draw(void);
 extern void StgModel_InitStage(void);
-extern void StgModel_Cull(s32 view);
-extern void StgModel_Draw(s32 view);
+extern void StgModel_Cull(void *view);
+extern void StgModel_Draw(void *view);
 extern void Snd_StopBankAndResume(s32 arg);
 extern void Snd_SendFighters(void);
 extern void BtlLoad_PollObjectRequest(void);
@@ -222,7 +221,7 @@ s32 Battle_Update(void) {
 /* Draws the frame with one view: stage, effects, fighters, effects, HUD, overlays. */
 s32 Battle_Draw(void) {
     s32 *prof = gBattleProf;
-    s32 view = gBtlCamView;
+    View *view = gBtlCamView;
 
     Dbg_ProfMark(prof);
     Gfx_MarkPass(1);

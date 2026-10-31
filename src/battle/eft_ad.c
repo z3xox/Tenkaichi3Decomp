@@ -21,7 +21,6 @@ typedef struct EftAdAnimPartArg {
     /* 0x3C */ s32 pad3C;
 } EftAdAnimPartArg; /* 0x40 */
 
-extern EftZapMgr *gEftZapMgr;
 extern void *gEftZapClass[6];
 extern void *gEftShockClass[6];
 
@@ -79,9 +78,9 @@ void EftZap_LoadKey(EftZap *w, s32 idx) {
 
 /* Takes a free point from the manager's 35 (searching round robin from the last one handed out), puts it at the
    chain's position and appends it to the chain. Returns 0 when all 35 are in use. */
-s32 EftZap_AddNode(EftZapLine *chain) {
+s32 EftZap_AddNode(EftZapStrand *chain) {
     u8 i;
-    EftZapNode *node;
+    EftZapPt *node;
 
     if (gEftZapMgr->nodeCur >= EFT_ZAP_NODES) {
         gEftZapMgr->nodeCur = 0;
@@ -94,7 +93,7 @@ s32 EftZap_AddNode(EftZapLine *chain) {
             i = 0;
         }
         if (node->flags == 0) {
-            Vec4_Copy(&node->pos, &chain->pos);
+            Vec4_Copy((Vec4 *)&node->pos, (Vec4 *)&chain->axis);
             node->next = NULL;
             node->prev = NULL;
             node->flags |= 1;

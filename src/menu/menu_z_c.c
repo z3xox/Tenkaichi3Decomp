@@ -12,9 +12,9 @@ extern void Port_MenuFill(int on);
  * a local variable of DcMenu_Run.
  */
 
-/* Sets the texture rectangle of a clip found by name (each use has its own MFlashRef on the stack). */
-static inline void DcMenu_SetUv(MFlash *flash, char *parent, char *name, MFlashUv *uv) {
-    MFlashRef ref;
+/* Sets the texture rectangle of a clip found by name (each use has its own FlashRef on the stack). */
+static inline void DcMenu_SetUv(Flash *flash, char *parent, char *name, FlashUv *uv) {
+    FlashRef ref;
 
     Flash_FindLabel(flash, parent, name, &ref);
     Flash_ClipSetUv(flash, &ref, uv);
@@ -43,8 +43,8 @@ s32 DcMenu_Wrap(s32 value, s32 lo, s32 hi) {
 
 /* Blinks the guide's eyes and moves her mouth while she talks. */
 void DcMenu_AnimGuide(DcMenu *menu) {
-    MFlashRef ref;
-    MFlash *flash = &menu->view.flash;
+    FlashRef ref;
+    Flash *flash = &menu->view.flash;
 
     Flash_FindLabel(flash, NULL, "mc_guide_blma_eye", &ref);
     FlashAnim_Blink(flash, &ref, &menu->view.blink, 0);
@@ -58,41 +58,41 @@ void DcMenu_AnimGuide(DcMenu *menu) {
 
 /* Scrolls the backdrop pattern. */
 void DcMenu_AnimBg(DcMenu *menu) {
-    MFlashRef ref;
-    MFlashUv uv;
-    MFlash *flash = &menu->view.flash;
+    FlashRef ref;
+    FlashUv uv;
+    Flash *flash = &menu->view.flash;
 
-    uv.y0 = 0;
-    uv.y1 = 0x40;
-    uv.x0 = 0;
-    uv.x1 = 0x40;
+    uv.v0 = 0;
+    uv.v1 = 0x40;
+    uv.u0 = 0;
+    uv.u1 = 0x40;
     Flash_FindLabel(flash, NULL, "mc_compane_3", &ref);
     FlashAnim_Scroll(flash, &ref, &uv, &menu->scroll, NULL, -0.15238095f, 0.0f);
 }
 
 /* Cuts the three plates' captions from their sheet (rows 0, 2, 1). */
 /* (Written out: with DcMenu_SetRect the constants come out in other saved registers.) */
-void DcMenu_DrawPlates(MFlash *flash) {
-    MFlashUv uv;
+void DcMenu_DrawPlates(Flash *flash) {
+    FlashUv uv;
     char name[0x100];
     s32 i;
 
     for (i = 0; i < DCMENU_PLATES; i++) {
         if (i == 1) {
-            uv.x0 = 0;
-            uv.x1 = 0x200;
-            uv.y0 = 0x40;
-            uv.y1 = 0x60;
+            uv.u0 = 0;
+            uv.u1 = 0x200;
+            uv.v0 = 0x40;
+            uv.v1 = 0x60;
         } else if (i == 2) {
-            uv.x0 = 0;
-            uv.x1 = 0x200;
-            uv.y0 = 0x20;
-            uv.y1 = 0x40;
+            uv.u0 = 0;
+            uv.u1 = 0x200;
+            uv.v0 = 0x20;
+            uv.v1 = 0x40;
         } else {
-            uv.x0 = 0;
-            uv.x1 = 0x200;
-            uv.y0 = i << 5;
-            uv.y1 = (i << 5) + 0x20;
+            uv.u0 = 0;
+            uv.u1 = 0x200;
+            uv.v0 = i << 5;
+            uv.v1 = (i << 5) + 0x20;
         }
         sprintf(name, "mc_menu_plate_%d", i + 1);
         DcMenu_SetUv(flash, name, "mc_menu_text_on", &uv);
@@ -102,8 +102,8 @@ void DcMenu_DrawPlates(MFlash *flash) {
 
 /* (Defined here, behind DcMenu_DrawPlates: its two literals follow that function's in the object.) */
 /* Lights or dims a clip found by name. */
-static inline void DcMenu_LightClip(MFlash *flash, char *name, s32 on) {
-    MFlashRef ref;
+static inline void DcMenu_LightClip(Flash *flash, char *name, s32 on) {
+    FlashRef ref;
 
     Flash_FindLabel(flash, NULL, name, &ref);
     if (on) {
@@ -116,9 +116,9 @@ static inline void DcMenu_LightClip(MFlash *flash, char *name, s32 on) {
 /* (Defined here for the same reason: its literals come next in the object.) */
 /* Plays the "chosen" animation of the plate under the cursor and leaves it lit. */
 static inline void DcMenu_FlashPlate(DcMenu *menu) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[0x100];
-    MFlash *flash;
+    Flash *flash;
 
     sprintf(name, "mc_menu_plate_%d", menu->cursor + 1);
     flash = &menu->view.flash;
@@ -130,7 +130,7 @@ static inline void DcMenu_FlashPlate(DcMenu *menu) {
 /* Wraps the cursor and lights or dims its plate. */
 void DcMenu_LightPlate(DcMenu *menu, s32 on) {
     char name[0x100];
-    MFlash *flash = &menu->view.flash;
+    Flash *flash = &menu->view.flash;
 
     menu->cursor = DcMenu_Wrap(menu->cursor, 0, DCMENU_PLATES - 1);
     sprintf(name, "mc_menu_plate_%d", menu->cursor + 1);
@@ -204,12 +204,12 @@ static inline u8 *DcMenu_Section(DcMenu *menu, s32 n, const char *host) {
 #define DCMENU_HOST "host:data/ps2/test/main/DC/"
 
 #define DCMENU_RES(n, host) \
-    res = (MTexRes *)DcMenu_Section(menu, n, host); \
+    res = (FlashTexRes *)DcMenu_Section(menu, n, host); \
     Res_RelocateOffsets(&res, res, res)
 
 /* Unpacks the screen's section of archive 8, builds the movie and opens the shared windows. */
 void DcMenu_Init(DcMenu *menu, s32 section) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
 
     menu->pack = MPACK_AT(gMenuArc8, section);
     menu->res = Sprite_Unpack(menu->pack, NULL, NULL);
@@ -262,7 +262,7 @@ void DcMenu_Term(DcMenu *menu) {
 
 /* Draws the backdrop, the movie and the windows. */
 void DcMenu_Draw(DcMenu *menu) {
-    MFlash *flash = &menu->view.flash;
+    Flash *flash = &menu->view.flash;
 
     DcMenu_AnimGuide(menu);
     DcMenu_AnimBg(menu);

@@ -1,4 +1,6 @@
 #include "common.h"
+#include "battle/btl_cam.h"
+#include "sys/gfx_ot.h"
 #include "battle/eft_ab.h"
 
 /*
@@ -145,9 +147,7 @@ void EftRibbon_LoadKey(EftRbnCur *cur, EftRbnArg *arg, s32 key) {
 }
 
 /* Fills the animated values between two keys: keys 0..1 before animSplit, 1..2 after. */
-#if 0
-/* NON-MATCHING: 228 instructions against 233; not worked on beyond the first version (the statement order follows the
-   disassembly). */
+/* Normalize the elapsed segment time in place; colour keys use their component array. */
 void EftRibbon_UpdateKeys(EftRbn *w) {
     EftRbnVec d;
     EftRbnVec r;
@@ -155,8 +155,8 @@ void EftRibbon_UpdateKeys(EftRbn *w) {
     EftRbnVec b;
     EftRbnArg *arg = &w->arg;
     EftRbnCur *cur = &w->cur;
-    EftRbnAnim *anim = arg->anim;
     EftRbnPrm *prm = arg->prm;
+    EftRbnAnim *anim = arg->anim;
     f32 t;
     s32 k0;
     s32 k1;
@@ -167,15 +167,16 @@ void EftRibbon_UpdateKeys(EftRbn *w) {
         k0 = 0;
         k1 = 1;
     } else {
-        t = (w->animFrame - w->animSplit) / (w->animTime - w->animSplit);
+        t = w->animFrame - w->animSplit;
+        t /= w->animTime - w->animSplit;
         k0 = 1;
         k1 = 2;
     }
     Vec4_Sub(&d, &anim->color[k1], &anim->color[k0]);
-    cur->color.x = anim->color[k0].x + d.x * t;
-    cur->color.y = anim->color[k0].y + d.y * t;
-    cur->color.z = anim->color[k0].z + d.z * t;
-    cur->color.w = anim->color[k0].w + d.w * t;
+    cur->color.x = anim->color[k0].v[0] + d.x * t;
+    cur->color.y = anim->color[k0].v[1] + d.y * t;
+    cur->color.z = anim->color[k0].v[2] + d.z * t;
+    cur->color.w = anim->color[k0].v[3] + d.w * t;
     for (i = 0; i < 2; i++) {
         d.v[0] = anim->pulseR[k1][i] - anim->pulseR[k0][i];
         d.v[1] = anim->pulseG[k1][i] - anim->pulseG[k0][i];
@@ -209,8 +210,6 @@ void EftRibbon_UpdateKeys(EftRbn *w) {
         cur->scroll = prm->scroll[k0] + d.v[0] * t;
     }
 }
-#endif
-INCLUDE_ASM("asm/nonmatchings/battle/eft_ab_c", EftRibbon_UpdateKeys);
 
 /* Appends a node at the previous last node's position, or at pos for the first one. Returns 0 when the pool is
    empty. (The list's tail is already the new node here, so the first copy copies the node onto itself.) */
@@ -282,56 +281,41 @@ void EftRibbon_InitNodes(EftRbn *w, EftRbnArg *arg) {
 
 /* Kind 0: spreads the nodes evenly from start to the ribbon's end point; the first, middle and last segments use
    textures 0, 1 and 2. */
-/* FAKE MATCH (permuter): `r = w;` a second time inside the loop, in front of the step, with the two reads behind
-   it going through `r`. The original copies `w` into $a1 behind the first calls (move a1,s1) and reads the list
-   head and the colour address through the copy; with a single `r = w` the copy propagation of gcse folds `r`
-   into `w` (60 of 87 instructions, mostly by that one-instruction shift). A second assignment that reaches the
-   colour read of the next pass leaves that read with two reaching definitions, so `r` stays a register of its
-   own up to the loop; the assignment itself emits nothing. It stands in for whatever kept the original's copy
-   alive: initialising `r` (to NULL or to `w`) at its declaration, a block-local or second copy for the step,
-   the same assignment at the flags test or without a read through `r` do not do it. Same trick, other place, in
-   EftRibbon_PlaceTrail2; EftBlade_GetColor (eft_aa.c) needed only an initialiser. */
+/* Walk the owning links so the list cursor has its own lifetime. */
 void EftRibbon_PlaceStrip(EftRbnPrm *prm, EftRbn *w, EftRbnVec *start) {
     EftRbnVec pos;
     EftRbnVec step;
-    EftRbn *r;
     EftRbnNode *n;
-    EftRbnNode *next;
+    EftRbnNode **link;
     s32 i = 0;
 
     Vec4_Copy(&pos, start);
     Vec3_Sub(&step, &w->end, &pos);
     Vec3_Div(&step, &step, w->numNodes);
-    r = w;
     step.w = 0.0f;
-    n = r->head;
-    if (n != NULL) {
-        do {
-            Vec3_Copy(&n->pos, &pos);
-            if (i == 0) {
-                n->tex = 0;
-            } else if (i < w->numNodes - 2) {
-                n->tex = 1;
-            } else {
-                n->tex = 2;
+    for (link = &w->head; *link != NULL; link = &n->next) {
+        n = *link;
+        Vec3_Copy(&n->pos, &pos);
+        if (i == 0) {
+            n->tex = 0;
+        } else if (i < w->numNodes - 2) {
+            n->tex = 1;
+        } else {
+            n->tex = 2;
+        }
+        Vec4_Copy(&n->color, &w->color);
+        if (w->flags & 0x20) {
+            Vec4_Copy(&n->color2, &w->color2);
+            if (i == 0 || n->next == NULL) {
+                n->color2.w = 0.0f;
             }
-            Vec4_Copy(&n->color, &r->color);
-            if (w->flags & 0x20) {
-                Vec4_Copy(&n->color2, &w->color2);
-                if (i == 0 || n->next == NULL) {
-                    n->color2.w = 0.0f;
-                }
-            }
-            r = w;
-            if (i < r->numNodes - 2) {
-                Vec3_Add(&pos, &pos, &step);
-            } else {
-                Vec3_Copy(&pos, &r->end);
-            }
-            next = n->next;
-            i++;
-            n = next;
-        } while (next != NULL);
+        }
+        if (i < w->numNodes - 2) {
+            Vec3_Add(&pos, &pos, &step);
+        } else {
+            Vec3_Copy(&pos, &w->end);
+        }
+        i++;
     }
 }
 
@@ -358,44 +342,31 @@ void EftRibbon_PlaceTrail1(EftRbnPrm *prm, EftRbn *w, EftRbnArg *arg) {
 
 /* Kind 2: the same shift, with textures 2, 1 and 0 for the first, middle and last segments and the colour
    refreshed. */
-/* FAKE MATCH (permuter): `r = w;` a second time inside the loop (in the arm that tests the node count), as in
-   EftRibbon_PlaceStrip: the colour read behind the if / else then has two reaching definitions of `r`, the copy
-   propagation of gcse cannot fold `r` into `w`, and the original's `move a1,s3` with the list head and the hoisted
-   `r + 0xB0` read through $a1 comes out. With a single `r = w` the code differs in 9 of 59 instructions (no copy,
-   and $a0 set before $a1 for the first Vec4_Copy). The assignment must be on a path that does not cover the
-   whole loop body: at the loop top, at its end or in front of the colour copy it does nothing or worse; `while`
-   / `for` forms of the loop give 24. */
+/* Walk the owning links so the list cursor has its own lifetime. */
 void EftRibbon_PlaceTrail2(EftRbnPrm *prm, EftRbn *w, EftRbnArg *arg) {
     EftRbnVec cur;
     EftRbnVec old;
-    EftRbn *r;
     EftRbnNode *n;
-    EftRbnNode *next;
+    EftRbnNode **link;
     s32 i = 0;
 
     Vec4_Copy(&cur, &w->end);
-    r = w;
-    n = r->head;
-    if (n != NULL) {
-        do {
-            Vec3_Copy(&old, &n->pos);
-            Vec3_Copy(&n->pos, &cur);
-            if (i == 0) {
-                n->tex = 2;
+    for (link = &w->head; *link != NULL; link = &n->next) {
+        n = *link;
+        Vec3_Copy(&old, &n->pos);
+        Vec3_Copy(&n->pos, &cur);
+        if (i == 0) {
+            n->tex = 2;
+        } else {
+            if (i < w->numNodes - 2) {
+                n->tex = 1;
             } else {
-                r = w;
-                if (i < r->numNodes - 2) {
-                    n->tex = 1;
-                } else {
-                    n->tex = 0;
-                }
+                n->tex = 0;
             }
-            Vec4_Copy(&n->color, &r->color);
-            i++;
-            Vec3_Copy(&cur, &old);
-            next = n->next;
-            n = next;
-        } while (next != NULL);
+        }
+        Vec4_Copy(&n->color, &w->color);
+        i++;
+        Vec3_Copy(&cur, &old);
     }
 }
 
@@ -406,12 +377,6 @@ typedef struct EftRbnVert {
     /* 0x20 */ EftRbnVec uv;
 } EftRbnVert; /* 0x30 */
 
-typedef struct EftRbnView {
-    /* 0x000 */ u8 unk0[0x220];
-    /* 0x220 */ EftRbnVec pos;     /* camera position */
-} EftRbnView;
-extern EftRbnView *gBtlCamView;
-
 extern void ClipVtx_Set(EftRbnVert *out, EftRbnVec *pos, EftRbnVec *uv, EftRbnVec *color);
 extern void EftGfx_DrawPolyScaledZ(EftRbnVert *verts, s32 blend, s32 arg2, s32 arg3, s32 front, s32 flip, u64 tex0,
                                    f32 zScale);
@@ -421,8 +386,9 @@ extern void EftGfx_DrawPolyScaledZ(EftRbnVert *verts, s32 blend, s32 arg2, s32 a
    A scrolling ribbon (flag 0x20) is drawn a second time with its fourth texture, the scrolled texture rectangle and
    the nodes' second colour. (The second layer's own corner points, built with EftRbn.alpha as the width, are
    computed but the same corner points as the first layer are drawn.) */
-ASM_STUB_BEGIN(); /* compiled so that EftRibbon_Draw sees the definition; the assembler skips it */
-/* NON-MATCHING: 415 instructions against 414, 238 differ; first version only, written from the disassembly. */
+/* Byte-exact reconstruction: clipping reserves nine vertices, and each point sets its own homogeneous w.
+   MATCH-PENDING R1/R2: the camera still uses the existing per-file view; header unification owns that debt. */
+ASM_STUB_BEGIN();
 void EftRibbon_DrawStrip(EftRbn *w, EftRbnArg *arg, EftRbnPrm *prm) {
     EftRbnVec uvA[4] = {
         { { 0.02f, 0.0f, 1.0f, 0.0f } }, { { 0.02f, 0.98f, 1.0f, 0.0f } }, { { 0.98f, 0.0f, 1.0f, 0.0f } }, { { 0.98f, 0.98f, 1.0f, 0.0f } },
@@ -441,7 +407,7 @@ void EftRibbon_DrawStrip(EftRbn *w, EftRbnArg *arg, EftRbnPrm *prm) {
     EftRbnVec uv2[4];
     EftRbnVec col[4];
     EftRbnVec half = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-    EftRbnVert verts[3];
+    EftRbnVert verts[9]; /* Clipping workspace. */
     s32 first = 1;
     EftRbnNode *n;
     EftRbnNode *next;
@@ -553,21 +519,19 @@ INCLUDE_ASM("asm/nonmatchings/battle/eft_ab_c", EftRibbon_DrawStrip);
  */
 
 /* The view being drawn (include/battle/btl_cam.h). */
-typedef struct EftAcView {
-    /* 0x000 */ Mtx44 world2view;
-    /* 0x040 */ Mtx44 world2view2;
-    /* 0x080 */ u8 unk80[0xC0];
-    /* 0x140 */ Mtx44 world2screen;
-    /* 0x180 */ u8 unk180[0xA0];
-    /* 0x220 */ Vec4 eye;       /* camera position (inferred: the ribbons take their view direction from it) */
-} EftAcView;
 
 #define V(p) ((Vec4 *)(p))
 
 /* GS TEX0 of entry idx of a texture table (entries of 0x10 bytes; the shift is needed for the match). */
+/* Typed entry lookup used by the recovered quad path. */
+/* Existing draw macro users retain their separate R4 audit debt. */
 #define EFT_TEX0(tbl, idx) (*(u64 *)((u8 *)(tbl) + ((idx) << 4)))
+static inline u64 EftZap_GetTex0(EftAcTex *table, s32 index) {
+    EftAcTex *entry = table + index;
 
-#define gBtlCamView ((EftAcView *)gBtlCamView)
+    return entry->tex0;
+}
+
 #ifdef PORT /* assigned to: a cast is not an lvalue for a modern compiler */
 #define gEftRibbonMgr (*(EftRibbonMgr **)&gEftRibbonMgr)
 #else
@@ -575,7 +539,6 @@ typedef struct EftAcView {
 #endif
 extern void *gEftRibbonTasks;
 extern void *gEftRibbonClass[6];
-extern EftZapPool *gEftZapMgr;
 
 extern void *memset(void *dst, s32 c, u32 n);
 extern f32 sqrtf(f32 x);
@@ -602,9 +565,7 @@ extern void EftPrim_DrawQuadDepth(Vec4 *pos, Vec4 *color, s32 layer, s32 front, 
 extern void Mtx_MulVec4(Vec4 *dst, Mtx44 *m, Vec4 *v);
 extern void Vec4_Set(Vec4 *dst, f32 x, f32 y, f32 z, f32 w);
 extern s32 Vu0Cur_ProjectPointsStq(EftAcScr *xyz, Vec4 *stq, Vec4 *pos, Vec4 *uv, s32 n); /* projects n points with the loaded matrix */
-extern void Vec4_ToInt(EftAcScr *dst, Vec4 *src);                            /* float to fixed vector */
-extern u8 *gOtCur;
-extern EftAcOtSlot *gOtZ;
+extern void Vec4_ToInt(s32 dst[4], Vec4 *src);                            /* float to fixed vector */
 extern s32 BtlPool_GetCurrent(void);
 extern void *BtlPool_Alloc(s32 slot, s32 size);
 extern void BtlPool_Free(s32 slot, void *ptr);
@@ -657,30 +618,23 @@ extern void EftZap_LoadTex(EftZapWork *w);
    from 1 at the head to 0 at the tail. The quad's side vector is the cross product of the segment and the direction
    from the camera; it is flipped when it turns against the previous one, and each quad starts on the previous
    quad's end points. */
-ASM_STUB_BEGIN(); /* compiled so that EftRibbon_Draw sees the definition; the assembler skips it */
-/* NON-MATCHING: 15 of 302 instructions differ: the node pointer and the address of prev[0] swap s6 / s7; everything else
-   (including the frame layout) is identical.
-   Permuter round 2: its "score 0" candidate (no `cam`; the eye copied into `prevSide`) is NOT a match and NOT the
-   same behaviour: prevSide is overwritten at the end of every pass, so the direction to the camera would be wrong
-   from the second quad on, and the frame is 16 bytes off (66 of 302 by fdiff; the permuter's score ignores stack
-   offsets). The original has `cam` at sp + 224 as here. It does show that the swap depends on the pseudos that
-   hold local addresses in front of the loop. Without effect (15): `for` instead of `while` for the link walk,
-   declaration order of link / node, `np` at function scope, a local for node->next; a node-pointer walk gives 27;
-   `cam` declared anywhere else gives 18 to 38. */
+
+/* Pending: ribbon/interface views and unexplained stack owners remain unresolved. */
+ASM_STUB_BEGIN();
 void EftRibbon_DrawKind1(EftRibbon *w, EftRibbonArg *arg, EftRibbonPrm *prm) {
-    EftAcVec uvA[4] = { { 1.0f, 0.0f, 1.0f, 0.0f }, { 1.0f, 1.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 1.0f, 0.0f } };
-    EftAcVec uvB[4] = { { 1.0f, 1.0f, 1.0f, 0.0f }, { 1.0f, 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f } };
-    EftAcVec pos[4];
-    EftAcVec prev[2];
-    EftAcVec cam;
-    EftAcVec side;
-    EftAcVec prevSide;
-    EftAcVec toCam;
-    EftAcVec uv[4];
-    EftAcVec col;
-    EftAcVec unk170;
-    EftAcVec half;
-    EftAcVec unk190;
+    Vec4Aligned uvA[4] = { { 1.0f, 0.0f, 1.0f, 0.0f }, { 1.0f, 1.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 1.0f, 0.0f } };
+    Vec4Aligned uvB[4] = { { 1.0f, 1.0f, 1.0f, 0.0f }, { 1.0f, 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f } };
+    Vec4Aligned pos[4];
+    Vec4Aligned prev[2];
+    Vec4Aligned cam;
+    Vec4Aligned side;
+    Vec4Aligned prevSide;
+    Vec4Aligned toCam;
+    Vec4Aligned uv[4];
+    Vec4Aligned col;
+    Vec4Aligned unk170;
+    Vec4Aligned half;
+    Vec4Aligned unk190;
     EftAcScr scr[4];
     EftAcVert verts[9];
     EftRibbonNode **link;
@@ -692,7 +646,7 @@ void EftRibbon_DrawKind1(EftRibbon *w, EftRibbonArg *arg, EftRibbonPrm *prm) {
     f32 u2;
     f32 du;
 
-    Vec4_Copy(V(&cam), &gBtlCamView->eye);
+    Vec4_Copy(V(&cam), &gBtlCamView->pos);
     du = -1.0f / (f32)w->numNodes;
     u2 = du + u;
     if (!(w->flags & EFT_RIBBON_MIRROR)) {
@@ -762,7 +716,7 @@ void EftRibbon_DrawKind1(EftRibbon *w, EftRibbonArg *arg, EftRibbonPrm *prm) {
     }
 }
 ASM_STUB_END();
-LIT4_WORD(D_002FCEC4, 0x3F51EB85); /* 0.82f */
+LIT4_WORD(D_002FCEC4, 0x3F51EB85);
 INCLUDE_RODATA("asm/nonmatchings/battle/eft_ab_c", D_002ED590);
 INCLUDE_RODATA("asm/nonmatchings/battle/eft_ab_c", D_002ED5D0);
 INCLUDE_ASM("asm/nonmatchings/battle/eft_ab_c", EftRibbon_DrawKind1);
@@ -771,20 +725,20 @@ INCLUDE_ASM("asm/nonmatchings/battle/eft_ab_c", EftRibbon_DrawKind1);
    ribbon bends sharply (side vectors less than 0.82 aligned and the nodes more than 0.8 apart) three sprites
    (node, middle, next node) replace the quad. */
 void EftRibbon_DrawKind2(EftRibbon *w, EftRibbonArg *arg, EftRibbonPrm *prm) {
-    EftAcVec uvA[4] = { { 0.98f, 0.0f, 1.0f, 0.0f }, { 0.98f, 0.98f, 1.0f, 0.0f }, { 0.02f, 0.0f, 1.0f, 0.0f }, { 0.02f, 0.98f, 1.0f, 0.0f } };
-    EftAcVec uvB[4] = { { 0.98f, 0.98f, 1.0f, 0.0f }, { 0.98f, 0.0f, 1.0f, 0.0f }, { 0.02f, 0.98f, 1.0f, 0.0f }, { 0.02f, 0.0f, 1.0f, 0.0f } };
-    EftAcVec pos[4];
-    EftAcVec prevA;
-    EftAcVec prevB;
-    EftAcVec cam;
-    EftAcVec side;
-    EftAcVec prevSide;
-    EftAcVec toCam;
-    EftAcVec uv[4];
-    EftAcVec col[4];
-    EftAcVec sprCol;
-    EftAcVec mid;
-    EftAcVec half = { 0.0f, 0.0f, 0.0f, 0.0f };
+    Vec4Aligned uvA[4] = { { 0.98f, 0.0f, 1.0f, 0.0f }, { 0.98f, 0.98f, 1.0f, 0.0f }, { 0.02f, 0.0f, 1.0f, 0.0f }, { 0.02f, 0.98f, 1.0f, 0.0f } };
+    Vec4Aligned uvB[4] = { { 0.98f, 0.98f, 1.0f, 0.0f }, { 0.98f, 0.0f, 1.0f, 0.0f }, { 0.02f, 0.98f, 1.0f, 0.0f }, { 0.02f, 0.0f, 1.0f, 0.0f } };
+    Vec4Aligned pos[4];
+    Vec4Aligned prevA;
+    Vec4Aligned prevB;
+    Vec4Aligned cam;
+    Vec4Aligned side;
+    Vec4Aligned prevSide;
+    Vec4Aligned toCam;
+    Vec4Aligned uv[4];
+    Vec4Aligned col[4];
+    Vec4Aligned sprCol;
+    Vec4Aligned mid;
+    Vec4Aligned half = { 0.0f, 0.0f, 0.0f, 0.0f };
     EftAcVert verts[9];
     EftRibbonNode **link;
     EftRibbonNode *node;
@@ -797,7 +751,7 @@ void EftRibbon_DrawKind2(EftRibbon *w, EftRibbonArg *arg, EftRibbonPrm *prm) {
     f32 size2;
     f32 a;
 
-    Vec4_Copy(V(&cam), &gBtlCamView->eye);
+    Vec4_Copy(V(&cam), &gBtlCamView->pos);
     if (!(w->flags & EFT_RIBBON_MIRROR)) {
         for (i = 0; i < 4; i++) {
             Vec4_Copy(V(&uv[i]), V(&uvA[i]));
@@ -1436,7 +1390,7 @@ void EftZapMgr_Term(EftAcTask *task) {
 
 void EftZap_InitKeys(EftAcTask *task);
 void EftZap_StepKeys(EftAcTask *task);
-void EftZap_DrawQuad(EftAcVec *pos, EftAcVec color, f32 u0, f32 v0, f32 u1, f32 v1, f32 u2, f32 v2, f32 u3, f32 v3,
+void EftZap_DrawQuad(Vec4Aligned *pos, Vec4Aligned color, f32 u0, f32 v0, f32 u1, f32 v1, f32 u2, f32 v2, f32 u3, f32 v3,
                      s32 layer, s32 texIdx, s32 front, EftAcTex *tex);
 void EftZap_SpawnLine(EftZapWork *w);
 void EftZap_UpdateLines(EftZapWork *w);
@@ -1490,7 +1444,7 @@ void EftZap_Update(EftAcTask *task) {
             }
         }
         {
-            EftAcVec ofs = { 0.0f, 0.0f, 0.0f, 0.0f };
+            Vec4Aligned ofs = { 0.0f, 0.0f, 0.0f, 0.0f };
 
             ofs.w = 1.0f;
             Vec3_Scale(V(&ofs), V(&arg->dir), def->offset);
@@ -1582,18 +1536,18 @@ void EftZap_Draw(EftAcTask *task) {
     {
     void (*set)(EftAcVert *vtx, Vec4 *pos, Vec4 *uv, Vec4 *col) = ClipVtx_Set;
     EftAcScr scr[4];
-    EftAcVec seg;
-    EftAcVec view;
-    EftAcVec side;
-    EftAcVec prevSide;
-    EftAcVec pos[4];
-    EftAcVec prevA;
-    EftAcVec prevB;
-    EftAcVec p0;
-    EftAcVec p1 = { 0.0f, 0.0f, 0.0f, 0.0f };
-    EftAcVec cam = { 0.0f, 0.0f, 0.0f, 0.0f };
-    EftAcVec half = { 0.0f, 0.0f, 0.0f, 0.0f };
-    EftAcVec uv[4] = { { 1.0f, 0.0f, 1.0f, 0.0f }, { 1.0f, 1.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 1.0f, 0.0f } };
+    Vec4Aligned seg;
+    Vec4Aligned view;
+    Vec4Aligned side;
+    Vec4Aligned prevSide;
+    Vec4Aligned pos[4];
+    Vec4Aligned prevA;
+    Vec4Aligned prevB;
+    Vec4Aligned p0;
+    Vec4Aligned p1 = { 0.0f, 0.0f, 0.0f, 0.0f };
+    Vec4Aligned cam = { 0.0f, 0.0f, 0.0f, 0.0f };
+    Vec4Aligned half = { 0.0f, 0.0f, 0.0f, 0.0f };
+    Vec4Aligned uv[4] = { { 1.0f, 0.0f, 1.0f, 0.0f }, { 1.0f, 1.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 1.0f, 0.0f } };
     EftAcVert verts[9] = { { { 0.0f } } };
     f32 u[2] = { 1.0f, 0.0f };
     EftZapStrand *line;
@@ -1604,7 +1558,7 @@ void EftZap_Draw(EftAcTask *task) {
     f32 width;
     f32 du;
 
-    Vec4_Copy(V(&cam), &gBtlCamView->eye);
+    Vec4_Copy(V(&cam), &gBtlCamView->pos);
     for (line = w->head; line != NULL; line = line->next) {
         if (line->flags & 0x80) {
             width = line->width * 0.5f * w->arg.size;
@@ -1788,7 +1742,7 @@ void EftZap_StepKeys(EftAcTask *task) {
     EftZapKeyTbl *k = w->arg.keys;
     s32 n = 0;
     f32 t = 0.0f;
-    EftAcVec v = { 0.0f, 0.0f, 0.0f, 0.0f };
+    Vec4Aligned v = { 0.0f, 0.0f, 0.0f, 0.0f };
 
     if (!(w->flags & EFT_ZAPF_KEY2)) {
         if (w->keySplit > 0.0f) {
@@ -1864,15 +1818,6 @@ void EftZap_SpawnLine(EftZapWork *w) {
    (C, B, D = angle step, A = width), its start angle, tilt and colours from the definition's base + range pairs,
    places its axis and takes its points from the pool. Returns 0 (after giving the points back) when the life or
    the point count comes out as 0 or the pool runs dry. */
-#if 0
-/* NON-MATCHING: 7 of 567 instructions differ: in the keyA block the registers of def->split and of the constant 1.0f are
-   swapped (f3 / f2); the keyB and keyC blocks, written the same way, match.
-   Cleanup E: the difference from the matching blocks is the memset of colEnd in the same basic block: its four
-   argument instructions lie inside the live ranges and change the local allocation priorities
-   (log2(refs) * refs / length). The original order (1.0f before split, and the second split load last) needs one
-   more instruction between the second `def->split` load and its subtraction than this C has; statement orders,
-   an explicit memset and the position of the colEnd declaration do not give it. Without the block-local `life`
-   f0 / f1 are swapped as well (13). */
 s32 EftZap_InitLine(EftZapStrand *line, EftZapWork *w) {
     EftZapDef *def = w->arg.def;
     f32 fps = 30.0f;
@@ -1941,15 +1886,12 @@ s32 EftZap_InitLine(EftZapStrand *line, EftZapWork *w) {
     if (def->flags & 2) {
         key[1] = (key[0] + key[2]) * 0.5f;
     }
+    line->widthStep[0] = (key[1] - key[0]) / (line->life * def->split);
+    line->widthStep[1] = (key[2] - key[1]) / (line->life * (1.0f - def->split));
+    line->width = key[0];
     {
-        f32 life = line->life;
-
-        line->widthStep[0] = (key[1] - key[0]) / (life * def->split);
-        line->widthStep[1] = (key[2] - key[1]) / (life * (1.0f - def->split));
-        line->width = key[0];
-    }
-    {
-        EftAcVec colEnd = { 0.0f, 0.0f, 0.0f, 0.0f };
+        /* The existing vector union also exposes component indexing. */
+        EftRbnVec colEnd = { { 0.0f, 0.0f, 0.0f, 0.0f } };
 
         ZAP_MODE(def->modeColor, 0x100);
         line->color0.x = Rand_FloatRange(w->curA.x, w->curA.x + w->curB.x);
@@ -2008,12 +1950,6 @@ s32 EftZap_InitLine(EftZapStrand *line, EftZapWork *w) {
     }
     return 1;
 }
-#else
-LIT4_WORD(D_002FCED0, 0x40490FDA); /* 3.14159265f */
-LIT4_WORD(D_002FCED4, 0x40C90FDA); /* 6.2831853f */
-LIT4_WORD(D_002FCED8, 0x40490FDA); /* 3.14159265f */
-INCLUDE_ASM("asm/nonmatchings/battle/eft_ab_c", EftZap_InitLine);
-#endif
 
 /* Steps every line of the emitter: start delay, the four animated values by key segment, the angle, the axis
    point (radius * cos / sin of the angle, scaled by the emitter's size), the line's matrix (pitch and yaw of the
@@ -2024,8 +1960,8 @@ void EftZap_UpdateLines(EftZapWork *w) {
     EftZapInit *arg = &w->arg;
     EftZapDef *def = arg->def;
     f32 t = 0.0f;
-    EftAcVec tmp = { 0.0f, 0.0f, 0.0f, 0.0f };
-    EftAcVec head = { 0.0f, 0.0f, 0.0f, 0.0f };
+    Vec4Aligned tmp = { 0.0f, 0.0f, 0.0f, 0.0f };
+    Vec4Aligned head = { 0.0f, 0.0f, 0.0f, 0.0f };
     f32 wk[3] = { 1.0f, 1.0f, 1.0f };
     f32 pitch = 0.0f;
     f32 fade = 1.0f;
@@ -2200,27 +2136,18 @@ void EftZap_UpdateLines(EftZapWork *w) {
    ordering table at the mean depth of the four points (>> 10), in layer `layer` (2 and 3 = layers 0 and 1 with GS
    context 2). With `front` the vertices are drawn at the nearest depth. Nothing is drawn when the projection
    clips the quad. */
-#if 0
-/* NON-MATCHING: 19 of 274 instructions differ (was 45). The packet header now matches: `regs` written as
-   `K + (ctx << 4)` (int shift, constant first), the form of the guide's GS packet header lesson. What is left is
-   behind the Vec4_ToInt call: the original loads the bit-field constant 0xFFFFFF (a1) first, then the first colour
-   byte, `l = layer`, the 0xFF000000FFFFFFFF mask (a0), -1 (a2), and computes `texIdx << 4` last (behind the layer
-   adjustment); here the shift comes first and the two masks are in a0 / a1 the other way round (11 lines there
-   plus the 8 `and` that use them). Moving the texture pointer behind the layer adjustment, or reading it inline
-   at the tex0 store, puts the shift right but exchanges tex / texIdx in s5 / s6 (21). */
-void EftZap_DrawQuad(EftAcVec *pos, EftAcVec color, f32 u0, f32 v0, f32 u1, f32 v1, f32 u2, f32 v2, f32 u3, f32 v3,
+void EftZap_DrawQuad(Vec4Aligned *pos, Vec4Aligned color, f32 u0, f32 v0, f32 u1, f32 v1, f32 u2, f32 v2, f32 u3, f32 v3,
                      s32 layer, s32 texIdx, s32 front, EftAcTex *tex) {
-    EftAcVec uv[4];
-    EftAcVec stq[4];
+    Vec4Aligned uv[4];
+    Vec4Aligned stq[4];
     EftAcScr scr[4];
     EftAcScr icol;
     EftAcQuadPkt *p;
-    EftAcOtEntry *e;
+    OtEntry *e;
     s32 abe = 1;
     s32 ctx;
     s32 l;
     s32 z;
-    u64 *t;
 
     Vec4_Set(V(&uv[0]), u0, v0, 1.0f, 1.0f);
     Vec4_Set(V(&uv[1]), u1, v1, 1.0f, 1.0f);
@@ -2230,7 +2157,7 @@ void EftZap_DrawQuad(EftAcVec *pos, EftAcVec color, f32 u0, f32 v0, f32 u1, f32 
         return;
     }
     p = (EftAcQuadPkt *)gOtCur;
-    gOtCur = (u8 *)(p + 1);
+    gOtCur = (u32 *)(p + 1);
     if (p == NULL) {
         return;
     }
@@ -2249,12 +2176,7 @@ void EftZap_DrawQuad(EftAcVec *pos, EftAcVec color, f32 u0, f32 v0, f32 u1, f32 
         scr[2].z = 0xFFFFFF;
         scr[3].z = 0xFFFFFF;
     }
-    Vec4_ToInt(&icol, V(&color));
-    t = (u64 *)((u8 *)tex + (texIdx << 4));
-    l = layer;
-    if (l >= 2) {
-        l -= 2;
-    }
+    Vec4_ToInt(&icol.x, V(&color));
     p->v[0].rgbaq.r = icol.x;
     p->v[0].rgbaq.g = icol.y;
     p->v[0].rgbaq.b = icol.z;
@@ -2299,7 +2221,11 @@ void EftZap_DrawQuad(EftAcVec *pos, EftAcVec color, f32 u0, f32 v0, f32 u1, f32 
     p->v[3].xyz.y = scr[3].y;
     p->v[3].xyz.z = scr[3].z;
     p->v[3].xyz.f = 0xFF;
-    p->tex0 = *t;
+    p->tex0 = EftZap_GetTex0(tex, texIdx);
+    l = layer;
+    if (l >= 2) {
+        l -= 2;
+    }
     if (z < 0) {
         e = &gOtZ[0].layer[l];
     } else if (z >= 0x1000) {
@@ -2307,9 +2233,6 @@ void EftZap_DrawQuad(EftAcVec *pos, EftAcVec color, f32 u0, f32 v0, f32 u1, f32 
     } else {
         e = &gOtZ[z].layer[l];
     }
-    e->tail->next = p;
-    e->tail = (EftAcOtPrim *)p;
+    e->tail->next = (OtPrim *)p;
+    e->tail = (OtPrim *)p;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/battle/eft_ab_c", EftZap_DrawQuad);
-#endif

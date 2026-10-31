@@ -24,6 +24,7 @@
  * which stay an assembly chunk between this file and stg_a_b.c.
  */
 #include "common.h"
+#include "battle/btl_cam.h"
 #include "sys/math3d.h"
 #include "sys/common.h"
 #include "sys/heap.h"
@@ -107,7 +108,6 @@ extern StgPlace gStgDbgPlaces[6]; /* gStgDbgPlaces */
 extern Vec4 gStgLastLightVecA; /* gStgLastLightVecA */
 extern Vec4 gStgLastLightVecB;  /* gStgLastLightVecB */
 extern Vec4 D_002EC2C0;        /* zero vector */
-extern StgView *gBtlCamView;
 
 #define STG_RES ((BattleRes *)gCommonRes->unk20)
 
@@ -371,13 +371,13 @@ void BtlStage_ClearZoneMarks(void) {
     fr->plane[4].w = 1.0f
 
 /* Builds the culling frustum of a view: side plane normals, view matrix, projection. Drawing only. */
-void StgFrustum_Build(StgView *view, StgFrustum *fr) {
+void StgFrustum_Build(View *view, StgFrustum *fr) {
     f32 k; /* near / screenDist, then each reciprocal in turn: one variable in the original (register allocation) */
     f32 left, right, top, bottom;
     s32 i;
 
     memset(fr, 0, sizeof(StgFrustum));
-    if ((f32)(view->x1 - view->x0) > 256.0f) {
+    if ((f32)(view->scissorY0 - view->scissorX0) > 256.0f) {
         STG_FRUSTUM_PLANES(448.0f / 3.0f);
     } else {
         STG_FRUSTUM_PLANES(896.0f / 3.0f);
@@ -392,7 +392,7 @@ void StgFrustum_Build(StgView *view, StgFrustum *fr) {
     k = view->nearZ / view->screenDist;
     top = -k * -224.0f;
     bottom = -k * 224.0f;
-    if ((f32)(view->x1 - view->x0) > 256.0f) {
+    if ((f32)(view->scissorY0 - view->scissorX0) > 256.0f) {
         right = k * 256.0f * 0.5f * 1.1666667f;
         left = k * -256.0f * 0.5f * 1.1666667f;
     } else {
@@ -422,7 +422,7 @@ void StgFrustum_Build(StgView *view, StgFrustum *fr) {
     fr->proj.m[1][3] = 0.0f;
     fr->proj.m[2][3] = -1.0f;
     fr->proj.m[3][3] = 0.0f;
-    Mtx_Copy(&fr->view, &view->mtx);
+    Mtx_Copy(&fr->view, &view->world2view2);
 }
 
 /* Frustum test of the cube (x, y, z) +- r: 0 inside, 1 crossing, 2 outside. Drawing only. */
@@ -663,7 +663,7 @@ f32 Stg_FadeRatio(f32 a, f32 b) {
  * Reads the camera; used only by the stage draw at 0x115A78. */
 f32 Stg_FadeByCamDist(Vec4 *pos, f32 value) {
     Vec4 d;
-    StgView *view = gBtlCamView;
+    View *view = gBtlCamView;
     f32 dist;
     f32 r;
 

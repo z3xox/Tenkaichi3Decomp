@@ -24,7 +24,7 @@ UbzSel *gUbzSel = NULL; /* 0x3B7350 */
 static const s32 sUbzFoeTex[8] = { 15, 18, 19, 20, 21, 22, 23, 24 };
 
 #define UZ_RES(n) \
-    res = (MTexRes *)MPACK_AT(gUbzSel->res, n); \
+    res = (FlashTexRes *)MPACK_AT(gUbzSel->res, n); \
     Res_RelocateOffsets(&res, res, res)
 
 /*
@@ -93,7 +93,7 @@ void UbzSel_SetupBattle(void) {
 
 /* Loads the screen's file, creates the movie, the icon window and the text boxes of the course names. */
 void UbzSel_Init(void) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
     s32 i;
 
     gUbzSel = Heap_Alloc(sizeof(UbzSel), 0x20, 0, 2);
@@ -146,7 +146,7 @@ void UbzSel_Init(void) {
     gUbzSel->tex[24] = NULL;
     gUbzSel->chips = (u32 *)MPACK_AT(gUbzSel->res, 6);
     for (i = 0; i < N_CHIP_NUM; i++) {
-        res = (MTexRes *)MPACK_AT(gUbzSel->chips, i + 1);
+        res = (FlashTexRes *)MPACK_AT(gUbzSel->chips, i + 1);
         Res_RelocateOffsets(&res, res, res);
     }
     Flash_Create(&gUbzSel->flash[0], MPACK_AT(gUbzSel->res, 1), gUbzSel->tex);
@@ -188,10 +188,10 @@ void UbzSel_Term(void) {
 
 /* Draws the screen: the guide, the five course plates with their best rank, the chosen course's sheet. */
 void UbzSel_Draw(void) {
-    MFlashRef ref;
-    MFlashUv uv;
+    FlashRef ref;
+    FlashUv uv;
     char name[64];
-    MFlash *flash;
+    Flash *flash;
     s32 i;
 
 #ifdef PORT
@@ -211,43 +211,43 @@ void UbzSel_Draw(void) {
         sprintf(name, "mc_window_plate%02d", i + 1);
         Flash_FindLabel(flash, name, "mc_window_text1_0", &ref);
         TextBox_AttachLine(flash, &ref, 0, 0, i + 0x143, &gUbzSel->box[i]);
-        uv.x0 = gSaveData->course[i].rank * 0x20;
-        uv.y0 = 0;
-        uv.x1 = uv.x0 + 0x20;
-        uv.y1 = 0x20;
+        uv.u0 = gSaveData->course[i].rank * 0x20;
+        uv.v0 = 0;
+        uv.u1 = uv.u0 + 0x20;
+        uv.v1 = 0x20;
         Flash_FindLabel(flash, name, "mc_rankmoji", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
     }
-    uv.x0 = 0;
-    uv.y0 = 0x20;
-    uv.x1 = 0x100;
-    uv.y1 = 0x40;
+    uv.u0 = 0;
+    uv.v0 = 0x20;
+    uv.u1 = 0x100;
+    uv.v1 = 0x40;
     Flash_FindLabel(flash, "mc_mission_plate01", "mc_mission_plate_text", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     for (i = 0; i < 8; i++) {
-        MTexRes *res;
+        FlashTexRes *res;
         s32 chara = gUbzSel->foe[gUbzSel->course[gUbzSel->cursor[0]].foe[i]].chara;
 
         if (chara == N_NONE) {
-            res = (MTexRes *)MPACK_AT(gUbzSel->chips, N_CHIP_NUM);
+            res = (FlashTexRes *)MPACK_AT(gUbzSel->chips, N_CHIP_NUM);
         } else {
-            res = (MTexRes *)MPACK_AT(gUbzSel->chips, chara + 1);
+            res = (FlashTexRes *)MPACK_AT(gUbzSel->chips, chara + 1);
         }
         gUbzSel->tex[sUbzFoeTex[i]] = MTEX(res, 0);
     }
-    uv.x0 = gSaveData->course[gUbzSel->cursor[0]].rank * 0x40;
-    uv.y0 = 0;
-    uv.x1 = uv.x0 + 0x40;
-    uv.y1 = 0x40;
+    uv.u0 = gSaveData->course[gUbzSel->cursor[0]].rank * 0x40;
+    uv.v0 = 0;
+    uv.u1 = uv.u0 + 0x40;
+    uv.v1 = 0x40;
     Flash_FindLabel(flash, NULL, "mc_rank", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     Num_Draw(flash, "mc_time_suji%02d", 4, 2, gSaveData->course[gUbzSel->cursor[0]].time[0], 0x20, 0x20, 1);
     Num_Draw(flash, "mc_time_suji%02d", 2, 2, gSaveData->course[gUbzSel->cursor[0]].time[1], 0x20, 0x20, 1);
     Num_Draw(flash, "mc_time_suji%02d", 0, 2, gSaveData->course[gUbzSel->cursor[0]].time[2], 0x20, 0x20, 1);
-    uv.x0 = 0;
-    uv.y0 = 0x20;
-    uv.x1 = 0x100;
-    uv.y1 = 0x40;
+    uv.u0 = 0;
+    uv.v0 = 0x20;
+    uv.u1 = 0x100;
+    uv.v1 = 0x40;
     Flash_FindLabel(flash, NULL, "mc_time_text02", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     Num_Draw(flash, "mc_score_suji%02d", 0, 9, gSaveData->course[gUbzSel->cursor[0]].score * 100, 0x20, 0x20, 0);
@@ -380,9 +380,9 @@ void UbzSel_Input(s32 *result) {
 
 /* Sends the plate of cursor[step] in one of the movies to a label. */
 void UbzSel_ClipGoto(s32 movie, s32 step, char *label) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[64];
-    MFlash *flash = &gUbzSel->flash[movie];
+    Flash *flash = &gUbzSel->flash[movie];
 
     sprintf(name, "mc_window_plate%02d", gUbzSel->cursor[step] + 1);
     Flash_FindLabel(flash, NULL, name, &ref);

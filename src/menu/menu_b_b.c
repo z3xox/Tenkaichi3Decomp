@@ -16,19 +16,19 @@ ModeBg *gModeBg = NULL; /* 0x3B12F4 */
 
 /* Builds the background from the sub menu's pack: section 1 picture, 10 textures, 9 movie. */
 void ModeBg_Init(u32 *pack) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
 
     gModeBg = Heap_Alloc(0x78, 0x20, 0, 2);
     memset(gModeBg, 0, 0x78);
-    res = (MTexRes *)MPACK_AT(pack, 1);
+    res = (FlashTexRes *)MPACK_AT(pack, 1);
     Res_RelocateOffsets(&res, res, res);
     gModeBg->bg = res;
-    if (gProgress->subMenu == 3) {
+    if (gProgress->menu.subMenu == 3) {
         return;
     }
-    res = (MTexRes *)MPACK_AT(pack, 10);
+    res = (FlashTexRes *)MPACK_AT(pack, 10);
     Res_RelocateOffsets(&res, res, res);
-    switch (gProgress->subMenu) {
+    switch (gProgress->menu.subMenu) {
     case 0:
         BG_TEX(0, 3);
         BG_TEX(1, 2);
@@ -87,7 +87,7 @@ void ModeBg_Init(u32 *pack) {
 
 /* Frees the background. */
 void ModeBg_Term(void) {
-    if (gProgress->subMenu != 3) {
+    if (gProgress->menu.subMenu != 3) {
         Flash_Destroy(&gModeBg->flash[0]);
     }
     if (gModeBg != NULL) {
@@ -98,13 +98,13 @@ void ModeBg_Term(void) {
 
 /* Advances and draws the background: the picture, then the movie with its layers scrolled. */
 void ModeBg_Draw(void) {
-    MFlashRef ref;
-    MFlashUv uv;
+    FlashRef ref;
+    FlashUv uv;
     char name[64];
     s32 i;
-    MFlash *flash;
+    Flash *flash;
 
-    if (gProgress->subMenu != 3) {
+    if (gProgress->menu.subMenu != 3) {
         for (i = 0; i < 1; i++) {
             Flash_Advance(&gModeBg->flash[i]);
         }
@@ -117,24 +117,24 @@ void ModeBg_Draw(void) {
 #else
     Sprite_DrawPicture(gModeBg->bg, 0, 0, 0x80);
 #endif
-    if (gProgress->subMenu != 3) {
+    if (gProgress->menu.subMenu != 3) {
         flash = &gModeBg->flash[0];
-        switch (gProgress->subMenu) {
+        switch (gProgress->menu.subMenu) {
         case 0: {
             f32 speed[4] = { 0.60952381f, 0.47407408f, 1.0666667f, 0.85333334f };
 
             for (i = 0; i < 2; i++) {
-                uv.x0 = 0;
-                uv.y0 = 0;
-                uv.x1 = 0x200;
-                uv.y1 = 0x80;
+                uv.u0 = 0;
+                uv.v0 = 0;
+                uv.u1 = 0x200;
+                uv.v1 = 0x80;
                 sprintf(name, "mc_kumo_%d", i + 1);
                 Flash_FindLabel(flash, NULL, name, &ref);
                 FlashAnim_Scroll(flash, &ref, &uv, &gModeBg->scrollX[i], NULL, speed[i], 0.0f);
-                uv.x0 = 0;
-                uv.y0 = 0;
-                uv.x1 = 0x80;
-                uv.y1 = 0x200;
+                uv.u0 = 0;
+                uv.v0 = 0;
+                uv.u1 = 0x80;
+                uv.v1 = 0x200;
                 sprintf(name, "mc_kemuri_%d", i + 1);
                 Flash_FindLabel(flash, NULL, name, &ref);
                 FlashAnim_Scroll(flash, &ref, &uv, NULL, &gModeBg->scrollY[i], 0.0f, speed[i]);
@@ -142,34 +142,34 @@ void ModeBg_Draw(void) {
             break;
         }
         case 1:
-            uv.x0 = 0;
-            uv.y0 = 0;
-            uv.x1 = 0x200;
-            uv.y1 = 0x100;
+            uv.u0 = 0;
+            uv.v0 = 0;
+            uv.u1 = 0x200;
+            uv.v1 = 0x100;
             Flash_FindLabel(flash, NULL, "mc_kumo", &ref);
             FlashAnim_Scroll(flash, &ref, &uv, &gModeBg->scrollX[0], NULL, -0.56888889f, 0.0f);
             break;
         case 2:
-            uv.x0 = 0;
-            uv.y0 = 0;
-            uv.x1 = 0x200;
-            uv.y1 = 0x100;
+            uv.u0 = 0;
+            uv.v0 = 0;
+            uv.u1 = 0x200;
+            uv.v1 = 0x100;
             Flash_FindLabel(flash, NULL, "mc_kumo", &ref);
             FlashAnim_Scroll(flash, &ref, &uv, &gModeBg->scrollX[0], NULL, -0.42666667f, 0.0f);
             break;
         case 5:
-            uv.x0 = 0;
-            uv.y0 = 0;
-            uv.x1 = 0x200;
-            uv.y1 = 0x80;
+            uv.u0 = 0;
+            uv.v0 = 0;
+            uv.u1 = 0x200;
+            uv.v1 = 0x80;
             Flash_FindLabel(flash, NULL, "mc_kumo", &ref);
             FlashAnim_Scroll(flash, &ref, &uv, &gModeBg->scrollX[0], NULL, -0.34133333f, 0.0f);
             break;
         case 6:
-            uv.x0 = 0;
-            uv.y0 = 0;
-            uv.x1 = 0x200;
-            uv.y1 = 0x100;
+            uv.u0 = 0;
+            uv.v0 = 0;
+            uv.u1 = 0x200;
+            uv.v1 = 0x100;
             Flash_FindLabel(flash, NULL, "mc_kumo", &ref);
             FlashAnim_Scroll(flash, &ref, &uv, &gModeBg->scrollX[0], NULL, -0.42666667f, 0.0f);
             break;

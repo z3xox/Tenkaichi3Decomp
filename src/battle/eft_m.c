@@ -1,4 +1,7 @@
 #include "common.h"
+#include "battle/btl_cam.h"
+#include "sys/vector_types.h"
+#include "sys/math3d.h"
 #include "battle/eft_m.h"
 
 /*
@@ -14,14 +17,6 @@ typedef struct EftMBattleWork {
 } EftMBattleWork;
 
 /* The view being drawn (include/battle/btl_cam.h). */
-typedef struct EftMView {
-    /* 0x000 */ Mtx44 world2view;
-    /* 0x040 */ Mtx44 world2view2;
-    /* 0x080 */ u8 unk80[0xC0];
-    /* 0x140 */ Mtx44 world2screen;
-} EftMView;
-
-extern EftMView *gBtlCamView;
 
 #define V(p) ((Vec4 *)(p))
 
@@ -72,13 +67,13 @@ extern s32 BtlCharApi_GetActionFxKind(s32 objId);
 
 /* Spawns `count` streaks in a ring around a model node of the fighter, pointing against `dir`. */
 s32 EftSpdLine_SpawnStreakRing(s32 objId, Vec4 *dir, s32 node, s32 count, f32 unused, f32 lifeMin, f32 lifeRange) {
-    EftVec pos;
-    EftVec tail;
-    EftVec back;
-    EftVec tmp;
-    EftVec up = { 0.0f, -1.0f, 0.0f, 1.0f };
-    EftVec side2;
-    EftVec side;
+    Vec4Aligned pos;
+    Vec4Aligned tail;
+    Vec4Aligned back;
+    Vec4Aligned tmp;
+    Vec4Aligned up = { 0.0f, -1.0f, 0.0f, 1.0f };
+    Vec4Aligned side2;
+    Vec4Aligned side;
     f32 size;
     f32 minSize;
     f32 ang;
@@ -172,7 +167,7 @@ EftSpdTrail *EftSpdLine_AllocTrail(void) {
 }
 
 /* Adds a trail at the list tail: random width scaled by the fighter's height, alpha 64, two frames of life. */
-void EftSpdLine_AddTrail(s32 objId, EftVec pos, EftVec dir) {
+void EftSpdLine_AddTrail(s32 objId, Vec4Aligned pos, Vec4Aligned dir) {
     EftSpdTrail *p = EftSpdLine_AllocTrail();
     s32 r;
 
@@ -295,7 +290,7 @@ EftSpdStreak *EftSpdLine_AllocStreak(void) {
 }
 
 /* Adds a streak at the list tail: alpha 160, fading to 0 in `life` seconds. */
-void EftSpdLine_AddStreak(s32 objId, EftVec pos, EftVec tail, EftVec dir, f32 speed, f32 life, f32 width) {
+void EftSpdLine_AddStreak(s32 objId, Vec4Aligned pos, Vec4Aligned tail, Vec4Aligned dir, f32 speed, f32 life, f32 width) {
     EftSpdStreak *p = EftSpdLine_AllocStreak();
 
     if (p != NULL) {

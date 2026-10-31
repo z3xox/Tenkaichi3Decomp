@@ -14,10 +14,10 @@ ItemPanel *gItemPanel[2] = {NULL, NULL}; /* 0x3B38E0, one per side */
 
 /* Sends the set plate (kind 0) or the list plate under the cursor (kind 1) to a label. */
 void ItemPanel_ClipGoto(s32 side, s32 kind, char *label) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[64];
     ItemPanel *p = gItemPanel[side];
-    MFlash *flash = &p->flash;
+    Flash *flash = &p->flash;
 
     switch (kind) {
     case 0:
@@ -32,12 +32,12 @@ void ItemPanel_ClipGoto(s32 side, s32 kind, char *label) {
 }
 
 #define IP_RES(n) \
-    res = (MTexRes *)MPACK_AT(pack, n); \
+    res = (FlashTexRes *)MPACK_AT(pack, n); \
     Res_RelocateOffsets(&res, res, res)
 
 /* Allocates the panel of one side and builds its movie from the caller's unpacked pack. */
 void ItemPanel_Init(u32 *pack, s32 side) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
     ItemPanel *p;
     s32 i;
 
@@ -101,49 +101,49 @@ void ItemPanel_Term(s32 side) {
 
 /* Draws the panel: set name, character and form names, slots used / available, and the eight item rows. */
 void ItemPanel_Draw(s32 side) {
-    MFlashRef ref;
-    MFlashUv uv;
+    FlashRef ref;
+    FlashUv uv;
     char name[64];
     ItemPanel *p = gItemPanel[side];
-    MFlash *flash;
+    Flash *flash;
     s32 i;
 
     if (!(p->flags & ITEMPANEL_SHOWN)) {
         return;
     }
     flash = &p->flash;
-    uv.x0 = side * 0x20;
-    uv.y0 = 0;
-    uv.x1 = uv.x0 + 0x20;
-    uv.y1 = 0x20;
+    uv.u0 = side * 0x20;
+    uv.v0 = 0;
+    uv.u1 = uv.u0 + 0x20;
+    uv.v1 = 0x20;
     Flash_FindLabel(flash, "mc_select_plate", side ? "mc_yajirusi_right" : "mc_yajirusi_left", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
-    uv.x0 = 0;
-    uv.y0 = p->set * 0x20;
-    uv.x1 = 0x100;
-    uv.y1 = uv.y0 + 0x20;
+    uv.u0 = 0;
+    uv.v0 = p->set * 0x20;
+    uv.u1 = 0x100;
+    uv.v1 = uv.v0 + 0x20;
     Flash_FindLabel(flash, "mc_select_plate", "mc_select_text_off", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
-    uv.x0 = 0;
-    uv.y0 = p->set * 0x20;
-    uv.x1 = 0x100;
-    uv.y1 = uv.y0 + 0x20;
+    uv.u0 = 0;
+    uv.v0 = p->set * 0x20;
+    uv.u1 = 0x100;
+    uv.v1 = uv.v0 + 0x20;
     Flash_FindLabel(flash, "mc_select_plate", "mc_select_text_on", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     Flash_FindLabel(flash, NULL, "mc_name_text", &ref);
     TextBox_AttachLine(flash, &ref, 0, 0, p->chara, &p->name);
     Flash_FindLabel(flash, NULL, "mc_form_text", &ref);
     TextBox_AttachLine(flash, &ref, 0, 0, p->chara, &p->form);
-    uv.x0 = (p->used % 4) * 0x40;
-    uv.y0 = (p->used / 4) * 0x40;
-    uv.x1 = uv.x0 + 0x40;
-    uv.y1 = uv.y0 + 0x40;
+    uv.u0 = (p->used % 4) * 0x40;
+    uv.v0 = (p->used / 4) * 0x40;
+    uv.u1 = uv.u0 + 0x40;
+    uv.v1 = uv.v0 + 0x40;
     Flash_FindLabel(flash, NULL, "mc_ability_limit_big_num", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
-    uv.x0 = (p->limit % 4) * 0x20;
-    uv.y0 = (p->limit / 4) * 0x20;
-    uv.x1 = uv.x0 + 0x20;
-    uv.y1 = uv.y0 + 0x20;
+    uv.u0 = (p->limit % 4) * 0x20;
+    uv.v0 = (p->limit / 4) * 0x20;
+    uv.u1 = uv.u0 + 0x20;
+    uv.v1 = uv.v0 + 0x20;
     Flash_FindLabel(flash, NULL, "mc_ability_limit_s_num", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     for (i = 0; i < ITEMPANEL_ROWS; i++) {
@@ -166,10 +166,10 @@ void ItemPanel_Draw(s32 side) {
         }
         Flash_FindLabel(flash, name, "mc_icon_custom", &ref);
         if (p->cursor == i) {
-            uv.x1 = 0x80;
-            uv.x0 = 0x40;
-            uv.y0 = 0;
-            uv.y1 = 0x40;
+            uv.u1 = 0x80;
+            uv.u0 = 0x40;
+            uv.v0 = 0;
+            uv.v1 = 0x40;
             Flash_ClipSetUv(flash, &ref, &uv);
             Flash_ClipSetFlags(flash, &ref, 2, 1);
         } else {
@@ -178,10 +178,10 @@ void ItemPanel_Draw(s32 side) {
         Flash_FindLabel(flash, name, "mc_icon_item_cost", &ref);
         if (p->item.id[i] != 0) {
             if (p->items[p->item.id[i] - 1].slots != 0) {
-                uv.x0 = p->items[p->item.id[i] - 1].slots * 0x20 - 0x20;
-                uv.y0 = ItemTbl_GetClass(p->item.id[i] - 1, p->items) * 42;
-                uv.x1 = uv.x0 + 0x20;
-                uv.y1 = uv.y0 + 42;
+                uv.u0 = p->items[p->item.id[i] - 1].slots * 0x20 - 0x20;
+                uv.v0 = ItemTbl_GetClass(p->item.id[i] - 1, p->items) * 42;
+                uv.u1 = uv.u0 + 0x20;
+                uv.v1 = uv.v0 + 42;
                 Flash_ClipSetFlags(flash, &ref, 2, 1);
                 Flash_ClipSetUv(flash, &ref, &uv);
             } else {
@@ -192,10 +192,10 @@ void ItemPanel_Draw(s32 side) {
         }
         Flash_FindLabel(flash, name, "mc_icon_item_potara", &ref);
         if (p->item.id[i] != 0) {
-            uv.x0 = p->items[p->item.id[i] - 1].type * 0x40;
-            uv.y0 = 0;
-            uv.y1 = 0x40;
-            uv.x1 = uv.x0 + 0x40;
+            uv.u0 = p->items[p->item.id[i] - 1].type * 0x40;
+            uv.v0 = 0;
+            uv.v1 = 0x40;
+            uv.u1 = uv.u0 + 0x40;
             Flash_ClipSetFlags(flash, &ref, 2, 1);
             Flash_ClipSetUv(flash, &ref, &uv);
         } else {

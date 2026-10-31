@@ -23,7 +23,7 @@ ESel *gEntrySel = NULL; /* 0x3B5910 */
 /* The cursor moved to another grid row: the seven chips take the characters of the new row. */
 void EntrySel_SwapRowTex(void) {
     s32 tbl[ESEL_COLS] = {8, 11, 12, 13, 14, 15, 16};
-    MTexRes *res;
+    FlashTexRes *res;
     s32 i;
 
     for (i = 0; i < ESEL_COLS; i++) {
@@ -32,7 +32,7 @@ void EntrySel_SwapRowTex(void) {
 
         gEntrySel->sel->prevRowChara[i] = gEntrySel->sel->rowChara[i];
         gEntrySel->sel->rowChara[i] = chara;
-        res = (MTexRes *)MPACK_AT(gEntrySel->chips, chara + 1);
+        res = (FlashTexRes *)MPACK_AT(gEntrySel->chips, chara + 1);
         gEntrySel->texB[18 + i] = gEntrySel->texB[tbl[i]];
         gEntrySel->texB[tbl[i]] = MTEX(res, 0);
     }
@@ -41,7 +41,7 @@ void EntrySel_SwapRowTex(void) {
 /* The seven chips take the forms of the cell under the cursor (empty chips past the last form). */
 void EntrySel_SetRowTex(void) {
     s32 tbl[ESEL_COLS] = {8, 11, 12, 13, 14, 15, 16};
-    MTexRes *res;
+    FlashTexRes *res;
     s32 i;
 
     for (i = 0; i < ESEL_COLS; i++) {
@@ -54,7 +54,7 @@ void EntrySel_SetRowTex(void) {
         }
         gEntrySel->sel->prevRowChara[i] = gEntrySel->sel->rowChara[i];
         gEntrySel->sel->rowChara[i] = chara;
-        res = (MTexRes *)MPACK_AT(gEntrySel->chips, chara + 1);
+        res = (FlashTexRes *)MPACK_AT(gEntrySel->chips, chara + 1);
         gEntrySel->texB[18 + i] = gEntrySel->texB[tbl[i]];
         gEntrySel->texB[tbl[i]] = MTEX(res, 0);
     }
@@ -62,21 +62,21 @@ void EntrySel_SetRowTex(void) {
 
 /* Sets the chips of the entrants chosen so far and clears the rest. */
 void EntrySel_SetMemberTex(void) {
-    MTexRes *res;
+    FlashTexRes *res;
     s32 i;
 
     for (i = 0; i < ESEL_ENTRY_MAX; i++) {
         gEntrySel->texA[10 + i] = NULL;
     }
     for (i = 0; i < gEntrySel->sel->cur; i++) {
-        res = (MTexRes *)MPACK_AT(gEntrySel->chips, gEntrySel->sel->entry[i].chara + 1);
+        res = (FlashTexRes *)MPACK_AT(gEntrySel->chips, gEntrySel->sel->entry[i].chara + 1);
         gEntrySel->texA[10 + i] = MTEX(res, 0);
     }
 }
 
 /* One step of the background loader of the large picture (file 0x2F9 + character). */
 void EntrySel_UpdateImage(void) {
-    MTexRes *res;
+    FlashTexRes *res;
 
     switch (gEntrySel->loadState) {
     case ESEL_LOAD_ABORT:
@@ -127,9 +127,9 @@ void EntrySel_ChangeImage(void) {
 
 /* Sends a clip of movie `movie` to a label: the chip, plate or text of the entrant being chosen. */
 void EntrySel_ClipGoto(s32 movie, s32 kind, char *label) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[64];
-    MFlash *flash = &gEntrySel->flash[movie];
+    Flash *flash = &gEntrySel->flash[movie];
 
     switch (kind) {
     case 0:
@@ -155,12 +155,12 @@ void EntrySel_ClipGoto(s32 movie, s32 kind, char *label) {
 }
 
 #define ES_RES(n) \
-    res = (MTexRes *)MPACK_AT(gEntrySel->res, n); \
+    res = (FlashTexRes *)MPACK_AT(gEntrySel->res, n); \
     Res_RelocateOffsets(&res, res, res)
 
 /* Loads and unpacks the screen (section `section` of archive 4), builds its four movies and the grid. */
 void EntrySel_Init(s32 section) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
     s32 movie;
     s32 i;
 
@@ -273,7 +273,7 @@ void EntrySel_Init(s32 section) {
     gEntrySel->formText = MPACK_AT(gEntrySel->res, 31);
     gEntrySel->chips = (u32 *)MPACK_AT(gEntrySel->res, 32);
     for (i = 0; i < ESEL_CELL_MAX; i++) {
-        res = (MTexRes *)MPACK_AT(gEntrySel->chips, i + 1);
+        res = (FlashTexRes *)MPACK_AT(gEntrySel->chips, i + 1);
         Res_RelocateOffsets(&res, res, res);
     }
     gEntrySel->grid = ((ESelGridList *)MPACK_AT(gEntrySel->res, 29))->cell;
@@ -390,11 +390,11 @@ void EntrySel_Draw(void) {
 #ifdef PORT
     Port_MenuPage(19); /* widescreen menus: this screen's page */
 #endif
-    MFlashRef ref;
-    MFlashUv uv;
+    FlashRef ref;
+    FlashUv uv;
     char name[64];
     s32 i;
-    MFlash *flash;
+    Flash *flash;
 
     TourBg_Draw();
     flash = &gEntrySel->flash[0];
@@ -419,10 +419,10 @@ void EntrySel_Draw(void) {
             Flash_FindLabel(flash, NULL, name, &ref);
             Flash_ClipSetFlags(flash, &ref, 2, 0);
         } else {
-            uv.x0 = (i % 2) * 0x40;
-            uv.y0 = (i / 2) * 0x20;
-            uv.x1 = uv.x0 + 0x40;
-            uv.y1 = uv.y0 + 0x20;
+            uv.u0 = (i % 2) * 0x40;
+            uv.v0 = (i / 2) * 0x20;
+            uv.u1 = uv.u0 + 0x40;
+            uv.v1 = uv.v0 + 0x20;
             Flash_FindLabel(flash, NULL, name, &ref);
             Flash_ClipSetFlags(flash, &ref, 2, 1);
             Flash_FindLabel(flash, name, "mc_entry_text_off", &ref);
@@ -432,10 +432,10 @@ void EntrySel_Draw(void) {
         }
         sprintf(name, "mc_entry_decision_text_%d", i);
         if (i < gEntrySel->sel->cur) {
-            uv.x0 = (i % 2) * 0x40;
-            uv.y0 = (i / 2) * 0x20;
-            uv.x1 = uv.x0 + 0x40;
-            uv.y1 = uv.y0 + 0x20;
+            uv.u0 = (i % 2) * 0x40;
+            uv.v0 = (i / 2) * 0x20;
+            uv.u1 = uv.u0 + 0x40;
+            uv.v1 = uv.v0 + 0x20;
             Flash_FindLabel(flash, NULL, name, &ref);
             Flash_ClipSetFlags(flash, &ref, 2, 1);
             Flash_ClipSetUv(flash, &ref, &uv);
@@ -445,18 +445,18 @@ void EntrySel_Draw(void) {
         }
     }
     flash = &gEntrySel->flash[2];
-    uv.x0 = 0x20;
-    uv.y0 = 0;
-    uv.x1 = 0x40;
-    uv.y1 = 0x20;
+    uv.u0 = 0x20;
+    uv.v0 = 0;
+    uv.u1 = 0x40;
+    uv.v1 = 0x20;
     Flash_FindLabel(flash, NULL, "mc_yajirusi", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     for (i = 0; i < 4; i++) {
         /* item set plates: dimmed when they cannot be chosen */
-        uv.x0 = 0;
-        uv.y0 = i * 0x20;
-        uv.x1 = 0x100;
-        uv.y1 = uv.y0 + 0x20;
+        uv.u0 = 0;
+        uv.v0 = i * 0x20;
+        uv.u1 = 0x100;
+        uv.v1 = uv.v0 + 0x20;
         sprintf(name, "mc_custom_plate_%d", i + 1);
         Flash_FindLabel(flash, NULL, name, &ref);
         Flash_ClipSetColor(flash, &ref, i < gEntrySel->customCount ? 1.0f : 0.3f);
@@ -474,10 +474,10 @@ void EntrySel_Draw(void) {
     }
     for (i = 0; i < 4; i++) {
         /* costume plates */
-        uv.x0 = (i % 2) * 0x40;
-        uv.y0 = (i / 2) * 0x20;
-        uv.x1 = uv.x0 + 0x40;
-        uv.y1 = uv.y0 + 0x20;
+        uv.u0 = (i % 2) * 0x40;
+        uv.v0 = (i / 2) * 0x20;
+        uv.u1 = uv.u0 + 0x40;
+        uv.v1 = uv.v0 + 0x20;
         sprintf(name, "mc_color_plate_%d", i + 1);
         Flash_FindLabel(flash, NULL, name, &ref);
         if (i < gEntrySel->colorCount) {
@@ -500,24 +500,24 @@ void EntrySel_Draw(void) {
     }
     flash = &gEntrySel->flash[1];
     if (TOUR_PROG->t.entryNum - 1 < gEntrySel->sel->cur) {
-        uv.x0 = ((gEntrySel->sel->cur - 1) % 2) * 0x40;
-        uv.y0 = ((gEntrySel->sel->cur - 1) / 2) * 0x20;
-        uv.x1 = uv.x0 + 0x40;
-        uv.y1 = uv.y0 + 0x20;
+        uv.u0 = ((gEntrySel->sel->cur - 1) % 2) * 0x40;
+        uv.v0 = ((gEntrySel->sel->cur - 1) / 2) * 0x20;
+        uv.u1 = uv.u0 + 0x40;
+        uv.v1 = uv.v0 + 0x20;
     } else {
-        uv.x0 = (gEntrySel->sel->cur % 2) * 0x40;
-        uv.y0 = (gEntrySel->sel->cur / 2) * 0x20;
-        uv.x1 = uv.x0 + 0x40;
-        uv.y1 = uv.y0 + 0x20;
+        uv.u0 = (gEntrySel->sel->cur % 2) * 0x40;
+        uv.v0 = (gEntrySel->sel->cur / 2) * 0x20;
+        uv.u1 = uv.u0 + 0x40;
+        uv.v1 = uv.v0 + 0x20;
     }
     Flash_FindLabel(flash, NULL, "mc_plate_text", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     if (gEntrySel->rows >= 2) {
         for (i = 0; i < 2; i++) {
-            uv.x0 = i * 0x20;
-            uv.y0 = 0x20;
-            uv.x1 = uv.x0 + 0x20;
-            uv.y1 = 0x40;
+            uv.u0 = i * 0x20;
+            uv.v0 = 0x20;
+            uv.u1 = uv.u0 + 0x20;
+            uv.v1 = 0x40;
             Flash_FindLabel(flash, i != 0 ? "mc_yajirusi_down" : "mc_yajirusi_up",
                             i != 0 ? "mc_yajirusi_icon_down" : "mc_yajirusi_icon_up", &ref);
             Flash_ClipSetUv(flash, &ref, &uv);

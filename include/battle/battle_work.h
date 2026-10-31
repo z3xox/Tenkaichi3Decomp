@@ -51,7 +51,7 @@
  *         request 0x171 + stage (0x198 + stage in split-screen) into res->stage
  *         for each side, for each member in use (side->memberCount of them): request file
  *           8 + member->chara * 2 + side into member->buf[0] (0x1000 bytes)
- *         request file 6 + gProgress->unk0[0] (heap) -> res->unk8
+ *         request file 6 + gProgress->unk0 (heap) -> res->unk8
  *   5     wait; Res_RelocateOffsets(&member->buf[0], buf[0], buf[0]) for every member in use; done.
  *   After the job: side->objId = BtlObj_CreateChara(side->modelSlot) for both sides (BattleSide_SetObjId).
  *   The character models themselves are not loaded here: Battle_Restart -> Battle_ResetWork ->
@@ -96,7 +96,7 @@
 typedef struct BattleRes {
     /* 0x00 */ s32 unk0;
     /* 0x04 */ void *stage;        /* stage model file 0x171 + stage (0x198 + stage in split-screen) */
-    /* 0x08 */ void *unk8;         /* file 6 + gProgress->unk0[0] */
+    /* 0x08 */ void *unk8;         /* file 6 + gProgress->unk0 */
     /* 0x0C */ void *bank;         /* sound bank file being (re)loaded: 0x14E + stage, 0xBDA / 0xC7B + character */
     /* 0x10 */ void *script;       /* file 0x1FF + n, only when setup.script != 0 */
     /* 0x14 */ void *transition;   /* file 0x1BF / 0x1C0 during a stage change */

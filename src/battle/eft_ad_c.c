@@ -1,4 +1,6 @@
 #include "common.h"
+#include "battle/btl_cam.h"
+#include "sys/gfx_ot.h"
 #include "battle/eft_ad.h"
 
 /*
@@ -8,26 +10,6 @@
  */
 
 /* The view being drawn (include/battle/btl_cam.h). */
-typedef struct EftAdCView {
-    /* 0x000 */ u8 unk0[0x140];
-    /* 0x140 */ Mtx44 world2screen;
-    /* 0x180 */ u8 unk180[0xB4];
-    /* 0x234 */ f32 sprScale;   /* projection scale used for sprite sizes */
-} EftAdCView;
-
-typedef struct EftAdCOtPrim {
-    u32 tag;
-    void *next;
-} EftAdCOtPrim;
-
-typedef struct EftAdCOtEntry {
-    EftAdCOtPrim *head;
-    EftAdCOtPrim *tail;
-} EftAdCOtEntry;
-
-typedef struct EftAdCOtSlot {
-    EftAdCOtEntry layer[2];
-} EftAdCOtSlot;
 
 typedef struct EftAdCXyzf {
     u64 x : 16;
@@ -54,10 +36,6 @@ typedef struct EftSprPkt {
     } v[4];
     /* 0x78 */ u64 nop;
 } EftSprPkt; /* 0x80 */
-
-extern EftAdCView *gBtlCamView;
-extern u8 *gOtCur;
-extern EftAdCOtSlot *gOtZ;
 extern EftAdVec gEftSprUvScale; /* {1, 1.1666666, 1, 1}: the screen's pixel aspect, applied to the rotated corners */
 
 extern void Vec4_Set(Vec4 *dst, f32 x, f32 y, f32 z, f32 w);
@@ -78,8 +56,8 @@ void EftSpr_DrawFlat(s32 r, s32 g, s32 b, s32 a, f32 u0, f32 v0, f32 u1, f32 v1,
                      s32 layer, u64 *tex0) {
     EftAdScr scr;
     EftSprPkt *p;
-    EftAdCOtEntry *e;
-    f32 scale = gBtlCamView->sprScale;
+    OtEntry *e;
+    f32 scale = gBtlCamView->screenDist;
     u32 k;
     s32 z;
     s32 l;
@@ -109,7 +87,7 @@ void EftSpr_DrawFlat(s32 r, s32 g, s32 b, s32 a, f32 u0, f32 v0, f32 u1, f32 v1,
         return;
     }
     p = (EftSprPkt *)gOtCur;
-    gOtCur = (u8 *)(p + 1);
+    gOtCur = (u32 *)(p + 1);
     c = ctx;
     p->prim = ((s64)(s8)c << 9) | (abe << 6) | 0x14;
     p->dmaTag = 0x20000007;
@@ -160,8 +138,8 @@ void EftSpr_DrawFlat(s32 r, s32 g, s32 b, s32 a, f32 u0, f32 v0, f32 u1, f32 v1,
     } else {
         e = &gOtZ[z].layer[l];
     }
-    e->tail->next = p;
-    e->tail = (EftAdCOtPrim *)p;
+    e->tail->next = (OtPrim *)p;
+    e->tail = (OtPrim *)p;
 }
 
 /* Queues a camera-facing sprite rotated by rot radians in the screen plane, centred on (x, y, z) plus an offset
@@ -180,8 +158,8 @@ void EftSpr_DrawRot(u8 r, u8 g, u8 b, u8 a, f32 x, f32 y, f32 z, f32 u0, f32 v0,
     EftAdVec f[4];
     Mtx44 m;
     EftSprPkt *p;
-    EftAdCOtEntry *e;
-    f32 scale = gBtlCamView->sprScale;
+    OtEntry *e;
+    f32 scale = gBtlCamView->screenDist;
     u32 k;
     s32 ox;
     s32 oy;
@@ -254,7 +232,7 @@ void EftSpr_DrawRot(u8 r, u8 g, u8 b, u8 a, f32 x, f32 y, f32 z, f32 u0, f32 v0,
         return;
     }
     p = (EftSprPkt *)gOtCur;
-    gOtCur = (u8 *)(p + 1);
+    gOtCur = (u32 *)(p + 1);
     cc = ctx;
     p->prim = ((s64)(s8)cc << 9) | (abe << 6) | 0x14;
     p->dmaTag = 0x20000007;
@@ -305,6 +283,6 @@ void EftSpr_DrawRot(u8 r, u8 g, u8 b, u8 a, f32 x, f32 y, f32 z, f32 u0, f32 v0,
     } else {
         e = &gOtZ[sz].layer[l];
     }
-    e->tail->next = p;
-    e->tail = (EftAdCOtPrim *)p;
+    e->tail->next = (OtPrim *)p;
+    e->tail = (OtPrim *)p;
 }

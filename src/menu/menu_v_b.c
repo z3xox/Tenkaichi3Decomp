@@ -11,9 +11,9 @@
 
 /* Sends one of the screen's clips to a label of its timeline. */
 void EvoZ_ClipGoto(EvoZ *ez, s32 flash, s32 kind, s32 sub, char *label) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[64];
-    MFlash *f = &ez->flash[flash];
+    Flash *f = &ez->flash[flash];
 
     switch (kind) {
     case EVOZ_CLIP_CHIP:
@@ -56,7 +56,7 @@ void EvoZ_ClipGoto(EvoZ *ez, s32 flash, s32 kind, s32 sub, char *label) {
 
 /* Pad 0 input of the screen, by state. *result is cleared when the screen is left. */
 void EvoZ_Input(EvoZ *ez, s32 *result) {
-    MFlashRef ref;
+    FlashRef ref;
 
     if (!(ez->flash[0].flags & MFLASH_PAD)) {
         return;
@@ -391,7 +391,7 @@ void EvoZ_Input(EvoZ *ez, s32 *result) {
             ez->flags ^= EVOZ_PAYING;
             ez->zp = 0;
             if (ez->exp >= ez->nextExp) {
-                MFlash *f = &ez->flash[0];
+                Flash *f = &ez->flash[0];
 
                 Flash_FindLabel(f, NULL, "mc_ability_limit_up", &ref);
                 Flash_ClipGotoLabel(f, &ref, "fl_ability_limit_up_in");
@@ -652,9 +652,9 @@ void EvoZ_UpdateDialog(EvoZ *ez) {
 
 /* Switches between the slot list and the item list once the list movie has finished moving. */
 void EvoZ_ToggleList(EvoZ *ez) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[64];
-    MFlash *f = &ez->flash[2];
+    Flash *f = &ez->flash[2];
     s32 i;
 
     ez->listSide ^= 1;
@@ -698,7 +698,6 @@ s32 EvoZ_GetLevelExp(EvoZ *ez, s32 chara, s32 cell) {
     return ret;
 }
 
-
 /* Recomputes what the status panel shows for the character and item set under the cursor. */
 void EvoZ_RefreshStatus(EvoZ *ez) {
     s32 base;
@@ -721,11 +720,11 @@ void EvoZ_SetRowChips(EvoZ *ez) {
 
     for (i = 0; i < 7; i++) {
         s32 id = ez->grid[i + ez->side->row * 7].id;
-        MTexRes *res;
+        FlashTexRes *res;
 
         ez->side->prevChip[i] = ez->side->chip[i];
         ez->side->chip[i] = id;
-        res = (MTexRes *)MPACK_AT(ez->chipPack, id + 1);
+        res = (FlashTexRes *)MPACK_AT(ez->chipPack, id + 1);
         ez->tex1[18 + i] = ez->tex1[order[i]];
         ez->tex1[order[i]] = res->tex;
     }
@@ -733,7 +732,7 @@ void EvoZ_SetRowChips(EvoZ *ez) {
 
 /* One step of the portrait loader (called every frame). */
 void EvoZ_UpdateFace(EvoZ *ez) {
-    MTexRes *res;
+    FlashTexRes *res;
 
     switch (ez->faceState) {
     case 5:

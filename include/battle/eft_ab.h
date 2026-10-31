@@ -345,12 +345,7 @@ s32 EftTransform_End(void);
 /* ---- ribbon helpers (the module continues in the file after this one, eft_ac) ---------------- */
 
 /* The vector type with its array view (the key loaders index the components). */
-typedef union EftRbnVec {
-    struct {
-        f32 x, y, z, w;
-    };
-    f32 v[4];
-} __attribute__((aligned(16))) EftRbnVec;
+typedef Vec4Array EftRbnVec;
 
 /* Parameter block of a ribbon in the effect pack. "[3]" = the value at the three keys of the animation. */
 typedef struct EftRbnPrm {

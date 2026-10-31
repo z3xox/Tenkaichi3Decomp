@@ -2,6 +2,7 @@
 #define MENU_MENU_C_H
 
 #include "types.h"
+#include "sys/progress.h"
 #include "menu/menu_a.h"
 #include "sys/save.h"
 
@@ -21,14 +22,7 @@
  * only; it was removed when the two halves were merged).
  */
 
-/* gProgress as the mode 6..10 screens use it (menu_a.h's MenuProgress has no names past 0x38). */
-typedef struct HistReward {
-    /* 0x00 */ s32 points[3];   /* by level */
-    /* 0x0C */ s32 item[3];     /* item ids, -1 = none */
-    /* 0x18 */ s32 chara[3];    /* character ids, -1 = none */
-    /* 0x24 */ s32 stage[3];    /* stage ids, -1 = none */
-    /* 0x30 */ s32 episode[3];  /* episode numbers counted through all sub menus, -1 = none */
-} HistReward; /* 0x3C */
+/* gProgress as the mode 6..10 screens use it (menu_a.h's Progress has no names past 0x38). */
 
 typedef struct HistProgress {
     /* 0x00 */ s32 unk0;
@@ -41,7 +35,7 @@ typedef struct HistProgress {
     /* 0x34 */ s32 subMenu;
     /* 0x38 */ s32 subMenuItem;
     /* 0x3C */ s32 level;
-    /* 0x40 */ HistReward reward;
+    /* 0x40 */ ProgressReward reward;
 } HistProgress;
 
 #define HPROG ((HistProgress *)gProgress)
@@ -106,7 +100,7 @@ typedef struct HistResult {
     /* 0x00C */ u32 *fileRes;
     /* 0x010 */ void *bgFile;
     /* 0x014 */ void *bgRes;
-    /* 0x018 */ MFlash flash[HISTRESULT_FLASH_NUM];
+    /* 0x018 */ Flash flash[HISTRESULT_FLASH_NUM];
     /* 0x044 */ void *bg;
     /* 0x048 */ u8 *tex[14];
     /* 0x080 */ s32 flags;
@@ -142,7 +136,7 @@ typedef struct HistSel {
     /* 0x004 */ u32 *res;           /* the same unpacked */
     /* 0x008 */ void *msgText[HISTSEL_GUIDES];   /* text of the message window per guide */
     /* 0x02C */ void *subtitles[HISTSEL_GUIDES]; /* subtitle table per guide */
-    /* 0x050 */ MFlash flash[HISTSEL_FLASH_NUM];
+    /* 0x050 */ Flash flash[HISTSEL_FLASH_NUM];
     /* 0x07C */ void *bg;           /* section 1: background picture */
     /* 0x080 */ u8 *tex[83];
     /* 0x1CC */ s32 flags;          /* HISTSEL_ */
@@ -199,13 +193,13 @@ extern void GetWin_Close(void);
 extern void GetWin_Next(void);
 extern s32 GetWin_IsAnimating(void);
 extern void GetWin_Setup(s32 kind, s32 value);
-extern void Num_Draw(MFlash *flash, char *fmt, s32 first, s32 count, s32 value, s32 w, s32 h, s32 mode);
+extern void Num_Draw(Flash *flash, char *fmt, s32 first, s32 count, s32 value, s32 w, s32 h, s32 mode);
 extern void StreamSe_PlayPausedDefault(s32 se, s32 id);
 extern void StreamSe_Resume(s32 se);
 extern s32 StreamSe_GetStat(s32 se);
 extern void StreamSe_FadeOutStep(s32 se);
 
-extern void Flash_StepFrames(MFlash *flash, s32 step);
+extern void Flash_StepFrames(Flash *flash, s32 step);
 extern void MsgWin_SetText(void *text);
 
 /* HistSel (src/menu/menu_b_d.c). */

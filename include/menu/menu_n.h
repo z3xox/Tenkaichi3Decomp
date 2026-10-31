@@ -2,6 +2,7 @@
 #define MENU_MENU_N_H
 
 #include "menu/menu_a.h"
+#include "sys/save.h"
 
 /*
  * Menu overlay DBZP.BIN, 0x372148..0x376920 (placeholder stem "menu_n"): screens of the mode group 13..30
@@ -25,15 +26,15 @@
 /* ---- Main executable, beyond what menu_a.h declares ---- */
 
 extern s32 Rand_Libc(void);
-extern void TextBox_Init(MTextBox *box, void *text, u32 preset);
-extern void TextBox_SetUnk50(MTextBox *box, s32 value);
-extern void TextBox_SetLineOffsets(MTextBox *box, s32 y1, s32 y2, s32 y3, s32 y4, s32 y5);
-extern void TextBox_AttachLine(MFlash *flash, MFlashRef *ref, s32 x, s32 y, s32 line, MTextBox *box);
-extern void Num_Draw(MFlash *flash, char *fmt, s32 first, s32 count, s32 value, s32 w, s32 h, s32 mode);
-extern void Num_DrawChild(MFlash *flash, char *parent, char *fmt, s32 first, s32 count, s32 value, s32 w, s32 h,
+extern void TextBox_Init(TextBox *box, void *text, u32 preset);
+extern void TextBox_SetUnk50(TextBox *box, s32 value);
+extern void TextBox_SetLineOffsets(TextBox *box, s32 y1, s32 y2, s32 y3, s32 y4, s32 y5);
+extern void TextBox_AttachLine(Flash *flash, FlashRef *ref, s32 x, s32 y, s32 line, TextBox *box);
+extern void Num_Draw(Flash *flash, char *fmt, s32 first, s32 count, s32 value, s32 w, s32 h, s32 mode);
+extern void Num_DrawChild(Flash *flash, char *parent, char *fmt, s32 first, s32 count, s32 value, s32 w, s32 h,
                           s32 mode, s32 parentFmt);
-extern void Flash_SetOffset(MFlash *flash, s32 x, s32 y);
-extern void Flash_SetFlag(MFlash *flash, u32 mask, u8 on);
+extern void Flash_SetOffset(Flash *flash, s32 x, s32 y);
+extern void Flash_SetFlag(Flash *flash, u32 mask, u8 on);
 extern void IconWin_SetIcon(s32 icon);
 extern void Save_AddItem(s32 idx);
 extern void Battle_ClearWork(void);
@@ -85,25 +86,8 @@ typedef struct NProgress {
 /* ---- gSaveData as these screens use it (include/sys/save.h has the full layout) ---- */
 
 /* Best result of one course. */
-typedef struct NCourseRec {
-    /* 0x0 */ u8 cleared;
-    /* 0x1 */ u8 rank;          /* frame of the rank letter strip */
-    /* 0x2 */ u8 time[3];       /* best time: three two-digit groups, most significant first */
-    /* 0x5 */ u8 unk5[3];
-    /* 0x8 */ s32 score;        /* best score / 100 */
-} NCourseRec; /* 0xC */
 
 #define N_COURSE_NUM 5
-
-typedef struct NSave {
-    /* 0x000 */ u8 unk0[0x208];
-    /* 0x208 */ s32 unk208;     /* bit 0x10: the reward for clearing all five courses was given */
-    /* 0x20C */ u8 unk20C[0x570];
-    /* 0x77C */ s32 rank;       /* the player's place on the ladder: 99 (place 100) by default, 0 = first */
-    /* 0x780 */ NCourseRec course[N_COURSE_NUM];
-} NSave;
-
-extern NSave *gSaveData;
 
 /* ---- the opponent tables (in the screens' packs) ---- */
 
@@ -149,10 +133,10 @@ typedef struct UbzSel {
     /* 0x008 */ u32 *chips;         /* section 6: N_CHIP_NUM texture lists */
     /* 0x00C */ void *text;         /* section 10: the course names */
     /* 0x010 */ void *subtitles;    /* never set: the guide's lines are played with a NULL subtitle table */
-    /* 0x014 */ MFlash flash[UBZSEL_FLASH_NUM];
+    /* 0x014 */ Flash flash[UBZSEL_FLASH_NUM];
     /* 0x040 */ void *bg;           /* section 4: background picture */
     /* 0x044 */ u8 *tex[38];
-    /* 0x0DC */ MTextBox box[UBZSEL_BOX_NUM]; /* one per course plate (five used) */
+    /* 0x0DC */ TextBox box[UBZSEL_BOX_NUM]; /* one per course plate (five used) */
     /* 0x424 */ s32 flags;          /* UBZSEL_ */
     /* 0x428 */ s32 cursor[4];      /* indexed by step; only [0], the course, is used */
     /* 0x438 */ s32 timer;          /* frames until the fade out starts */
@@ -189,7 +173,7 @@ typedef struct UbRank {
     /* 0x004 */ u32 *res;           /* the same unpacked: a pack of 18 sections */
     /* 0x008 */ u32 *chips;         /* section 6: N_CHIP_NUM texture lists */
     /* 0x00C */ void *faceFile[2];  /* 0x16800 bytes each: compressed portraits, [0] the player's, [1] the opponent's */
-    /* 0x014 */ MTexRes *faceRes[2]; /* 0x20800 bytes each: the same unpacked */
+    /* 0x014 */ FlashTexRes *faceRes[2]; /* 0x20800 bytes each: the same unpacked */
     /* 0x01C */ void *text;         /* section 14: the names of the places' holders */
     /* 0x020 */ void *subtitles;    /* section 18 */
     /* 0x024 */ NRankRule *rule;    /* section 8: one per place, first place first */
@@ -198,13 +182,13 @@ typedef struct UbRank {
     /* 0x030 */ NFoe *intruderFoe;  /* section 11 */
     /* 0x034 */ s32 *stageList;     /* section 12: 28 stage ids */
     /* 0x038 */ s32 *bgmList;       /* section 13: eleven music ids */
-    /* 0x03C */ MFlash flash[UBRANK_FLASH_NUM]; /* 0 the list, 1 the versus panel, 2 the closing movie */
+    /* 0x03C */ Flash flash[UBRANK_FLASH_NUM]; /* 0 the list, 1 the versus panel, 2 the closing movie */
     /* 0x0C0 */ void *bg;           /* section 4: background picture */
     /* 0x0C4 */ u8 *tex[37];        /* movie 0 */
     /* 0x158 */ u8 *texB[6];        /* movie 1 */
     /* 0x170 */ u8 *texC[13];       /* movie 2; [10] the opponent's portrait, [11] the player's */
     /* 0x1A4 */ u8 *playerChip;     /* small picture that stands for the player in the list */
-    /* 0x1A8 */ MTextBox box[UBRANK_BOX_NUM];
+    /* 0x1A8 */ TextBox box[UBRANK_BOX_NUM];
     /* 0x4F0 */ s32 flags;          /* UBRANK_ */
     /* 0x4F4 */ s32 cursor[14];     /* indexed by state; only [0], the row (0..4), is used */
     /* 0x52C */ s32 timer;          /* frames until the fade out starts */

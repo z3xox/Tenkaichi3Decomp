@@ -30,16 +30,16 @@ extern s32 Snd_PlaySe(u32 mask, s32 id);
 extern s32 atoi(const char *);
 extern char *strcpy(char *, const char *);
 extern void Sprite_SetScissor(s32 x0, s32 x1, s32 y0, s32 y1);
-extern void Flash_ClipSetCallbackA(MFlash *flash, MFlashRef *ref, void *fn, void *arg);
-extern void Flash_ClipSetCallbackB(MFlash *flash, MFlashRef *ref, void *fn, void *arg);
-extern void Flash_ClipSetScale(MFlash *flash, MFlashRef *ref, f32 x, f32 y);
+extern void Flash_ClipSetCallbackA(Flash *flash, FlashRef *ref, void *fn, void *arg);
+extern void Flash_ClipSetCallbackB(Flash *flash, FlashRef *ref, void *fn, void *arg);
+extern void Flash_ClipSetScale(Flash *flash, FlashRef *ref, f32 x, f32 y);
 extern u32 strlen(const char *);
-extern void Flash_ClipSetOffset(MFlash *flash, MFlashRef *ref, s32 x, s32 y);
-extern void Flash_ClipGetPos(MFlash *flash, MFlashRef *ref, s32 *x, s32 *y);
-extern void TextBox_Init(MTextBox *box, void *text, u32 preset);
-extern void TextBox_SetUnk80(MTextBox *box, s32 value);
-extern void TextBox_SetRect(MTextBox *box, s32 x0, s32 x1, s32 y0, s32 y1);
-extern void TextBox_AttachLine(MFlash *flash, MFlashRef *ref, s32 x, s32 y, s32 line, MTextBox *box);
+extern void Flash_ClipSetOffset(Flash *flash, FlashRef *ref, s32 x, s32 y);
+extern void Flash_ClipGetPos(Flash *flash, FlashRef *ref, s32 *x, s32 *y);
+extern void TextBox_Init(TextBox *box, void *text, u32 preset);
+extern void TextBox_SetUnk80(TextBox *box, s32 value);
+extern void TextBox_SetRect(TextBox *box, s32 x0, s32 x1, s32 y0, s32 y1);
+extern void TextBox_AttachLine(Flash *flash, FlashRef *ref, s32 x, s32 y, s32 line, TextBox *box);
 extern s32 Dialog_Input(s32 allowCancel);
 extern s32 Dialog_IsClosed(void);
 extern void Dialog_Draw(s32 visible);
@@ -96,7 +96,7 @@ typedef struct ZStatus {
 
 extern void ItemSet_GetBonus(u16 *items, ZItemEntry *table, s32 *out);
 
-/* gProgress as this mode uses it (menu_a.h's MenuProgress has no names here). */
+/* gProgress as this mode uses it (menu_a.h's Progress has no names here). */
 typedef struct ZProgress {
     /* 0x000 */ s32 unk0;
     /* 0x004 */ s32 baseFile;
@@ -150,27 +150,27 @@ typedef struct DcStatus {
 
 /* The part of the work the drawing helpers take (the movies, their textures and the text boxes). */
 typedef struct DcView {
-    /* 0x000 */ MFlash flash[DCLIST_FLASH_NUM]; /* 0 the list ("chara_list_top", section 5), 1 the item page
+    /* 0x000 */ Flash flash[DCLIST_FLASH_NUM]; /* 0 the list ("chara_list_top", section 5), 1 the item page
                                                    ("chara_list_z_item", section 9) */
-    /* 0x058 */ MTexRes *bg;        /* section 1 */
+    /* 0x058 */ FlashTexRes *bg;        /* section 1 */
     /* 0x05C */ u8 *tex0[38];
     /* 0x0F4 */ u8 *tex1[17];
     /* 0x138 */ s32 blink;          /* the guide's blink timer; starts at Rand_Range(32) */
     /* 0x13C */ s32 talk;
-    /* 0x140 */ MTextBox nameBox[4]; /* character name of each list plate */
-    /* 0x370 */ MTextBox formBox[4]; /* second text line of each list plate */
-    /* 0x5A0 */ MTextBox nameBoxB;  /* "mc_name_text_l" of the details panel */
-    /* 0x62C */ MTextBox formBoxB;  /* "mc_form_text_l" of the details panel */
-    /* 0x6B8 */ MTextBox nameBoxL;  /* "mc_name_text_l" of the item page */
-    /* 0x744 */ MTextBox formBoxL;  /* "mc_form_text_l" of the item page */
-    /* 0x7D0 */ MTextBox itemBox[DCLIST_ITEM_ROWS];
+    /* 0x140 */ TextBox nameBox[4]; /* character name of each list plate */
+    /* 0x370 */ TextBox formBox[4]; /* second text line of each list plate */
+    /* 0x5A0 */ TextBox nameBoxB;  /* "mc_name_text_l" of the details panel */
+    /* 0x62C */ TextBox formBoxB;  /* "mc_form_text_l" of the details panel */
+    /* 0x6B8 */ TextBox nameBoxL;  /* "mc_name_text_l" of the item page */
+    /* 0x744 */ TextBox formBoxL;  /* "mc_form_text_l" of the item page */
+    /* 0x7D0 */ TextBox itemBox[DCLIST_ITEM_ROWS];
 } DcView; /* 0xC30 */
 
 typedef struct DcList {
     /* 0x000 */ void *pack;         /* this screen's section of archive 8 (compressed) */
     /* 0x004 */ u32 *res;           /* the same unpacked: a pack of 23 sections */
     /* 0x008 */ void *faceFile;     /* 0x16800 bytes: file 0x2F9 + character, compressed */
-    /* 0x00C */ MTexRes *faceRes;   /* 0x20800 bytes: the same unpacked */
+    /* 0x00C */ FlashTexRes *faceRes;   /* 0x20800 bytes: the same unpacked */
     /* 0x010 */ s32 section;
     /* 0x014 */ DcView view;
     /* 0xC44 */ u8 unkC44[0x3C];    /* passed to MsgWin_Init, which does not take it */
@@ -221,8 +221,8 @@ typedef struct DcList {
 
 /* The part of the work the drawing helpers take. */
 typedef struct DcMenuView {
-    /* 0x00 */ MFlash flash;       /* section 5 */
-    /* 0x2C */ MTexRes *bg;        /* section 6 */
+    /* 0x00 */ Flash flash;       /* section 5 */
+    /* 0x2C */ FlashTexRes *bg;        /* section 6 */
     /* 0x30 */ u8 *tex[16];
     /* 0x70 */ s32 blink;
     /* 0x74 */ s32 talk;
@@ -327,9 +327,9 @@ typedef struct ZChrEntry {
 
 /* The part of the work that the drawing helpers take. */
 typedef struct DcPassView {
-    /* 0x000 */ MFlash flash[DCPASS_FLASH_NUM]; /* 0 the keyboard (section 17), 1 the new character / status
+    /* 0x000 */ Flash flash[DCPASS_FLASH_NUM]; /* 0 the keyboard (section 17), 1 the new character / status
                                                    page (section 18) */
-    /* 0x058 */ MTexRes *bg;        /* section 10 */
+    /* 0x058 */ FlashTexRes *bg;        /* section 10 */
     /* 0x05C */ u8 *tex0[30];
     /* 0x0D4 */ u8 *tex1[37];       /* [7]: the character's large picture */
     /* 0x168 */ s32 blink;
@@ -338,14 +338,14 @@ typedef struct DcPassView {
     /* 0x174 */ void *dialogMsg;    /* section 21 */
     /* 0x178 */ void *subtitles;    /* section 9 */
     /* 0x17C */ u8 unk17C[0x3C];    /* passed to MsgWin_Init, which does not take it */
-    /* 0x1B8 */ MTextBox nameBox[DCPASS_LIST_ROWS];
-    /* 0x35C */ MTextBox formBox[DCPASS_LIST_ROWS];
-    /* 0x500 */ MTextBox nameBoxB;  /* the fourth plate */
-    /* 0x58C */ MTextBox formBoxB;
-    /* 0x618 */ MTextBox nameBoxL;  /* "mc_name_text_l" */
-    /* 0x6A4 */ MTextBox formBoxL;
-    /* 0x730 */ MTextBox nameBoxR;  /* "mc_name_text_r" */
-    /* 0x7BC */ MTextBox formBoxR;
+    /* 0x1B8 */ TextBox nameBox[DCPASS_LIST_ROWS];
+    /* 0x35C */ TextBox formBox[DCPASS_LIST_ROWS];
+    /* 0x500 */ TextBox nameBoxB;  /* the fourth plate */
+    /* 0x58C */ TextBox formBoxB;
+    /* 0x618 */ TextBox nameBoxL;  /* "mc_name_text_l" */
+    /* 0x6A4 */ TextBox formBoxL;
+    /* 0x730 */ TextBox nameBoxR;  /* "mc_name_text_r" */
+    /* 0x7BC */ TextBox formBoxR;
     /* 0x848 */ void *nameText;     /* section 13: character names */
     /* 0x84C */ void *formText;     /* section 14: form names */
     /* 0x850 */ f32 scroll;         /* backdrop pattern offset */
@@ -355,7 +355,7 @@ typedef struct DcPass {
     /* 0x000 */ void *pack;         /* this screen's section of archive 8 (compressed) */
     /* 0x004 */ u32 *res;           /* the same unpacked: a pack of 22 sections */
     /* 0x008 */ void *faceFile;     /* 0x16800 bytes: file 0x2F9 + character, compressed */
-    /* 0x00C */ MTexRes *faceRes;   /* 0x20800 bytes: the same unpacked */
+    /* 0x00C */ FlashTexRes *faceRes;   /* 0x20800 bytes: the same unpacked */
     /* 0x010 */ s32 section;
     /* 0x014 */ DcPassView view;
     /* 0x868 */ DcPassText text;

@@ -17,7 +17,7 @@ UEvoZ *gEvoZ = NULL;
 
 /* Allocates the work area, loads the pack, builds the character grid and the item lists. */
 void EvoZ_Init(s32 section) {
-    MTexRes *res = 0;
+    FlashTexRes *res = 0;
     s32 i;
 
     gEvoZ = Heap_Alloc(sizeof(UEvoZ), 0x20, 0, 2);
@@ -67,7 +67,7 @@ void EvoZ_Init(s32 section) {
     gEvoZ->tex0[42] = res->tex;
     gEvoZ->side->flags |= 2;
     for (i = 0; i < UEVOZ_BOX_NUM; i++) {
-        MTextBox *box = &gEvoZ->box[i];
+        TextBox *box = &gEvoZ->box[i];
 
         if (i <= 0) {
             TextBox_Init(box, gEvoZ->text[0], 1);
@@ -151,7 +151,7 @@ void EvoZ_Draw(void) {
 
 /* Advances the movies and turns Z points into experience, 33 a frame. */
 void EvoZ_Update(void) {
-    MFlashRef ref;
+    FlashRef ref;
     s32 i;
 
     for (i = 0; i < UEVOZ_FLASH_NUM; i++) {
@@ -172,12 +172,12 @@ void EvoZ_Update(void) {
         if (gEvoZ->pay > 33) {
             gEvoZ->pay -= 33;
             gSaveData->money -= 33;
-            gSaveData->custom[gEvoZ->side->pick.col + gEvoZ->side->pick.row * 7].exp += 33;
-            gEvoZ->exp = gSaveData->custom[gEvoZ->side->pick.col + gEvoZ->side->pick.row * 7].exp;
+            gSaveData->custom[gEvoZ->side->pick.col + gEvoZ->side->pick.row * 7].unk30 += 33;
+            gEvoZ->exp = gSaveData->custom[gEvoZ->side->pick.col + gEvoZ->side->pick.row * 7].unk30;
         } else {
             gSaveData->money -= gEvoZ->pay;
-            gSaveData->custom[gEvoZ->side->pick.col + gEvoZ->side->pick.row * 7].exp += gEvoZ->pay;
-            gEvoZ->exp = gSaveData->custom[gEvoZ->side->pick.col + gEvoZ->side->pick.row * 7].exp;
+            gSaveData->custom[gEvoZ->side->pick.col + gEvoZ->side->pick.row * 7].unk30 += gEvoZ->pay;
+            gEvoZ->exp = gSaveData->custom[gEvoZ->side->pick.col + gEvoZ->side->pick.row * 7].unk30;
             gEvoZ->pay = 0;
             gEvoZ->expLeft = ChrTbl_GetMaxExp(gEvoZ->side->chara) - gEvoZ->exp;
             gEvoZ->flags ^= UEVOZ_PAYING;

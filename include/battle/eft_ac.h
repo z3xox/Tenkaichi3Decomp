@@ -2,6 +2,8 @@
 #define BATTLE_EFT_AC_H
 
 #include "types.h"
+#include "sys/vector_types.h"
+#include "sys/gfx_ot.h"
 #include "sys/math3d.h"
 
 /*
@@ -23,9 +25,6 @@
  */
 
 /* Four floats on a 16-byte boundary (the effect code's vector type; copied with ld / sd). */
-typedef struct EftAcVec {
-    f32 x, y, z, w;
-} __attribute__((aligned(16))) EftAcVec;
 
 /* The part of a task (0x40 bytes) the callbacks here use (same view as include/battle/eft_g.h). */
 typedef struct EftAcTask {
@@ -38,9 +37,9 @@ typedef struct EftAcTask {
 
 /* A vertex as ClipVtx_Set fills it and the EftGfx_DrawPoly* functions take it (EftGfxVert in eft_a.h). */
 typedef struct EftAcVert {
-    /* 0x00 */ EftAcVec pos;
-    /* 0x10 */ EftAcVec color;
-    /* 0x20 */ EftAcVec uv;
+    /* 0x00 */ Vec4Aligned pos;
+    /* 0x10 */ Vec4Aligned color;
+    /* 0x20 */ Vec4Aligned uv;
 } EftAcVert; /* 0x30 */
 
 /* One entry of a texture table (EftTexEntry in eft_g.h). */
@@ -88,19 +87,6 @@ typedef struct EftAcQuadPkt {
 } EftAcQuadPkt; /* 0x90 */
 
 /* The ordering table (sys/gfx): two layers per depth. */
-typedef struct EftAcOtPrim {
-    u32 tag;
-    void *next;
-} EftAcOtPrim;
-
-typedef struct EftAcOtEntry {
-    EftAcOtPrim *head;
-    EftAcOtPrim *tail;
-} EftAcOtEntry;
-
-typedef struct EftAcOtSlot {
-    EftAcOtEntry layer[2];
-} EftAcOtSlot;
 
 /* ---- ribbon (part kind 17) -------------------------------------------------------------- */
 
@@ -118,8 +104,8 @@ typedef struct EftRibbonPrm {
 
 /* Argument of EftRibbon_Create (EftEmitArg17 in include/battle/eft_h.h). */
 typedef struct EftRibbonArg {
-    /* 0x00 */ EftAcVec pos;
-    /* 0x10 */ EftAcVec dir;
+    /* 0x00 */ Vec4Aligned pos;
+    /* 0x10 */ Vec4Aligned dir;
     /* 0x20 */ s32 type;
     /* 0x24 */ s32 chr;
     /* 0x28 */ s32 unk28;
@@ -190,7 +176,7 @@ typedef struct EftRibbon {
     /* 0x124 */ f32 scroll;
     /* 0x128 */ f32 scrollPos;
     /* 0x12C */ s32 numTex;
-    /* 0x130 */ EftAcVec frame[4][2]; /* texture frames written by EftRibbon_SetTexPair */
+    /* 0x130 */ Vec4Aligned frame[4][2]; /* texture frames written by EftRibbon_SetTexPair */
     /* 0x1B0 */ u64 tex[6];    /* GS TEX0 by EftRibbonNode.tex */
 } EftRibbon; /* 0x1E0 */
 
@@ -264,10 +250,10 @@ typedef struct EftZapDef {
 
 /* Key frames of the emitter's own animation (EftEmitRes.unk4): three keys per value. */
 typedef struct EftZapKeyTbl {
-    /* 0x000 */ EftAcVec a[3];     /* colour base */
-    /* 0x030 */ EftAcVec b[3];     /* colour range */
-    /* 0x060 */ EftAcVec c[3];     /* end colour base */
-    /* 0x090 */ EftAcVec d[3];     /* end colour range */
+    /* 0x000 */ Vec4Aligned a[3];     /* colour base */
+    /* 0x030 */ Vec4Aligned b[3];     /* colour range */
+    /* 0x060 */ Vec4Aligned c[3];     /* end colour base */
+    /* 0x090 */ Vec4Aligned d[3];     /* end colour range */
     /* 0x0C0 */ f32 e[3][2];       /* tint from / to, red */
     /* 0x0D8 */ f32 f[3][2];       /* green */
     /* 0x0F0 */ f32 g[3][2];       /* blue */
@@ -281,20 +267,20 @@ typedef struct EftZapInit {
     /* 0x00 */ EftZapDef *def;
     /* 0x04 */ EftZapKeyTbl *keys;
     /* 0x08 */ EftAcTex *tex;      /* texture entries */
-    /* 0x0C */ s32 padC;
-    /* 0x10 */ EftAcVec dir;
-    /* 0x20 */ EftAcVec pos;
+    /* 0x0C */ s32 unkC;
+    /* 0x10 */ Vec4Aligned dir;
+    /* 0x20 */ Vec4Aligned pos;
     /* 0x30 */ f32 size;
     /* 0x34 */ f32 life;           /* seconds; <= 0 = until stopped */
     /* 0x38 */ s32 unk38;
     /* 0x3C */ s32 objId;
     /* 0x40 */ u8 type;
-    /* 0x41 */ u8 pad41[15];
+    /* 0x41 */ u8 unk41[15];
 } EftZapInit; /* 0x50 */
 
 /* A point of a line (from the manager's pool). */
 typedef struct EftZapPt {
-    /* 0x00 */ EftAcVec pos;     /* in the line's space */
+    /* 0x00 */ Vec4Aligned pos;     /* in the line's space */
     /* 0x10 */ u8 unk10[0x10];
     /* 0x20 */ s32 flags;
     /* 0x24 */ struct EftZapPt *next;
@@ -303,11 +289,11 @@ typedef struct EftZapPt {
 
 /* One line: a chain of points turning around the emitter's axis. 20 in the manager, shared by all emitters. */
 typedef struct EftZapStrand {
-    /* 0x000 */ EftAcVec color0;
-    /* 0x010 */ EftAcVec colorStep;  /* end colour - start colour */
-    /* 0x020 */ EftAcVec color;      /* drawn colour; w = alpha */
-    /* 0x030 */ EftAcVec axis;       /* newest point, in the emitter's space */
-    /* 0x040 */ EftAcVec axisN;
+    /* 0x000 */ Vec4Aligned color0;
+    /* 0x010 */ Vec4Aligned colorStep;  /* end colour - start colour */
+    /* 0x020 */ Vec4Aligned color;      /* drawn colour; w = alpha */
+    /* 0x030 */ Vec4Aligned axis;       /* newest point, in the emitter's space */
+    /* 0x040 */ Vec4Aligned axisN;
     /* 0x050 */ Mtx44 mtx;           /* emitter space to world */
     /* 0x090 */ f32 width;
     /* 0x094 */ f32 spin;            /* angle step per frame */
@@ -359,16 +345,16 @@ typedef struct EftZapAnim1 {
 typedef struct EftZapWork {
     /* 0x000 */ u8 unk0[0x30];
     /* 0x030 */ EftZapInit arg;
-    /* 0x080 */ EftAcVec origin;
-    /* 0x090 */ EftAcVec curA;   /* colour base of new lines; the cur* / d* pairs are the values in use and their
+    /* 0x080 */ Vec4Aligned origin;
+    /* 0x090 */ Vec4Aligned curA;   /* colour base of new lines; the cur* / d* pairs are the values in use and their
                                     difference over the current key segment (see EftZapKeyTbl) */
-    /* 0x0A0 */ EftAcVec dA;
-    /* 0x0B0 */ EftAcVec curB;   /* colour range */
-    /* 0x0C0 */ EftAcVec dB;
-    /* 0x0D0 */ EftAcVec curC;   /* end colour base */
-    /* 0x0E0 */ EftAcVec dC;
-    /* 0x0F0 */ EftAcVec curD;   /* end colour range */
-    /* 0x100 */ EftAcVec dD;
+    /* 0x0A0 */ Vec4Aligned dA;
+    /* 0x0B0 */ Vec4Aligned curB;   /* colour range */
+    /* 0x0C0 */ Vec4Aligned dB;
+    /* 0x0D0 */ Vec4Aligned curC;   /* end colour base */
+    /* 0x0E0 */ Vec4Aligned dC;
+    /* 0x0F0 */ Vec4Aligned curD;   /* end colour range */
+    /* 0x100 */ Vec4Aligned dD;
     /* 0x110 */ EftZapAnim2 tintR;
     /* 0x120 */ EftZapAnim2 tintG;
     /* 0x130 */ EftZapAnim2 tintB;
@@ -410,10 +396,13 @@ typedef struct EftZapPool {
     /* 0x0000 */ void *tasks;    /* list of 5 emitter tasks */
     /* 0x0004 */ s32 unk4[3];
     /* 0x0010 */ EftZapStrand line[EFT_ZAP_STRANDS];
-    /* 0x17D0 */ u8 pts[0x690];  /* point pool: 35 of 0x30 bytes (EftZap_AddNode, eft_ad) */
+    /* 0x17D0 */ EftZapPt nodes[35];
     /* 0x1E60 */ Mtx44 identity;
     /* 0x1EA0 */ u8 nextLine;
-    /* 0x1EA1 */ u8 unk1EA1[0xF];
+    /* 0x1EA1 */ u8 nodeCur;
+    /* 0x1EA2 */ u8 unk1EA2[0xE];
 } EftZapPool; /* 0x1EB0 */
+
+extern EftZapPool *gEftZapMgr;
 
 #endif

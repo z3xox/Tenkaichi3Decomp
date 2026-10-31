@@ -1,4 +1,5 @@
 #include "common.h"
+#include "battle/btl_cam.h"
 #include "sys/gfx.h"
 #include "sys/gfx_ot.h"
 #include "sys/heap.h"
@@ -42,14 +43,6 @@ extern void *memcpy(void *dst, const void *src, u32 size);
 extern s32 BtlStage_IsReady(void);
 
 /* Battle camera view being drawn; only its scissor rectangle is used here. */
-typedef struct OtView {
-    /* 0x000 */ u8 unk0[0x200];
-    /* 0x200 */ s32 scissorX0;
-    /* 0x204 */ s32 scissorX1;
-    /* 0x208 */ s32 scissorY0;
-    /* 0x20C */ s32 scissorY1;
-} OtView;
-extern OtView *gBtlCamView;
 
 /* Allocates the table, its packet memory and the head packets of both layers. */
 void Ot_Init(void) {
@@ -89,30 +82,21 @@ void Ot_ResetCursor(void) {
 }
 
 /* Empties the table for the next frame: reselects the three slot pointers, marks every chain empty, rewinds the cursor. Returns 1. */
-/* Cleanup pass 2: the two extra copies are made by cse, not written in the source: each of the three loads
-   recomputes `cur * 4 + gOt` as its own temporary and cse turns the later ones into copies of the one before
-   (`ot = gOt; i = ot->cur; ... ot->slots[i + 1]; ot->slots[i + 2]` reproduces the copy for the third load: 10 of
-   24). What is missing is the first load in the same operand order (`ot->slots[i]` expands to `ot + i * 4`, the
-   other two to `i * 4 + ot`, so the first is a second addu instead of the source of the chain). Not found:
-   `*(i + ot->slots)`, `(&ot->slots[i])[k]`, byte arithmetic, an inline accessor with the index as a parameter,
-   pointer copies (a = b = c), post-increments and a 12-byte struct copy all give other code. */
-#if 0
-/* Differs: the original computes `gOt + gOt->cur * 4` once but then copies it to a new register for each
-   of the next two loads (addu v1,a2,v0 / move a3,v1 / move a2,a3), so it is two instructions longer. */
+/* The original reloads `cur` after clearing it. Each of first / z / last is an array at its own constant offset,
+   so each load is `(gOt + cur * 4) + offset` and cse turns the second and third sums into copies of the first:
+   the two extra `move`s of the original (one array slots[3] indexed by cur + k gives other code). */
 s32 Ot_Reset(void) {
-    OtSlot **slots;
+    s32 cur;
 
     gOt->cur = 0;
-    slots = &gOt->slots[gOt->cur];
-    gOtFirst = slots[0];
-    gOtZ = slots[1];
-    gOtLast = slots[2];
+    cur = gOt->cur;
+    gOtFirst = gOt->first[cur];
+    gOtZ = gOt->z[cur];
+    gOtLast = gOt->last[cur];
     Ot_ResetEntries(gOtFirst->layer, OT_ENTRY_COUNT);
     Ot_ResetCursor();
     return 1;
 }
-#endif
-INCLUDE_ASM("asm/nonmatchings/sys/gfx_ot", Ot_Reset);
 
 /* Marks `count` chains empty (tail = head). */
 s32 Ot_ResetEntries(OtEntry *entry, s32 count) {
@@ -270,12 +254,12 @@ s32 Ot_GetCapacity(void) {
 /* Records the packet memory and places the table right after its first `size` bytes. */
 void Ot_SetBuffer(void *buf, s32 size) {
     gOt->buf = buf;
-    gOt->slots[0] = (OtSlot *)((u8 *)buf + size);
-    gOt->slots[1] = gOt->slots[0] + 1;
-    gOt->slots[2] = gOt->slots[1] + OT_Z_SLOTS;
-    gOtFirst = gOt->slots[0];
-    gOtZ = gOt->slots[1];
-    gOtLast = gOt->slots[2];
+    gOt->first[0] = (OtSlot *)((u8 *)buf + size);
+    gOt->z[0] = gOt->first[0] + 1;
+    gOt->last[0] = gOt->z[0] + OT_Z_SLOTS;
+    gOtFirst = gOt->first[0];
+    gOtZ = gOt->z[0];
+    gOtLast = gOt->last[0];
 }
 
 /* Allocates and fills the head packets of both layers. */
@@ -327,7 +311,7 @@ void Ot_BuildHeads(s32 layer) {
     s32 i;
 
     gOtCur = gOt->headBuf[layer];
-    slot = gOt->slots[0];
+    slot = gOt->first[0];
     for (i = 0; i < OT_SLOT_COUNT; i++) {
         slot->layer[layer].head = Ot_NewHead(layer);
         slot++;

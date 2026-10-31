@@ -2,6 +2,7 @@
 #define BATTLE_BTL_TECH_A_H
 
 #include "types.h"
+#include "sys/progress.h"
 
 /*
  * Fighter queries by side, the attack records and the character parameter block
@@ -244,10 +245,6 @@ typedef struct BtlTechWork5A8 {
 } BtlTechWork5A8;
 
 /* gProgress: only the field read here. */
-typedef struct BtlTechProgress {
-    /* 0x000 */ u8 unk0[0x7F4];
-    /* 0x7F4 */ s32 unk7F4;
-} BtlTechProgress;
 
 /* by side */
 s32 BtlCtrl_GetOppUnkD50(s32 side);

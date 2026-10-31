@@ -4,6 +4,7 @@
 /* menu_a.h declares Snd_PlaySe as returning nothing; it returns s32 (see include/menu/menu_h.h). */
 #define Snd_PlaySe Snd_PlaySe_menuA
 #include "menu/menu_a.h"
+#include "sys/save.h"
 #undef Snd_PlaySe
 extern s32 Snd_PlaySe(u32 mask, s32 id);
 
@@ -29,12 +30,12 @@ extern s32 Snd_PlaySe(u32 mask, s32 id);
 /* ---- Main executable, beyond what menu_a.h declares ---- */
 
 extern s32 Rand_Libc(void);           /* libc rand(), not the shared Mersenne Twister */
-extern void TextBox_Init(MTextBox *box, void *text, u32 preset);
-extern void TextBox_SetUnk50(MTextBox *box, s32 value);
-extern void TextBox_SetLineOffsets(MTextBox *box, s32 y1, s32 y2, s32 y3, s32 y4, s32 y5);
-extern void TextBox_AttachLine(MFlash *flash, MFlashRef *ref, s32 x, s32 y, s32 line, MTextBox *box);
-extern void Num_Draw(MFlash *flash, char *fmt, s32 first, s32 count, s32 value, s32 w, s32 h, s32 mode);
-extern void Num_DrawChild(MFlash *flash, char *parent, char *fmt, s32 first, s32 count, s32 value, s32 w, s32 h,
+extern void TextBox_Init(TextBox *box, void *text, u32 preset);
+extern void TextBox_SetUnk50(TextBox *box, s32 value);
+extern void TextBox_SetLineOffsets(TextBox *box, s32 y1, s32 y2, s32 y3, s32 y4, s32 y5);
+extern void TextBox_AttachLine(Flash *flash, FlashRef *ref, s32 x, s32 y, s32 line, TextBox *box);
+extern void Num_Draw(Flash *flash, char *fmt, s32 first, s32 count, s32 value, s32 w, s32 h, s32 mode);
+extern void Num_DrawChild(Flash *flash, char *parent, char *fmt, s32 first, s32 count, s32 value, s32 w, s32 h,
                           s32 mode, s32 parentFmt);
 extern void IconWin_SetIcon(s32 icon);
 extern void Voice_StopWithLip(void);
@@ -70,14 +71,6 @@ typedef struct SProgress {
 #define S_PROG ((SProgress *)gProgress)
 
 /* Best result of one survival course (UbSaveBestB of include/menu/menu_p.h, written by UbScore_SaveBestB). */
-typedef struct SSaveSurv {
-    /* 0x00 */ s32 defeated;    /* opponents beaten: the score sheet's fourth line */
-    /* 0x04 */ s32 score;       /* shown * 100 */
-    /* 0x08 */ u8 rank;
-    /* 0x09 */ u8 hours;
-    /* 0x0A */ u8 minutes;
-    /* 0x0B */ u8 seconds;
-} SSaveSurv; /* 0xC */
 
 #define SURV_COURSE_NUM 3       /* rows of the course select (the save has room for five records) */
 
@@ -85,18 +78,7 @@ typedef struct SSaveSurv {
  * The save, flat (include/sys/save.h). The nested form of include/menu/menu_c.h does not reproduce these screens'
  * address arithmetic: 0x73C splits into 0x730 (added to the index) + 0xC, as in include/menu/menu_o.h.
  */
-typedef struct SSave {
-    /* 0x0000 */ u8 unk0[0x208];
-    /* 0x0208 */ s32 ubFlags;           /* S_UBFLAG_ */
-    /* 0x020C */ u8 unk20C[0x530];
-    /* 0x073C */ SSaveSurv surv[5];
-    /* 0x0778 */ u8 unk778[0x28B0];
-    /* 0x3028 */ s32 money;             /* Z points */
-} SSave;
 
-extern SSave *gSaveData;
-
-#define S_SAVE gSaveData
 #define S_UBFLAG_SURV_ITEM 8    /* the reward item for ten opponents beaten in a survival run was given */
 
 /* ---- UbScore (src/menu/menu_p_d.c, menu_q.c): the score sheet behind the result screens ---- */
@@ -132,7 +114,7 @@ extern s32 UbScore_Transfer(s32 *from, s32 *to, s32 step, f32 rate);
 extern s32 UbScore_CountLine(SScore *score, s32 isBonus, s32 index, s32 step);
 extern s32 UbScore_ConvertStep(SScore *score, s32 step);
 extern void UbScore_SetPage(SScore *score, s32 page);
-extern void UbScore_PlateGoto(MFlash *flash, s32 kind, s32 on);
+extern void UbScore_PlateGoto(Flash *flash, s32 kind, s32 on);
 extern s32 UbScore_SaveBestB(s32 course, s32 total, SScore *score); /* 1 = a new record was written */
 extern s32 UbScore_GetRewardItem(s32 idx);  /* gUbRewardItems[idx]; idx 3 = item 0x6A */
 
@@ -172,8 +154,8 @@ typedef struct SurvSel {
     /* 0x004 */ u32 *res;           /* the same unpacked: a pack of 19 sections */
     /* 0x008 */ void *text;         /* section 18 */
     /* 0x00C */ void *subtitles;    /* section 17 */
-    /* 0x010 */ MTextBox box[4];    /* 0..2 course names, 3 the headline */
-    /* 0x240 */ MFlash flash[SURVSEL_FLASH_NUM];
+    /* 0x010 */ TextBox box[4];    /* 0..2 course names, 3 the headline */
+    /* 0x240 */ Flash flash[SURVSEL_FLASH_NUM];
     /* 0x26C */ void *bg;           /* section 4 */
     /* 0x270 */ u8 *tex[29];
     /* 0x2E4 */ SurvCourse *courses; /* section 12 */
@@ -222,10 +204,10 @@ typedef struct SurvResult {
     /* 0x00C */ void *text;         /* section 12 */
     /* 0x010 */ void *subtitles;    /* section 11 */
     /* 0x014 */ void *itemText;     /* section 14: item names */
-    /* 0x018 */ MTextBox box[6];    /* 0..2 bonus plates, 3 the headline */
-    /* 0x360 */ MTextBox itemBox;
+    /* 0x018 */ TextBox box[6];    /* 0..2 bonus plates, 3 the headline */
+    /* 0x360 */ TextBox itemBox;
     /* 0x3EC */ void *price;        /* section 13: UbScorePrice table */
-    /* 0x3F0 */ MFlash flash[SURVRESULT_FLASH_NUM];
+    /* 0x3F0 */ Flash flash[SURVRESULT_FLASH_NUM];
     /* 0x41C */ void *bg;           /* section 5 */
     /* 0x420 */ u8 *tex[43];
     /* 0x4CC */ s32 flags;          /* SURVRESULT_ */
@@ -276,6 +258,6 @@ void SurvResult_Input(s32 *result);
 s32 SurvResult_Run(s32 section);
 
 /* ---- SimEvent handlers (menu_s_d.c): merged with menu_t.c; SimTrainTbl, the outcome globals and the
- * prototypes of SimEv00..02 are in include/menu/menu_t.h now (the SimDayS view is replaced by TSimDay). ---- */
+ * prototypes of SimEv00..02 are in include/menu/menu_t.h now (the SimDayS view is replaced by SimDay). ---- */
 
 #endif

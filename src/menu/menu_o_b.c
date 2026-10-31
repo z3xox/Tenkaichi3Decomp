@@ -58,12 +58,12 @@ s32 DiscFusion_Identify(void) {
 }
 
 #define DF_RES(n) \
-    res = (MTexRes *)MPACK_AT(gDiscFusion->res, n); \
+    res = (FlashTexRes *)MPACK_AT(gDiscFusion->res, n); \
     Res_RelocateOffsets(&res, res, res)
 
 /* Loads and unpacks the screen (section `section` of archive 3), builds its two movies, windows and dialog. */
 void DiscFusion_Init(s32 section) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
     s32 i;
 
     gDiscFusion = Heap_Alloc(sizeof(DiscFusion), 0x20, 0, 2);
@@ -144,10 +144,10 @@ void DiscFusion_Term(void) {
 
 /* Draws the screen: guide, the two plates, the icon of the plate under the cursor, windows and dialog. */
 void DiscFusion_Draw(void) {
-    MFlashRef ref;
-    MFlashUv uv;
+    FlashRef ref;
+    FlashUv uv;
     char name[64];
-    MFlash *flash;
+    Flash *flash;
     s32 i;
     s32 x;
     s32 y;
@@ -196,10 +196,10 @@ void DiscFusion_Draw(void) {
         }
         break;
     }
-    uv.x0 = x;
-    uv.y0 = y;
-    uv.x1 = x + 0x40;
-    uv.y1 = y + 0x40;
+    uv.u0 = x;
+    uv.v0 = y;
+    uv.u1 = x + 0x40;
+    uv.v1 = y + 0x40;
     Flash_FindLabel(flash, NULL, "mc_icon_play1", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     gDiscFusion->toggle ^= 1;
@@ -583,9 +583,9 @@ void DiscFusion_Input(s32 *result) {
 
 /* Sends the plate under the cursor of `level` to a label of its clip. */
 void DiscFusion_PlateGoto(s32 movie, s32 level, char *label) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[64];
-    MFlash *flash = &gDiscFusion->flash[movie];
+    Flash *flash = &gDiscFusion->flash[movie];
 
     sprintf(name, "mc_disk_plate%02d", gDiscFusion->cursor[level]);
     Flash_FindLabel(flash, NULL, name, &ref);

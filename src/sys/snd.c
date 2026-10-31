@@ -318,7 +318,7 @@ s32 Snd_BankIndex(u32 mask) {
 /* Volume sent to the driver: request * bank level / 128 * SE option / 9, clamped to 0..0x7F. */
 s32 Snd_ScaleVolume(s32 bank, s32 volume) {
     volume *= gSndBankVolume[bank];
-    volume *= gSaveData->seVolume;
+    volume *= gSaveData->sound[SAVE_SOUND_SE];
     volume /= 0x480;
     if (volume > 0x7F) {
         volume = 0x7F;

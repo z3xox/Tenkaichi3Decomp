@@ -11,16 +11,16 @@ ModeMenu *gModeMenu = NULL; /* 0x3B12F0 */
 
 /*
  * ModeMenu, 0x338020..0x33A360 (one object; it was written as two halves cut at 0x339610, the former menu_b.c,
- * and the next object has ModeBg_Init, ModeBg_Term and ModeBg_Draw). The sub menu of one game mode (gProgress->subMenu, 0..7):
+ * and the next object has ModeBg_Init, ModeBg_Term and ModeBg_Draw). The sub menu of one game mode (gProgress->menu.subMenu, 0..7):
  * a horizontal list of up to 16 items of which three are visible, a guide character with voice, a large picture
  * of the current item that is loaded from disc in the background, and three lines of description.
  */
 
-extern void TextBox_Init(MTextBox *box, void *text, u32 preset);
-extern void TextBox_SetUnk80(MTextBox *box, s32 value);
-extern void TextBox_SetUnk50(MTextBox *box, s32 value);
-extern void TextBox_SetRect(MTextBox *box, s32 a, s32 b, s32 c, s32 d);
-extern void TextBox_AttachLine(MFlash *flash, MFlashRef *ref, s32 x, s32 y, s32 line, MTextBox *box);
+extern void TextBox_Init(TextBox *box, void *text, u32 preset);
+extern void TextBox_SetUnk80(TextBox *box, s32 value);
+extern void TextBox_SetUnk50(TextBox *box, s32 value);
+extern void TextBox_SetRect(TextBox *box, s32 a, s32 b, s32 c, s32 d);
+extern void TextBox_AttachLine(Flash *flash, FlashRef *ref, s32 x, s32 y, s32 line, TextBox *box);
 
 #define MODEMENU_BGM 0x10B1C
 
@@ -54,7 +54,7 @@ s32 ModeMenu_GetLine(s32 menu, s32 item) {
 
 /* One step of the background loader of the current item's large picture. */
 void ModeMenu_UpdateImage(void) {
-    MTexRes *res;
+    FlashTexRes *res;
 
     switch (gModeMenu->loadState) {
     case MODEMENU_LOAD_ABORT:
@@ -104,7 +104,7 @@ void ModeMenu_ChangeImage(void) {
 }
 
 #define MD_RES(pack, n) \
-    res = (MTexRes *)MPACK_AT(pack, n); \
+    res = (FlashTexRes *)MPACK_AT(pack, n); \
     Res_RelocateOffsets(&res, res, res)
 
 #define MD_ICONS(a, b, c) \
@@ -121,18 +121,18 @@ void ModeMenu_ChangeImage(void) {
 /* Loads the screen (section `section` of archive 2 and the sub menu's own file), builds the list of unlocked
    items from the save and starts the music. */
 void ModeMenu_Init(s32 section) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
     s32 i;
 
     gModeMenu = Heap_Alloc(0x33C, 0x20, 0, 2);
     memset(gModeMenu, 0, 0x33C);
     gModeMenu->pack = (u32 *)MPACK_AT(gMenuArc2, section);
     gModeMenu->res = Sprite_Unpack(gModeMenu->pack, NULL, NULL);
-    gModeMenu->file = File_LoadSync(gProgress->baseFile + gProgress->subMenu + 0x10, NULL, 0);
+    gModeMenu->file = File_LoadSync(gProgress->baseFile + gProgress->menu.subMenu + 0x10, NULL, 0);
     gModeMenu->fileRes = Sprite_Unpack(gModeMenu->file, NULL, NULL);
     ModeBg_Init(gModeMenu->fileRes);
     MD_RES(gModeMenu->fileRes, 7);
-    switch (gProgress->subMenu) {
+    switch (gProgress->menu.subMenu) {
     case 0:
         MD_ICONS(10, 11, 12);
         break;
@@ -184,7 +184,7 @@ void ModeMenu_Init(s32 section) {
     MsgWin_Init(MPACK_AT(gModeMenu->res, 8), gModeMenu->msgText, 1, 0);
     gModeMenu->text = MPACK_AT(gModeMenu->res, 6);
 
-    switch (gProgress->subMenu) {
+    switch (gProgress->menu.subMenu) {
     case 0:
         MD_SETUP(3, 0x8537, 0x13, 0x3CE);
         break;
@@ -212,7 +212,7 @@ void ModeMenu_Init(s32 section) {
     }
 
     for (i = 0; i < gModeMenu->itemMax; i++) {
-        SaveSlot *slot = &gSaveData->slot[gProgress->subMenu];
+        SaveSlot *slot = &gSaveData->slot[gProgress->menu.subMenu];
 
         if (slot->val[0] & (s32)(1U << i)) {
             gModeMenu->items[gModeMenu->itemCount++] = i;
@@ -222,12 +222,12 @@ void ModeMenu_Init(s32 section) {
         gModeMenu->items[gModeMenu->itemCount++] = gModeMenu->itemMax;
     }
     gModeMenu->descr = (ModeMenuDescr *)MPACK_AT(gModeMenu->fileRes, 6);
-    if (gProgress->subMenu == 7) {
+    if (gProgress->menu.subMenu == 7) {
         gModeMenu->descr->count = 2;
     }
     if (gProgress->prevMode == 10 || gProgress->prevMode == 8) {
         for (i = 0; i < gModeMenu->itemCount; i++) {
-            if (gModeMenu->items[i] == gProgress->subMenuItem) {
+            if (gModeMenu->items[i] == gProgress->menu.subMenuItem) {
                 gModeMenu->cursor[0] = i;
                 break;
             }
@@ -251,7 +251,7 @@ void ModeMenu_Init(s32 section) {
         TextBox_SetRect(&gModeMenu->box[i], 0, 0x200, 0, 0x1A1);
     }
 
-    switch (gProgress->subMenu) {
+    switch (gProgress->menu.subMenu) {
     case 0:
         Bgm_Play(MODEMENU_BGM);
         StreamSe_PlayDefault(0, 0x10BDC);
@@ -304,27 +304,27 @@ void ModeMenu_Term(void) {
 }
 
 /* An item's bit in one of the sub menu's three save words. */
-#define MD_SAVE_BIT(n, item) (gSaveData->slot[gProgress->subMenu].val[n] & (s32)(1U << (item)))
+#define MD_SAVE_BIT(n, item) (gSaveData->slot[gProgress->menu.subMenu].val[n] & (s32)(1U << (item)))
 
 /* Sets up every clip of the movie for this frame and draws it and the message window. */
 void ModeMenu_Draw(void) {
 #ifdef PORT
     Port_MenuPage(10); /* widescreen menus: this screen's page */
 #endif
-    MFlashRef ref;
-    MFlashUv uv;
+    FlashRef ref;
+    FlashUv uv;
     char name[64];
     char sub[64];
     s32 i;
-    MFlash *flash;
+    Flash *flash;
 
     ModeBg_Draw();
     flash = &gModeMenu->flash[0];
-    sprintf(name, "mc_guide_%02d", gProgress->subMenu);
-    sprintf(sub, "mc_guide_%02d_eye", gProgress->subMenu);
+    sprintf(name, "mc_guide_%02d", gProgress->menu.subMenu);
+    sprintf(sub, "mc_guide_%02d_eye", gProgress->menu.subMenu);
     Flash_FindLabel(flash, name, sub, &ref);
     FlashAnim_Blink(flash, &ref, &gModeMenu->blink, 0);
-    sprintf(sub, "mc_guide_%02d_mouth", gProgress->subMenu);
+    sprintf(sub, "mc_guide_%02d_mouth", gProgress->menu.subMenu);
     Flash_FindLabel(flash, name, sub, &ref);
     FlashAnim_Talk(flash, &ref, &gModeMenu->talk, 0);
 
@@ -342,10 +342,10 @@ void ModeMenu_Draw(void) {
     Flash_ClipSetAlpha(flash, &ref, gModeMenu->imageAlpha);
     Flash_ClipSetFlags(flash, &ref, 0x100, 1);
 
-    uv.x0 = 0;
-    uv.y0 = (gModeMenu->items[gModeMenu->cursor[0]] % 4) * 0x40;
-    uv.x1 = 0x200;
-    uv.y1 = uv.y0 + 0x40;
+    uv.u0 = 0;
+    uv.v0 = (gModeMenu->items[gModeMenu->cursor[0]] % 4) * 0x40;
+    uv.u1 = 0x200;
+    uv.v1 = uv.v0 + 0x40;
     Flash_FindLabel(flash, NULL, "mc_battle_text_1", &ref);
     Flash_ClipSetAlpha(flash, &ref, gModeMenu->imageAlpha);
     Flash_ClipSetUv(flash, &ref, &uv);
@@ -360,10 +360,10 @@ void ModeMenu_Draw(void) {
     }
 
     for (i = 0; i < 2; i++) {
-        uv.y0 = 0;
-        uv.x0 = i * 0x20;
-        uv.x1 = uv.x0 + 0x20;
-        uv.y1 = 0x20;
+        uv.v0 = 0;
+        uv.u0 = i * 0x20;
+        uv.u1 = uv.u0 + 0x20;
+        uv.v1 = 0x20;
         switch (i) {
         case 0:
             Flash_FindLabel(flash, "mc_yajirusi_left", "mc_yajirusi_icon_left", &ref);
@@ -466,9 +466,9 @@ void ModeMenu_Update(void) {
 
 /* Sends the plate under the cursor to a label of its clip (kind 0; other kinds do nothing). */
 void ModeMenu_PlateGoto(s32 movie, s32 kind, char *label) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[64];
-    MFlash *flash = &gModeMenu->flash[movie];
+    Flash *flash = &gModeMenu->flash[movie];
 
     if (kind == 0) {
         sprintf(name, "mc_menu_plate_%d", gModeMenu->cursor[0] - gModeMenu->top + 1);
@@ -673,12 +673,12 @@ s32 ModeMenu_Run(s32 section) {
             if (!(gModeMenu->flags & MODEMENU_GREETED) && (gModeMenu->flash[0].flags & MFLASH_PAD)) {
                 gModeMenu->flags |= MODEMENU_GREETED;
                 {
-                    SaveSlot *slot = &gSaveData->slot[gProgress->subMenu];
+                    SaveSlot *slot = &gSaveData->slot[gProgress->menu.subMenu];
 
                     if (slot->flags & SAVESLOT_GREET_FIRST) {
                         gModeMenu->voiceLine = gModeMenu->lineBase + 3;
                         slot = gSaveData->slot;
-                        slot += gProgress->subMenu;
+                        slot += gProgress->menu.subMenu;
                         slot->flags &= ~SAVESLOT_GREET_FIRST;
                     } else {
                         gModeMenu->voiceLine = gModeMenu->lineBase;
@@ -701,16 +701,16 @@ s32 ModeMenu_Run(s32 section) {
         } else if (gModeMenu->flags & MODEMENU_LEAVING) {
             if (--gModeMenu->timer == -1) {
                 ColorFade_StartOut(0, 0, 0, 0x14);
-                gProgress->subMenuItem = MODEMENU_ITEM(gModeMenu);
+                gProgress->menu.subMenuItem = MODEMENU_ITEM(gModeMenu);
             }
         } else if (gModeMenu->step == 0) {
             ModeMenu_Input(&result);
         }
     }
     if (result) {
-        gSaveData->slot[gProgress->subMenu].val[2] &= ~(1 << MODEMENU_ITEM(gModeMenu));
+        gSaveData->slot[gProgress->menu.subMenu].val[2] &= ~(1 << MODEMENU_ITEM(gModeMenu));
         BattleSetup_Clear();
-        BattleSetup_SetScript(ModeMenu_GetLine(gProgress->subMenu, MODEMENU_ITEM(gModeMenu)));
+        BattleSetup_SetScript(ModeMenu_GetLine(gProgress->menu.subMenu, MODEMENU_ITEM(gModeMenu)));
     }
     ModeMenu_Term();
     Dma_ResetBuffers();

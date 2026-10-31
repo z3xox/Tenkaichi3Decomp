@@ -145,15 +145,15 @@ typedef struct CharSel {
     /* 0x0000 */ u32 *pack;                 /* this screen's section of archive 5 or 6 (compressed) */
     /* 0x0004 */ u32 *res;                  /* the same unpacked: a pack of 57 sections */
     /* 0x0008 */ void *faceFile[CHARSEL_SIDES]; /* 0x16800 bytes each: compressed portrait */
-    /* 0x0010 */ MTexRes *faceRes[CHARSEL_SIDES]; /* 0x20800 bytes each: the same unpacked */
+    /* 0x0010 */ FlashTexRes *faceRes[CHARSEL_SIDES]; /* 0x20800 bytes each: the same unpacked */
     /* 0x0018 */ void *stageFile;           /* 0x3B800 bytes: compressed stage picture */
-    /* 0x001C */ MTexRes *stageRes[2];      /* 0x43000 bytes each: unpacked, two buffers for the cross fade */
+    /* 0x001C */ FlashTexRes *stageRes[2];      /* 0x43000 bytes each: unpacked, two buffers for the cross fade */
     /* 0x0024 */ u32 *chipPack;             /* section 45: 165 texture lists, section id + 1 = chip of a character */
     /* 0x0028 */ void *nameText;            /* section 43: character names */
     /* 0x002C */ void *formText;            /* section 44: form names */
     /* 0x0030 */ u32 *stagePack;            /* section 46: 38 texture lists */
-    /* 0x0034 */ MFlash flash[CHARSEL_FLASH_NUM]; /* 0 background, 1 / 2 the sides' reels, 3 / 4 their plates */
-    /* 0x0110 */ MTexRes *bg[2];            /* stage picture drawn behind: new, old */
+    /* 0x0034 */ Flash flash[CHARSEL_FLASH_NUM]; /* 0 background, 1 / 2 the sides' reels, 3 / 4 their plates */
+    /* 0x0110 */ FlashTexRes *bg[2];            /* stage picture drawn behind: new, old */
     /* 0x0118 */ u8 *tex[49];               /* movie 0 */
     /* 0x01DC */ u8 *plateTex[CHARSEL_SIDES][11]; /* movies 3 and 4 */
     /* 0x0234 */ u8 *sideTex[CHARSEL_SIDES][25];  /* movies 1 and 2 */
@@ -187,8 +187,8 @@ typedef struct CharSel {
     /* 0x380C */ s32 stageCount;
     /* 0x3810 */ s32 bgmCount;
     /* 0x3814 */ s32 faceMask;              /* non-zero while the portraits are hidden */
-    /* 0x3818 */ MTextBox nameBox[CHARSEL_SIDES];
-    /* 0x3930 */ MTextBox formBox[CHARSEL_SIDES];
+    /* 0x3818 */ TextBox nameBox[CHARSEL_SIDES];
+    /* 0x3930 */ TextBox formBox[CHARSEL_SIDES];
     /* 0x3A48 */ void *unk3A48;             /* section 2 of common file 4 (gCommonRes->data[2]); not used in this range */
 } CharSel; /* 0x3A4C */
 

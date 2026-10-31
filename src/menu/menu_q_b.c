@@ -202,13 +202,13 @@ void SimDay_ListItems(void) {
 
     gSimDay->ownCount = 0;
     for (i = 0; i < Q_ITEM_NUM; i++) {
-        if ((u8)(QSAVE->item[i] & 1) && SimDay_IsEventItem(i)) {
+        if ((u8)(gSaveData->item[i] & 1) && SimDay_IsEventItem(i)) {
             any = 1;
             gSimDay->own[gSimDay->ownCount] = i;
             gSimDay->ownCount++;
         }
     }
-    i = QSAVE->unk20C;
+    i = gSaveData->unk20C;
     all = i == 20;
     if (!all) {
         if (!any) {
@@ -298,9 +298,9 @@ s32 SimDay_CountItems2(void) {
 
 /* Opens (on) or greys out button `button` of the board, if it is not in that state already. */
 void SimDay_SetButton(s32 on, s32 button) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[64];
-    MFlash *flash = &gSimDay->flash[SIMDAY_FL_BOARD];
+    Flash *flash = &gSimDay->flash[SIMDAY_FL_BOARD];
 
     sprintf(name, "mc_sim_botan%02d", button);
     Flash_FindLabel(flash, NULL, name, &ref);
@@ -398,9 +398,9 @@ void SimDay_ShowChange(void) {
 
 /* The window shows either its three item names (text) or its three plates. */
 void SimDay_SetMenuAlpha(s32 text) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[64];
-    MFlash *flash = &gSimDay->flash[SIMDAY_FL_MENU];
+    Flash *flash = &gSimDay->flash[SIMDAY_FL_MENU];
     f32 nameAlpha;
     f32 plateAlpha;
     s32 i;
@@ -434,9 +434,9 @@ void SimDay_PlayBgm(void) {
  * 19..23 the window, 24..34 the event movie, 35..43 / 44..53 / 54..62 the three trainings.
  */
 void SimDay_Cmd(s32 cmd) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[64];
-    MFlash *flash;
+    Flash *flash;
     s32 day;
     s32 i;
 
@@ -808,8 +808,8 @@ void SimDay_PickEvent(s32 unused) {
     s32 i;
     s32 w;
 
-    gSimDay->unkB68[0] = 0;
-    gSimDay->unkB68[1] = 0;
+    gSimDay->seq = 0;
+    gSimDay->seqTimer = 0;
     switch (gSimDay->cur[SIMDAY_ST_BOARD]) {
     case 0:
         gSimDay->event = gSimDay->cur[SIMDAY_ST_TRAIN];
@@ -870,7 +870,7 @@ void SimDay_RefreshBoard(void) {
 }
 
 #define SD_RES(n) \
-    res = (MTexRes *)MPACK_AT(gSimDay->res, n); \
+    res = (FlashTexRes *)MPACK_AT(gSimDay->res, n); \
     Res_RelocateOffsets(&res, res, res)
 
 /*
@@ -879,7 +879,7 @@ void SimDay_RefreshBoard(void) {
  * becomes what the fight left (at least 1), and the buttons are greyed out as the state demands.
  */
 void SimDay_Init(s32 section) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
     s32 i;
     void *check;
 
@@ -975,10 +975,10 @@ void SimDay_Init(s32 section) {
     gSimDay->tex0[5] = MTEX(res, 0);
     SD_RES(8);
     gSimDay->tex0[53] = MTEX(res, QPROG->member.chara);
-    gSimDay->faceResA = (MTexRes *)MPACK_AT(gSimDay->res, 6);
+    gSimDay->faceResA = (FlashTexRes *)MPACK_AT(gSimDay->res, 6);
     Res_RelocateOffsets(&gSimDay->faceResA, gSimDay->faceResA, gSimDay->faceResA);
     SimDay_SetFaceA(0);
-    gSimDay->faceResB = (MTexRes *)MPACK_AT(gSimDay->res, 7);
+    gSimDay->faceResB = (FlashTexRes *)MPACK_AT(gSimDay->res, 7);
     Res_RelocateOffsets(&gSimDay->faceResB, gSimDay->faceResB, gSimDay->faceResB);
     SimDay_SetFaceB(0);
     SD_RES(23);
@@ -1001,7 +1001,7 @@ void SimDay_Init(s32 section) {
     gSimDay->tex1[2] = MTEX(res, 0);
     SD_RES(21);
     gSimDay->tex1[3] = MTEX(res, 0);
-    gSimDay->numRes = (MTexRes *)MPACK_AT(gSimDay->res, 22);
+    gSimDay->numRes = (FlashTexRes *)MPACK_AT(gSimDay->res, 22);
     Res_RelocateOffsets(&gSimDay->numRes, gSimDay->numRes, gSimDay->numRes);
     gSimDay->tex1[7] = MTEX(gSimDay->numRes, 0);
     SD_RES(16);
@@ -1096,7 +1096,7 @@ void SimDay_Init(s32 section) {
     gSimDay->round = (SimRound *)MPACK_AT(gSimDay->res, 25);
     gSimDay->pool = (SimPool *)MPACK_AT(gSimDay->res, 27);
     gSimDay->enemy = (SimEnemy *)MPACK_AT(gSimDay->res, 26);
-    gSimDay->unkB5C = MPACK_AT(gSimDay->res, 29);
+    gSimDay->train = MPACK_AT(gSimDay->res, 29);
     gSimDay->level = (SimLevel *)MPACK_AT(gSimDay->res, 30);
     gSimDay->msgLine = -1;
     gSimDay->lastEvent = -1;
@@ -1168,12 +1168,12 @@ void SimDay_Term(void) {
 
 /* Draws the screen: status plates, the window's rows and item names, the stat change on show, the movies. */
 void SimDay_Draw(void) {
-    MFlashRef ref;
-    MFlashUv uv;
+    FlashRef ref;
+    FlashUv uv;
     char name[64];
-    MFlashUv uvB;
-    MFlashUv uvC;
-    MFlash *flash;
+    FlashUv uvB;
+    FlashUv uvC;
+    Flash *flash;
     s32 i = 0;
     s32 n;
     s32 done;
@@ -1243,10 +1243,10 @@ void SimDay_Draw(void) {
     flash = &gSimDay->flash[SIMDAY_FL_MENU];
     SimDay_SetMenuAlpha(gSimDay->menuText);
     for (i = 0; i < 3; i++) {
-        uv.x0 = 0;
-        uv.y0 = i << 5;
-        uv.x1 = 0x200;
-        uv.y1 = (i << 5) + 0x20;
+        uv.u0 = 0;
+        uv.v0 = i << 5;
+        uv.u1 = 0x200;
+        uv.v1 = (i << 5) + 0x20;
         sprintf(name, "mc_menu_plate_%d", i + 1);
         Flash_FindLabel(flash, name, "mc_menu_text_on", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
@@ -1295,16 +1295,16 @@ void SimDay_Draw(void) {
         Flash_ClipSetFlags(flash, &ref, 0x400, 1);
         Num_DrawChild(flash, "mc_pt_up_down", "mc_pt_num%02d", 0, 5, gSimDay->chg.shown, 0x20, 0x20, 0, 0);
         if (gSimDay->chg.shown < 0) {
-            uvB.x0 = 0x20;
-            uvB.y0 = 0;
-            uvB.x1 = 0x40;
-            uvB.y1 = 0x20;
+            uvB.u0 = 0x20;
+            uvB.v0 = 0;
+            uvB.u1 = 0x40;
+            uvB.v1 = 0x20;
             Flash_FindLabel(flash, "mc_pt_up_down", "mc_pt_yajirusi", &ref);
             Flash_ClipSetUv(flash, &ref, &uvB);
-            uvB.x0 = 0x20;
-            uvB.y0 = 0;
-            uvB.x1 = 0x40;
-            uvB.y1 = 0x20;
+            uvB.u0 = 0x20;
+            uvB.v0 = 0;
+            uvB.u1 = 0x40;
+            uvB.v1 = 0x20;
             Flash_FindLabel(flash, "mc_pt_up_down", "mc_plus_minus", &ref);
             Flash_ClipSetUv(flash, &ref, &uvB);
             gSimDay->tex1[7] = MTEX(gSimDay->numRes, 0);
@@ -1317,16 +1317,16 @@ void SimDay_Draw(void) {
         Flash_ClipSetFlags(flash, &ref, 0x400, 1);
         Num_DrawChild(flash, "mc_score_up_down", "mc_score_num%02d", 0, 9, gSimDay->chg.shown * 100, 0x20, 0x20, 0, 0);
         if (gSimDay->chg.shown < 0) {
-            uvC.x0 = 0x20;
-            uvC.y0 = 0;
-            uvC.x1 = 0x40;
-            uvC.y1 = 0x20;
+            uvC.u0 = 0x20;
+            uvC.v0 = 0;
+            uvC.u1 = 0x40;
+            uvC.v1 = 0x20;
             Flash_FindLabel(flash, "mc_score_up_down", "mc_score_yajirusi", &ref);
             Flash_ClipSetUv(flash, &ref, &uvC);
-            uvC.x0 = 0x20;
-            uvC.y0 = 0;
-            uvC.x1 = 0x40;
-            uvC.y1 = 0x20;
+            uvC.u0 = 0x20;
+            uvC.v0 = 0;
+            uvC.u1 = 0x40;
+            uvC.v1 = 0x20;
             Flash_FindLabel(flash, "mc_score_up_down", "mc_score_plus_minus", &ref);
             Flash_ClipSetUv(flash, &ref, &uvC);
             gSimDay->tex1[7] = MTEX(gSimDay->numRes, 0);
@@ -1937,9 +1937,9 @@ void SimDay_Input(s32 *result) {
 
 /* Sends the plate under the cursor of state `kind` (0 board, 1 trainings, 2 two-row choice, 6 window) to `label`. */
 void SimDay_ClipGoto(s32 movie, s32 kind, char *label) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[0x40];
-    MFlash *flash = &gSimDay->flash[movie];
+    Flash *flash = &gSimDay->flash[movie];
 
     switch (kind) {
     case 0:
@@ -1962,7 +1962,7 @@ void SimDay_ClipGoto(s32 movie, s32 kind, char *label) {
 /* Loads the two portraits of the round picture in the background, one step per frame. */
 void SimDay_UpdateFaceLoad(void) {
     s32 chara[2] = { 0 };
-    MTexRes *res;
+    FlashTexRes *res;
 
     switch (gSimDay->loadState) {
     case SIMDAY_LOAD_REQUEST:

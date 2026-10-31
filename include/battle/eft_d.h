@@ -17,9 +17,8 @@
  *                                           particle initialisers and their per-frame updates. The task that
  *                                           creates, steps and draws them is eft_e.c (0x13EA00..0x13F3D8).
  *
- * The types below are local views. EftSurfVtxD / EftSurfD repeat EftSurfVtx / EftSurf of eft_c.h, and
- * EftBurstPtcl / EftBurstWork / EftBurstRes are the full layouts of EftTransPart / EftTransWork / EftTransRes
- * of eft_e.h.
+ * Surface types retain legacy views of eft_c.h. The full EftBurstPtcl, EftBurstWork and
+ * EftBurstRes layouts are shared with eft_e.h through this header.
  */
 
 /* ---- surface triangles ---------------------------------------------------------------- */
@@ -112,10 +111,14 @@ typedef struct EftBurstWork {
     /* 0x008 */ f32 fadeDist;   /* DrawModel: distance from the centre at which the model's light is gone */
     /* 0x00C */ f32 unkC;
     /* 0x010 */ f32 sway;       /* added to a spark's scale */
-    /* 0x014 */ u8 unk14[0x21C];
+    /* 0x014 */ s32 phase;
+    /* 0x018 */ s32 camArg[3];
+    /* 0x024 */ u8 unk24[0x20C];
     /* 0x230 */ EftBurstTex *curTex;   /* texture uploaded last (EftBurst_SetTexture) */
     /* 0x234 */ u8 unk234[0xC];
     /* 0x240 */ EftBurstPtcl ptcl[EFT_BURST_PTCL_MAX];
+    /* 0x9B60 */ s32 seWait;
+    /* 0x9B64 */ u8 unk9B64[0xC];
 } EftBurstWork;
 
 typedef struct EftBurstTexPack {
@@ -143,7 +146,6 @@ typedef struct EftBurstModel {
     /* 0x14 */ s32 relocated;
 } EftBurstModel;
 
-/* 0x31BE60 */
 typedef struct EftBurstRes {
     /* 0x00 */ void *list;
     /* 0x04 */ EftBurstTexPack *texPack;   /* transition file entry 3 */

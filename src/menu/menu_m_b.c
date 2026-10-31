@@ -93,11 +93,11 @@ void UbTeamSel_SetChips(void) {
 
     for (i = 0; i < UB_COLS; i++) {
         s32 id = gUbTeamSel->grid[UT_CUR.row * UB_COLS + i].id;
-        MTexRes *res;
+        FlashTexRes *res;
 
         gUbTeamSel->sel->chip[1][i] = gUbTeamSel->sel->chip[0][i];
         gUbTeamSel->sel->chip[0][i] = id;
-        res = (MTexRes *)MPACK_AT(gUbTeamSel->chips, id + 1);
+        res = (FlashTexRes *)MPACK_AT(gUbTeamSel->chips, id + 1);
         gUbTeamSel->texC[18 + i] = gUbTeamSel->texC[slot[i]];
         gUbTeamSel->texC[slot[i]] = res->tex;
     }
@@ -110,7 +110,7 @@ void UbTeamSel_SetFormChips(void) {
 
     for (i = 0; i < UB_COLS; i++) {
         s32 id;
-        MTexRes *res;
+        FlashTexRes *res;
 
         if (i < UT_CELL.formCount) {
             id = UT_CELL.form[i];
@@ -119,7 +119,7 @@ void UbTeamSel_SetFormChips(void) {
         }
         gUbTeamSel->sel->chip[1][i] = gUbTeamSel->sel->chip[0][i];
         gUbTeamSel->sel->chip[0][i] = id;
-        res = (MTexRes *)MPACK_AT(gUbTeamSel->chips, id + 1);
+        res = (FlashTexRes *)MPACK_AT(gUbTeamSel->chips, id + 1);
         gUbTeamSel->texC[18 + i] = gUbTeamSel->texC[slot[i]];
         gUbTeamSel->texC[slot[i]] = res->tex;
     }
@@ -140,14 +140,14 @@ void UbTeamSel_SetTeamTex(void) {
         gUbTeamSel->texB[slot[i]] = NULL;
         if (i < gUbTeamSel->sel->memberCount) {
             s32 id = gUbTeamSel->sel->team.member[i].chara;
-            MTexRes *res = (MTexRes *)MPACK_AT(gUbTeamSel->chips, id + 1);
+            FlashTexRes *res = (FlashTexRes *)MPACK_AT(gUbTeamSel->chips, id + 1);
 
             gUbTeamSel->texB[slot[i]] = res->tex;
             if (gUbTeamSel->flags & UBSEL_DP) {
                 gUbTeamSel->sel->cost += ChrTbl_GetCost(id);
             }
         } else if (i >= gUbTeamSel->teamMax) {
-            MTexRes *res = (MTexRes *)MPACK_AT(gUbTeamSel->chips, UB_ID_EMPTY + 1);
+            FlashTexRes *res = (FlashTexRes *)MPACK_AT(gUbTeamSel->chips, UB_ID_EMPTY + 1);
 
             gUbTeamSel->texB[slot[i]] = res->tex;
         }
@@ -156,7 +156,7 @@ void UbTeamSel_SetTeamTex(void) {
 
 /* One step of the background loader of the portrait (file 0x2F9 + character). */
 void UbTeamSel_UpdateFaceLoad(void) {
-    MTexRes *res;
+    FlashTexRes *res;
 
     switch (gUbTeamSel->loadState) {
     case UBSEL_LOAD_ABORT:
@@ -216,9 +216,9 @@ void UbTeamSel_RequestFace(void) {
 
 /* Sends the clip of one chip or plate of movie `movie` to a label; `kind` says which clip and from which cursor. */
 void UbTeamSel_ClipGoto(s32 movie, s32 kind, char *label) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[64];
-    MFlash *flash = &gUbTeamSel->flash[movie];
+    Flash *flash = &gUbTeamSel->flash[movie];
 
     switch (kind) {
     case UBTEAM_CLIP_CHIP:
@@ -255,12 +255,12 @@ void UbTeamSel_ClipGoto(s32 movie, s32 kind, char *label) {
 }
 
 #define UT_RES(n) \
-    res = (MTexRes *)MPACK_AT(gUbTeamSel->res, n); \
+    res = (FlashTexRes *)MPACK_AT(gUbTeamSel->res, n); \
     Res_RelocateOffsets(&res, res, res)
 
 /* Loads and unpacks the screen (section `section` of archive 3), builds its four movies and the grid. */
 void UbTeamSel_Init(s32 section) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
     s32 i;
     s32 j;
 
@@ -381,7 +381,7 @@ void UbTeamSel_Init(s32 section) {
     gUbTeamSel->formText = MPACK_AT(gUbTeamSel->res, 29);
     gUbTeamSel->chips = (u32 *)MPACK_AT(gUbTeamSel->res, 27);
     for (i = 0; i < UB_CELL_MAX; i++) {
-        res = (MTexRes *)MPACK_AT(gUbTeamSel->chips, i + 1);
+        res = (FlashTexRes *)MPACK_AT(gUbTeamSel->chips, i + 1);
         Res_RelocateOffsets(&res, res, res);
     }
     gUbTeamSel->grid = (UbCell *)(MPACK_AT(gUbTeamSel->res, 30) + 0x10);
@@ -463,12 +463,12 @@ void UbTeamSel_Term(void) {
 
 /* Draws the background, sets up every clip of the four movies from the current state and draws them and the windows. */
 void UbTeamSel_Draw(void) {
-    MFlashRef ref;
-    MFlashUv uv;
+    FlashRef ref;
+    FlashUv uv;
     char name[64];
     char name2[64];
     s32 i;
-    MFlash *flash;
+    Flash *flash;
     s32 chara;
     s32 cost;
 
@@ -510,27 +510,27 @@ void UbTeamSel_Draw(void) {
     Flash_FindLabel(flash, NULL, "mc_form_text_l", &ref);
     TextBox_AttachLine(flash, &ref, 0, 0, gUbTeamSel->sel->chara, &gUbTeamSel->box[1]);
     if (gUbTeamSel->flags & UBSEL_DP) {
-        uv.x0 = (gUbTeamSel->dpLevel % 2) * 0x40;
-        uv.y0 = (gUbTeamSel->dpLevel / 2) * 0x20;
-        uv.x1 = uv.x0 + 0x40;
-        uv.y1 = uv.y0 + 0x20;
+        uv.u0 = (gUbTeamSel->dpLevel % 2) * 0x40;
+        uv.v0 = (gUbTeamSel->dpLevel / 2) * 0x20;
+        uv.u1 = uv.u0 + 0x40;
+        uv.v1 = uv.v0 + 0x20;
         Flash_FindLabel(flash, NULL, "mc_dp_max_l", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
         Num_Draw(flash, "mc_dp_total_l_%d", 0, 2, gUbTeamSel->sel->cost, 0x20, 0x40, 1);
     }
     flash = &gUbTeamSel->flash[3];
-    uv.x0 = 0x20;
-    uv.x1 = 0x40;
-    uv.y0 = 0;
-    uv.y1 = 0x20;
+    uv.u0 = 0x20;
+    uv.u1 = 0x40;
+    uv.v0 = 0;
+    uv.v1 = 0x20;
     Flash_FindLabel(flash, NULL, "mc_yajirusi", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     for (i = 0; i < 4; i++) {
         /* item set plates: dimmed when they cannot be chosen */
-        uv.x0 = 0;
-        uv.x1 = 0x100;
-        uv.y0 = i * 0x20;
-        uv.y1 = uv.y0 + 0x20;
+        uv.u0 = 0;
+        uv.u1 = 0x100;
+        uv.v0 = i * 0x20;
+        uv.v1 = uv.v0 + 0x20;
         sprintf(name, "mc_custom_plate_%d", i + 1);
         Flash_FindLabel(flash, NULL, name, &ref);
         Flash_ClipSetColor(flash, &ref, i < gUbTeamSel->plateCount ? 1.0f : 0.3f);
@@ -545,10 +545,10 @@ void UbTeamSel_Draw(void) {
     }
     for (i = 0; i < 4; i++) {
         /* costume plates */
-        uv.x0 = (i % 2) * 0x40;
-        uv.x1 = uv.x0 + 0x40;
-        uv.y0 = (i / 2) * 0x20;
-        uv.y1 = uv.y0 + 0x20;
+        uv.u0 = (i % 2) * 0x40;
+        uv.u1 = uv.u0 + 0x40;
+        uv.v0 = (i / 2) * 0x20;
+        uv.v1 = uv.v0 + 0x20;
         sprintf(name, "mc_color_plate_%d", i + 1);
         Flash_FindLabel(flash, NULL, name, &ref);
         if (i < gUbTeamSel->colorCount) {
@@ -570,18 +570,18 @@ void UbTeamSel_Draw(void) {
         }
     }
     flash = &gUbTeamSel->flash[2];
-    uv.x0 = 0;
-    uv.x1 = 0x40;
-    uv.y0 = 0;
-    uv.y1 = 0x20;
+    uv.u0 = 0;
+    uv.u1 = 0x40;
+    uv.v0 = 0;
+    uv.v1 = 0x20;
     Flash_FindLabel(flash, NULL, "mc_plate_text", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     if (gUbTeamSel->rows >= 2) {
         for (i = 0; i < 2; i++) {
-            uv.x0 = i * 0x20;
-            uv.y0 = 0x20;
-            uv.x1 = uv.x0 + 0x20;
-            uv.y1 = 0x40;
+            uv.u0 = i * 0x20;
+            uv.v0 = 0x20;
+            uv.u1 = uv.u0 + 0x20;
+            uv.v1 = 0x40;
             Flash_FindLabel(flash, i ? "mc_yajirusi_down" : "mc_yajirusi_up",
                             i ? "mc_yajirusi_icon_down" : "mc_yajirusi_icon_up", &ref);
             Flash_ClipSetUv(flash, &ref, &uv);
@@ -632,10 +632,10 @@ void UbTeamSel_Draw(void) {
             sprintf(name2, "mc_dp_num_%03d", i);
             Flash_FindLabel(flash, name, name2, &ref);
             if (chara < UB_ID_RANDOM) {
-                uv.x0 = (cost % 4) * 0x20;
-                uv.x1 = uv.x0 + 0x20;
-                uv.y0 = (cost / 4) * 0x20;
-                uv.y1 = uv.y0 + 0x20;
+                uv.u0 = (cost % 4) * 0x20;
+                uv.u1 = uv.u0 + 0x20;
+                uv.v0 = (cost / 4) * 0x20;
+                uv.v1 = uv.v0 + 0x20;
                 Flash_ClipSetUv(flash, &ref, &uv);
                 Flash_ClipSetFlags(flash, &ref, 2, 1);
             } else {
@@ -655,10 +655,10 @@ void UbTeamSel_Draw(void) {
     for (i = 0; i < UB_MEMBER_MAX; i++) {
         /* the team plates and the cost of each member */
         sprintf(name, "mc_team_%d", i);
-        uv.x0 = (i % 4) * 0x40;
-        uv.x1 = uv.x0 + 0x40;
-        uv.y0 = (i / 4) * 0x48;
-        uv.y1 = uv.y0 + 0x48;
+        uv.u0 = (i % 4) * 0x40;
+        uv.u1 = uv.u0 + 0x40;
+        uv.v0 = (i / 4) * 0x48;
+        uv.v1 = uv.v0 + 0x48;
         sprintf(name2, "mc_team_plate_%d", i);
         Flash_FindLabel(flash, name, name2, &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
@@ -666,10 +666,10 @@ void UbTeamSel_Draw(void) {
         Flash_FindLabel(flash, name, name2, &ref);
         if (i < gUbTeamSel->sel->memberCount) {
             cost = ChrTbl_GetCost(gUbTeamSel->sel->team.member[i].chara);
-            uv.x0 = (cost % 4) * 0x20;
-            uv.x1 = uv.x0 + 0x20;
-            uv.y0 = (cost / 4) * 0x20;
-            uv.y1 = uv.y0 + 0x20;
+            uv.u0 = (cost % 4) * 0x20;
+            uv.u1 = uv.u0 + 0x20;
+            uv.v0 = (cost / 4) * 0x20;
+            uv.v1 = uv.v0 + 0x20;
             Flash_ClipSetFlags(flash, &ref, 2, 1);
             Flash_ClipSetUv(flash, &ref, &uv);
         } else {
@@ -1127,7 +1127,7 @@ void UbTeamSel_UpdateEnd(void) {
 
 /*
  * The team select (mode 15 when gProgress->teamSize >= 2). Returns 1 when a team was chosen (the members are then
- * in gProgress->team and their number in gProgress->teamSize), 0 when the player backed out.
+ * in gProgress->replay.team and their number in gProgress->teamSize), 0 when the player backed out.
  */
 s32 UbTeamSel_Run(s32 section) {
     s32 result = 1;

@@ -1,4 +1,6 @@
 #include "common.h"
+#include "battle/btl_cam.h"
+#include "sys/gfx_ot.h"
 #include "battle/eft_ad.h"
 
 /*
@@ -11,10 +13,6 @@
  */
 
 /* The view being drawn (include/battle/btl_cam.h). */
-typedef struct EftAdView {
-    /* 0x000 */ u8 unk0[0x140];
-    /* 0x140 */ Mtx44 world2screen;
-} EftAdView;
 
 /* A battle object as far as the wrappers reach into it (BtlObj in include/battle/btl_obj.h). */
 typedef struct EftAdObj {
@@ -26,19 +24,6 @@ typedef struct EftAdObj {
 } EftAdObj;
 
 /* An order table slot: two lists of packets (include/sys/gfx.h has the full description). */
-typedef struct EftAdOtPrim {
-    u32 tag;
-    void *next;
-} EftAdOtPrim;
-
-typedef struct EftAdOtEntry {
-    EftAdOtPrim *head;
-    EftAdOtPrim *tail;
-} EftAdOtEntry;
-
-typedef struct EftAdOtSlot {
-    EftAdOtEntry layer[2];
-} EftAdOtSlot;
 
 typedef struct EftAdXyzf {
     u64 x : 16;
@@ -104,13 +89,9 @@ typedef struct EftMeshTriPkt {
     /* 0x58 */ u64 nop;
 } EftMeshTriPkt; /* 0x60 */
 
-extern u8 *gOtCur;
-extern EftAdOtSlot *gOtZ;
 extern void *memcpy(void *dst, const void *src, u32 n);
 extern u8 *Dma_BeginDirect(void);
 extern void Dma_EndDirect(u8 *end);
-
-extern EftAdView *gBtlCamView;
 
 extern void *memset(void *dst, s32 c, u32 n);
 extern void Vec4_Copy(Vec4 *dst, Vec4 *src);
@@ -834,7 +815,7 @@ void EftMesh_QueueTri(EftAdScr *p0, EftAdScr *p1, EftAdScr *p2, EftAdVec *c0, Ef
     if (repeat) {
         EftMeshClampPkt *p;
         s32 l;
-        EftAdOtEntry *e;
+        OtEntry *e;
 
         l = layer;
         if (l >= 2) {
@@ -848,7 +829,7 @@ void EftMesh_QueueTri(EftAdScr *p0, EftAdScr *p1, EftAdScr *p2, EftAdVec *c0, Ef
             e = &gOtZ[z].layer[l];
         }
         p = (EftMeshClampPkt *)gOtCur;
-        gOtCur = (u8 *)(p + 1);
+        gOtCur = (u32 *)(p + 1);
         p->dmaTag = 0x20000003;
         p->vif0 = 0x10000000;
         p->vif1 = 0x50000003;
@@ -859,16 +840,16 @@ void EftMesh_QueueTri(EftAdScr *p0, EftAdScr *p1, EftAdScr *p2, EftAdVec *c0, Ef
         p->next = NULL;
         p->data0 = 0;
         p->data1 = 0;
-        e->tail->next = p;
-        e->tail = (EftAdOtPrim *)p;
+        e->tail->next = (OtPrim *)p;
+        e->tail = (OtPrim *)p;
     }
     if (hasTex) {
         EftMeshTexTriPkt *p = (EftMeshTexTriPkt *)gOtCur;
         s32 ctx;
         s32 l;
-        EftAdOtEntry *e;
+        OtEntry *e;
 
-        gOtCur = (u8 *)(p + 1);
+        gOtCur = (u32 *)(p + 1);
         ctx = layer >= 2;
         p->prim = ((s64)abe << 6) | ((s64)ctx << 9) | 0x1B;
         p->dmaTag = 0x20000007;
@@ -923,14 +904,14 @@ void EftMesh_QueueTri(EftAdScr *p0, EftAdScr *p1, EftAdScr *p2, EftAdVec *c0, Ef
         } else {
             e = &gOtZ[z].layer[l];
         }
-        e->tail->next = p;
-        e->tail = (EftAdOtPrim *)p;
+        e->tail->next = (OtPrim *)p;
+        e->tail = (OtPrim *)p;
     } else {
         EftMeshTriPkt *p = (EftMeshTriPkt *)gOtCur;
         s32 l;
-        EftAdOtEntry *e;
+        OtEntry *e;
 
-        gOtCur = (u8 *)(p + 1);
+        gOtCur = (u32 *)(p + 1);
         p->prim = ((s64)abe << 6) | 0xB;
         p->dmaTag = 0x20000005;
         p->vif0 = 0x10000000;
@@ -976,8 +957,8 @@ void EftMesh_QueueTri(EftAdScr *p0, EftAdScr *p1, EftAdScr *p2, EftAdVec *c0, Ef
         } else {
             e = &gOtZ[z].layer[l];
         }
-        e->tail->next = p;
-        e->tail = (EftAdOtPrim *)p;
+        e->tail->next = (OtPrim *)p;
+        e->tail = (OtPrim *)p;
     }
 }
 

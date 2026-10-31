@@ -2,6 +2,7 @@
 #define BATTLE_EFT_V_H
 
 #include "types.h"
+#include "battle/btl_cam.h"
 
 /*
  * src/battle/eft_u_b.c, second part (0x1853C8..0x1871A8; formerly eft_v.c), eft_v_b.c (0x1871A8..0x187C50), eft_v_c.c (0x187C50..0x1895E8).
@@ -67,12 +68,6 @@ typedef struct EftVTask {
 } EftVTask;
 
 /* A camera view: only what is read here. */
-typedef struct EftVView {
-    /* 0x000 */ u8 unk0[0x140];
-    /* 0x140 */ EftVMtx world2screen;
-    /* 0x180 */ u8 unk180[0xA0];
-    /* 0x220 */ EftVVec pos;
-} EftVView;
 
 /* One entry of a texture set: the GS TEX0 value. */
 typedef struct EftVTex {

@@ -1,4 +1,6 @@
 #include "common.h"
+#include "battle/btl_cam.h"
+#include "battle/battle.h"
 /*
  * Screen-space passes of the battle (0x106D60..0x109938): full-screen strips that read the depth buffer through a
  * CLUT, the alpha-key overlay of the battle objects, the lens discs, the underwater wobble and the depth fog.
@@ -36,12 +38,6 @@ extern void Mtx_InverseRT(Mtx44 *dst, Mtx44 *src);
 extern f32 sqrtf(f32 x);
 extern f32 cosf(f32 x);
 
-/* The part of the battle work this file reads. */
-typedef struct GfxBattleWork {
-    /* 0x0000 */ u8 unk0[0x19F0];
-    /* 0x19F0 */ u64 flags; /* 0x100 paused, 0x2000 loading */
-} GfxBattleWork;
-extern GfxBattleWork *Battle_GetWork(void);
 
 /* Stack vectors as 16-byte aligned arrays (Sony sceVu0FVECTOR style): the compiler copies them with 64-bit loads. */
 typedef f32 GfxFVec[4] __attribute__((aligned(16)));
@@ -49,7 +45,7 @@ typedef s32 GfxIVec[4] __attribute__((aligned(16)));
 typedef f32 GfxFMtx[4][4] __attribute__((aligned(16)));
 
 void GfxLens_Draw(s32 split, s32 side);
-void GfxLens_DrawAll(GfxLensView *view, s32 split, s32 side);
+void GfxLens_DrawAll(BtlCamView *view, s32 split, s32 side);
 u64 *GfxLens_PutCapture(u64 *p, s32 split, s32 side);
 void GfxWater_DrawView(s32 split, s32 view);
 void GfxPost_ShiftHighWord(s32 fbp, s32 tbp, s32 h);
@@ -476,7 +472,7 @@ static inline s32 GfxLens_IsOnScreen(GfxIVec *scr) {
    `i * 16` that gcse leaves as a copy with a multiplication note (cost 12) and gives it a pointer of its own;
    with a real variable the two addresses are plain sums of benefit 0 and stay `base + o`. The form is what
    matches; whether the original spelled it this way (a macro, or three cursors) is not known. */
-void GfxLens_DrawAll(GfxLensView *view, s32 split, s32 side) {
+void GfxLens_DrawAll(BtlCamView *view, s32 split, s32 side) {
     GfxFMtx rot;
     GfxFVec offs[7] = {
         { -1.0f, -1.0f, 0.0f, 0.0f }, { 1.0f, -1.0f, 0.0f, 0.0f }, { -1.0f, 1.0f, 0.0f, 0.0f }, { 1.0f, 1.0f, 0.0f, 0.0f },
@@ -496,7 +492,7 @@ void GfxLens_DrawAll(GfxLensView *view, s32 split, s32 side) {
     f32 *w;
 
     Vu0Screen_StoreMtx((Mtx44 *)w2s);
-    Mtx_Transpose((Mtx44 *)rot, &view->mtx40);
+    Mtx_Transpose((Mtx44 *)rot, &view->view.world2view2);
     for (j = 0; j < 8; j++) {
         f = &gGfxLens.slot[j];
         if (f->life == 0) {
@@ -528,7 +524,6 @@ void GfxLens_DrawAll(GfxLensView *view, s32 split, s32 side) {
         }
     }
 }
-
 
 /* Matching notes (strip loop, from the loop pass's dump): `col` and `x` are two variables; `u` exists only in
    the two later arms; the first strip's right edge is `x + i * 32 + 32` written out (its own induction
@@ -687,7 +682,6 @@ u64 *GfxLens_PutCapture(u64 *p, s32 split, s32 side) {
     return p;
 }
 
-
 /* Draws the lenses of one view: uploads the lens texture, captures the screen and draws every live lens. */
 void GfxLens_Draw(s32 split, s32 side) {
     u64 *p;
@@ -748,7 +742,7 @@ void GfxLens_Draw(s32 split, s32 side) {
     p[1] = GS_TEX0_1 + 1;
     p += 2;
     Dma_EndDirect(p);
-    GfxLens_DrawAll(gBtlCam->view, split, side);
+    GfxLens_DrawAll(gBtlCam->cur, split, side);
 }
 
 /* Draws the lenses for a full-screen view. */
@@ -865,34 +859,7 @@ void GfxWater_LoadStageColor(void) {
     }
 }
 
-ASM_STUB_BEGIN(); /* compiled so that GfxWater_Draw sees the definition (it decides a branch-likely there); the assembler skips it */
-/* NOT MATCHING: 96 of 639 instructions differ (was about 390 aligned), and the instruction count is now the
-   original's. Same operations and the same six .lit4 constants (0x2FC2A0..0x2FC2B4: pi, 2 pi, 2 pi, 0.8, 0.2,
-   44.8; bits compared) plus the .sdata word 0x2FE8D0 = 224.
-   Found in the third cleanup (each of these removed a block of differences):
-   - `h = 0xE0` and `srcH = 0x1C0` are VARIABLES set at the top (as in StgHaze_Draw / StgBlur_Draw). That is
-     why the original loads 0xE00 into a register for the gv clamp (`h << 4`), keeps `(s64)h << 34` apart
-     from the `| 0xA` of the second CLAMP word, multiplies `srcH * row` with a real `mult`, and converts 224
-     to float from a constant-pool word in .sdata (`fh = h`: the old attempt read D_002FE8D0 as a global).
-   - the copy loop is the twin of the first loop of StgPanBlur_DrawView (same statements, other constants):
-     `step = w / n` unshifted and `(i * step) << 4` in the loop.
-   - there is no `y` variable: `cy = h * row / 5`. The slot at sp+0x234 that looked like one is the loop
-     pass's strength-reduced `h * row` (it sits BEHIND the `view * 4` that gcse creates, so it was made later
-     than any declared variable).
-   - the three row loops share one counter (the original keeps it in s3 throughout).
-   What still differs:
-   1. float registers of the inner body: the original has ph in f20, d in f21, dx in f22; this has d, dx, ph
-      (allocation priority: ph needs about a third more references). In the original the result of the
-      SECOND sqrtf is computed straight into f20 (`sqrt.s f20,f12`, a callee-saved register, so that pseudo
-      is live across a call) and copied to d; the first goes through f0. `ph = sqrtf(..); d = ph;` is folded
-      back by cse.
-   2. the 9-register packet header: the original loads x0 early and builds the ZBUF constant late; the first
-      CLAMP word is `x0 << 4 | 0x1C0 << 34 | x1 << 14 | 0xA` with the two constants NOT merged, which
-      `(s64)srcH << 34` reproduces locally but then the function's first third changes (the phase update
-      stops spilling `view * 4`), so it is not in this attempt.
-   3. in the last loop the original loads gv before gu (`gv << 16 | gu` makes other things worse).
-   Also tried: `rows = 6` as a variable with `rows - 1` as the divisor (worse everywhere, although the
-   original divides by a 5 held in a register without a zero check). */
+
 /* Draws the underwater wobble for one view: advances the view's two phases, builds a 6 x N grid of texel positions
    pushed around two wave centres, copies the view into the half-height buffer at page 0x150 and draws it back over
    the screen as five triangle strips tinted with the view's colour. */
@@ -908,10 +875,10 @@ void GfxWater_DrawView(s32 split, s32 view) {
     s32 col;
     s32 cx;
     s32 cy;
-    s32 i;
     s32 n;
     s32 step;
     s32 sx;
+    s32 sy;
     u32 rgba;
     u64 *p;
     f32 fw;
@@ -921,7 +888,6 @@ void GfxWater_DrawView(s32 split, s32 view) {
     f32 dx;
     f32 dy;
     f32 d;
-    f32 ph;
     s32 h = 0xE0;
     s32 srcH = 0x1C0;
 
@@ -973,15 +939,13 @@ void GfxWater_DrawView(s32 split, s32 view) {
                 dx = fx - fw * 0.2f;
                 dy = fy - 224 * 0.2f;
                 d = sqrtf(dx * dx + dy * dy);
-                ph = d * 0.2f;
-                gu[row][col] += (s32)(cosf(gGfxWater[view].phaseU + ph) * (dx / d) * 3.0f * 16.0f);
-                gv[row][col] += (s32)(cosf(gGfxWater[view].phaseU + ph) * (dy / d) * 3.0f * 16.0f);
+                gu[row][col] += (s32)(cosf(gGfxWater[view].phaseU + d * 0.2f) * (dx / d) * 3.0f * 16.0f);
+                gv[row][col] += (s32)(cosf(gGfxWater[view].phaseU + d * 0.2f) * (dy / d) * 3.0f * 16.0f);
                 dx = fx - fw * 0.8f;
                 dy = fy - 0.8f * fh;
                 d = sqrtf(dx * dx + dy * dy);
-                ph = d * 0.2f;
-                gu[row][col] += (s32)(cosf(gGfxWater[view].phaseV + ph) * (dx / d) * 3.0f * 16.0f);
-                gv[row][col] += (s32)(cosf(gGfxWater[view].phaseV + ph) * (dy / d) * 3.0f * 16.0f);
+                gu[row][col] += (s32)(cosf(gGfxWater[view].phaseV + d * 0.2f) * (dx / d) * 3.0f * 16.0f);
+                gv[row][col] += (s32)(cosf(gGfxWater[view].phaseV + d * 0.2f) * (dy / d) * 3.0f * 16.0f);
             }
             if (gu[row][col] < 0) {
                 gu[row][col] = 0;
@@ -1023,7 +987,7 @@ void GfxWater_DrawView(s32 split, s32 view) {
     p[0] = ((s64)(w - 1) << 16) | ((u64)0xDF << 48);
     p[1] = GS_SCISSOR_1;
     p += 2;
-    p[0] = ((s64)x0 << 4) | ((u64)0x1C0 << 34) | ((s64)x1 << 14) | 0xA;
+    p[0] = GS_SET_CLAMP(2, 2, x0, x1, 0, srcH);
     p[1] = GS_CLAMP_1;
     p += 2;
     p[0] = 0x44;
@@ -1080,11 +1044,13 @@ void GfxWater_DrawView(s32 split, s32 view) {
         p += 2;
         for (col = 0; col < cols; col++) {
             sx = ((x0 + col * srcW / (cols - 1)) << 4) + GFX_OFX;
+            sy = ((srcH * row / 5) << 4) + GFX_OFY;
             p[0] = (s64)gu[row][col] | ((s64)gv[row][col] << 16);
-            p[1] = (s64)sx | ((s64)(((srcH * row / 5) << 4) + GFX_OFY) << 16);
+            p[1] = (s64)sx | ((s64)sy << 16);
             p += 2;
+            sy = ((srcH * (row + 1) / 5) << 4) + GFX_OFY;
             p[0] = (s64)gu[row + 1][col] | ((s64)gv[row + 1][col] << 16);
-            p[1] = (s64)sx | ((s64)(((srcH * (row + 1) / 5) << 4) + GFX_OFY) << 16);
+            p[1] = (s64)sx | ((s64)sy << 16);
             p += 2;
         }
     }
@@ -1100,9 +1066,6 @@ void GfxWater_DrawView(s32 split, s32 view) {
     Dma_EndDirect(p);
 }
 
-ASM_STUB_END();
-INCLUDE_ASM("asm/nonmatchings/sys/gfxm_b", GfxWater_DrawView);
-
 /* Draws the underwater wobble for every view whose camera is below the stage's water level. */
 void GfxWater_Draw(void) {
     Mtx44 cam;
@@ -1110,21 +1073,21 @@ void GfxWater_Draw(void) {
     s32 views = 1;
     s32 split = 0;
     s32 i;
-    GfxLensView *v;
+    View *v;
 
     if (gBtlCam == NULL) {
         return;
     }
-    if (Battle_IsSplitScreen() && !DemoCam_IsActive() && gBtlCam->view->unk280 != 0) {
+    if (Battle_IsSplitScreen() && !DemoCam_IsActive() && gBtlCam->cur->split != 0) {
         split = 1;
         views = 2;
     }
     if (views >= 2) {
         for (i = 0; i < views; i++) {
-            GfxLensCam *c = gBtlCam;
+            BtlCam *c = gBtlCam;
 
             if (BtlStage_GetWaterLevel(&level)) {
-                Mtx_InverseRT(&cam, &c->views[i].mtx40);
+                Mtx_InverseRT(&cam, &c->views[i].view.world2view2);
                 if (level < cam.m[3][1]) {
                     GfxWater_DrawView(split, i);
                 }
@@ -1133,7 +1096,7 @@ void GfxWater_Draw(void) {
     } else {
         v = gBtlCamView;
         if (BtlStage_GetWaterLevel(&level)) {
-            Mtx_InverseRT(&cam, &v->mtx40);
+            Mtx_InverseRT(&cam, &v->world2view2);
             if (level < cam.m[3][1]) {
                 GfxWater_DrawView(split, 0);
             }

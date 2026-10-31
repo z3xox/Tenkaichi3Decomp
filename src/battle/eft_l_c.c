@@ -23,8 +23,8 @@ extern void *BtlPool_Alloc(s32 slot, s32 size);
 extern void BtlPool_Free(s32 slot, void *ptr);
 extern s32 BtlScene_IsEffectStopped(s32 objId, s32 kind);
 extern s32 *BtlScene_GetCharPackEntry(s32 side, s32 idx);
-extern void *BtlTask_CreateChildList(EftTask *task, s32 count, s32 workSize);
-extern EftTask *BtlTaskList_AddTail(void *list, void *cls, void *arg);
+extern void *BtlTask_CreateChildList(BtlTask *task, s32 count, s32 workSize);
+extern BtlTask *BtlTaskList_AddTail(void *list, void *cls, void *arg);
 
 extern void BtlCharApi_GetNodePos(s32 objId, s32 node, Vec4 *out);
 extern s32 BtlCharApi_ObjTestAttr(s32 objId, u64 mask);
@@ -44,17 +44,17 @@ extern void EftEmit_SetNode(void *nodes, s32 slot, s32 node, Vec4 *pos);
 extern void EftEmit_RefreshFixedNodes(s32 objId, void *nodes);
 extern void EftChar_SetList(s32 side, s32 arg1, void *list);
 extern void *EftChar_GetList(s32 objId, s32 kind);
-extern void EftCharSlot_SetAbsorb(s32 objId, EftTask *task);
+extern void EftCharSlot_SetAbsorb(s32 objId, BtlTask *task);
 extern void EftCharSlot_ClearAbsorb(s32 objId);
-extern EftTask *EftCharSlot_GetAbsorb(s32 objId);
-extern void BtlTask_SetDead(EftTask *task);
-extern void BtlTask_SetOwnerTag(EftTask *task, s32 flag);
-extern EftTask *BtlTask_GetParent(EftTask *task);
+extern BtlTask *EftCharSlot_GetAbsorb(s32 objId);
+extern void BtlTask_SetDead(BtlTask *task);
+extern void BtlTask_SetOwnerTag(BtlTask *task, s32 flag);
+extern BtlTask *BtlTask_GetParent(BtlTask *task);
 
 extern u8 gEftAbsorbClass[0x18]; /* the task class (0x2C3A00): six callbacks, see config/symbols/eft_l.txt */
 
 /* Steps the emitters of one set and spawns their particles at pos, facing dir. */
-void EftAbsorb_DrawOne(s32 objId, EftTask *task, EftModel *model, EftModelInst *inst, Vec4 *pos, Vec4 *dir) {
+void EftAbsorb_DrawOne(s32 objId, BtlTask *task, EftModel *model, EftModelInst *inst, Vec4 *pos, Vec4 *dir) {
     EftAbsorb *w = task->work;
     s32 part;
     s32 sub;
@@ -75,7 +75,7 @@ void EftAbsorb_DrawOne(s32 objId, EftTask *task, EftModel *model, EftModelInst *
 }
 
 /* Init callback: copies the argument, makes two emitter states and places the glow(s). */
-void EftAbsorb_Init(EftTask *task, EftAbsorbArg *arg) {
+void EftAbsorb_Init(BtlTask *task, EftAbsorbArg *arg) {
     EftAbsorbMgr *mgr = BtlTask_GetParent(task)->work;
     EftAbsorb *w = task->work;
     EftAbsorbOwner *owner = &w->owner;
@@ -117,7 +117,7 @@ void EftAbsorb_Init(EftTask *task, EftAbsorbArg *arg) {
 }
 
 /* Term callback: releases both emitter states; the node-0x36 glow also clears the per-fighter slot (0x19BC38). */
-void EftAbsorb_Term(EftTask *task) {
+void EftAbsorb_Term(BtlTask *task) {
     EftAbsorb *w = task->work;
     EftAbsorbOwner *owner = &w->owner;
 
@@ -130,7 +130,7 @@ void EftAbsorb_Term(EftTask *task) {
 }
 
 /* Update callback: follows the fighter's nodes, spawns the particles, counts down once the end was asked for. */
-void EftAbsorb_Update(EftTask *task) {
+void EftAbsorb_Update(BtlTask *task) {
     EftAbsorb *w = task->work;
     EftAbsorbOwner *owner = &w->owner;
     void *nodes;
@@ -185,7 +185,7 @@ void EftAbsorb_Update(EftTask *task) {
 }
 
 /* Reset callback: destroys the particles once and kills the task. */
-void EftAbsorb_Reset(EftTask *task) {
+void EftAbsorb_Reset(BtlTask *task) {
     EftAbsorb *w = task->work;
 
     if (!(w->flags & EFT_ABSORB_RESET)) {
@@ -198,7 +198,7 @@ void EftAbsorb_Reset(EftTask *task) {
 
 /* Post-update callback (from the second frame on): once no particle of the first set is alive, the hands variant
  * starts its end by itself; the other one waits for EftAbsorb_Stop. */
-void EftAbsorb_PostUpdate(EftTask *task) {
+void EftAbsorb_PostUpdate(BtlTask *task) {
     EftAbsorb *w = task->work;
 
     if (w->flags & EFT_ABSORB_POSTED) {
@@ -222,7 +222,7 @@ void EftAbsorb_Nop(void) {
 
 /* Manager init: loads the emitter set from entry 0xB of the character's pack, makes room for six glows and
  * registers the list (0x172298). */
-void EftAbsorbMgr_Init(EftTask *task, s32 *arg) {
+void EftAbsorbMgr_Init(BtlTask *task, s32 *arg) {
     EftAbsorbMgr *mgr = task->work;
     EftAbsorbModel *model;
     s32 *pack;
@@ -241,7 +241,7 @@ void EftAbsorbMgr_Init(EftTask *task, s32 *arg) {
 }
 
 /* Manager term: releases the set and its memory. */
-void EftAbsorbMgr_Term(EftTask *task) {
+void EftAbsorbMgr_Term(BtlTask *task) {
     EftAbsorbMgr *mgr = task->work;
 
     if (((EftAbsorbModel *)mgr->model)->pack != NULL) {
@@ -253,7 +253,7 @@ void EftAbsorbMgr_Term(EftTask *task) {
 }
 
 /* Manager update: steps the set. */
-void EftAbsorbMgr_Update(EftTask *task) {
+void EftAbsorbMgr_Update(BtlTask *task) {
     EftAbsorbMgr *mgr = task->work;
 
     if (((EftAbsorbModel *)mgr->model)->pack != NULL) {
@@ -266,7 +266,7 @@ void EftAbsorbMgr_Update(EftTask *task) {
 s32 EftAbsorb_Start(EftAbsorbOwner *arg) {
     EftAbsorbArg init;
     void *list;
-    EftTask *task;
+    BtlTask *task;
 
     init.owner = *arg;
     init.hands = 0;
@@ -287,7 +287,7 @@ s32 EftAbsorb_Start(EftAbsorbOwner *arg) {
 
 /* Fighter effect request 0x38 ended: asks the fighter's glow to end. Returns 1 when it was running. */
 s32 EftAbsorb_Stop(s32 objId) {
-    EftTask *task = EftCharSlot_GetAbsorb(objId);
+    BtlTask *task = EftCharSlot_GetAbsorb(objId);
 
     EftAbsorb *w;
 

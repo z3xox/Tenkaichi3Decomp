@@ -1,4 +1,5 @@
 #include "common.h"
+#include "battle/btl_task.h"
 #include "battle/battle.h"
 #include "battle/battle_setup.h"
 #include "battle/btl_pool.h"
@@ -51,12 +52,12 @@
 
 extern void *memset(void *dst, s32 c, u32 n);
 
-extern BtlTaskClass gBtlSceneRootClass; /* 0x2C3490: {BtlSceneRoot_Update, BtlSceneRoot_Init, BtlSceneRoot_Term} */
-extern BtlTaskClass D_002C3550;         /* layer 0 */
-extern BtlTaskClass D_002C35D0;         /* layer 4 */
-extern BtlTaskClass D_002C36D0;         /* layer 1 */
-extern BtlTaskClass gEftCharRootClass;         /* layer 2 */
-extern BtlTaskClass gEftLayer3Class;         /* layer 3 */
+extern BtlTaskCls gBtlSceneRootClass; /* 0x2C3490: {BtlSceneRoot_Update, BtlSceneRoot_Init, BtlSceneRoot_Term} */
+extern BtlTaskCls D_002C3550;         /* layer 0 */
+extern BtlTaskCls D_002C35D0;         /* layer 4 */
+extern BtlTaskCls D_002C36D0;         /* layer 1 */
+extern BtlTaskCls gEftCharRootClass;         /* layer 2 */
+extern BtlTaskCls gEftLayer3Class;         /* layer 3 */
 
 /* task system, 0x1AD150..0x1ADB48 */
 extern void BtlTaskList_Update(void *list);
@@ -66,9 +67,9 @@ extern void BtlTaskList_Draw(void *list);
 extern void *BtlTask_CreateChildList(void *task, s32 capacity, s32 workSize);
 extern void *BtlTaskList_Create(void *parent, s32 capacity, s32 workSize);
 extern void BtlTaskList_Destroy(void *list);
-extern void *BtlTaskList_AddFirst(void *list, BtlTaskClass *cls, void *arg);
-extern void *BtlTaskList_AddHead(void *list, BtlTaskClass *cls, void *arg);
-extern void *BtlTaskList_AddTail(void *list, BtlTaskClass *cls, void *arg);
+extern void *BtlTaskList_AddFirst(void *list, BtlTaskCls *cls, void *arg);
+extern void *BtlTaskList_AddHead(void *list, BtlTaskCls *cls, void *arg);
+extern void *BtlTaskList_AddTail(void *list, BtlTaskCls *cls, void *arg);
 extern void BtlTask_Kill(void *task);
 
 extern s32 BtlStage_IsReady(void);
@@ -476,35 +477,9 @@ s32 BtlScene_IsEffectStopped(s32 objId, s32 kind) {
     return result;
 }
 
-/* Second per-kind test of the tasks, on the object's state (0x205DC8) and its fighter's actions. */
-#if 0
-/* Not matching (12 of 92 after alignment, 90 instructions against 92): only the tails of the first switch differ.
- * Before delay-slot filling this C gives: case 0 `beqz v0,END / X: s2 = 1 / b END`, case 1 `bnez v0,END / b X`,
- * cases 3 and 6 `beq -> X`: the final jump pass has cross-jumped the three `result = 1; break;` tails into the
- * copy of case 0, whose label X then stops the "branch around one instruction" rewrite. The original shows that
- * rewrite in BOTH case 0 and case 1 (`bnezl v0,END / li s2,1 / b END+4 / li v0,4`, and `beqzl` in case 1), so
- * there each case still had its own unlabelled `result = 1` and the block of cases 3 / 6 was separate (its
- * `li s2,1` went into the delay slot of `beq kind,3`, and the block then disappeared). What kept the three
- * tails from being cross-jumped is not found. Tried: all 24 orders of the four case groups with two forms of
- * each test, eight statement forms per case (if / break-first / ternary / ++ / |= / else forms), a goto to a
- * shared label. The default case no longer needs the `one` variable: two plain ifs give the original's
- * `li s0,1` (in the delay slot of the first call) and `sltu` / `movz`. Behaviour is the same as the original.
- * Cleanup 4 (reorg / jump behaviour worked out from dumps, 130 more forms):
- * - The rewrite in cases 0 and 1 is reorg's optimize_skip: `beqz v0,END / li s2,1 / b END` (a branch around ONE
- *   unlabelled instruction that is followed by a jump to the branch's own target) becomes `bnezl v0,END /
- *   li s2,1`. So before reorg both cases had their own unlabelled `result = 1` and cases 3 / 6 a third copy
- *   (label X; both dispatch branches then take X's `li s2,1` into a delay slot or find it redundant, and X
- *   is deleted as unreachable). The dispatch ends `beq kind,6,X / b default`, so X did not directly follow it.
- * - Cross-jumping needs two matching instructions, or one when the copy it starts from is entered through a
- *   label. Cases 0 / 1 are entered by falling out of a conditional branch (no merge between them); the copy
- *   of cases 3 / 6 IS entered through a label, so it always merges into another copy, whose `li` then gets
- *   the label that blocks optimize_skip. That is the whole difference, and nothing tried keeps X apart.
- * - `if (!AnyFrozen()) break; goto hide;` with `hide:` in cases 3 / 6 placed FIRST gives case 0 exactly
- *   (`bnez X / b END` filled from X's thread), 7 differ; case 1's `beqz` is predicted not taken, takes the
- *   `li v0,4` of the following jump instead, and the dispatch falls into X (`bne kind,6,default`).
- * - Cases 3 / 6 last (behind `default`): the default's second `if` is no longer converted to a conditional
- *   move by the first jump pass (it must fall into the switch end for that) and merges with X: 51 to 114.
- * - An inline helper for the first switch (five shapes): 39 to 50. */
+/* Second per-kind test of the tasks, on the object's state (0x205DC8) and its fighter's actions.
+   Cases 3 and 6 have separate bodies: combining their labels changes cross-jumping before
+   the R5900 delay-slot pass. Both independent arms are needed for the original branch shape. */
 s32 BtlScene_IsEffectHidden(s32 objId, s32 kind) {
     s32 result = 0;
 
@@ -521,6 +496,8 @@ s32 BtlScene_IsEffectHidden(s32 objId, s32 kind) {
             }
             break;
         case 3:
+            result = 1;
+            break;
         case 6:
             result = 1;
             break;
@@ -562,8 +539,6 @@ s32 BtlScene_IsEffectHidden(s32 objId, s32 kind) {
     }
     return result;
 }
-#endif
-INCLUDE_ASM("asm/nonmatchings/battle/btl_scene", BtlScene_IsEffectHidden);
 
 /* Asks BtlScene_CheckStageChange to change the stage on the next frame (no caller). */
 void BtlScene_RequestStageChange(void) {

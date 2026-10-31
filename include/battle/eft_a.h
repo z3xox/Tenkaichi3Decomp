@@ -2,6 +2,8 @@
 #define BATTLE_EFT_A_H
 
 #include "types.h"
+#include "battle/btl_cam.h"
+#include "sys/math3d.h"
 
 /*
  * Effect core, src/battle/eft_a.c = 0x12DD80..0x132290: the first code after the effect scene manager
@@ -35,15 +37,6 @@
 /* 16-byte aligned vector: the record is copied with 64-bit moves and its list is padded to 16. A union with an
    array view: EftMath_Lerp and EftHit_SpawnBlastImpact only match with this shape (a plain struct of four floats
    changes how the compiler may reorder loads and stores), so the original vector type very likely had one. */
-typedef union EftVec {
-    struct {
-        /* 0x0 */ f32 x;
-        /* 0x4 */ f32 y;
-        /* 0x8 */ f32 z;
-        /* 0xC */ f32 w;
-    };
-    f32 v[4];
-} __attribute__((aligned(16))) EftVec;
 
 /* EftHitRec.type */
 #define EFT_HIT_BLAST 0 /* EftHitRec.atk is set */
@@ -85,7 +78,7 @@ typedef struct EftHitTask {
     /* 0x0A */ s8 countA;    /* EftHit_IncCountA / SetCountA / GetCountA */
     /* 0x0B */ s8 hitCount;  /* EftHit_IncHitCount / GetHitCount: hits landed by a multi-hit technique */
     /* 0x0C */ s32 unkC;
-    /* 0x10 */ EftVec pos;   /* where it hit (0x1ADB40 stores it); the impact effect is placed here */
+    /* 0x10 */ Vec4Array pos;   /* where it hit (0x1ADB40 stores it); the impact effect is placed here */
     /* 0x20 */ u8 unk20[0x38 - 0x20];
     /* 0x38 */ void *work;   /* the task's work block (the projectile's state; read by the tasks, not by this file) */
 } EftHitTask;
@@ -124,7 +117,7 @@ typedef struct EftHitSrc {
     /* 0x0C */ u8 unkC[0x24 - 0xC];
     /* 0x24 */ EftHitDef *def;
     /* 0x28 */ u8 unk28[0x30 - 0x28];
-    /* 0x30 */ EftVec aimDir; /* EftAim_GetDirKeep: the direction aimed once */
+    /* 0x30 */ Vec4Array aimDir; /* EftAim_GetDirKeep: the direction aimed once */
     /* 0x40 */ s32 aimFlags; /* bit 2: aimDir is valid */
 } EftHitSrc;
 
@@ -156,14 +149,14 @@ typedef struct EftHitShape {
 
 /* Sphere of a type 0 shape (0x20 bytes of the arena). */
 typedef struct EftHitSphere {
-    /* 0x00 */ EftVec pos;
+    /* 0x00 */ Vec4Array pos;
     /* 0x10 */ f32 radius;
 } EftHitSphere;
 
 /* Box / capsule of a type 1 shape (0x30 bytes of the arena). */
 typedef struct EftHitBox {
-    /* 0x00 */ EftVec unk0;
-    /* 0x10 */ EftVec pos;
+    /* 0x00 */ Vec4Array unk0;
+    /* 0x10 */ Vec4Array pos;
     /* 0x20 */ f32 radius;
 } EftHitBox;
 
@@ -173,10 +166,10 @@ typedef struct EftHitRec {
     /* 0x004 */ s32 unk4;     /* def->unk6 or atk->unk1B */
     /* 0x008 */ s32 level;    /* def->level or atk->level: the stronger record wins a clash */
     /* 0x00C */ s32 type;     /* EFT_HIT_* */
-    /* 0x010 */ EftVec unk10; /* filled by the task (first of the four vectors it copies) */
-    /* 0x020 */ EftVec pos;
-    /* 0x030 */ EftVec prevPos;
-    /* 0x040 */ EftVec vel;
+    /* 0x010 */ Vec4Array unk10; /* filled by the task (first of the four vectors it copies) */
+    /* 0x020 */ Vec4Array pos;
+    /* 0x030 */ Vec4Array prevPos;
+    /* 0x040 */ Vec4Array vel;
     /* 0x050 */ s32 flags;    /* EFT_HIT_FLAG_* */
     /* 0x054 */ s32 unk54;    /* technique: bit 1 of def->flags */
     /* 0x058 */ s32 unk58[2];
@@ -224,14 +217,14 @@ typedef struct EftCam {
 
 /* 4x4 matrix as four aligned rows. */
 typedef struct EftMtx {
-    /* 0x00 */ EftVec row[4];
+    /* 0x00 */ Vec4Array row[4];
 } EftMtx; /* size 0x40 */
 
 /* Vertex of the polygons the clipped draw functions take. */
 typedef struct EftGfxVert {
-    /* 0x00 */ EftVec pos;
-    /* 0x10 */ EftVec color;
-    /* 0x20 */ EftVec uv;
+    /* 0x00 */ Vec4Array pos;
+    /* 0x10 */ Vec4Array color;
+    /* 0x20 */ Vec4Array uv;
 } EftGfxVert; /* size 0x30 */
 
 extern EftHitList *gEftHitList;
@@ -246,7 +239,7 @@ void EftHit_BeginFrame(void);
 void EftHit_Clear(void);
 EftHitList *EftHit_GetList(void);
 s32 EftHit_GetTaskFlags(u32 idx);
-void EftHit_SetTaskFlag(u32 idx, s32 bits, EftVec pos);
+void EftHit_SetTaskFlag(u32 idx, s32 bits, Vec4Array pos);
 void EftHit_SpawnImpacts(void);
 s32 EftHit_CanHit(EftHitRec *rec, s32 mode);
 s32 EftHit_IsStoppedByHit(EftHitRec *rec);
@@ -309,31 +302,31 @@ s32 EftCam_IsActive(void);
 void EftCam_Stop(void);
 void EftCam_Update(void);
 
-void EftGfx_LightClutDiffuse(u8 *dst, u8 *nrm, EftVec light, u8 r, u8 g, u8 b);
-void EftGfx_LightClutSpecular(u8 *dst, u8 *nrm, EftMtx view, EftMtx light, EftVec eye, f32 power);
+void EftGfx_LightClutDiffuse(u8 *dst, u8 *nrm, Vec4Array light, u8 r, u8 g, u8 b);
+void EftGfx_LightClutSpecular(u8 *dst, u8 *nrm, EftMtx view, EftMtx light, Vec4Array eye, f32 power);
 void EftGfx_LerpClut(u8 *dst, u8 *a, u8 *b, f32 t);
-void EftMath_CalcTangentFrame(EftMtx *out, EftVec *pos, EftVec *uv);
-s32 EftMath_MtxFromDir(EftMtx *out, EftVec *dir, f32 roll);
+void EftMath_CalcTangentFrame(EftMtx *out, Vec4Array *pos, Vec4Array *uv);
+s32 EftMath_MtxFromDir(EftMtx *out, Vec4Array *dir, f32 roll);
 f32 EftMath_WrapAngle(f32 angle);
-void EftMath_CatmullRom(EftVec out, EftVec *p, f32 t);
-void EftMath_Spline3(EftVec *out, EftVec *p, f32 t);
-void EftMath_Spline3B(EftVec out, EftVec *p, f32 t);
-void EftMath_Bezier(EftVec out, EftVec *p, f32 t);
-void EftMath_Lerp(EftVec out, EftVec *p, f32 t);
-void EftMath_TcbSpline(EftVec out, EftVec *p, f32 t, f32 tension, f32 bias, f32 continuity);
-EftVec *EftGfx_GetClipPlanes(void);
+void EftMath_CatmullRom(Vec4Array out, Vec4Array *p, f32 t);
+void EftMath_Spline3(Vec4Array *out, Vec4Array *p, f32 t);
+void EftMath_Spline3B(Vec4Array out, Vec4Array *p, f32 t);
+void EftMath_Bezier(Vec4Array out, Vec4Array *p, f32 t);
+void EftMath_Lerp(Vec4Array out, Vec4Array *p, f32 t);
+void EftMath_TcbSpline(Vec4Array out, Vec4Array *p, f32 t, f32 tension, f32 bias, f32 continuity);
+Vec4Array *EftGfx_GetClipPlanes(void);
 void EftGfx_UpdateClipPlanes(void);
-s32 EftAim_GetDir(EftVec *out, s32 arg, s32 objId);
-s32 EftAim_GetDirKeep(EftHitSrc *src, EftVec *out, s32 arg, s32 objId);
-void EftMath_RotateAboutAxis(EftVec *out, EftVec *v, EftVec *axis, f32 angle);
-void EftAim_Home(EftVec *out, EftVec *pos, EftVec *dir, s32 objId, f32 speed, f32 maxTurn);
+s32 EftAim_GetDir(Vec4Array *out, s32 arg, s32 objId);
+s32 EftAim_GetDirKeep(EftHitSrc *src, Vec4Array *out, s32 arg, s32 objId);
+void EftMath_RotateAboutAxis(Vec4Array *out, Vec4Array *v, Vec4Array *axis, f32 angle);
+void EftAim_Home(Vec4Array *out, Vec4Array *pos, Vec4Array *dir, s32 objId, f32 speed, f32 maxTurn);
 void EftGfx_DrawPolyAvgZ(EftGfxVert *verts, s32 arg1, s32 arg2, s32 arg3, s32 flip, u64 tex, s32 zOfs);
 void EftGfx_DrawPolyFixedZ(EftGfxVert *verts, s32 arg1, s32 arg2, s32 arg3, s32 front, s32 flip, u64 tex, s32 z);
 void EftGfx_DrawPolyAvgZFront(EftGfxVert *verts, s32 arg1, s32 arg2, s32 arg3, s32 front, s32 flip, u64 tex,
                               s32 zOfs);
 void EftGfx_DrawPolyScaledZ(EftGfxVert *verts, s32 arg1, s32 arg2, s32 arg3, s32 front, s32 flip, u64 tex,
                             f32 zScale);
-void EftGfx_DrawSprite(EftVec *pos, EftVec *color, f32 w, f32 h, f32 u0, f32 v0, f32 u1, f32 v1, f32 rot, s32 layer,
+void EftGfx_DrawSprite(Vec4Array *pos, Vec4Array *color, f32 w, f32 h, f32 u0, f32 v0, f32 u1, f32 v1, f32 rot, s32 layer,
                        s32 front, u64 tex0);
 
 #endif

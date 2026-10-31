@@ -115,7 +115,7 @@ static f32 sMsgWinTextX = -1.0f; /* where the line was last drawn (the screen's 
 /* The text box's own drawing, and where it drew (it follows the window's slide-in). */
 static void MsgWin_PortDrawClip(void *draw, f32 *prop) {
     sMsgWinTextX = prop[14]; /* the matrix's translation (FlashProp 0x38: sys/gfxm_c.h) */
-    TextBox_DrawClip((TextBoxDraw *)draw, (TextBoxClipProp *)prop);
+    TextBox_DrawClip((TextBoxDraw *)draw, (FlashProp *)prop);
 }
 
 /* As MsgWin_Draw, with `str` (16-bit, 0xFEFF first; NULL: no line). A changed line is another buffer: the screen
@@ -130,7 +130,7 @@ void MsgWin_PortDrawString(u16 *str) {
     Flash_FindLabel(flash, NULL, "mc_message_text", &ref);
     if (str != NULL) {
         TextBox_AttachString(flash, &ref, 0, 0, str, &gMsgWin->box);
-        Flash_ClipSetCallbackC(flash, &ref, MsgWin_PortDrawClip, &((TextBoxFull *)&gMsgWin->box)->draw);
+        Flash_ClipSetCallbackC(flash, &ref, MsgWin_PortDrawClip, &gMsgWin->box.draw);
     } else {
         Flash_ClipSetCallbackC(flash, &ref, NULL, NULL);
     }
@@ -140,7 +140,7 @@ void MsgWin_PortDrawString(u16 *str) {
 
 /* How wide a line may be, in the font's pixels: from where the line starts up to `right` (the screen's 512). */
 s32 MsgWin_PortLineRoom(s32 right) {
-    f32 x = sMsgWinTextX < 0.0f ? 40.0f : sMsgWinTextX + (f32)gMsgWin->box.unkC;
+    f32 x = sMsgWinTextX < 0.0f ? 40.0f : sMsgWinTextX + (f32)gMsgWin->box.x;
 
     return (s32)((f32)right - x);
 }

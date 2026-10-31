@@ -112,12 +112,18 @@ typedef s32 (*ColMeshCb)(ColNode *node, void *ctx);
 typedef struct ColObb {
     /* 0x000 */ ColVec center; /* ColObb_Init: the centre it was given; ColObb_Update: row 3 of mtx. w = 1 */
     /* 0x010 */ ColVec half;   /* half extents along the three axes, w = 1 */
-    /* 0x020 */ ColVec axis[3];/* world axes: rows 0..2 of mtx (x, y, z only; w is never written) */
+    /* World axes, named or indexed by component in the contact tests. */
+    union {
+        /* 0x020 */ ColVec axis[3];
+        /* 0x020 */ ColVecA axisComponents[3];
+    };
     /* 0x050 */ f32 mtx[4][4]; /* local to world */
     /* 0x090 */ ColVec local[8]; /* corners in local space, w = 1. Corner n: x negative when bit 0 of n is set,
                                     y when bit 1, z when bit 2 */
     /* 0x110 */ ColVec world[8]; /* corners in world space (mtx applied to local) */
 } ColObb; /* size 0x190 */
+
+extern f32 D_002FEBA8[]; /* contact-test FLT_MAX, addressed outside small data */
 
 extern s32 *gColMeshBase;      /* 0x2FEB90: base the mesh offsets are counted from, in words */
 extern s32 gColWalkCount;      /* 0x2FEB94: leaves collected / OR of the callback results of the walk in progress */
@@ -150,7 +156,7 @@ void ColMesh_CollectNode(ColNode *nodes, ColBox *box, s32 idx);
 s32 ColMesh_CollectBox(s32 max, u16 *buf, ColMesh *mesh, ColBox *box);
 void ColMesh_WalkNode(ColNode *nodes, ColBox *box, s32 idx);
 s32 ColMesh_WalkBox(ColMesh *mesh, ColBox *box, void *ctx, ColMeshCb cb);
-s32 Col_NearEq(f32 a, f32 b, f32 eps);
+s32 Col_NearEq(f32 a, f32 b, f32 eps) __attribute__((const));
 void Col_LineLineParams(f32 *s, f32 *t, ColVec *p1, ColVec *d1, ColVec *p2, ColVec *d2);
 s32 ColObb_Overlaps(ColObb *a, ColObb *b);
 s32 ColObb_Contact(ColObb *a, ColObb *b, ColVec *normal, ColVec *point, f32 *depth);

@@ -23,7 +23,7 @@ SoloSel *gSoloSel = NULL; /* 0x3B7348 */
 /* The cursor moved to another grid row: the seven chips take the characters of the new row. */
 void SoloSel_SwapRowTex(void) {
     s32 tbl[SOLOSEL_COLS] = {8, 11, 12, 13, 14, 15, 16};
-    MTexRes *res;
+    FlashTexRes *res;
     s32 i;
 
     for (i = 0; i < SOLOSEL_COLS; i++) {
@@ -31,7 +31,7 @@ void SoloSel_SwapRowTex(void) {
 
         gSoloSel->sel->prevRowChara[i] = gSoloSel->sel->rowChara[i];
         gSoloSel->sel->rowChara[i] = chara;
-        res = (MTexRes *)MPACK_AT(gSoloSel->chips, chara + 1);
+        res = (FlashTexRes *)MPACK_AT(gSoloSel->chips, chara + 1);
         gSoloSel->texB[18 + i] = gSoloSel->texB[tbl[i]];
         gSoloSel->texB[tbl[i]] = MTEX(res, 0);
     }
@@ -40,7 +40,7 @@ void SoloSel_SwapRowTex(void) {
 /* The seven chips take the forms of the cell under the cursor (empty chips past the last form). */
 void SoloSel_SetRowTex(void) {
     s32 tbl[SOLOSEL_COLS] = {8, 11, 12, 13, 14, 15, 16};
-    MTexRes *res;
+    FlashTexRes *res;
     s32 i;
 
     for (i = 0; i < SOLOSEL_COLS; i++) {
@@ -53,7 +53,7 @@ void SoloSel_SetRowTex(void) {
         }
         gSoloSel->sel->prevRowChara[i] = gSoloSel->sel->rowChara[i];
         gSoloSel->sel->rowChara[i] = chara;
-        res = (MTexRes *)MPACK_AT(gSoloSel->chips, chara + 1);
+        res = (FlashTexRes *)MPACK_AT(gSoloSel->chips, chara + 1);
         gSoloSel->texB[18 + i] = gSoloSel->texB[tbl[i]];
         gSoloSel->texB[tbl[i]] = MTEX(res, 0);
     }
@@ -61,7 +61,7 @@ void SoloSel_SetRowTex(void) {
 
 /* One step of the background loader of the large picture (file 0x2F9 + character). */
 void SoloSel_UpdateImage(void) {
-    MTexRes *res;
+    FlashTexRes *res;
 
     switch (gSoloSel->loadState) {
     case SOLOSEL_LOAD_ABORT:
@@ -112,9 +112,9 @@ void SoloSel_ChangeImage(void) {
 
 /* Sends a clip of movie `movie` to a label: the chip or plate the cursor is on. */
 void SoloSel_ClipGoto(s32 movie, s32 kind, char *label) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[64];
-    MFlash *flash = &gSoloSel->flash[movie];
+    Flash *flash = &gSoloSel->flash[movie];
 
     switch (kind) {
     case 0:
@@ -138,12 +138,12 @@ void SoloSel_ClipGoto(s32 movie, s32 kind, char *label) {
 }
 
 #define SS_RES(n) \
-    res = (MTexRes *)MPACK_AT(gSoloSel->res, n); \
+    res = (FlashTexRes *)MPACK_AT(gSoloSel->res, n); \
     Res_RelocateOffsets(&res, res, res)
 
 /* Loads and unpacks the screen (section `section` of archive 3), builds its three movies and the grid. */
 void SoloSel_Init(s32 section) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
     s32 i;
 
     gSoloSel = Heap_Alloc(0x1AA4, 0x20, 0, 2);
@@ -221,7 +221,7 @@ void SoloSel_Init(s32 section) {
     gSoloSel->formText = MPACK_AT(gSoloSel->res, 29);
     gSoloSel->chips = (u32 *)MPACK_AT(gSoloSel->res, 27);
     for (i = 0; i < LCHR_CELL_MAX; i++) {
-        res = (MTexRes *)MPACK_AT(gSoloSel->chips, i + 1);
+        res = (FlashTexRes *)MPACK_AT(gSoloSel->chips, i + 1);
         Res_RelocateOffsets(&res, res, res);
     }
     gSoloSel->grid = ((LChrGridList *)MPACK_AT(gSoloSel->res, 30))->cell;
@@ -296,13 +296,13 @@ void SoloSel_Term(void) {
 
 /* Sets up every clip of the three movies from the current state and draws the screen. */
 void SoloSel_Draw(void) {
-    MFlashRef ref;
-    MFlashUv uv;
+    FlashRef ref;
+    FlashUv uv;
     char name[64];
     char part[64];
     s32 i;
     s32 k;
-    MFlash *flash;
+    Flash *flash;
 
 #ifdef PORT
     Port_MenuPage(23); /* widescreen menus: this screen's page, its backdrop filling the width */
@@ -342,18 +342,18 @@ void SoloSel_Draw(void) {
     Flash_FindLabel(flash, NULL, "mc_form_text_l", &ref);
     TextBox_AttachLine(flash, &ref, 0, 0, gSoloSel->sel->image, &gSoloSel->box[1]);
     flash = &gSoloSel->flash[2];
-    uv.x0 = 0x20;
-    uv.y0 = 0;
-    uv.x1 = 0x40;
-    uv.y1 = 0x20;
+    uv.u0 = 0x20;
+    uv.v0 = 0;
+    uv.u1 = 0x40;
+    uv.v1 = 0x20;
     Flash_FindLabel(flash, NULL, "mc_yajirusi", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     for (i = 0; i < 4; i++) {
         /* item set plates: dimmed when they cannot be chosen */
-        uv.x0 = 0;
-        uv.y0 = i * 0x20;
-        uv.x1 = 0x100;
-        uv.y1 = uv.y0 + 0x20;
+        uv.u0 = 0;
+        uv.v0 = i * 0x20;
+        uv.u1 = 0x100;
+        uv.v1 = uv.v0 + 0x20;
         sprintf(name, "mc_custom_plate_%d", i + 1);
         Flash_FindLabel(flash, NULL, name, &ref);
         Flash_ClipSetColor(flash, &ref, i < gSoloSel->customCount ? 1.0f : 0.3f);
@@ -368,10 +368,10 @@ void SoloSel_Draw(void) {
     }
     for (i = 0; i < 4; i++) {
         /* costume plates */
-        uv.x0 = (i % 2) * 0x40;
-        uv.y0 = (i / 2) * 0x20;
-        uv.x1 = uv.x0 + 0x40;
-        uv.y1 = uv.y0 + 0x20;
+        uv.u0 = (i % 2) * 0x40;
+        uv.v0 = (i / 2) * 0x20;
+        uv.u1 = uv.u0 + 0x40;
+        uv.v1 = uv.v0 + 0x20;
         sprintf(name, "mc_color_plate_%d", i + 1);
         Flash_FindLabel(flash, NULL, name, &ref);
         if (i < gSoloSel->colorCount) {
@@ -393,18 +393,18 @@ void SoloSel_Draw(void) {
         }
     }
     flash = &gSoloSel->flash[1];
-    uv.x0 = 0;
-    uv.y0 = 0;
-    uv.x1 = 0x40;
-    uv.y1 = 0x20;
+    uv.u0 = 0;
+    uv.v0 = 0;
+    uv.u1 = 0x40;
+    uv.v1 = 0x20;
     Flash_FindLabel(flash, NULL, "mc_plate_text", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     if (gSoloSel->rows >= 2) {
         for (i = 0; i < 2; i++) {
-            uv.x0 = i * 0x20;
-            uv.y0 = 0x20;
-            uv.x1 = uv.x0 + 0x20;
-            uv.y1 = 0x40;
+            uv.u0 = i * 0x20;
+            uv.v0 = 0x20;
+            uv.u1 = uv.u0 + 0x20;
+            uv.v1 = 0x40;
             Flash_FindLabel(flash, i != 0 ? "mc_yajirusi_down" : "mc_yajirusi_up",
                             i != 0 ? "mc_yajirusi_icon_down" : "mc_yajirusi_icon_up", &ref);
             Flash_ClipSetUv(flash, &ref, &uv);
@@ -745,7 +745,7 @@ void SoloSel_UpdateEnd(void) {
 
 /*
  * The one-character select (modes 15 with a team size below 2, 18, 21, 25 and 29). Returns 1 when a fighter was
- * chosen (the choice is then in gProgress->team[0]), 0 when the player backed out.
+ * chosen (the choice is then in gProgress->replay.team[0]), 0 when the player backed out.
  */
 s32 SoloSel_Run(s32 section) {
     s32 result = 1;

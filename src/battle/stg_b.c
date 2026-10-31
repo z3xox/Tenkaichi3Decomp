@@ -1151,7 +1151,7 @@ void ScrXfade_PostDraw(void) {
 }
 
 /* Starts the fade ramp over `seconds` and stores the request word. */
-void ScrXfade_Start(s32 request, f32 seconds) {
+void ScrXfade_Start(f32 seconds, s32 request) {
     Ramp_Start(&gScrXfade->ramp, seconds, 0.0f, 1.0f);
     gScrXfade->request = request;
 }

@@ -23,9 +23,9 @@
 
 /* Sends the clip of sub menu `guide`'s guide to a label ("fl_in" / "fl_out"). */
 void HistGuide_ClipGoto(HistSel *menu, s32 guide, char *label) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[64];
-    MFlash *flash = &menu->flash[0];
+    Flash *flash = &menu->flash[0];
 
     sprintf(name, "mc_guide_%02d", guide);
     Flash_FindLabel(flash, NULL, name, &ref);

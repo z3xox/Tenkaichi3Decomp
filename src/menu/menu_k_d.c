@@ -13,7 +13,7 @@ extern void Port_MenuFill(int on);
 TourBg *gTourBg = NULL; /* 0x3B591C */
 
 #define TB_RES(n) \
-    res = (MTexRes *)MPACK_AT(gTourBg->res, n); \
+    res = (FlashTexRes *)MPACK_AT(gTourBg->res, n); \
     Res_RelocateOffsets(&res, res, res)
 
 /*
@@ -21,7 +21,7 @@ TourBg *gTourBg = NULL; /* 0x3B591C */
  * textures of the caller for the movie's last image records.
  */
 void TourBg_Init(void *file, u32 kind, u8 **tex) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
 
     gTourBg = Heap_Alloc(sizeof(TourBg), 0x20, 0, 2);
     memset(gTourBg, 0, sizeof(TourBg));
@@ -105,9 +105,9 @@ void TourBg_Term(void) {
 
 /* Advances and draws the backdrop: the picture, then the movie with its cloud layer scrolled sideways. */
 void TourBg_Draw(void) {
-    MFlashRef ref;
-    MFlashUv uv;
-    MFlash *flash;
+    FlashRef ref;
+    FlashUv uv;
+    Flash *flash;
     s32 i;
 
     for (i = 0; i < 1; i++) {
@@ -122,10 +122,10 @@ void TourBg_Draw(void) {
     Sprite_DrawPicture(gTourBg->bg, 0, 0, 0x80);
 #endif
     flash = &gTourBg->flash[0];
-    uv.y1 = 0x100;
-    uv.x1 = 0x200;
-    uv.y0 = 0;
-    uv.x0 = 0;
+    uv.v1 = 0x100;
+    uv.u1 = 0x200;
+    uv.v0 = 0;
+    uv.u0 = 0;
     Flash_FindLabel(flash, NULL, "mc_bg_move_obj_kumo", &ref);
     switch (gTourBg->kind) {
     case TOUR_WORLD:

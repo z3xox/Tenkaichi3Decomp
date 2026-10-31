@@ -13,10 +13,10 @@
  */
 
 /* Plays "fl_select_in" on the card under the cursor. */
-void SimEv28_SelectCard(TSimDay *day) {
-    MFlashRef ref;
+void SimEv28_SelectCard(SimDay *day) {
+    FlashRef ref;
     char name[0x40];
-    MFlash *flash = &day->flash[SIMEV_FLASH_CARD];
+    Flash *flash = &day->flash[SIMEV_FLASH_CARD];
 
     sprintf(name, "mc_card_anime%02d", day->cur[3]);
     Flash_FindLabel(flash, NULL, name, &ref);
@@ -24,10 +24,10 @@ void SimEv28_SelectCard(TSimDay *day) {
 }
 
 /* Plays "fl_off" on the card under the cursor. */
-void SimEv28_UnselectCard(TSimDay *day) {
-    MFlashRef ref;
+void SimEv28_UnselectCard(SimDay *day) {
+    FlashRef ref;
     char name[0x40];
-    MFlash *flash = &day->flash[SIMEV_FLASH_CARD];
+    Flash *flash = &day->flash[SIMEV_FLASH_CARD];
 
     sprintf(name, "mc_card_anime%02d", day->cur[3]);
     Flash_FindLabel(flash, NULL, name, &ref);
@@ -35,7 +35,7 @@ void SimEv28_UnselectCard(TSimDay *day) {
 }
 
 /* Next place left (dir 0) or right of the cursor whose card was not picked yet, wrapping; -1 = none. */
-s32 SimEv28_MoveCursor(TSimDay *day, s32 dir) {
+s32 SimEv28_MoveCursor(SimDay *day, s32 dir) {
     s32 n = gSimTrain0[gSimCardRank].param - 1;
     s32 cur = day->cur[day->state];
     s32 i;
@@ -92,7 +92,7 @@ void SimEv28_Deal(s32 n) {
 /*
  * Random event 23: picture 1 asks; yes = the card game at the rank of training 0. The cards (param of them, out of
  * 0..9) lie face up for `seconds`, then are picked one by one; each pick must be the lowest card left. All right =
- * points and attack (TSimTrain.points / gain); one wrong pick ends the game with TSimTrain.loss on attack. After
+ * points and attack (SimTrain.points / gain); one wrong pick ends the game with SimTrain.loss on attack. After
  * the switch every frame sets the picture of each card and the cross of a wrong pick. Pad 0: left / right
  * (gameRepeat 1 / 2), confirm (gamePressed 0x200).
  *
@@ -102,11 +102,11 @@ void SimEv28_Deal(s32 n) {
  * only such site in the overlay, so this file alone is ASSEMBLED with -G8 (the compiler still gets -G0): see
  * AS_G_FLAGS in configure.py and scripts/fdiff.py. That is only safe because the file has no float constants.
  */
-s32 SimEv28(TSimDay *day) {
+s32 SimEv28(SimDay *day) {
     char name[0x40];
-    MFlashRef ref;
-    MFlashUv uv;
-    MFlash *flash;
+    FlashRef ref;
+    FlashUv uv;
+    Flash *flash;
     s32 i;
     s32 cur;
     s32 ok = gPad[0].gamePressed & 0x200;
@@ -156,7 +156,7 @@ s32 SimEv28(TSimDay *day) {
         break;
     case 6:
         day->msgLine = -1;
-        if (day->answer == 0) {
+        if (day->unkB8C == 0) {
             day->seq = 23;
             day->seqTimer = 0;
         } else {
@@ -199,7 +199,7 @@ s32 SimEv28(TSimDay *day) {
         }
         break;
     case 12:
-        if (++day->seqTimer > gSimTrain0[gSimCardRank].seconds * 60) {
+        if (++day->seqTimer > gSimTrain0[gSimCardRank].unk4 * 60) {
             day->seq++;
             day->seqTimer = 0;
         }
@@ -355,25 +355,25 @@ s32 SimEv28(TSimDay *day) {
         y = gSimCardShown[i] / 4;
         x *= 64;
         y *= 64;
-        uv.x0 = x;
-        uv.y0 = y;
-        uv.x1 = x + 64;
-        uv.y1 = y + 64;
+        uv.u0 = x;
+        uv.v0 = y;
+        uv.u1 = x + 64;
+        uv.v1 = y + 64;
         Flash_FindLabel(flash, name, "mc_card_num", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
         if ((gSimCardWrong >> i) & 1) {
-            uv.x0 = 64;
-            uv.y0 = 0;
-            uv.x1 = 128;
-            uv.y1 = 64;
+            uv.u0 = 64;
+            uv.v0 = 0;
+            uv.u1 = 128;
+            uv.v1 = 64;
             Flash_FindLabel(flash, name, "mc_maru_batsu", &ref);
             Flash_ClipSetUv(flash, &ref, &uv);
         }
     }
-    uv.x0 = 0;
-    uv.y0 = 0x80;
-    uv.x1 = 0x200;
-    uv.y1 = 0x100;
+    uv.u0 = 0;
+    uv.v0 = 0x80;
+    uv.u1 = 0x200;
+    uv.v1 = 0x100;
     Flash_FindLabel(flash, NULL, "mc_lose_text", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     if (flash->se & 1) {
@@ -383,7 +383,7 @@ s32 SimEv28(TSimDay *day) {
 }
 
 /* Random event 24: pictures 8 / 9 ask; yes = attack + 15, defence + 15 and a level-up (command 33). */
-s32 SimEv29(TSimDay *day) {
+s32 SimEv29(SimDay *day) {
     switch (day->seq) {
     case 0:
         day->faceA = 11;
@@ -439,7 +439,7 @@ s32 SimEv29(TSimDay *day) {
         break;
     case 8:
         day->msgLine = -1;
-        if (day->answer != 0) {
+        if (day->unkB8C != 0) {
             day->seq++;
             day->seqTimer = 0;
         } else {
@@ -533,7 +533,7 @@ s32 SimEv29(TSimDay *day) {
 }
 
 /* Random event 25: pictures 6 / 3 ask; yes = picture 2 comes and defence - 5; no = 1000 points. */
-s32 SimEv30(TSimDay *day) {
+s32 SimEv30(SimDay *day) {
     switch (day->seq) {
     case 0:
         day->faceA = 11;
@@ -577,7 +577,7 @@ s32 SimEv30(TSimDay *day) {
         break;
     case 6:
         day->msgLine = -1;
-        if (day->answer != 0) {
+        if (day->unkB8C != 0) {
             day->seq++;
             day->seqTimer = 0;
         } else {

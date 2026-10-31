@@ -89,10 +89,10 @@ static s32 PortMainMenu_WriteDisc(u8 *tex, s32 row, s32 lit) {
 
 /* Starts the idle loop of the seven dragon balls (all seven collected). */
 void MainMenu_StartBallLoops(void) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[64];
     s32 i;
-    MFlash *flash = &gMainMenu->flash[0];
+    Flash *flash = &gMainMenu->flash[0];
 
     for (i = 0; i < 7; i++) {
         sprintf(name, "mc_ch_a_db_%d", i + 1);
@@ -102,12 +102,12 @@ void MainMenu_StartBallLoops(void) {
 }
 
 #define MM_RES(n) \
-    res = (MTexRes *)MPACK_AT(gMainMenu->res, n); \
+    res = (FlashTexRes *)MPACK_AT(gMainMenu->res, n); \
     Res_RelocateOffsets(&res, res, res)
 
 /* Loads and unpacks the screen (section `section` of archive 1), builds the item list and the windows. */
 void MainMenu_Init(s32 section) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
     s32 i;
 
     if (gMenuArc1 == NULL) {
@@ -281,14 +281,14 @@ void MainMenu_Term(void) {
 
 /* Draws the background, sets up every clip of the movie for this frame and draws it and the two windows. */
 void MainMenu_Draw(void) {
-    MFlashRef ref;
-    MFlashUv uv;
+    FlashRef ref;
+    FlashUv uv;
     char name[64];
-    MFlashRef eye;
-    MFlashRef mouth;
+    FlashRef eye;
+    FlashRef mouth;
     s32 i;
     s32 item;
-    MFlash *flash;
+    Flash *flash;
 
 #ifdef PORT
     Port_MenuPage(2); /* widescreen menus: this screen's page (PORT_MENU_SCREEN in port/src/gs_marker.c), its backdrop filling the width */
@@ -332,10 +332,10 @@ void MainMenu_Draw(void) {
 
         for (i = 0; i < 6; i++) {
             item = gMainMenu->items[(gMainMenu->top + i) % gMainMenu->itemCount];
-            uv.x0 = 0;
-            uv.x1 = 0x200;
-            uv.y0 = (item % 8) * 0x20;
-            uv.y1 = uv.y0 + 0x20;
+            uv.u0 = 0;
+            uv.u1 = 0x200;
+            uv.v0 = (item % 8) * 0x20;
+            uv.v1 = uv.v0 + 0x20;
             sprintf(name, "mc_menu_plate_%d", i + 1);
             Flash_FindLabel(flash, name, "mc_menu_text_off", &ref);
             Flash_ClipSetUv(flash, &ref, &uv);
@@ -343,16 +343,16 @@ void MainMenu_Draw(void) {
             Flash_FindLabel(flash, name, "mc_menu_text_on", &ref);
             Flash_ClipSetUv(flash, &ref, &uv);
             Flash_ClipSetTex(flash, &ref, item / 8);
-            uv.x0 = (MM_ICON(item) % 4) * 0x40;
-            uv.y0 = (MM_ICON(item) / 4) * 0x40;
-            uv.x1 = uv.x0 + 0x40;
-            uv.y1 = uv.y0 + 0x40;
+            uv.u0 = (MM_ICON(item) % 4) * 0x40;
+            uv.v0 = (MM_ICON(item) / 4) * 0x40;
+            uv.u1 = uv.u0 + 0x40;
+            uv.v1 = uv.v0 + 0x40;
             Flash_FindLabel(flash, name, "mc_icon_off", &ref);
             Flash_ClipSetUv(flash, &ref, &uv);
-            uv.x0 = 0;
-            uv.y0 = (MM_ICON(item) % 10) * 0x30;
-            uv.x1 = 0x30;
-            uv.y1 = uv.y0 + 0x30;
+            uv.u0 = 0;
+            uv.v0 = (MM_ICON(item) % 10) * 0x30;
+            uv.u1 = 0x30;
+            uv.v1 = uv.v0 + 0x30;
             Flash_FindLabel(flash, name, "mc_icon_play", &ref);
             Flash_ClipSetUv(flash, &ref, &uv);
             Flash_ClipSetTex(flash, &ref, MM_ICON(item) / 10);
@@ -365,36 +365,36 @@ void MainMenu_Draw(void) {
 
     {
         item = gMainMenu->items[gMainMenu->extra];
-        uv.x1 = 0x200;
-        uv.x0 = 0;
-        uv.y0 = (item % 8) * 0x20;
-        uv.y1 = uv.y0 + 0x20;
+        uv.u1 = 0x200;
+        uv.u0 = 0;
+        uv.v0 = (item % 8) * 0x20;
+        uv.v1 = uv.v0 + 0x20;
         Flash_FindLabel(flash, "mc_menu_plate_7", "mc_menu_text_off", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
         Flash_ClipSetTex(flash, &ref, item / 8);
         Flash_FindLabel(flash, "mc_menu_plate_7", "mc_menu_text_on", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
         Flash_ClipSetTex(flash, &ref, item / 8);
-        uv.x0 = (MM_ICON(item) % 4) * 0x40;
-        uv.y0 = (MM_ICON(item) / 4) * 0x40;
-        uv.x1 = uv.x0 + 0x40;
-        uv.y1 = uv.y0 + 0x40;
+        uv.u0 = (MM_ICON(item) % 4) * 0x40;
+        uv.v0 = (MM_ICON(item) / 4) * 0x40;
+        uv.u1 = uv.u0 + 0x40;
+        uv.v1 = uv.v0 + 0x40;
         Flash_FindLabel(flash, "mc_menu_plate_7", "mc_icon_off", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
-        uv.x0 = 0;
-        uv.y0 = (MM_ICON(item) % 10) * 0x30;
-        uv.x1 = 0x30;
-        uv.y1 = uv.y0 + 0x30;
+        uv.u0 = 0;
+        uv.v0 = (MM_ICON(item) % 10) * 0x30;
+        uv.u1 = 0x30;
+        uv.v1 = uv.v0 + 0x30;
         Flash_FindLabel(flash, "mc_menu_plate_7", "mc_icon_play", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
         Flash_ClipSetTex(flash, &ref, MM_ICON(item) / 10);
     }
 
     for (i = 0; i < 2; i++) {
-        uv.x0 = i * 0x20;
-        uv.y0 = 0x20;
-        uv.x1 = uv.x0 + 0x20;
-        uv.y1 = 0x40;
+        uv.u0 = i * 0x20;
+        uv.v0 = 0x20;
+        uv.u1 = uv.u0 + 0x20;
+        uv.v1 = 0x40;
         Flash_FindLabel(flash, NULL, i ? "mc_menu_yajirusi_down" : "mc_menu_yajirusi_up", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
     }
@@ -404,10 +404,10 @@ void MainMenu_Draw(void) {
         if (gSaveData->unlockFlags & (s32)(1U << i)) {
             Flash_FindLabel(flash, NULL, name, &ref);
             Flash_ClipSetFlags(flash, &ref, 2, 1);
-            uv.x0 = (i % 4) * 0x40;
-            uv.y0 = (i / 4) * 0x40;
-            uv.x1 = uv.x0 + 0x40;
-            uv.y1 = uv.y0 + 0x40;
+            uv.u0 = (i % 4) * 0x40;
+            uv.v0 = (i / 4) * 0x40;
+            uv.u1 = uv.u0 + 0x40;
+            uv.v1 = uv.v0 + 0x40;
             Flash_FindLabel(flash, name, "mc_dragonball", &ref);
             Flash_ClipSetUv(flash, &ref, &uv);
         } else {
@@ -417,10 +417,10 @@ void MainMenu_Draw(void) {
     }
 
     for (i = 0; i < 2; i++) {
-        uv.y0 = 0;
-        uv.y1 = 0x100;
-        uv.x0 = 0;
-        uv.x1 = 0x200;
+        uv.v0 = 0;
+        uv.v1 = 0x100;
+        uv.u0 = 0;
+        uv.u1 = 0x200;
         Flash_FindLabel(flash, NULL, i ? "mc_bg_cloud" : "mc_bg_cloud_a", &ref);
         FlashAnim_Scroll(flash, &ref, &uv, &gMainMenu->cloud[i], NULL, i ? -0.18962963f : -0.35555556f, 0.0f);
     }
@@ -437,9 +437,9 @@ void MainMenu_Draw(void) {
 
 /* Sends the plate under the cursor of movie `idx` to a label. */
 void MainMenu_PlateGoto(s32 idx, char *label) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[64];
-    MFlash *flash = &gMainMenu->flash[idx];
+    Flash *flash = &gMainMenu->flash[idx];
 
     sprintf(name, "mc_menu_plate_%d", gMainMenu->cursor + 2);
     Flash_FindLabel(flash, NULL, name, &ref);

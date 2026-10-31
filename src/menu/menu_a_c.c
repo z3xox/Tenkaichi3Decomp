@@ -49,12 +49,12 @@ void Title_Idle(s32 *result) {
 }
 
 #define TT_RES(n) \
-    res = (MTexRes *)MPACK_AT(gTitle->res, n); \
+    res = (FlashTexRes *)MPACK_AT(gTitle->res, n); \
     Res_RelocateOffsets(&res, res, res)
 
 /* Loads and unpacks the screen (section `section` of archive 1) and starts the dialog and card modules. */
 void Title_Init(s32 section) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
 
     if (gMenuArc1 == NULL) {
         gMenuArc1 = File_LoadSync(gProgress->baseFile + 1, NULL, 0);
@@ -134,11 +134,11 @@ void Title_Term(void) {
 
 /* Draws the background, the two scrolling cloud layers, the menu plates and the movie. */
 void Title_Draw(void) {
-    MFlashRef ref;
-    MFlashUv uv;
+    FlashRef ref;
+    FlashUv uv;
     char name[64];
     s32 i;
-    MFlash *flash;
+    Flash *flash;
 
 #ifdef PORT
     Port_MenuPage(1); /* widescreen menus: this screen's page (PORT_MENU_SCREEN in port/src/gs_marker.c), its backdrop filling the width */
@@ -150,19 +150,19 @@ void Title_Draw(void) {
 #endif
     flash = &gTitle->flash[0];
     for (i = 0; i < 2; i++) {
-        uv.y0 = 0;
-        uv.y1 = 0x100;
-        uv.x0 = 0;
-        uv.x1 = 0x200;
+        uv.v0 = 0;
+        uv.v1 = 0x100;
+        uv.u0 = 0;
+        uv.u1 = 0x200;
         sprintf(name, "mc_kumo_%d", i + 1);
         Flash_FindLabel(flash, NULL, name, &ref);
         FlashAnim_Scroll(flash, &ref, &uv, &gTitle->cloud[i], NULL, i ? -1.0666667f : -0.71111111f, 0.0f);
     }
     for (i = 0; i < 2; i++) {
-        uv.y0 = i * 0x20;
-        uv.y1 = uv.y0 + 0x20;
-        uv.x0 = 0;
-        uv.x1 = 0x200;
+        uv.v0 = i * 0x20;
+        uv.v1 = uv.v0 + 0x20;
+        uv.u0 = 0;
+        uv.u1 = 0x200;
         sprintf(name, "mc_menu_plate_%d", i + 1);
         Flash_FindLabel(flash, NULL, name, &ref);
         Flash_ClipSetColor(flash, &ref, i < gTitle->itemCount ? 1.0f : 0.5f);
@@ -181,9 +181,9 @@ void Title_Draw(void) {
 
 /* Sends a clip of movie `idx` to a label: kind 1 the "press start" plate, kind 2 the plate under the cursor. */
 void Title_ClipGoto(s32 idx, s32 kind, char *label) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[64];
-    MFlash *flash = &gTitle->flash[idx];
+    Flash *flash = &gTitle->flash[idx];
 
     switch (kind) {
     case 1:

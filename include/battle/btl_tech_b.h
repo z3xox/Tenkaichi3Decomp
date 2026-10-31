@@ -113,17 +113,29 @@ typedef struct BtlSuperData {
     /* 0x018 */ s16 id[3];            /* technique id; 0x268, 0x27F, 0x2CD, 0x2D5 are special-cased here */
     /* 0x01E */ s16 unk1E[3];
     /* 0x024 */ f32 shotTime[3];      /* seconds */
-    /* 0x030 */ u8 unk30[0x54 - 0x30];
+    /* 0x030 */ f32 unk30[3];
+    /* 0x03C */ f32 unk3C[3];
+    /* 0x048 */ f32 unk48[3];
     /* 0x054 */ f32 shotSpeed[3];     /* 10 km/h */
     /* 0x060 */ f32 shotTurn[3];      /* degrees per second */
     /* 0x06C */ f32 shotUnk6C[3];
-    /* 0x078 */ u8 unk78[0x90 - 0x78];
+    /* 0x078 */ f32 unk78[3];
+    /* 0x084 */ f32 unk84[3];
     /* 0x090 */ s8 unk90[3];
     /* 0x093 */ s8 shots[3];          /* hit factor 1: number of shots; < 1 counts as 1 */
     /* 0x096 */ s8 hitsB[3];          /* hit factor 2; < 1 counts as 1 */
     /* 0x099 */ s8 unk99[3];
     /* 0x09C */ s8 hitsC[3];          /* hit factor 3, less 1 */
-    /* 0x09F */ u8 unk9F[0x13B - 0x9F];
+    /* 0x09F */ u8 unk9F[3];
+    /* 0x0A2 */ u8 unkA2[3];
+    /* 0x0A5 */ u8 unkA5[3];
+    /* 0x0A8 */ u8 unkA8[6][3];
+    /* 0x0BA */ u8 unkBA[8][3];
+    /* 0x0D2 */ u8 unkD2[2];
+    /* 0x0D4 */ f32 unkD4[8][3];
+    /* 0x134 */ u8 unk134[3];
+    /* 0x137 */ u8 unk137;
+    /* 0x138 */ u8 shotType[3];
     /* 0x13B */ s8 hitDirKind[3];
     /* 0x13E */ s8 type[3];           /* BtlSuper_GetType */
     /* 0x141 */ s8 react[3];          /* reaction id */
@@ -134,7 +146,9 @@ typedef struct BtlSuperData {
     /* 0x150 */ s8 guardKind[3];
     /* 0x153 */ s8 hitSound[2][3];    /* [hit flag 0x10][slot - 2] */
     /* 0x159 */ s8 steps[3];          /* steps of a rush; < 1 counts as 1 */
-    /* 0x15C */ u8 unk15C[0x165 - 0x15C];
+    /* 0x15C */ u8 unk15C[3];
+    /* 0x15F */ u8 unk15F[3];
+    /* 0x162 */ u8 unk162[3];
     /* 0x165 */ s8 unk165[3];
     /* 0x168 */ s8 lastStep[3];       /* < 0: steps - 1 */
     /* 0x16B */ u8 unk16B;
@@ -153,7 +167,7 @@ typedef struct BtlSuperData {
     /* 0x1FC */ f32 rushSpeed[3];     /* 10 km/h */
     /* 0x208 */ s16 throwChara[3];    /* < 0x100: a character the throw brings in */
     /* 0x20E */ s16 throwCharaAlt[3];
-    /* 0x214 */ u8 unk214[0x220 - 0x214];
+    /* 0x214 */ f32 unk214[3];
     /* 0x220 */ s8 unk220[3];
     /* 0x223 */ s8 unk223[3];         /* < 0: 999 */
     /* 0x226 */ s8 unk226[3];
@@ -178,14 +192,21 @@ typedef struct BtlSkillData {
     /* 0x3C */ s8 hitsB[2];        /* hit factor 2; < 1 counts as 1 */
     /* 0x3E */ s8 unk3E[2];
     /* 0x40 */ s8 hitsC[2];        /* hit factor 3, less 1 */
-    /* 0x42 */ u8 unk42[0x62 - 0x42];
+    /* 0x42 */ u8 unk42[2];
+    /* 0x44 */ u8 unk44[2];
+    /* 0x46 */ u8 unk46[2];
+    /* 0x48 */ u8 unk48[6][2];
+    /* 0x54 */ u8 unk54[6][2];
+    /* 0x60 */ u8 shotType[2];
     /* 0x62 */ s8 hitDirKind[2];
     /* 0x64 */ s8 sequence[2];     /* which action block runs the skill */
     /* 0x66 */ s8 statKind[2];     /* BTL_STAT_KIND_*: how long the stat levels last */
     /* 0x68 */ s8 react[2];        /* reaction id */
     /* 0x6A */ s8 reactS800[2];    /* victim state bit 0x800; <= 0: react */
     /* 0x6C */ s8 hitSound[2];
-    /* 0x6E */ u8 unk6E[0x74 - 0x6E];
+    /* 0x6E */ u8 unk6E[2];
+    /* 0x70 */ u8 unk70[2];
+    /* 0x72 */ u8 unk72[2];
     /* 0x74 */ f32 push[2];        /* knock-back, total over all hits (used as stored) */
     /* 0x7C */ f32 guardPush[2];
     /* 0x84 */ s32 damage[2];      /* total over all hits */

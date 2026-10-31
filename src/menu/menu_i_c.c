@@ -16,11 +16,11 @@ Logo *gLogo = NULL; /* 0x3B590C */
 
 /* Allocates the logo work and relocates picture `section` of the unpacked pack. */
 void Logo_Init(u32 *pack, s32 section, s32 frames) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
 
     gLogo = Heap_Alloc(0x24, 0x20, 0, 2);
     memset(gLogo, 0, 0x24);
-    res = (MTexRes *)MPACK_AT(pack, section);
+    res = (FlashTexRes *)MPACK_AT(pack, section);
     Res_RelocateOffsets(&res, res, res);
     gLogo->pic = res;
     gLogo->frames = frames;

@@ -38,12 +38,12 @@ void CharRef_Draw(void);
 #define CHARREF_IMAGE_SIZE 0x16800
 
 #define CR_RES(n) \
-    res = (MTexRes *)MPACK_AT(gCharRef->res, n); \
+    res = (FlashTexRes *)MPACK_AT(gCharRef->res, n); \
     Res_RelocateOffsets(&res, res, res)
 
 /* Loads and unpacks the screen (section `section` of archive 9) and builds the character list. */
 void CharRef_Init(s32 section) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
     s32 *table;
     s32 i;
 
@@ -234,12 +234,12 @@ done:
 
 /* Draws the background and the movie with everything that depends on the state, the windows and the fade. */
 void CharRef_Draw(void) {
-    MFlashRef ref;
-    MFlashRef refEye;
-    MFlashRef refMouth;
+    FlashRef ref;
+    FlashRef refEye;
+    FlashRef refMouth;
     char name[64];
-    MFlashUv uv;
-    MFlash *flash = &gCharRef->flash[0];
+    FlashUv uv;
+    Flash *flash = &gCharRef->flash[0];
     s32 state = gCharRef->state;
     s32 pose = gCharRef->pose;
     s32 chara = gCharRef->entry[gCharRef->cursor].chara;
@@ -321,11 +321,11 @@ void CharRef_Draw(void) {
         Flash_FindLabel(flash, name, "mc_form_text", &ref);
         TextBox_AttachLine(flash, &ref, 0, 0, gCharRef->entry[n].chara, &gCharRef->box[CHARREF_BOX_LIST_FORM + 4]);
     }
-    uv.x0 = 0;
-    uv.x1 = 0x100;
+    uv.u0 = 0;
+    uv.u1 = 0x100;
     for (i = 0; i < 5; i++) {
-        uv.y0 = i * 0x20;
-        uv.y1 = i * 0x20 + 0x20;
+        uv.v0 = i * 0x20;
+        uv.v1 = i * 0x20 + 0x20;
         sprintf(name, "mc_menu_plate_%d", i + 1);
         Flash_FindLabel(flash, name, "mc_menu_text_off", &ref);
         Flash_ClipSetUv(flash, &ref, &uv);
@@ -342,18 +342,18 @@ void CharRef_Draw(void) {
     }
     Flash_FindLabel(flash, NULL, "mc_single_chara_l", &ref);
     Flash_ClipSetAlpha(flash, &ref, gCharRef->imageAlpha);
-    uv.y0 = 0;
-    uv.x0 = 0x20;
-    uv.y1 = 0x20;
-    uv.x1 = 0x40;
+    uv.v0 = 0;
+    uv.u0 = 0x20;
+    uv.v1 = 0x20;
+    uv.u1 = 0x40;
     Flash_FindLabel(flash, NULL, "mc_yajirusi_icon_right", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
-    uv.y0 = 0x20;
-    uv.y1 = 0x40;
+    uv.v0 = 0x20;
+    uv.v1 = 0x40;
     Flash_FindLabel(flash, NULL, "mc_yajirusi_icon_down", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
-    uv.x0 = 0;
-    uv.x1 = 0x20;
+    uv.u0 = 0;
+    uv.u1 = 0x20;
     Flash_FindLabel(flash, NULL, "mc_yajirusi_icon_up", &ref);
     Flash_ClipSetUv(flash, &ref, &uv);
     scale = 4.0f / (f32)gCharRef->count * 7.0f;
@@ -369,28 +369,28 @@ void CharRef_Draw(void) {
     c = gCharRef->costume + 1;
     switch (c) {
     case 0:
-        uv.y0 = 0;
-        uv.y1 = c + 0x20;
-        uv.x0 = 0;
-        uv.x1 = c + 0x20;
+        uv.v0 = 0;
+        uv.v1 = c + 0x20;
+        uv.u0 = 0;
+        uv.u1 = c + 0x20;
         break;
     case 1:
-        uv.y0 = 0;
-        uv.y1 = 0x20;
-        uv.x0 = 0x20;
-        uv.x1 = 0x40;
+        uv.v0 = 0;
+        uv.v1 = 0x20;
+        uv.u0 = 0x20;
+        uv.u1 = 0x40;
         break;
     case 2:
-        uv.y0 = 0;
-        uv.y1 = 0x20;
-        uv.x0 = 0x40;
-        uv.x1 = 0x60;
+        uv.v0 = 0;
+        uv.v1 = 0x20;
+        uv.u0 = 0x40;
+        uv.u1 = 0x60;
         break;
     case 3:
-        uv.y0 = 0;
-        uv.y1 = 0x20;
-        uv.x0 = 0x60;
-        uv.x1 = 0x80;
+        uv.v0 = 0;
+        uv.v1 = 0x20;
+        uv.u0 = 0x60;
+        uv.u1 = 0x80;
         break;
     }
     sprintf(name, "mc_menu_plate_%d", 5);
@@ -758,9 +758,9 @@ void CharRef_StateViewWait(void) {
 
 /* Sends a plate to a label: kind 0 the list row under the cursor, 1 the details item, 2 the fifth plate. */
 void CharRef_ClipGoto(s32 unused, s32 kind, char *label) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[64];
-    MFlash *flash = &gCharRef->flash[0];
+    Flash *flash = &gCharRef->flash[0];
 
     switch (kind) {
     case 1:
@@ -840,7 +840,7 @@ void CharRef_MeasureText(void) {
 
 /* One step of the large picture's background loader (the same machine as ModeMenu_UpdateImage). */
 void CharRef_UpdateImage(void) {
-    MTexRes *res;
+    FlashTexRes *res;
     CharRefEntry *e;
     s32 i;
 

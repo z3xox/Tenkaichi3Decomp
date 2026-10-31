@@ -14,9 +14,9 @@
 
 /* ---- main executable ---- */
 
-extern void TextBox_Init(MTextBox *box, void *text, u32 preset);
-extern void TextBox_SetUnk80(MTextBox *box, s32 value);
-extern void TextBox_AttachLine(MFlash *flash, MFlashRef *ref, s32 x, s32 y, s32 line, MTextBox *box);
+extern void TextBox_Init(TextBox *box, void *text, u32 preset);
+extern void TextBox_SetUnk80(TextBox *box, s32 value);
+extern void TextBox_AttachLine(Flash *flash, FlashRef *ref, s32 x, s32 y, s32 line, TextBox *box);
 extern void MsgWin_SetText(void *text);
 extern void Voice_StopWithLip(void);
 extern void Save_ResetRules(void);
@@ -53,7 +53,7 @@ typedef struct MItemSet {
 
 typedef struct ItemPanel {
     /* 0x000 */ void *text[3];      /* sections 13, 14, 15 of the caller's pack: character names, form names, item names */
-    /* 0x00C */ MFlash flash;
+    /* 0x00C */ Flash flash;
     /* 0x038 */ u8 *tex[23];
     /* 0x094 */ s32 flags;          /* ITEMPANEL_ */
     /* 0x098 */ s32 chara;          /* character id: line of the name and form texts */
@@ -63,9 +63,9 @@ typedef struct ItemPanel {
     /* 0x0A8 */ s32 count;          /* rows in use (ItemSet_Fit's second result) */
     /* 0x0AC */ s32 cursor;
     /* 0x0B0 */ MItemSet item;      /* the set shown */
-    /* 0x0C0 */ MTextBox name;
-    /* 0x14C */ MTextBox form;
-    /* 0x1D8 */ MTextBox line[9];   /* eight are used */
+    /* 0x0C0 */ TextBox name;
+    /* 0x14C */ TextBox form;
+    /* 0x1D8 */ TextBox line[9];   /* eight are used */
     /* 0x6C4 */ MItemEntry *items;  /* item table of common file 4 */
 } ItemPanel; /* 0x6C8 */
 
@@ -87,7 +87,7 @@ void ItemPanel_Hide(s32 side);
 
 /* ---- Duel (menu_g_b.c, menu_g_c.c) ---- */
 
-/* gProgress fields of the duel mode (local view; MenuProgress in menu_a.h has only +0x624). */
+/* gProgress fields of the duel mode (local view; Progress in menu_a.h has only +0x624). */
 typedef struct DuelProgress {
     /* 0x000 */ u8 unk0[0x620];
     /* 0x620 */ s32 versus;         /* DuelMenu top item: 0 1P vs COM, 1 1P vs 2P, 2 COM vs COM (3 = settings) */
@@ -119,10 +119,10 @@ typedef struct DuelMenu {
     /* 0x008 */ void *msgText;      /* section 21: text of the message window */
     /* 0x00C */ void *subtitles;    /* section 26: subtitles of the guide voices */
     /* 0x010 */ void *setText;      /* section 27: dialog text, also the message window text of the settings list */
-    /* 0x014 */ MFlash flash[DUELMENU_FLASH_NUM];
+    /* 0x014 */ Flash flash[DUELMENU_FLASH_NUM];
     /* 0x040 */ void *bg;           /* section 1: background picture */
     /* 0x044 */ u8 *tex[49];
-    /* 0x108 */ MTexRes *setRes;    /* section 10: tex[47] / tex[48] are swapped between its textures */
+    /* 0x108 */ FlashTexRes *setRes;    /* section 10: tex[47] / tex[48] are swapped between its textures */
     /* 0x10C */ s32 flags;          /* DUELMENU_ */
     /* 0x110 */ s32 sel[DUELMENU_LEVELS]; /* cursor of each level: top, battle type, DP limit, setting, setting again */
     /* 0x124 */ s32 timer;          /* frames until the fade out starts after the choice */

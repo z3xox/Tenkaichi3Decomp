@@ -16,13 +16,13 @@
  */
 
 #define BK_RES(n) \
-    res = (MTexRes *)MPACK_AT(b->res, n); \
+    res = (FlashTexRes *)MPACK_AT(b->res, n); \
     Res_RelocateOffsets(&res, res, res)
 
 /* Loads the tournament's archive and backdrop and creates the six movies and the windows. */
 void Bracket_Load(LBracket *b) {
     u8 *bgTex[3];
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
     s32 i;
 
     if (b->pack == NULL) {
@@ -191,7 +191,7 @@ void Bracket_Load(LBracket *b) {
     b->formText = MPACK_AT(b->res, 22);
     b->chips = (u32 *)MPACK_AT(b->res, 23);
     for (i = 0; i < LCHR_CELL_MAX; i++) {
-        res = (MTexRes *)MPACK_AT(b->chips, i + 1);
+        res = (FlashTexRes *)MPACK_AT(b->chips, i + 1);
         Res_RelocateOffsets(&res, res, res);
     }
     b->grid = (LChrCell *)(MPACK_AT(b->res, 24) + 0x10);
@@ -635,7 +635,7 @@ void Bracket_SetChipTex(LBracket *b) {
     s32 i;
 
     for (i = 0; i < LTOUR_ENTRANT_MAX; i++) {
-        b->texTree[tbl[i]] = MTEX((MTexRes *)MPACK_AT(b->chips, b->entrant[i].chara + 1), 0);
+        b->texTree[tbl[i]] = MTEX((FlashTexRes *)MPACK_AT(b->chips, b->entrant[i].chara + 1), 0);
     }
 }
 
@@ -740,14 +740,14 @@ void Bracket_ApplyResult(LBracket *b) {
 /* Starts the movie of the current match's two chips meeting, and starts loading their large pictures. */
 void Bracket_StartVs(LBracket *b) {
     char name[64];
-    MFlash *flash = &b->flash[1];
-    MTexRes *res;
+    Flash *flash = &b->flash[1];
+    FlashTexRes *res;
 
     b->loadState = LBRK_LOAD_REQUEST;
     b->flags |= LBRK_MOVE_A;
-    res = (MTexRes *)MPACK_AT(b->chips, b->entrant[b->match_[b->match].ent[0]].chara + 1);
+    res = (FlashTexRes *)MPACK_AT(b->chips, b->entrant[b->match_[b->match].ent[0]].chara + 1);
     b->texMoveA[1] = MTEX(res, 0);
-    res = (MTexRes *)MPACK_AT(b->chips, b->entrant[b->match_[b->match].ent[1]].chara + 1);
+    res = (FlashTexRes *)MPACK_AT(b->chips, b->entrant[b->match_[b->match].ent[1]].chara + 1);
     b->texMoveA[4] = MTEX(res, 0);
     b->scroll = -(f32)Bracket_GetViewX(b->match_[b->match].view);
     Flash_SetOffset(&b->flash[0], b->scroll, 0);
@@ -761,13 +761,13 @@ void Bracket_StartVs(LBracket *b) {
 /* Starts the movie of the winner's chip moving up to the next node. */
 void Bracket_StartWin(LBracket *b) {
     char name[64];
-    MFlash *flash = &b->flash[2];
-    MTexRes *res;
+    Flash *flash = &b->flash[2];
+    FlashTexRes *res;
 
     b->flags |= LBRK_MOVE_B;
-    res = (MTexRes *)MPACK_AT(b->chips, b->entrant[b->match_[b->match].ent[0]].chara + 1);
+    res = (FlashTexRes *)MPACK_AT(b->chips, b->entrant[b->match_[b->match].ent[0]].chara + 1);
     b->texMoveB[1] = MTEX(res, 0);
-    res = (MTexRes *)MPACK_AT(b->chips, b->entrant[b->match_[b->match].ent[1]].chara + 1);
+    res = (FlashTexRes *)MPACK_AT(b->chips, b->entrant[b->match_[b->match].ent[1]].chara + 1);
     b->texMoveB[4] = MTEX(res, 0);
     b->scroll = -(f32)Bracket_GetViewX(b->match_[b->match].view);
     Flash_SetOffset(&b->flash[0], b->scroll, 0);
@@ -781,7 +781,7 @@ void Bracket_StartWin(LBracket *b) {
 /* One step of the background loader of the two fighters' large pictures (files 0x2F9 + character). */
 void Bracket_UpdateImages(LBracket *b) {
     s32 chara[2];
-    MTexRes *res;
+    FlashTexRes *res;
     s32 *p = chara; /* through a pointer: `memset(chara, 0, 8)` is expanded in line, the original calls memset */
 
     memset(p, 0, 8);
@@ -819,7 +819,7 @@ void Bracket_UpdateImages(LBracket *b) {
 /* Loads the two fighters' large pictures at once (when the screen comes back from a battle). */
 void Bracket_LoadImages(LBracket *b) {
     s32 chara[2];
-    MTexRes *res;
+    FlashTexRes *res;
     s32 *p = chara; /* through a pointer: `memset(chara, 0, 8)` is expanded in line, the original calls memset */
 
     memset(p, 0, 8);

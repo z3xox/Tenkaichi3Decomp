@@ -1,4 +1,6 @@
 #include "common.h"
+#include "sys/vector_types.h"
+#include "sys/math3d.h"
 #include "battle/eft_l.h"
 
 /*
@@ -44,7 +46,7 @@ extern void Vec3_ScaleAdd(Vec4 *dst, Vec4 *a, Vec4 *b, f32 t);
 extern s32 BtlScene_IsCharStopped(s32 objId);
 extern f32 BtlScene_GetCharScale(s32 objId);
 extern f32 BtlScene_RandF(void);
-extern void BtlTask_CreateChildList(EftTask *task, s32 count, s32 workSize);
+extern void BtlTask_CreateChildList(BtlTask *task, s32 count, s32 workSize);
 
 extern s32 BtlCharApi_GetOpponentObjId(s32 objId);
 extern void BtlCharApi_GetNodePos(s32 objId, s32 node, Vec4 *out);
@@ -89,18 +91,18 @@ extern void EftBlastObj_SetDir(void *shot, Vec4 *dir);
 extern void EftBlastObj_SetHeld(void *shot, s32 hold);
 extern void EftBlastObj_MarkLast(void *shot);
 extern void EftBlastObj_SetDelay(void *shot, f32 delay);
-extern void BtlTask_SetDead(EftTask *task);
-extern void BtlTask_SetOwnerTag(EftTask *task, s32 flag);
-extern EftTask *BtlTask_GetParent(EftTask *task);
+extern void BtlTask_SetDead(BtlTask *task);
+extern void BtlTask_SetOwnerTag(BtlTask *task, s32 flag);
+extern BtlTask *BtlTask_GetParent(BtlTask *task);
 extern void ColCapsule_Set(void *shape, Vec4 *from, Vec4 *to, f32 radius);
 extern void ColSphere_Set(void *shape, Vec4 *pos, f32 radius);
 
 /* The part of a hit record (0x190 bytes, EftHit_GetNew) this module fills. */
 typedef struct EftRingShotPath {
-    EftVec start;
-    EftVec pos;
-    EftVec target;
-    EftVec vel;
+    Vec4Aligned start;
+    Vec4Aligned pos;
+    Vec4Aligned target;
+    Vec4Aligned vel;
 } EftRingShotPath;
 
 typedef struct EftHitRec {
@@ -108,7 +110,7 @@ typedef struct EftHitRec {
     /* 0x10 */ u64 path[8];    /* start, pos, target, vel */
     /* 0x50 */ u32 flags;      /* 0x80: last hit of the technique */
     /* 0x54 */ u8 unk54[0xC];
-    /* 0x60 */ EftTask *task;  /* source task: gets the results in task->flags / hit / hitPos */
+    /* 0x60 */ BtlTask *task;  /* source task: gets the results in task->tag / hit / hitPos */
     /* 0x64 */ EftTechArg *arg;
 } EftHitRec;
 
@@ -132,7 +134,7 @@ EftRingShotOne *EftRingShot_AllocShot(EftRingShot *w) {
 
 /* Creates the shots of one volley (one shot, or the definition's count when `volley` is set): takes a free
  * entry, works out where the shot waits and which way it will fly, and creates its blast object. */
-void EftRingShot_Fire(s32 objId, EftTask *task, s32 node, s32 arg3, s32 volley) {
+void EftRingShot_Fire(s32 objId, BtlTask *task, s32 node, s32 arg3, s32 volley) {
     EftShotArg sarg;
     EftRingShot *w = task->work;
     EftTechArg *arg = w->arg;
@@ -388,7 +390,7 @@ void EftRingShot_BobShot(EftRingShotOne *shot) {
 
 /* Variants 0 and 1: creates the shots on the owner's bit 4, slides each to its place, and launches them all at
  * the opponent's node 0x11 on bit 0x40. */
-void EftRingShot_UpdateRing(s32 objId, EftTask *task) {
+void EftRingShot_UpdateRing(s32 objId, BtlTask *task) {
     s32 node = -1;
     s32 arg3 = 0;
     EftRingShot *w = task->work;
@@ -493,7 +495,7 @@ checked:
 
 /* Variant 2: on the owner's bit 4 lays an arc from the start to above the opponent and moves the carrier point
  * along it for 20 frames; afterwards the owner's bit 0x10 fires the volley. */
-void EftRingShot_UpdatePath(s32 objId, EftTask *task) {
+void EftRingShot_UpdatePath(s32 objId, BtlTask *task) {
     s32 node = -1;
     s32 arg3 = 0;
     EftRingShot *w = task->work;
@@ -556,7 +558,7 @@ void EftRingShot_UpdatePath(s32 objId, EftTask *task) {
 }
 
 /* Variant 3: on the owner's bit 0x10 puts both ends of the hit volume at the opponent's node 3. */
-void EftRingShot_UpdateFixed(s32 objId, EftTask *task) {
+void EftRingShot_UpdateFixed(s32 objId, BtlTask *task) {
     EftRingShot *w = task->work;
     EftTechArg *arg = w->arg;
 
@@ -575,7 +577,7 @@ void EftRingShot_UpdateFixed(s32 objId, EftTask *task) {
 }
 
 /* Forgets the shots whose blast object is gone; returns 1 while any is left. */
-s32 EftRingShot_ReapShots(EftTask *task) {
+s32 EftRingShot_ReapShots(BtlTask *task) {
     s32 alive = 0;
     EftRingShot *w = task->work;
     EftRingShotOne *shot;
@@ -592,7 +594,7 @@ s32 EftRingShot_ReapShots(EftTask *task) {
 }
 
 /* Runs the variant's update, then EftRingShot_ReapShots. */
-s32 EftRingShot_UpdateShots(s32 objId, EftTask *task) {
+s32 EftRingShot_UpdateShots(s32 objId, BtlTask *task) {
     EftRingShot *w = task->work;
 
     switch (w->type) {
@@ -614,7 +616,7 @@ s32 EftRingShot_UpdateShots(s32 objId, EftTask *task) {
 
 /* Adds this frame's hit record: the volume between pos and target (two spheres or two capsules by the
  * definition's shape), radius = size times the model's trail width. */
-void EftRingShot_AddHit(EftTask *task, s32 last) {
+void EftRingShot_AddHit(BtlTask *task, s32 last) {
     EftHitRec *rec;
     EftRingShot *w = task->work;
     f32 radius;
@@ -653,7 +655,7 @@ void EftRingShot_AddHit(EftTask *task, s32 last) {
 }
 
 /* Steps every emitter of the model and spawns its particles at the carrier point. */
-void EftRingShot_Draw(s32 objId, EftTask *task, EftModel *model, s32 mode) {
+void EftRingShot_Draw(s32 objId, BtlTask *task, EftModel *model, s32 mode) {
     EftRingShot *w = task->work;
     s32 part;
     s32 sub;
@@ -686,7 +688,7 @@ void EftRingShot_Draw(s32 objId, EftTask *task, EftModel *model, s32 mode) {
 }
 
 /* Init callback: clears the work, reads the definition, picks the variant from the effect id. */
-void EftRingShot_Init(EftTask *task, EftTechArg *arg) {
+void EftRingShot_Init(BtlTask *task, EftTechArg *arg) {
     EftRingShotMgr *mgr = BtlTask_GetParent(task)->work;
     EftRingShot *w = task->work;
     EftModel *model;
@@ -730,7 +732,7 @@ void EftRingShot_Init(EftTask *task, EftTechArg *arg) {
 }
 
 /* Term callback: releases the model instance and the fighter's held flags. */
-void EftRingShot_Term(EftTask *task) {
+void EftRingShot_Term(BtlTask *task) {
     EftRingShot *w = task->work;
     EftTechArg *arg = w->arg;
 
@@ -744,7 +746,7 @@ void EftRingShot_Term(EftTask *task) {
 }
 
 /* Update callback. */
-void EftRingShot_Update(EftTask *task) {
+void EftRingShot_Update(BtlTask *task) {
     s32 advance = 0;
     EftRingShot *w = task->work;
     EftTechArg *arg = w->arg;
@@ -757,15 +759,15 @@ void EftRingShot_Update(EftTask *task) {
     if (!(w->flags & EFT_RINGSHOT_STARTED)) {
         if (EftShot_TestBits(arg->objId, 2)) {
             EftAim_GetDir(&w->dir, w->unk2F0, arg->objId);
-            task->step = 0;
+            task->chr = 0;
             w->flags |= EFT_RINGSHOT_STARTED;
         } else if (EftShot_TestBits(arg->objId, 4)) {
-            task->step = 0;
+            task->chr = 0;
             w->flags |= EFT_RINGSHOT_STARTED;
         }
     }
     if (w->flags & EFT_RINGSHOT_STARTED) {
-        switch (task->step) {
+        switch (task->chr) {
             case 0:
                 if (EftShot_TestBits(arg->objId, 4)) {
                     w->flags |= EFT_RINGSHOT_FIRED;
@@ -788,7 +790,7 @@ void EftRingShot_Update(EftTask *task) {
                         case 3:
                             break;
                     }
-                    task->step = 1;
+                    task->chr = 1;
                 }
                 break;
             case 2:
@@ -797,7 +799,7 @@ void EftRingShot_Update(EftTask *task) {
                 }
                 if (EftShot_TestBits(arg->objId, 8)) {
                     w->flags |= EFT_RINGSHOT_ENDED | EFT_RINGSHOT_COUNT;
-                    task->step = 3;
+                    task->chr = 3;
                 }
                 break;
             case 1:
@@ -822,7 +824,7 @@ void EftRingShot_Update(EftTask *task) {
     }
     EftRingShot_Draw(arg->objId, task, w->model, 0);
     if (advance) {
-        task->step++;
+        task->chr++;
     }
     if (w->flags & EFT_RINGSHOT_COUNT) {
         w->timer += 1.0f;
@@ -854,7 +856,7 @@ void EftRingShot_Update(EftTask *task) {
 }
 
 /* Post-update callback: follows the hit record when it was moved, and starts the end when it ended. */
-void EftRingShot_PostUpdate(EftTask *task) {
+void EftRingShot_PostUpdate(BtlTask *task) {
     EftRingShot *w = task->work;
     Vec4 move;
 
@@ -864,8 +866,8 @@ void EftRingShot_PostUpdate(EftTask *task) {
     EftEmit_UpdateAlive(w->model, &w->inst);
     EftRingShot_ReapShots(task);
     if (task->hit & 1) {
-        Vec3_Sub(&move, &task->hitPos, &w->pos);
-        Vec3_Copy(&w->pos, &task->hitPos);
+        Vec3_Sub(&move, &task->pos, &w->pos);
+        Vec3_Copy(&w->pos, &task->pos);
         Vec3_Add(&w->prev, &w->prev, &move);
         if (!(w->flags & EFT_RINGSHOT_HIT_MOVED)) {
             w->flags |= EFT_RINGSHOT_HIT_MOVED;
@@ -879,7 +881,7 @@ void EftRingShot_PostUpdate(EftTask *task) {
 }
 
 /* Reset callback: destroys the particles once and kills the task. */
-void EftRingShot_Reset(EftTask *task) {
+void EftRingShot_Reset(BtlTask *task) {
     EftRingShot *w = task->work;
 
     if (!(w->flags & EFT_RINGSHOT_RESET)) {
@@ -894,7 +896,7 @@ void EftRingShot_Nop(void) {
 }
 
 /* Manager init: loads the effect model from the technique's pack and makes room for two volleys. */
-void EftRingShotMgr_Init(EftTask *task, EftTechArg *arg) {
+void EftRingShotMgr_Init(BtlTask *task, EftTechArg *arg) {
     EftRingShotMgr *mgr = task->work;
 
     EftShot_Nop(sizeof(EftRingShotMgr));
@@ -904,14 +906,14 @@ void EftRingShotMgr_Init(EftTask *task, EftTechArg *arg) {
 }
 
 /* Manager term: releases the model. */
-void EftRingShotMgr_Term(EftTask *task) {
+void EftRingShotMgr_Term(BtlTask *task) {
     EftRingShotMgr *mgr = task->work;
 
     EftEmit_FreeSet(&mgr->model);
 }
 
 /* Manager update: steps the model. */
-void EftRingShotMgr_Update(EftTask *task) {
+void EftRingShotMgr_Update(BtlTask *task) {
     EftRingShotMgr *mgr = task->work;
 
     EftEmit_BeginFrame(&mgr->model);

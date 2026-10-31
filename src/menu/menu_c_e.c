@@ -46,10 +46,10 @@ extern void Port_MenuMovie(int index);
 
 CharSel *gCharSel = NULL;
 
-extern void TextBox_Init(MTextBox *box, void *text, u32 preset);
-extern void TextBox_SetUnk80(MTextBox *box, s32 value);
-extern void TextBox_AttachLine(MFlash *flash, MFlashRef *ref, s32 x, s32 y, s32 line, MTextBox *box);
-extern void Flash_ClipSetOffset(MFlash *flash, MFlashRef *ref, s32 x, s32 y);
+extern void TextBox_Init(TextBox *box, void *text, u32 preset);
+extern void TextBox_SetUnk80(TextBox *box, s32 value);
+extern void TextBox_AttachLine(Flash *flash, FlashRef *ref, s32 x, s32 y, s32 line, TextBox *box);
+extern void Flash_ClipSetOffset(Flash *flash, FlashRef *ref, s32 x, s32 y);
 extern void IconWin_SetIcon(s32 icon);
 extern s32 ChrGrid_IsSelectable(MChrCell *cells, s32 index);
 extern s32 ChrGrid_MoveRight(MChrCell *cells, s32 *col, s32 row);
@@ -94,7 +94,7 @@ void CharSel_SetStageChips(void) {
 
     for (i = 0; i < 6; i++) {
         s32 id = gCharSel->stageIds[i + gCharSel->stage->row * 6];
-        MTexRes *res;
+        FlashTexRes *res;
 
         gCharSel->stage->chip[1][i] = gCharSel->stage->chip[0][i];
         gCharSel->stage->chip[0][i] = id;
@@ -112,10 +112,10 @@ void CharSel_SetStageChips(void) {
             } else {
                 icon = id + 1;
             }
-            res = (MTexRes *)MPACK_AT(gCharSel->stagePack, icon);
+            res = (FlashTexRes *)MPACK_AT(gCharSel->stagePack, icon);
         }
 #else
-        res = (MTexRes *)MPACK_AT(gCharSel->stagePack, id + 1);
+        res = (FlashTexRes *)MPACK_AT(gCharSel->stagePack, id + 1);
 #endif
         gCharSel->tex[41 + i] = gCharSel->tex[slot[i]];
         gCharSel->tex[slot[i]] = res->tex;
@@ -129,11 +129,11 @@ void CharSel_SetRowChips(s32 side) {
 
     for (i = 0; i < 7; i++) {
         s32 id = gCharSel->cells[side][i + gCharSel->side[side]->row * 7].id;
-        MTexRes *res;
+        FlashTexRes *res;
 
         gCharSel->side[side]->prevChip[i] = gCharSel->side[side]->chip[i];
         gCharSel->side[side]->chip[i] = id;
-        res = (MTexRes *)MPACK_AT(gCharSel->chipPack, id + 1);
+        res = (FlashTexRes *)MPACK_AT(gCharSel->chipPack, id + 1);
         gCharSel->sideTex[side][18 + i] = gCharSel->sideTex[side][slot[i]];
         gCharSel->sideTex[side][slot[i]] = res->tex;
     }
@@ -146,7 +146,7 @@ void CharSel_SetCellFormChips(s32 side) {
 
     for (i = 0; i < 7; i++) {
         s32 id;
-        MTexRes *res;
+        FlashTexRes *res;
 
         if (i < gCharSel->cells[side][gCharSel->side[side]->col + gCharSel->side[side]->row * 7].formCount) {
             id = gCharSel->cells[side][gCharSel->side[side]->col + gCharSel->side[side]->row * 7].form[i];
@@ -155,7 +155,7 @@ void CharSel_SetCellFormChips(s32 side) {
         }
         gCharSel->side[side]->prevChip[i] = gCharSel->side[side]->chip[i];
         gCharSel->side[side]->chip[i] = id;
-        res = (MTexRes *)MPACK_AT(gCharSel->chipPack, id + 1);
+        res = (FlashTexRes *)MPACK_AT(gCharSel->chipPack, id + 1);
         gCharSel->sideTex[side][18 + i] = gCharSel->sideTex[side][slot[i]];
         gCharSel->sideTex[side][slot[i]] = res->tex;
     }
@@ -168,11 +168,11 @@ void CharSel_SetCustomChips(s32 side) {
 
     for (i = 0; i < 7; i++) {
         s32 id = gCharSel->custom[side][i + gCharSel->side[side]->customRow * 7].id;
-        MTexRes *res;
+        FlashTexRes *res;
 
         gCharSel->side[side]->prevChip[i] = gCharSel->side[side]->chip[i];
         gCharSel->side[side]->chip[i] = id;
-        res = (MTexRes *)MPACK_AT(gCharSel->chipPack, id + 1);
+        res = (FlashTexRes *)MPACK_AT(gCharSel->chipPack, id + 1);
         gCharSel->sideTex[side][18 + i] = gCharSel->sideTex[side][slot[i]];
         gCharSel->sideTex[side][slot[i]] = res->tex;
     }
@@ -185,7 +185,7 @@ void CharSel_SetFormChips(s32 side) {
 
     for (i = 0; i < 7; i++) {
         s32 id;
-        MTexRes *res;
+        FlashTexRes *res;
 
         if (i < gCharSel->custom[side][gCharSel->side[side]->customCol + gCharSel->side[side]->customRow * 7].formCount) {
             id = gCharSel->custom[side][gCharSel->side[side]->customCol + gCharSel->side[side]->customRow * 7].form[i];
@@ -194,7 +194,7 @@ void CharSel_SetFormChips(s32 side) {
         }
         gCharSel->side[side]->prevChip[i] = gCharSel->side[side]->chip[i];
         gCharSel->side[side]->chip[i] = id;
-        res = (MTexRes *)MPACK_AT(gCharSel->chipPack, id + 1);
+        res = (FlashTexRes *)MPACK_AT(gCharSel->chipPack, id + 1);
         gCharSel->sideTex[side][18 + i] = gCharSel->sideTex[side][slot[i]];
         gCharSel->sideTex[side][slot[i]] = res->tex;
     }
@@ -202,7 +202,7 @@ void CharSel_SetFormChips(s32 side) {
 
 /* One step of the background loader of the two portraits. */
 void CharSel_UpdateFaceLoad(void) {
-    MTexRes *res;
+    FlashTexRes *res;
 
     switch (gCharSel->faceState) {
     case CHARSEL_LOAD_ABORT:
@@ -274,7 +274,7 @@ void CharSel_RequestFace(s32 side) {
 
 /* One step of the background loader of the stage picture. */
 void CharSel_UpdateStageLoad(void) {
-    MTexRes *res;
+    FlashTexRes *res;
 
     switch (gCharSel->stageState) {
     case CHARSEL_LOAD_ABORT:
@@ -330,9 +330,9 @@ void CharSel_RequestStage(void) {
 
 /* Sends the clip of one chip or plate of a movie to a label; `kind` says which clip and from which cursor. */
 void CharSel_ClipGoto(s32 flash, s32 side, s32 kind, char *label) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[64];
-    MFlash *f = &gCharSel->flash[flash];
+    Flash *f = &gCharSel->flash[flash];
 
     switch (kind) {
     case CHARSEL_CLIP_CHIP:
@@ -373,14 +373,14 @@ void CharSel_ClipGoto(s32 flash, s32 side, s32 kind, char *label) {
 #define MPACK_WORD(pack, n) (((s32 *)(pack))[((u32 *)(pack))[n] >> 2])
 
 #define CS_RES(pack, n) \
-    res = (MTexRes *)MPACK_AT(pack, n); \
+    res = (FlashTexRes *)MPACK_AT(pack, n); \
     Res_RelocateOffsets(&res, res, res)
 
 /* Builds the screen: unpacks its section, binds the textures of the five movies, builds each side's character
    grid, the stage grid and the music list from the save's unlock bits, restores the last choice from gProgress,
    loads both portraits and the stage picture, starts the music. */
 void CharSel_Init(s32 section) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
     s32 i;
     s32 cols;
     s32 stageCols;
@@ -816,12 +816,12 @@ void CharSel_Term(void) {
 /* Draws the screen: the stage picture cross fade, then the labels, texture rectangles and visibility of every
    clip of the five movies are set from the state, the movies are drawn, then the windows and the side panels. */
 void CharSel_Draw(void) {
-    MFlashRef ref;
-    MFlashUv uv;
+    FlashRef ref;
+    FlashUv uv;
     char name[64];
     s32 i;
     s32 j;
-    MFlash *f;
+    Flash *f;
 
 #ifdef PORT
     gUiNameIdx = -1; /* set again below only for a stage added from outside the disc */
@@ -891,12 +891,12 @@ void CharSel_Draw(void) {
         TextBox_AttachLine(f, &ref, 0, 0, gCharSel->side[i]->chara, &gCharSel->formBox[i]);
     }
 
-    uv.x0 = 0;
-    uv.x1 = 0x200;
+    uv.u0 = 0;
+    uv.u1 = 0x200;
 #ifndef PORT
-    uv.y0 = (gCharSel->stage->stage % 4) * 0x40;
-    uv.y1 = uv.y0 + 0x40;
-    uv.unk10 = gCharSel->stage->stage / 4;
+    uv.v0 = (gCharSel->stage->stage % 4) * 0x40;
+    uv.v1 = uv.v0 + 0x40;
+    uv.tex = gCharSel->stage->stage / 4;
 #endif
     Flash_FindLabel(f, NULL, "mc_map_name", &ref);
 #ifdef PORT
@@ -904,7 +904,7 @@ void CharSel_Draw(void) {
         /* PC build: the movie's name atlas only holds the stages of the disc (0..0x23). A stage added from
            outside the disc has no name there, so the atlas clip is hidden and the name is printed with the
            game's own font at the clip's place (the font queue is flushed at the end of this draw). */
-        extern void Flash_ClipGetPos(MFlash *flash, MFlashRef *ref, s32 *x, s32 *y);
+        extern void Flash_ClipGetPos(Flash *flash, FlashRef *ref, s32 *x, s32 *y);
         extern void Font_PrintAsciiAt(s32 x, s32 y, char *str);
         extern s32 Font_GetGlyphHeight(void);
         extern FontStyle gFontStyle;
@@ -919,7 +919,7 @@ void CharSel_Draw(void) {
             /* Only where the name clip exists: the stage select. This draw also runs on the character select
                (the last stage stays chosen after a fight), where the movie has no such clip; the name was then
                drawn at the top of the screen, at the place an empty reference leaves (seen by the user). */
-            if (ref.id >= 0 && idx >= 0 && idx < gPortExtraStageCount) {
+            if (ref.index >= 0 && idx >= 0 && idx < gPortExtraStageCount) {
                 if (gUiNameReady) {
                     /* The port draws the name (its own art: the menu's stylized font) over the picture. The
                        rectangle is the clip's, in the game's 512x448 pixels; the strip image is idx. */
@@ -943,11 +943,11 @@ void CharSel_Draw(void) {
                 }
             }
         } else {
-            uv.y0 = (nameId % 4) * 0x40;
-            uv.y1 = uv.y0 + 0x40;
-            uv.unk10 = nameId / 4;
+            uv.v0 = (nameId % 4) * 0x40;
+            uv.v1 = uv.v0 + 0x40;
+            uv.tex = nameId / 4;
             Flash_ClipSetUv(f, &ref, &uv);
-            Flash_ClipSetTex(f, &ref, uv.unk10);
+            Flash_ClipSetTex(f, &ref, uv.tex);
             if (sPortStageNameHidden) { /* back on a stage of the disc: its name clip was off for the added one */
                 Flash_ClipSetFlags(f, &ref, 2, 1);
                 sPortStageNameHidden = 0;
@@ -956,7 +956,7 @@ void CharSel_Draw(void) {
     }
 #else
     Flash_ClipSetUv(f, &ref, &uv);
-    Flash_ClipSetTex(f, &ref, uv.unk10);
+    Flash_ClipSetTex(f, &ref, uv.tex);
 #endif
     Flash_FindLabel(f, NULL, "mc_map_mask", &ref);
     if (gCharSel->stage->mask != 0) {
@@ -973,10 +973,10 @@ void CharSel_Draw(void) {
         Flash_FindLabel(f, i ? "mc_yajirusi_down" : "mc_yajirusi_up",
                         i ? "mc_yajirusi_icon_down" : "mc_yajirusi_icon_up", &ref);
         if (gCharSel->stageRows >= 2 || gCharSel->stage->state == 9) {
-            uv.x0 = i * 0x20;
-            uv.x1 = i * 0x20 + 0x20;
-            uv.y0 = 0x20;
-            uv.y1 = 0x40;
+            uv.u0 = i * 0x20;
+            uv.u1 = i * 0x20 + 0x20;
+            uv.v0 = 0x20;
+            uv.v1 = 0x40;
             Flash_ClipSetUv(f, &ref, &uv);
             Flash_ClipSetFlags(f, &ref, 2, 1);
         } else {
@@ -984,11 +984,11 @@ void CharSel_Draw(void) {
         }
     }
 
-    uv.x0 = 0;
-    uv.x1 = 0x200;
+    uv.u0 = 0;
+    uv.u1 = 0x200;
 #ifdef PORT
     {
-        extern void Flash_ClipGetPos(MFlash *flash, MFlashRef *ref, s32 *x, s32 *y);
+        extern void Flash_ClipGetPos(Flash *flash, FlashRef *ref, s32 *x, s32 *y);
         s32 bgm = gCharSel->bgmIds[gCharSel->stage->bgm];
 
         if (bgm >= PORT_SONG_FIRST_OFFSET) {
@@ -1005,13 +1005,13 @@ void CharSel_Draw(void) {
             cx = 0;
             cy = 0;
             Flash_FindLabel(f, "mc_bgm_now", "mc_bgm_now_text_off", &ref);
-            if (ref.id >= 0) {
+            if (ref.index >= 0) {
                 Flash_ClipGetPos(f, &ref, &cx, &cy);
                 have = 1;
             }
             Flash_ClipSetFlags(f, &ref, 2, 0);
             Flash_FindLabel(f, "mc_bgm_now", "mc_bgm_now_text_on", &ref);
-            if (!have && ref.id >= 0) {
+            if (!have && ref.index >= 0) {
                 Flash_ClipGetPos(f, &ref, &cx, &cy);
                 shown = 1;
             }
@@ -1048,12 +1048,12 @@ void CharSel_Draw(void) {
                 gFontStyle = saved;
             }
         } else {
-            uv.y0 = (bgm % 8) * 0x20;
-            uv.y1 = uv.y0 + 0x20;
-            uv.unk10 = bgm / 8;
+            uv.v0 = (bgm % 8) * 0x20;
+            uv.v1 = uv.v0 + 0x20;
+            uv.tex = bgm / 8;
             Flash_FindLabel(f, "mc_bgm_now", "mc_bgm_now_text_off", &ref);
             Flash_ClipSetUv(f, &ref, &uv);
-            Flash_ClipSetTex(f, &ref, uv.unk10);
+            Flash_ClipSetTex(f, &ref, uv.tex);
             if (sPortSongNameHidden) {
                 /* Back on a song of the disc after an added one: the clips that were switched off for the added
                    song's name come back. (The game itself never switches them; without this the names stayed
@@ -1062,7 +1062,7 @@ void CharSel_Draw(void) {
             }
             Flash_FindLabel(f, "mc_bgm_now", "mc_bgm_now_text_on", &ref);
             Flash_ClipSetUv(f, &ref, &uv);
-            Flash_ClipSetTex(f, &ref, uv.unk10);
+            Flash_ClipSetTex(f, &ref, uv.tex);
             if (sPortSongNameHidden) {
                 Flash_ClipSetFlags(f, &ref, 2, 1);
                 sPortSongNameHidden = 0;
@@ -1070,30 +1070,30 @@ void CharSel_Draw(void) {
         }
     }
 #else
-    uv.y0 = (gCharSel->bgmIds[gCharSel->stage->bgm] % 8) * 0x20;
-    uv.y1 = uv.y0 + 0x20;
-    uv.unk10 = gCharSel->bgmIds[gCharSel->stage->bgm] / 8;
+    uv.v0 = (gCharSel->bgmIds[gCharSel->stage->bgm] % 8) * 0x20;
+    uv.v1 = uv.v0 + 0x20;
+    uv.tex = gCharSel->bgmIds[gCharSel->stage->bgm] / 8;
     Flash_FindLabel(f, "mc_bgm_now", "mc_bgm_now_text_off", &ref);
     Flash_ClipSetUv(f, &ref, &uv);
-    Flash_ClipSetTex(f, &ref, uv.unk10);
+    Flash_ClipSetTex(f, &ref, uv.tex);
     Flash_FindLabel(f, "mc_bgm_now", "mc_bgm_now_text_on", &ref);
     Flash_ClipSetUv(f, &ref, &uv);
-    Flash_ClipSetTex(f, &ref, uv.unk10);
+    Flash_ClipSetTex(f, &ref, uv.tex);
 #endif
 
     for (i = 0; i < CHARSEL_SIDES; i++) {
         f = &gCharSel->flash[3 + i];
-        uv.x0 = (i ^ 1) * 0x20;
-        uv.x1 = uv.x0 + 0x20;
-        uv.y0 = 0;
-        uv.y1 = 0x20;
+        uv.u0 = (i ^ 1) * 0x20;
+        uv.u1 = uv.u0 + 0x20;
+        uv.v0 = 0;
+        uv.v1 = 0x20;
         Flash_FindLabel(f, NULL, "mc_yajirusi", &ref);
         Flash_ClipSetUv(f, &ref, &uv);
         for (j = 0; j < 4; j++) {
-            uv.x0 = 0;
-            uv.y0 = j * 0x20;
-            uv.x1 = 0x100;
-            uv.y1 = j * 0x20 + 0x20;
+            uv.u0 = 0;
+            uv.v0 = j * 0x20;
+            uv.u1 = 0x100;
+            uv.v1 = j * 0x20 + 0x20;
             sprintf(name, "mc_custom_plate_%d", j + 1);
             Flash_FindLabel(f, NULL, name, &ref);
             Flash_ClipSetColor(f, &ref, j < gCharSel->customRows[i] ? 1.0f : 0.3f);
@@ -1111,10 +1111,10 @@ void CharSel_Draw(void) {
             }
         }
         for (j = 0; j < 4; j++) {
-            uv.x0 = (j % 2) * 0x40;
-            uv.y0 = (j / 2) * 0x20;
-            uv.x1 = uv.x0 + 0x40;
-            uv.y1 = uv.y0 + 0x20;
+            uv.u0 = (j % 2) * 0x40;
+            uv.v0 = (j / 2) * 0x20;
+            uv.u1 = uv.u0 + 0x40;
+            uv.v1 = uv.v0 + 0x20;
             sprintf(name, "mc_color_plate_%d", j + 1);
             Flash_FindLabel(f, NULL, name, &ref);
             if (j < gCharSel->colorCount[i]) {
@@ -1152,18 +1152,18 @@ void CharSel_Draw(void) {
             plate = 2;
             break;
         }
-        uv.x0 = (plate - (plate / 2) * 2) * 0x40;
-        uv.y1 = (plate / 2) * 0x20 + 0x20;
-        uv.x1 = (plate - (plate / 2) * 2) * 0x40 + 0x40;
-        uv.y0 = (plate / 2) * 0x20;
+        uv.u0 = (plate - (plate / 2) * 2) * 0x40;
+        uv.v1 = (plate / 2) * 0x20 + 0x20;
+        uv.u1 = (plate - (plate / 2) * 2) * 0x40 + 0x40;
+        uv.v0 = (plate / 2) * 0x20;
         Flash_FindLabel(f, NULL, "mc_plate_text", &ref);
         Flash_ClipSetUv(f, &ref, &uv);
         if (gCharSel->rows[i] >= 2) {
             for (j = 0; j < 2; j++) {
-                uv.y0 = 0x20;
-                uv.x1 = j * 0x20 + 0x20;
-                uv.y1 = 0x40;
-                uv.x0 = j * 0x20;
+                uv.v0 = 0x20;
+                uv.u1 = j * 0x20 + 0x20;
+                uv.v1 = 0x40;
+                uv.u0 = j * 0x20;
                 Flash_FindLabel(f, j ? "mc_yajirusi_down" : "mc_yajirusi_up",
                                 j ? "mc_yajirusi_icon_down" : "mc_yajirusi_icon_up", &ref);
                 Flash_ClipSetUv(f, &ref, &uv);

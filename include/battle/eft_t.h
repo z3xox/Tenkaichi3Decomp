@@ -2,6 +2,9 @@
 #define BATTLE_EFT_T_H
 
 #include "types.h"
+#include "battle/eft_ray_types.h"
+#include "battle/eft_s.h"
+#include "battle/btl_cam.h"
 #include "sys/math3d.h"
 
 /*
@@ -18,7 +21,7 @@
  *
  * A class is six callbacks {update, init, term, post-update, reset, draw}; the manager classes are entries of the
  * list at 0x2C3FB0 (pairs {class, 1}: chain 0x2C4058, ray 0x2C4088, streak 0x2C4000, vanish lines 0x2C3FD8).
- * Every structure is a view local to these files.
+ * Shared chain, ray-creation and camera records use their owner headers. Legacy task views remain below.
  */
 
 /* The effect code's vector: 16-byte aligned, so copies are 64-bit moves. */
@@ -58,16 +61,6 @@ typedef struct EftTIVec {
     /* 0xC */ s32 w;
 } EftTIVec;
 
-/* The camera view being drawn (gBtlCamView); only what these modules read. */
-typedef struct EftTCamView {
-    /* 0x000 */ u8 unk0[0x40];
-    /* 0x040 */ Mtx44 view;      /* world to view */
-    /* 0x080 */ u8 unk80[0xC0];
-    /* 0x140 */ Mtx44 screen;    /* world to screen */
-    /* 0x180 */ u8 unk180[0xA0];
-    /* 0x220 */ Vec4 pos;
-} EftTCamView;
-
 /* One entry of a texture set (EftTexSet_Load32 / EftTexSet_Load4 / EftTexSet_Load8). */
 typedef struct EftTTex {
     /* 0x0 */ u64 tex0;
@@ -76,90 +69,15 @@ typedef struct EftTTex {
 
 /* ---- chain module (part kind 18) -------------------------------------------------------------------------- */
 
-/* Argument of EftChain_Create (EftEmitArgA in eft_h.h). */
-typedef struct EftChainArg {
-    /* 0x00 */ EftTVec pos;
-    /* 0x10 */ EftTVec dir;
-    /* 0x20 */ s32 objId;
-    /* 0x24 */ s32 unk24;
-    /* 0x28 */ f32 rate;
-    /* 0x2C */ f32 size;
-    /* 0x30 */ u8 *res;
-    /* 0x34 */ s32 *texA;
-    /* 0x38 */ s32 *texB;
-} EftChainArg; /* size 0x40 */
-
-/* One link of a strand. */
-typedef struct EftChainLink {
-    /* 0x00 */ Vec4 unk0;
-    /* 0x10 */ Vec4 unk10;
-    /* 0x20 */ Vec4 pos;
-    /* 0x30 */ u8 unk30[0x24];
-    /* 0x54 */ struct EftChainLink *next;
-} EftChainLink;
-
-/* One of the 16 strands of a chain effect. */
-typedef struct EftChainStrand {
-    /* 0x00 */ Mtx44 mtx;
-    /* 0x40 */ u8 unk40[0x20];
-    /* 0x60 */ EftChainLink *head;
-    /* 0x64 */ s32 unk64;
-    /* 0x68 */ s32 flags;         /* bit 0: in use */
-    /* 0x6C */ u8 unk6C[0x64];
-} EftChainStrand; /* size 0xD0 */
-
-/* EftChainWork.flags */
+/* EftArc.flags */
 #define EFT_CHAIN_ALIVE 0x01
 #define EFT_CHAIN_STOP 0x02       /* let it finish */
 #define EFT_CHAIN_KILL 0x04       /* end now */
 #define EFT_CHAIN_VIEW_ONLY 0x10  /* drawn only in the view that shows its fighter */
 
-/* Work of the task class 0x2C3E48 (update callback 0x17C8F8, in the file before this one). */
-typedef struct EftChainWork {
-    /* 0x000 */ EftChainArg arg;  /* the create argument, copied whole by the init callback */
-    /* 0x040 */ u8 unk40[0x100];
-    /* 0x140 */ EftChainStrand strand[16];
-    /* 0xE40 */ Mtx44 rot;        /* rotation by pitch about X, then yaw about Y */
-    /* 0xE80 */ s32 flags;        /* EFT_CHAIN_* */
-    /* 0xE84 */ u8 type;          /* owner's effect type, for the scene's "is this effect hidden / stopped" tests */
-    /* 0xE85 */ u8 unkE85[0xB];
-    /* 0xE90 */ s32 unkE90;       /* module parameter 3, kept in 3..7 */
-    /* 0xE94 */ u8 unkE94[0xC];
-    /* 0xEA0 */ f32 unkEA0;       /* module parameter 5 */
-    /* 0xEA4 */ f32 unkEA4;       /* module parameter 6; the pack library zeroes it for a fading stop */
-    /* 0xEA8 */ u8 unkEA8[0xC];
-    /* 0xEB4 */ f32 pitch;
-    /* 0xEB8 */ f32 yaw;
-    /* 0xEBC */ u8 unkEBC[0x54];
-} EftChainWork; /* size 0xF10 */
-
-/* gEftChain (0x2FEA64). */
-typedef struct EftChainMgr {
-    /* 0x0 */ u8 *buf;            /* 0xBB80 bytes */
-    /* 0x4 */ s32 unk4;
-} EftChainMgr;
-
 /* ---- ray burst (part kind 0) ------------------------------------------------------------------------------ */
 
-/* Argument of EftRay_Create (EftEmitLightArg in eft_h.h, FxLineArg in btl_char_fx.h). */
-typedef struct EftRayArg {
-    /* 0x00 */ EftTVec pos;
-    /* 0x10 */ s32 color[4];      /* r, g, b, alpha; each ray's alpha is alpha - rand() % 16 */
-    /* 0x20 */ f32 life;          /* seconds before the fade starts; <= 0: no timed fade */
-    /* 0x24 */ f32 length;        /* ray length; + up to 20 at random */
-    /* 0x28 */ f32 width;         /* ray width factor (times up to 5 at random, at least 0.4) */
-    /* 0x2C */ f32 inner;         /* distance of the rays' near end from the centre */
-    /* 0x30 */ f32 jitter;        /* random extra distance per ray */
-    /* 0x34 */ s32 mode;          /* EFT_RAY_MODE_* */
-    /* 0x38 */ u32 count;         /* rays, at most 48 */
-    /* 0x3C */ s32 objId;         /* owner; negative = none */
-    /* 0x40 */ s32 blend;         /* passed to the quad queue */
-    /* 0x44 */ s32 space;         /* 0: in the world, facing the camera; 1: on the screen */
-    /* 0x48 */ s32 delay;         /* frames before anything happens */
-    /* 0x4C */ s32 fadeFrames;    /* frames the final fade takes */
-    /* 0x50 */ s32 autoKill;      /* non-zero: the task ends itself when the fade is over */
-    /* 0x54 */ s32 unk54[3];
-} EftRayArg; /* size 0x60 */
+/* EftRayArg (0x60 bytes) is owned by battle/eft_ray_types.h; FxLineArg remains a legacy view. */
 
 typedef struct EftRay {
     /* 0x00 */ u8 r, g, b, a;
@@ -196,7 +114,7 @@ typedef struct EftRayWork {
     /* 0x4EC */ f32 alphaStep;    /* 1 / fadeFrames */
     /* 0x4F0 */ f32 inner;
     /* 0x4F4 */ f32 jitter;
-    /* 0x4F8 */ s32 alphaRange;   /* EftRayArg.color[3]: modes 1..3 re-roll each alpha as rand() % this */
+    /* 0x4F8 */ s32 alphaRange;   /* EftRayArg.color.a: modes 1..3 re-roll each alpha as rand() % this */
     /* 0x4FC */ s32 count;
     /* 0x500 */ s32 blend;
     /* 0x504 */ s32 space;
@@ -366,6 +284,8 @@ typedef struct EftStreakMgr {
 typedef struct EftStreakRoot {
     /* 0x0 */ EftStreakMgr *mgr;
 } EftStreakRoot;
+
+extern EftStreakRoot *gEftStreak;
 
 /* ---- vanish lines (class 0x2C3EC0; the full layout is EftShotFxWork / EftTShotFxReq in eft_u.h) ------------- */
 

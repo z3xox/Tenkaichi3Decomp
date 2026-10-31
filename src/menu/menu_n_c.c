@@ -8,7 +8,7 @@ extern void Port_MenuFill(int on);
 
 /*
  * UbRank, 0x373A68..0x3760C8: the ranking ladder of mode 26. A list of 100 places (five plates visible); the
- * player holds place gSaveData->rank + 1 and may challenge a place; challenging the place above can bring in an
+ * player holds place gSaveData->unk77C + 1 and may challenge a place; challenging the place above can bring in an
  * intruder instead. Back from the battle the screen shows the outcome and moves the player up.
  * One object: its .data is the work pointer 0x3B7354, its .rodata runs from 0x3B7C70 (sUbRankChipTex) to
  * 0x3B7E50.
@@ -26,11 +26,11 @@ UbRank *gUbRank = NULL; /* 0x3B7354 */
 static const s32 sUbRankChipTex[6] = { 13, 15, 16, 17, 18, 19 };
 
 #define UR_RES(n) \
-    res = (MTexRes *)MPACK_AT(gUbRank->res, n); \
+    res = (FlashTexRes *)MPACK_AT(gUbRank->res, n); \
     Res_RelocateOffsets(&res, res, res)
 
 /* The texture list of a character's chip in the chip pack. */
-#define UR_CHIP_RES(chara) ((MTexRes *)MPACK_AT(gUbRank->chips, (chara) + 1))
+#define UR_CHIP_RES(chara) ((FlashTexRes *)MPACK_AT(gUbRank->chips, (chara) + 1))
 
 /* The battle hand-off of the ladder: the player's fighter against the opponent chosen by UbRank_PickFoe. */
 void UbRank_SetupBattle(void) {
@@ -82,7 +82,7 @@ void UbRank_SetupBattle(void) {
 
 /* The rule entry of a place: the places below the player's own are shifted by one (the player's is left out). */
 s32 UbRank_PlaceToRule(s32 place) {
-    if (gSaveData->rank < place) {
+    if (gSaveData->unk77C < place) {
         return place - 1;
     }
     return place;
@@ -110,7 +110,7 @@ s32 UbRank_PickFoe(s32 place) {
 
     /* the one-pass loop keeps the compiler from moving the comparison down to its use, as the original has it */
     do {
-        if (place < 10 || !intrude || gSaveData->rank < place) {
+        if (place < 10 || !intrude || gSaveData->unk77C < place) {
             UbRank_SetFoe(UbRank_PlaceToRule(place), 0);
             NPROG->ubFlags &= ~NPROG_UB_INTRUDER;
             return 0;
@@ -135,7 +135,7 @@ s32 UbRank_ScrollUp(void) {
 
 /* Loads the screen's file, creates the three movies, and takes over the outcome of a ladder battle. */
 void UbRank_Init(void) {
-    MTexRes *res = NULL;
+    FlashTexRes *res = NULL;
     s32 i;
 
     gUbRank = Heap_Alloc(sizeof(UbRank), 0x20, 0, 2);
@@ -214,7 +214,7 @@ void UbRank_Init(void) {
     gUbRank->texC[12] = MTEX(res, 10);
     gUbRank->chips = (u32 *)MPACK_AT(gUbRank->res, 6);
     for (i = 0; i < N_CHIP_NUM; i++) {
-        res = (MTexRes *)MPACK_AT(gUbRank->chips, i + 1);
+        res = (FlashTexRes *)MPACK_AT(gUbRank->chips, i + 1);
         Res_RelocateOffsets(&res, res, res);
     }
     Flash_Create(&gUbRank->flash[0], MPACK_AT(gUbRank->res, 1), gUbRank->tex);
@@ -237,7 +237,7 @@ void UbRank_Init(void) {
     /* from here on `i` is the player's place, on which the list is centred */
     if (NPROG->ubFlags & NPROG_UB_FOUGHT) {
         NPROG->ubFlags &= ~NPROG_UB_FOUGHT;
-        i = gSaveData->rank;
+        i = gSaveData->unk77C;
         if (BattleResult_GetFlags() == 1) {
             gUbRank->won = 1;
         } else {
@@ -257,7 +257,7 @@ void UbRank_Init(void) {
         }
     } else {
         gUbRank->state = UBRANK_ST_LIST;
-        i = gSaveData->rank;
+        i = gSaveData->unk77C;
     }
     if (i >= 98) {
         gUbRank->top = UBRANK_PLACES - UBRANK_ROWS;
@@ -308,11 +308,11 @@ void UbRank_Term(void) {
 
 /* Draws the screen: the guide, the six plates of the list, the scroll arrows, the versus panel. */
 void UbRank_Draw(void) {
-    MFlashRef ref;
-    MFlashUv uv;
+    FlashRef ref;
+    FlashUv uv;
     char name[64];
-    MFlash *flash;
-    MTexRes *res;
+    Flash *flash;
+    FlashTexRes *res;
     s32 i;
 
 #ifdef PORT
@@ -333,7 +333,7 @@ void UbRank_Draw(void) {
 
         sprintf(name, "mc_ranking_plate%02d", i);
         Num_DrawChild(flash, name, "mc_jyuni_suji%d", 0, 3, place + 1, 0x40, 0x40, 0, 0);
-        if (place == gSaveData->rank) {
+        if (place == gSaveData->unk77C) {
             gUbRank->tex[sUbRankChipTex[i]] = gUbRank->playerChip;
             Flash_FindLabel(flash, name, "mc_charaname_kari", &ref);
             TextBox_AttachLine(flash, &ref, 0, 0, NPROG->chara, &gUbRank->box[i]);
@@ -352,7 +352,7 @@ void UbRank_Draw(void) {
         case UBRANK_ST_CLOSING:
         case UBRANK_ST_WAIT:
         case UBRANK_ST_RESULT:
-            if ((NPROG->ubFlags & NPROG_UB_UPWARD) && (gSaveData->rank == place || NPROG->ubChoice == place)) {
+            if ((NPROG->ubFlags & NPROG_UB_UPWARD) && (gSaveData->unk77C == place || NPROG->ubChoice == place)) {
                 Flash_ClipSetFlags(flash, &ref, 2, 0);
             } else {
                 Flash_ClipSetFlags(flash, &ref, 2, 1);
@@ -365,7 +365,7 @@ void UbRank_Draw(void) {
     }
     sprintf(name, "mc_ranking_plate%02d", 5);
     Num_DrawChild(flash, name, "mc_jyuni_suji%d", 0, 3, gUbRank->extra + 1, 0x40, 0x40, 0, 0);
-    if (gUbRank->extra == gSaveData->rank) {
+    if (gUbRank->extra == gSaveData->unk77C) {
         gUbRank->tex[sUbRankChipTex[5]] = gUbRank->playerChip;
         Flash_FindLabel(flash, name, "mc_charaname_kari", &ref);
         TextBox_AttachLine(flash, &ref, 0, 0, NPROG->chara, &gUbRank->box[5]);
@@ -383,10 +383,10 @@ void UbRank_Draw(void) {
     } else {
         Flash_ClipSetFlags(flash, &ref, 2, 0);
     }
-    uv.x0 = 0;
-    uv.y0 = 0x20;
-    uv.x1 = 0x20;
-    uv.y1 = 0x40;
+    uv.u0 = 0;
+    uv.v0 = 0x20;
+    uv.u1 = 0x20;
+    uv.v1 = 0x40;
     Flash_ClipSetUv(flash, &ref, &uv);
     Flash_FindLabel(flash, "mc_yajirusi_down", "mc_yajirusi_icon_down", &ref);
     if (gUbRank->top < UBRANK_PLACES - UBRANK_ROWS) {
@@ -394,10 +394,10 @@ void UbRank_Draw(void) {
     } else {
         Flash_ClipSetFlags(flash, &ref, 2, 0);
     }
-    uv.x0 = 0x20;
-    uv.y0 = 0x20;
-    uv.x1 = 0x40;
-    uv.y1 = 0x40;
+    uv.u0 = 0x20;
+    uv.v0 = 0x20;
+    uv.u1 = 0x40;
+    uv.v1 = 0x40;
     Flash_ClipSetUv(flash, &ref, &uv);
     flash = &gUbRank->flash[1];
     switch (gUbRank->state) {
@@ -420,7 +420,7 @@ void UbRank_Draw(void) {
         if (NPROG->ubFlags & NPROG_UB_UPWARD) {
             Flash_SetOffset(flash, 0xC5, (NPROG->ubChoice - gUbRank->top) * 0x34 + 0xB8);
             res = UR_CHIP_RES(gUbRank->curFoe->chara);
-            if (gSaveData->rank > NPROG->ubChoice) {
+            if (gSaveData->unk77C > NPROG->ubChoice) {
                 gUbRank->texB[3] = MTEX(res, 0);
                 gUbRank->texB[0] = gUbRank->playerChip;
             } else {
@@ -547,17 +547,17 @@ void UbRank_Input(s32 *result) {
         return;
     }
     if (!(gUbRank->flags & UBRANK_STARTED)) {
-        gUbRank->cursor[0] = gSaveData->rank - top;
+        gUbRank->cursor[0] = gSaveData->unk77C - top;
         UbRank_ClipGoto(0, 0, "fl_on_start");
         gUbRank->flags |= UBRANK_STARTED;
         if (gUbRank->flags & UBRANK_RESULT) {
             gUbRank->state = UBRANK_ST_RESULT;
             if (gUbRank->won) {
-                if (gSaveData->rank == 1) {
+                if (gSaveData->unk77C == 1) {
                     gUbRank->voiceReq = 5;
-                } else if (gSaveData->rank == 2) {
+                } else if (gSaveData->unk77C == 2) {
                     gUbRank->voiceReq = 3;
-                } else if (gSaveData->rank != 0) {
+                } else if (gSaveData->unk77C != 0) {
                     gUbRank->voiceReq = Rand_Range(2) + 1;
                 }
                 Flash_GotoLabel(&gUbRank->flash[1], "fl_win_player", 1);
@@ -570,7 +570,7 @@ void UbRank_Input(s32 *result) {
     }
     switch (state) {
     case UBRANK_ST_LIST:
-        if (up && gSaveData->rank - 1 < pos) {
+        if (up && gSaveData->unk77C - 1 < pos) {
             if (gUbRank->cursor[gUbRank->state] == 1 && gUbRank->top != 0) {
                 gUbRank->top--;
                 Flash_GotoLabel(&gUbRank->flash[0], "fl_ranking_down", 1);
@@ -598,10 +598,10 @@ void UbRank_Input(s32 *result) {
             gUbRank->idle = 0;
         } else if (ok) {
             NPROG->ubChoice = gUbRank->top + gUbRank->cursor[gUbRank->state];
-            if (NPROG->ubChoice == gSaveData->rank) {
+            if (NPROG->ubChoice == gSaveData->unk77C) {
                 Snd_PlaySe(1, 7);
             } else {
-                if (NPROG->ubChoice < gSaveData->rank) {
+                if (NPROG->ubChoice < gSaveData->unk77C) {
                     NPROG->ubFlags |= NPROG_UB_UPWARD;
                 } else {
                     NPROG->ubFlags &= ~NPROG_UB_UPWARD;
@@ -671,10 +671,10 @@ void UbRank_Input(s32 *result) {
         if (gUbRank->flags & UBRANK_PANEL_DONE) {
             gUbRank->flags &= ~UBRANK_PANEL_DONE;
             if ((NPROG->ubFlags & NPROG_UB_UPWARD) && gUbRank->won) {
-                gSaveData->rank--;
+                gSaveData->unk77C--;
             }
-            if (gUbRank->climb != 0 && gSaveData->rank != 0) {
-                UbRank_SetFoe(UbRank_PlaceToRule(gSaveData->rank - 1), 0);
+            if (gUbRank->climb != 0 && gSaveData->unk77C != 0) {
+                UbRank_SetFoe(UbRank_PlaceToRule(gSaveData->unk77C - 1), 0);
                 gUbRank->climb--;
                 if (!UbRank_ScrollUp()) {
                     Flash_GotoLabel(&gUbRank->flash[1], "fl_win_player", 1);
@@ -692,9 +692,9 @@ void UbRank_Input(s32 *result) {
 
 /* Sends the plate of cursor[state] in one of the movies to a label. */
 void UbRank_ClipGoto(s32 movie, s32 state, char *label) {
-    MFlashRef ref;
+    FlashRef ref;
     char name[64];
-    MFlash *flash = &gUbRank->flash[movie];
+    Flash *flash = &gUbRank->flash[movie];
 
     sprintf(name, "mc_ranking_plate%02d", gUbRank->cursor[state]);
     Flash_FindLabel(flash, NULL, name, &ref);
@@ -704,7 +704,7 @@ void UbRank_ClipGoto(s32 movie, s32 state, char *label) {
 /* Background loader of the two fighters' large pictures (files 0x2F9 + character), one step per frame. */
 void UbRank_UpdateFaceLoad(void) {
     s32 chara[2];
-    MTexRes *res;
+    FlashTexRes *res;
     s32 *p = chara; /* through a pointer: `memset(chara, 0, 8)` is expanded in line, the original calls memset */
 
     memset(p, 0, 8);

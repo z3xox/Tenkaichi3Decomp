@@ -1,4 +1,5 @@
 #include "common.h"
+#include "battle/btl_cam.h"
 #include "main.h"
 #include "sys/heap.h"
 #include "sys/file.h"
@@ -160,6 +161,6 @@ void Game_Main(void) {
 }
 
 /* Queues a GS scissor packet for the view's scissor rectangle. */
-void View_ApplyScissor(ViewScissor *view) {
+void View_ApplyScissor(View *view) {
     Dma_AddScissor(view->scissorX0, view->scissorX1, view->scissorY0, view->scissorY1);
 }

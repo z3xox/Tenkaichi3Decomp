@@ -38,20 +38,20 @@ extern void LipSync_Update(void);
 extern s32 LipSync_IsOpen(void); /* non-zero while a voice line plays */
 
 /* Defined here: this object's .sdata (0x2FF10C). */
-ViewProgress *gProgress = NULL;
+Progress *gProgress = NULL;
 
 /* Allocates the progress block and the three buffers of the loading screen. */
 void Progress_Init(void) {
-    gProgress = Heap_Alloc(sizeof(ViewProgress), 0x20, 0, HEAP_ANY);
-    memset(gProgress, 0, sizeof(ViewProgress));
-    gProgress->unk4 = 0x1C1;
+    gProgress = Heap_Alloc(sizeof(Progress), 0x20, 0, HEAP_ANY);
+    memset(gProgress, 0, sizeof(Progress));
+    gProgress->baseFile = 0x1C1;
     gProgress->loadPack = Heap_Alloc(0x3000, 0x40, 0, HEAP_ANY);
     gProgress->loadRes = Heap_Alloc(0x6800, 0x20, 0, HEAP_ANY);
     gProgress->loadSprites = Heap_Alloc(0x380, 0x20, 0, HEAP_ANY);
     gProgress->mode = 1;
     gProgress->flags |= PROGRESS_FLAG_40;
     Progress_ClearSession();
-    gProgress->unk24 = -1;
+    gProgress->demoPick = -1;
 }
 
 /* Clears the parts of the progress block that do not survive a return to the title (also called by Save_*). */
@@ -59,13 +59,13 @@ void Progress_ClearSession(void) {
     s32 i;
 
     if (gProgress != NULL) {
-        memset(gProgress->unk30, 0, sizeof(gProgress->unk30));
+        memset(&gProgress->menu, 0, sizeof(gProgress->menu));
         memset(gProgress->unk7C, 0, sizeof(gProgress->unk7C));
         memset(gProgress->unk440, 0, 0x1F4);
         memset(gProgress->unk634, 0, sizeof(gProgress->unk634));
-        memset(gProgress->unk68C, 0, sizeof(gProgress->unk68C));
+        memset(&gProgress->replay, 0, sizeof(gProgress->replay));
         gProgress->unk7D0 = 0;
-        memset(gProgress->unk7D4, 0, sizeof(gProgress->unk7D4));
+        memset(&gProgress->training, 0, sizeof(gProgress->training));
         for (i = 0; i < 5; i++) {
             gProgress->unk440[i].unk0 = 0;
             gProgress->unk530[i].unk0 = 1;
@@ -79,7 +79,7 @@ void FlashAnim_Blink(Flash *flash, FlashRef *ref, s32 *timer, s32 frame) {
     if (gProgress->flags & PROGRESS_FLAG_FREEZE) {
         return;
     }
-    if (ref->id < 0) {
+    if (ref->index < 0) {
         return;
     }
     if (*timer < 36) {
@@ -109,7 +109,7 @@ void FlashAnim_Blink(Flash *flash, FlashRef *ref, s32 *timer, s32 frame) {
 
 /* Shows the clip at frame + 1. */
 void FlashAnim_ShowNext(Flash *flash, FlashRef *ref, s32 frame) {
-    if (ref->id >= 0) {
+    if (ref->index >= 0) {
         Flash_ClipSetFlags(flash, ref, FLASH_PROP_VISIBLE, 1);
         Flash_ClipSetTex(flash, ref, frame + 1);
     }
@@ -121,7 +121,7 @@ void FlashAnim_Talk(Flash *flash, FlashRef *ref, s32 *timer, s32 frame) {
     if (gProgress->flags & PROGRESS_FLAG_FREEZE) {
         return;
     }
-    if (ref->id < 0) {
+    if (ref->index < 0) {
         return;
     }
     LipSync_Update();
@@ -151,7 +151,7 @@ void FlashAnim_Talk(Flash *flash, FlashRef *ref, s32 *timer, s32 frame) {
 
 /* Shows the clip at frame + 1 (the same code as FlashAnim_ShowNext). */
 void FlashAnim_ShowNext2(Flash *flash, FlashRef *ref, s32 frame) {
-    if (ref->id >= 0) {
+    if (ref->index >= 0) {
         Flash_ClipSetFlags(flash, ref, FLASH_PROP_VISIBLE, 1);
         Flash_ClipSetTex(flash, ref, frame + 1);
     }
@@ -168,7 +168,7 @@ void FlashAnim_Sheet(Flash *flash, FlashRef *ref, s32 *timer, s32 *frame, FlashU
     if (gProgress->flags & PROGRESS_FLAG_FREEZE) {
         return;
     }
-    if (ref->id < 0) {
+    if (ref->index < 0) {
         return;
     }
     (*timer)++;
@@ -186,11 +186,11 @@ void FlashAnim_Sheet(Flash *flash, FlashRef *ref, s32 *timer, s32 *frame, FlashU
         row = 0;
         col = 0;
     }
-    cell.x0 = uv->x0 + uv->x1 * col;
-    cell.y0 = uv->y0 + uv->y1 * row;
-    cell.x1 = uv->x1 + uv->x1 * col;
-    cell.y1 = uv->y1 + uv->y1 * row;
-    cell.unk10 = 0;
+    cell.u0 = uv->u0 + uv->u1 * col;
+    cell.v0 = uv->v0 + uv->v1 * row;
+    cell.u1 = uv->u1 + uv->u1 * col;
+    cell.v1 = uv->v1 + uv->v1 * row;
+    cell.tex = 0;
     Flash_ClipSetUv(flash, ref, &cell);
 }
 
@@ -202,32 +202,32 @@ void FlashAnim_Scroll(Flash *flash, FlashRef *ref, FlashUv *uv, f32 *x, f32 *y, 
     if (gProgress->flags & PROGRESS_FLAG_FREEZE) {
         return;
     }
-    if (ref->id < 0) {
+    if (ref->index < 0) {
         return;
     }
     cell = *uv;
     if (x != NULL) {
-        cell.x0 += (s32)*x;
-        cell.x1 += (s32)*x;
+        cell.u0 += (s32)*x;
+        cell.u1 += (s32)*x;
         *x += dx;
         if (dx < 0.0f) {
             if (*x < 0.0f) {
-                *x += (f32)uv->x1;
+                *x += (f32)uv->u1;
             }
-        } else if ((f32)uv->x1 <= *x) {
-            *x -= (f32)uv->x1;
+        } else if ((f32)uv->u1 <= *x) {
+            *x -= (f32)uv->u1;
         }
     }
     if (y != NULL) {
-        cell.y0 += (s32)*y;
-        cell.y1 += (s32)*y;
+        cell.v0 += (s32)*y;
+        cell.v1 += (s32)*y;
         *y += dy;
         if (dy < 0.0f) {
             if (*y < 0.0f) {
-                *y += (f32)uv->y1;
+                *y += (f32)uv->v1;
             }
-        } else if ((f32)uv->y1 <= *y) {
-            *y -= (f32)uv->y1;
+        } else if ((f32)uv->v1 <= *y) {
+            *y -= (f32)uv->v1;
         }
     }
     Flash_ClipSetFlags(flash, ref, FLASH_PROP_UV, 1);
@@ -354,10 +354,10 @@ void Num_Draw(Flash *flash, char *fmt, s32 first, s32 count, s32 value, s32 w, s
         } else {
             digit = 10;
         }
-        uv.y0 = h * (digit / 4);
-        uv.y1 = h * (digit / 4) + h;
-        uv.x0 = w * (digit % 4);
-        uv.x1 = w * (digit % 4) + w;
+        uv.v0 = h * (digit / 4);
+        uv.v1 = h * (digit / 4) + h;
+        uv.u0 = w * (digit % 4);
+        uv.u1 = w * (digit % 4) + w;
         Flash_ClipSetFlags(flash, &ref, FLASH_PROP_VISIBLE, 1);
         Flash_ClipSetUv(flash, &ref, &uv);
     }
@@ -413,10 +413,10 @@ void Num_DrawChild(Flash *flash, char *parent, char *fmt, s32 first, s32 count, 
         } else {
             digit = 10;
         }
-        uv.y0 = h * (digit / 4);
-        uv.y1 = h * (digit / 4) + h;
-        uv.x0 = w * (digit % 4);
-        uv.x1 = w * (digit % 4) + w;
+        uv.v0 = h * (digit / 4);
+        uv.v1 = h * (digit / 4) + h;
+        uv.u0 = w * (digit % 4);
+        uv.u1 = w * (digit % 4) + w;
         Flash_ClipSetFlags(flash, &ref, FLASH_PROP_VISIBLE, 1);
         Flash_ClipSetUv(flash, &ref, &uv);
     }
@@ -526,10 +526,10 @@ void Num_DrawEx(Flash *flash, NumStyle *style, char *a, char *b, s32 value) {
             }
         }
     draw:
-        uv.y0 = style->h * (digit / 4);
-        uv.y1 = style->h * (digit / 4) + style->h;
-        uv.x0 = style->w * (digit % 4);
-        uv.x1 = style->w * (digit % 4) + style->w;
+        uv.v0 = style->h * (digit / 4);
+        uv.v1 = style->h * (digit / 4) + style->h;
+        uv.u0 = style->w * (digit % 4);
+        uv.u1 = style->w * (digit % 4) + style->w;
         Flash_ClipSetFlags(flash, &ref, FLASH_PROP_VISIBLE, 1);
         Flash_ClipSetUv(flash, &ref, &uv);
     }
@@ -771,8 +771,7 @@ void StgGrid_MoveUp(s32 *ids, s32 *col, s32 *row, s32 rows) {
 /* Builds the character grid of the current menu screen (gProgress->mode) from the master list: locked
  * characters become CHRGRID_ID_LOCKED, a cell keeps only its unlocked forms, and the list is padded to a
  * multiple of seven with fillers. Then lists the saved custom characters (gSaveData->rec) in `custom`. */
-#if 0
-/* Not matching, 210 of 347 instructions. The mode tests at the top match. In the loop the original keeps every copy of a cell (three of them) and every `id = CHRGRID_ID_EMPTY` store as separate code where this version shares them, and some temporaries sit in other registers (j and j * 4 in t7 / t5; the pointer to the output cell in a0). The original also addresses the saved characters as `gSaveData + 8 + (0x2D50 + i * 0x1C)`. */
+
 void ChrGrid_Build(s32 *outCount, ChrGridCell *out, s32 *inCount, ChrGridCell *in, s32 *customCount,
                    ChrGridCell *custom) {
     s32 flags = 0;
@@ -780,6 +779,7 @@ void ChrGrid_Build(s32 *outCount, ChrGridCell *out, s32 *inCount, ChrGridCell *i
     s32 i;
     s32 j;
     s32 pad;
+    s32 k;
 
     if (gProgress->mode >= 0x26 && gProgress->mode < 0x2A) {
         if (gProgress->mode == 0x28) {
@@ -820,43 +820,49 @@ void ChrGrid_Build(s32 *outCount, ChrGridCell *out, s32 *inCount, ChrGridCell *i
                     out[*outCount].formCount = 0;
                     out[*outCount].id = out[*outCount].form[0];
                     (*outCount)++;
-                    continue;
+                } else {
+                    out[*outCount].id = out[*outCount].form[0];
+                    (*outCount)++;
                 }
-                out[*outCount].id = out[*outCount].form[0];
             } else if (out[*outCount].formCount == 1) {
                 out[*outCount].formCount = 0;
                 out[*outCount].id = out[*outCount].form[0];
                 (*outCount)++;
-                continue;
             } else {
                 out[*outCount].id = CHRGRID_ID_LOCKED;
+                (*outCount)++;
             }
         } else {
             switch (in[i].id) {
             case CHRGRID_ID_CUSTOM:
                 if (flags & CHRGRID_NO_CUSTOM) {
                     out[*outCount].id = CHRGRID_ID_EMPTY;
+                    (*outCount)++;
                 } else {
                     out[*outCount] = in[i];
+                    (*outCount)++;
                 }
                 break;
             case CHRGRID_ID_RANDOM:
                 if (flags & CHRGRID_NO_RANDOM) {
                     out[*outCount].id = CHRGRID_ID_EMPTY;
+                    (*outCount)++;
                 } else {
                     out[*outCount] = in[i];
+                    (*outCount)++;
                 }
                 break;
             default:
                 if ((flags & CHRGRID_ALL) || CHARA_UNLOCKED(in[i].id)) {
                     out[*outCount] = in[i];
+                    (*outCount)++;
                 } else {
                     out[*outCount].id = CHRGRID_ID_LOCKED;
+                    (*outCount)++;
                 }
                 break;
             }
         }
-        (*outCount)++;
     }
 
     pad = (*outCount + (CHRGRID_COLS - 1)) / CHRGRID_COLS * CHRGRID_COLS;
@@ -875,9 +881,9 @@ void ChrGrid_Build(s32 *outCount, ChrGridCell *out, s32 *inCount, ChrGridCell *i
             custom[i].id = CHRGRID_ID_LOCKED;
             custom[i].formCount = 0;
             if (gSaveData->rec[i].chara >= 0) {
-                for (j = 0; j < *inCount; j++) {
-                    if (gSaveData->rec[i].chara == in[j].id) {
-                        custom[i] = out[j];
+                for (k = 0; k < *inCount; k++) {
+                    if (gSaveData->rec[i].chara == in[k].id) {
+                        custom[i] = out[k];
                         custom[i].id = gSaveData->rec[i].chara;
                         custom[i].form[0] = gSaveData->rec[i].chara;
                         (*customCount)++;
@@ -888,9 +894,6 @@ void ChrGrid_Build(s32 *outCount, ChrGridCell *out, s32 *inCount, ChrGridCell *i
         }
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/battle/view_a_e", ChrGrid_Build);
-#endif
 
 /* Marks the locked stages of a stage list: a stage whose bit in gSaveData->stageBits is clear becomes
  * STGGRID_ID_LOCKED. In mode 0x28, stages 4 and 0x1B become fillers even when unlocked. */
@@ -1009,24 +1012,24 @@ void TextBox_Init(TextBox *box, void *text, u32 preset) {
 }
 
 void TextBox_SetUnk50(TextBox *box, s32 value) {
-    box->unk50 = value;
+    box->draw.align = value;
 }
 
 void TextBox_SetUnk80(TextBox *box, s32 value) {
-    box->unk80 = value;
+    box->draw.noFlush = value;
 }
 
 void TextBox_SetUnkC(TextBox *box, s32 a, s32 b) {
-    box->unkC = a;
-    box->unk10 = b;
+    box->x = a;
+    box->y = b;
 }
 
 /* Gives the box four values (a rectangle, by the look of it) and marks them valid. */
 void TextBox_SetRect(TextBox *box, s32 a, s32 b, s32 c, s32 d) {
-    box->rect[3] = d;
-    box->rect[0] = a;
-    box->rect[1] = c;
-    box->rect[2] = b;
+    box->clip[3] = d;
+    box->clip[0] = a;
+    box->clip[1] = c;
+    box->clip[2] = b;
     box->flags |= TEXTBOX_FLAG_RECT;
 }
 
@@ -1042,8 +1045,8 @@ void TextBox_SetColor(TextBox *box, u32 rgba) {
 /* Sets the second colour from 0xRRGGBBAA. */
 void TextBox_SetColor2(TextBox *box, u32 rgba) {
     box->flags |= TEXTBOX_FLAG_COLOR2;
-    box->color2[0] = rgba >> 24;
-    box->color2[1] = rgba >> 16;
-    box->color2[2] = rgba >> 8;
-    box->color2[3] = rgba;
+    box->shadow[0] = rgba >> 24;
+    box->shadow[1] = rgba >> 16;
+    box->shadow[2] = rgba >> 8;
+    box->shadow[3] = rgba;
 }
