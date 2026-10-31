@@ -4572,3 +4572,4 @@ converted for it has its 2D at its true shape across the whole width, the way th
   parts that keep wide pieces at their true shape (a popup's dimming of what is behind it).
 - The title (1) keeps its wide pieces at their true shape: its logo was stretched. The copyright page before it
   (51) at its true shape with black beside it.
+- Evolution Z's character customising (37): the roster, the name plates, the picture and the type and stats panel against the left edge, the zenni, Ability Limit and Character Z Points against the right (the user's choice), by clip name; the page's own pieces (the panels' frames) against the edge of the half they start in (part `PORT_MENU_SPLIT`, marker 0x2F, anchor 21).

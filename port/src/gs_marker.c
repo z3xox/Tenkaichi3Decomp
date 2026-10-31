@@ -37,12 +37,14 @@ void Port_GsMarker(int effect) {
      PORT_MENU_PAGE_EDGE  as PAGE, and a piece cut off at the 4:3 screen's right edge (starting right of 200) against
                        the right edge, at its left edge (ending left of 312) against the left: frames whose art is
                        cut there (World Tour's timer, Character Reference's list)
+     PORT_MENU_SPLIT   each piece against the edge of the half it starts in, at its true shape (wide ones too): a screen
+                       whose left half is one thing and its right half another, frames and text alike (marker 0x2F)
      PORT_MENU_CENTER_FREE  as CENTER, not cut at the 4:3 screen's edges: a picture that flies across the whole of
                        the wide picture (World Tour's announcer poster)
    Which clip of a screen's movie goes where is the table in Port_MenuClipPart, by the clips' names. A screen that
    marks nothing is stretched as before. The renderer acts on the markers only with that layout chosen. */
 enum { PORT_MENU_NONE = -1, PORT_MENU_CENTER, PORT_MENU_FILL, PORT_MENU_LEFT, PORT_MENU_RIGHT, PORT_MENU_CENTER_ALL, PORT_MENU_LEFT_ALL,
-       PORT_MENU_RIGHT_ALL, PORT_MENU_PAGE, PORT_MENU_PAGE_TOP, PORT_MENU_PAGE_EDGE, PORT_MENU_CENTER_FREE };
+       PORT_MENU_RIGHT_ALL, PORT_MENU_PAGE, PORT_MENU_PAGE_TOP, PORT_MENU_PAGE_EDGE, PORT_MENU_CENTER_FREE, PORT_MENU_SPLIT };
 static int sMenuPart = PORT_MENU_NONE;
 static int sMenuMovie;               /* which of the screen's movies is being drawn (Port_MenuMovie) */
 static int sMenuScreen;              /* PORT_MENU_SCREEN_* of the page being drawn, 0: none */
@@ -63,7 +65,7 @@ int Port_MenuPart(int part) {
     int prev = sMenuPart;
     if (part != sMenuPart) {
         sMenuPart = part;
-        Port_GsMarker(part == PORT_MENU_NONE ? 0x13 : 0x22 + part); /* (0x13: the HUD's "end", no anchor) */
+        Port_GsMarker(part == PORT_MENU_NONE ? 0x13 : part == PORT_MENU_SPLIT ? 0x2F : 0x22 + part); /* (0x13: the HUD's "end") */
     }
     return prev;
 }
@@ -105,7 +107,8 @@ void Port_MenuPage(int screen) {
     /* (the character selects of Ultimate Battle and the World Tournament, 15, 19, 23, 24, 25, as character select) */
     Port_MenuPart(screen == 0 ? PORT_MENU_NONE : screen == 2 ? PORT_MENU_LEFT
                   : screen == 51 ? PORT_MENU_CENTER_FREE /* (the logo page before the title: a picture of the whole 4:3 screen) */
-                  : screen == 1 || screen == 3 || screen == 37 || screen == 44 || screen == 50 ? PORT_MENU_CENTER_ALL
+                  : screen == 37 ? PORT_MENU_SPLIT /* (Evolution Z's customising: the player's side left, the points right) */
+                  : screen == 1 || screen == 3 || screen == 44 || screen == 50 ? PORT_MENU_CENTER_ALL
                                                 : screen == 14 ? PORT_MENU_LEFT_ALL
                                                 : screen == 13 || screen == 42 || screen == 18 ? PORT_MENU_FILL : screen == 38 ? PORT_MENU_PAGE_TOP
                                                 : screen == 17 || screen == 20 ? PORT_MENU_PAGE_EDGE
@@ -288,6 +291,18 @@ static int clip_part(const char *name, int x, int top) {
         }
         if (starts(name, "mc_custom_") || starts(name, "mc_item_") || starts(name, "mc_icon_item_")) {
             return PORT_MENU_CENTER_ALL;
+        }
+    }
+    if (sMenuScreen == 37 && top) { /* Evolution Z's customising (the user's choice): the player's side on the left, the
+                                        points on the right; the page's own pieces by the half they start in (SPLIT) */
+        if (starts(name, "mc_chara_chip_") || strcmp(name, "mc_plate") == 0 || starts(name, "mc_yajirusi_") ||
+            starts(name, "mc_name_") || starts(name, "mc_form_") || strcmp(name, "mc_single_chara_l") == 0 ||
+            starts(name, "mc_status_ability_") || strcmp(name, "mc_status_attribute") == 0) {
+            return PORT_MENU_LEFT_ALL;
+        }
+        if (strcmp(name, "mc_status_power_base") == 0 || strcmp(name, "mc_status_base_1") == 0 || starts(name, "mc_text_power_") ||
+            strcmp(name, "mc_exp_bar_point") == 0 || starts(name, "mc_ability_limit_") || starts(name, "mc_num_zp_")) {
+            return PORT_MENU_RIGHT_ALL;
         }
     }
     if (sMenuScreen == 38 && top && starts(name, "menu_plate_")) {
