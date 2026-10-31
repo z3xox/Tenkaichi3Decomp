@@ -3,12 +3,15 @@
 # no game data are involved (BT3_SKELETON=1: the data tables are built blank and the program fetches their values
 # from the player's disc at start), so the demo fight cannot be run here; install.py runs it on a Mac with the disc.
 # The tools are the ones install.py asks for: Homebrew's LLVM, SDL3, glslc and spirv-cross, and libclang 18 in .venv
-# for ptr32.py. The program is kept as an artifact of the run for a while (for testers; not a release).
+# for ptr32.py. The program is kept as an artifact of the run for a while (for testers); on a tag, release.yml calls
+# this workflow and attaches the zip to the release.
 name: macos
 
 on:
   push:
+    branches: ["**"]   # (a tag's build is release.yml's, which calls this one with the release's key and number)
     paths-ignore: ["docs/**", "**.md", "LICENSE", "LICENSE-MIT"]
+  workflow_call:       # release.yml: the Mac zip of a release
   pull_request:
     paths-ignore: ["docs/**", "**.md", "LICENSE", "LICENSE-MIT"]
   workflow_dispatch:
@@ -17,7 +20,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: macos-${{ github.ref }}
+  group: macos-${{ github.workflow }}-${{ github.ref }}   # (called by release.yml: that workflow's name, its own group)
   cancel-in-progress: true
 
 jobs:
@@ -55,10 +58,13 @@ jobs:
           .venv/bin/python -m pip install --quiet libclang==18.1.1
           /opt/homebrew/opt/llvm/bin/clang --version | head -1
 
+      # As the Linux and Windows release (release.yml): a tag's build carries the release's key and number
       - name: Build
         env:
           BT3_CC: mac64
           BT3_SKELETON: "1"
+          BT3_BUILD_KEY: ${{ startsWith(github.ref, 'refs/tags/v') && secrets.BT3_BUILD_KEY || '' }}
+          BT3_VERSION: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
         run: |
           mkdir -p port/build
           .venv/bin/python port/tools/undefined.py > port/build/compile_mac64.txt 2>&1 || { tail -40 port/build/compile_mac64.txt; exit 1; }

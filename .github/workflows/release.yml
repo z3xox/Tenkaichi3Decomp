@@ -1,10 +1,11 @@
-# Builds the Linux and Windows release archives on GitHub's machines, from the repository alone.
+# Builds the Linux and Windows release archives on GitHub's machines, from the repository alone, and the Mac one
+# (macos.yml, on GitHub's Mac).
 # No disc and no game data are involved: the game's data tables are built blank (port/data) and the finished
 # program fetches their values from the user's own disc at start. The same build runs locally with
 # port/release/build.sh.
 #
 #   every push to main        the archives as downloadable artifacts of the run (a check that everything builds)
-#   a tag  v*                 the same, and a draft release with both archives attached (and their .sig, for the
+#   a tag  v*                 the same, and a draft release with the three archives attached (and their .sig, for the
 #                             game's automatic update, when the secret UPDATE_SIGNING_KEY is set)
 #   "Run workflow" button     the same as a push
 name: release
@@ -55,23 +56,6 @@ jobs:
           docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -e BT3_BUILD_KEY -e BT3_VERSION -v "$PWD":/src -w /src \
             bt3-port-release:jammy sh port/release/inside.sh
 
-      # The automatic update's signatures (port/release/README.md): each zip signed with the private key of the
-      # repository secret UPDATE_SIGNING_KEY, as <zip>.sig beside it. A tag's build only. Without the secret the
-      # release is made all the same, unsigned: games then say an update exists but do not install it themselves.
-      # A key that is not the one in port/src/update_key.h stops the release (no game could check its signatures).
-      - name: Sign the archives for the automatic update
-        if: startsWith(github.ref, 'refs/tags/v')
-        env:
-          UPDATE_SIGNING_KEY: ${{ secrets.UPDATE_SIGNING_KEY }}
-        run: |
-          if [ -z "$UPDATE_SIGNING_KEY" ]; then
-            echo "::warning title=Unsigned release::The secret UPDATE_SIGNING_KEY is not set: the archives are NOT signed, and games will not install this release by themselves (they still say it exists). See port/release/README.md."
-          else
-            python3 port/tools/update_key.py sign port/build/Tenkaichi3Decomp-linux-x64.zip port/build/Tenkaichi3Decomp-windows-x64.zip
-            python3 port/tools/update_key.py verify port/build/Tenkaichi3Decomp-linux-x64.zip
-            python3 port/tools/update_key.py verify port/build/Tenkaichi3Decomp-windows-x64.zip
-          fi
-
       - uses: actions/upload-artifact@v4
         with:
           name: Tenkaichi3Decomp-linux-x64
@@ -83,11 +67,48 @@ jobs:
           path: port/build/Tenkaichi3Decomp-windows-x64.zip
           if-no-files-found: error
 
+
+  # The Mac zip (Apple Silicon), built by macos.yml on GitHub's Mac, with the release's key and number on a tag
+  macos:
+    if: startsWith(github.ref, 'refs/tags/v')   # (a push's Mac check is macos.yml's own run)
+    uses: ./.github/workflows/macos.yml
+    secrets: inherit
+
+  # A tag: the three archives signed for the automatic update and attached to a draft release
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build, macos]
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: port/build
+          pattern: Tenkaichi3Decomp-*
+          merge-multiple: true
+      - run: ls -l port/build
+
+      # The automatic update's signatures (port/release/README.md): each zip signed with the private key of the
+      # repository secret UPDATE_SIGNING_KEY, as <zip>.sig beside it. Without the secret the release is made all the
+      # same, unsigned: games then say an update exists but do not install it themselves. A key that is not the one in
+      # port/src/update_key.h stops the release (no game could check its signatures).
+      - name: Sign the archives for the automatic update
+        env:
+          UPDATE_SIGNING_KEY: ${{ secrets.UPDATE_SIGNING_KEY }}
+        run: |
+          Z="port/build/Tenkaichi3Decomp-linux-x64.zip port/build/Tenkaichi3Decomp-windows-x64.zip port/build/Tenkaichi3Decomp-macos-arm64.zip"
+          if [ -z "$UPDATE_SIGNING_KEY" ]; then
+            echo "::warning title=Unsigned release::The secret UPDATE_SIGNING_KEY is not set: the archives are NOT signed, and games will not install this release by themselves (they still say it exists). See port/release/README.md."
+          else
+            python3 port/tools/update_key.py sign $Z
+            for z in $Z; do python3 port/tools/update_key.py verify "$z"; done
+          fi
+
       - name: Draft release
-        if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "${GITHUB_REF_NAME}" --draft --title "${GITHUB_REF_NAME}" --generate-notes \
             port/build/Tenkaichi3Decomp-linux-x64.zip port/build/Tenkaichi3Decomp-windows-x64.zip \
-            $(ls port/build/Tenkaichi3Decomp-*-x64.zip.sig 2>/dev/null)
+            port/build/Tenkaichi3Decomp-macos-arm64.zip $(ls port/build/Tenkaichi3Decomp-*.zip.sig 2>/dev/null)
