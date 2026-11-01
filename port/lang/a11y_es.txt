@@ -2511,3 +2511,102 @@ e09d599f0067707d	%s volvió al torneo
 aa590d172c7d489c	Torneo: %d participantes
 # Match %d: %s vs %s
 60ac455192b5c874	Partida %d: %s contra %s
+# Online: the Dragon Net Battle window (gs/ui.cpp) and what the network says in it and over the picture (gs/net.c, net_match.c)
+# You are in the lobby. Its screen opens from the main menu (Tenkaichi Budokai Online).
+8eefd1e32e7e6723	Estás en la sala. Su pantalla se abre desde el menú principal (Tenkaichi Budokai Online).
+# Looking for the lobby...
+d075b3f8c60be8f4	Buscando la sala...
+# Finish the online session first.
+027d8d25fb728c2c	Primero termina la sesión en línea.
+# The update is installed, but the new version could not be started: close the game and start it again.
+6067f3801d7baa06	La actualización está instalada, pero no se pudo iniciar la versión nueva: cierra el juego y vuelve a abrirlo.
+# Quick match needs the original disc's data, and your game data are not the disc's. With friends (a room code, a lobby or an address) you can play when both have the same data.
+9848cf428c0dab69	La partida rápida necesita los datos del disco original, y los datos de tu juego no son los del disco. Con amigos (un código de sala, una sala o una dirección) pueden jugar si los dos tienen los mismos datos.
+# The other player's game did not say which game data it has (release 0.1.37, or it was still checking its data): both need 0.1.38 or newer.
+b85b9d300ed84e5d	El juego del otro jugador no dijo qué datos del juego tiene (es la versión 0.1.37, o todavía estaba revisando sus datos): los dos necesitan la 0.1.38 o una más nueva.
+# The two games no longer agree (desync): the match has ended.
+e4356c6bf66b8112	Los dos juegos ya no coinciden (se desincronizaron): la partida terminó.
+# The two games no longer agree (desync): your screen and the other player's may now show different fights.
+6e2f9772a9d01016	Los dos juegos ya no coinciden (se desincronizaron): tu pantalla y la del otro jugador pueden estar mostrando peleas distintas.
+# Spectating: this screen no longer shows the players' fight (desync). Following the match again from the start...
+e31e33b364b06a2c	Como espectador: esta pantalla ya no muestra la pelea de los jugadores (se desincronizó). Siguiendo la partida otra vez desde el principio...
+# Spectating: this screen no longer shows the players' fight (desync). The players' match is not affected.
+13b8736b7afa91c8	Como espectador: esta pantalla ya no muestra la pelea de los jugadores (se desincronizó). A la partida de los jugadores no le pasa nada.
+# The host's match has not begun yet. Waiting for it...
+87d27bd7382f1cc6	La partida del anfitrión todavía no empezó. Esperándola...
+# The match has ended.
+41148cee5eca7139	La partida terminó.
+# The host's match did not begin in two minutes.
+f769c2c650d3d406	La partida del anfitrión no empezó en dos minutos.
+# Nobody answered in two minutes.
+a2ee7686b1bb198b	Nadie respondió en dos minutos.
+# The other player's game was closed: the match has ended.
+bccf96522ceafa2a	Se cerró el juego del otro jugador: la partida terminó.
+# The other player's game lost contact with yours (a connection problem on one side or between you): the match has ended.
+074210aed3c7c5f6	El juego del otro jugador perdió el contacto con el tuyo (un problema de conexión de un lado o entre ustedes): la partida terminó.
+# The players' match has ended.
+9e71b2786ae88638	La partida de los jugadores terminó.
+# The connection to the host was lost.
+adad9b11f2128441	Se perdió la conexión con el anfitrión.
+# Joining the match as a spectator...
+0d4b38707d7a7529	Entrando a la partida como espectador...
+# Waiting for the match...
+86a75979644cf381	Esperando la partida...
+# Tenkaichi Budokai Online: the room was closed.
+fad9f86db84a22e4	Tenkaichi Budokai Online: se cerró la sala.
+# This computer's clock is wrong: set its date and time, then try again.
+f91c29135b5603b1	El reloj de esta computadora está mal: corrige la fecha y la hora, y vuelve a intentarlo.
+# This computer's address could not be found (no network?).
+1ed2f6c7555e25ee	No se pudo averiguar la dirección de esta computadora (¿no hay red?).
+# Quick match needs an official release of the game.
+46bf49d47c7980c9	La partida rápida necesita una versión oficial del juego.
+# Too many searches from this address; try again in a few minutes.
+01322162a1584637	Demasiadas búsquedas desde esta dirección; vuelve a intentarlo en unos minutos.
+# The matchmaking service does not know quick match yet.
+f2a3fd395170cb1e	El servicio de emparejamiento todavía no tiene partida rápida.
+# The matchmaking service gave no answer.
+008b5f9230cca31b	El servicio de emparejamiento no respondió.
+# The matchmaking service does not take lobbies yet. A lobby by address (a port) still works.
+3576ae0fff52fe5d	El servicio de emparejamiento todavía no acepta salas. Una sala por dirección (un puerto) sigue funcionando.
+# Room codes need an official release of the game. Playing by address still works.
+f0bf53f293d4d1e2	Los códigos de sala necesitan una versión oficial del juego. Jugar por dirección sigue funcionando.
+# Too many rooms from this address; try again in a few minutes.
+c3ae6cdc706f3b8f	Demasiadas salas desde esta dirección; vuelve a intentarlo en unos minutos.
+# The matchmaking service gave no room.
+5daa70f3a1cb0ab4	El servicio de emparejamiento no dio ninguna sala.
+# Nobody joined: the room code has run out. Host again for a new one.
+b500296792c0d4bb	No entró nadie: el código de sala venció. Abre la sala otra vez para tener uno nuevo.
+# Room codes need an official release of the game. Watching by address still works.
+571783951970aa3f	Los códigos de sala necesitan una versión oficial del juego. Mirar por dirección sigue funcionando.
+# The matchmaking service does not take spectators yet. Watching by address still works.
+e7348845edba2f22	El servicio de emparejamiento todavía no acepta espectadores. Mirar por dirección sigue funcionando.
+# The host's game is a different version: both players need the same release.
+a67be55364add559	El juego del anfitrión es de otra versión: los dos jugadores necesitan la misma.
+# Someone has already joined that room.
+bcb075d3580ea196	Alguien ya entró a esa sala.
+# No room with that code (codes last ten minutes).
+cd5811984321db2a	No hay ninguna sala con ese código (los códigos duran diez minutos).
+# Too many wrong codes from this address, or too many joining that lobby at once; try again soon.
+4ce00c246646d421	Demasiados códigos equivocados desde esta dirección, o demasiados entrando a esa sala a la vez; vuelve a intentarlo pronto.
+# The lobby's room code has run out (the matchmaking service no longer knows it). Members by address can still come.
+bfddd1ea80f1c925	El código de la sala venció (el servicio de emparejamiento ya no lo conoce). Los que entran por dirección todavía pueden venir.
+# The matchmaking could not be started.
+a152325e0c78cb82	No se pudo iniciar el emparejamiento.
+# tables
+e26607dbf29ff924	tablas
+# characters
+c147738d5cee9199	personajes
+# animations
+2b3c702a4973956a	animaciones
+# stages
+5949326dc12e3b9a	escenarios
+# effects
+fd8b23cc3ea96185	efectos
+# scripts
+f5746510fb7499db	scripts
+# menus
+e93eb0c7d778f5eb	menús
+# Quick match needs the original disc's data, and your game data are not the disc's (%s differ). With friends (a room code, a lobby or an address) you can play when both have the same data.
+f1997f825cedde6a	La partida rápida necesita los datos del disco original, y los datos de tu juego no son los del disco (cambiaron: %s). Con amigos (un código de sala, una sala o una dirección) pueden jugar si los dos tienen los mismos datos.
+# Quick match needs the original disc's data, and your game data are not the disc's (%s differs). With friends (a room code, a lobby or an address) you can play when both have the same data.
+6ec881e33ff214b9	La partida rápida necesita los datos del disco original, y los datos de tu juego no son los del disco (cambiaron: %s). Con amigos (un código de sala, una sala o una dirección) pueden jugar si los dos tienen los mismos datos.

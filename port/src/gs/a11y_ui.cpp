@@ -235,9 +235,17 @@ const char *const kPatterns[] = {
     "Lobby%s%s",
     "Spectating %s vs %s",
     "View: %s",
+    "Quick match needs the original disc's data, and your game data are not the disc's (%s differ). With friends (a room "
+    "code, a lobby or an address) you can play when both have the same data.",
+    "Quick match needs the original disc's data, and your game data are not the disc's (%s differs). With friends (a room "
+    "code, a lobby or an address) you can play when both have the same data.",
 };
 // Texts one of them would take too, that have a line of their own
-const char *const kNotPatterns[] = {"Keypad Enter", "Looking for the room..."};
+const char *const kNotPatterns[] = {"Keypad Enter", "Looking for the lobby..."};
+// The parts of the game data that the check of the disc names (plat_fprint.c, kCompName), which a text lists in one
+// conversion ("tables, characters, menus": gs/net.c, the quick match's refusal): each in the language spoken. Anything
+// else a conversion matched stays as it is.
+const char *const kDataParts[] = {"tables", "characters", "animations", "stages", "effects", "scripts", "menus"};
 
 // The language's line for an English text of the window, or that text: first the one of the key "text|settings", for a
 // text the game's own screens say otherwise ("Start": a choice there, a button here). (Only with the speaker on, which
@@ -374,6 +382,32 @@ bool pad_words(const char *en, char *out, int size) {
     return false;
 }
 
+// What a conversion matched, when it is a list of kDataParts, in the language spoken. 1: it was one.
+bool data_parts(const char *cap, int len, char *out, int size) {
+    int o = 0;
+
+    out[0] = '\0';
+    while (len > 0) {
+        int k = 0, i = -1;
+        while (k < len && !(cap[k] == ',' && k + 1 < len && cap[k + 1] == ' ')) {
+            k++;
+        }
+        for (int j = 0; j < (int)(sizeof(kDataParts) / sizeof(kDataParts[0])); j++) {
+            i = (int)strlen(kDataParts[j]) == k && strncmp(kDataParts[j], cap, k) == 0 ? j : i;
+        }
+        if (i < 0) {
+            return false;
+        }
+        o += snprintf(out + o, size - o, "%s%s", o > 0 ? ", " : "", lang_line(kDataParts[i]));
+        if (o >= size) {
+            return false;
+        }
+        cap += k + 2;
+        len -= k + 2;
+    }
+    return o > 0;
+}
+
 // A text the window draws, in the language spoken. 1: it was found.
 bool tr(const char *en, char *out, int size) {
     const char *cap[8], *t;
@@ -395,6 +429,13 @@ bool tr(const char *en, char *out, int size) {
     }
     for (int i = 0; !own && i < (int)(sizeof(kPatterns) / sizeof(kPatterns[0])); i++) {
         if ((n = 0, match(kPatterns[i], en, cap, capLen, &n))) {
+            char parts[8][160];
+            for (int k = 0; k < n; k++) {
+                if (data_parts(cap[k], capLen[k], parts[k], sizeof(parts[k]))) {
+                    cap[k] = parts[k];
+                    capLen[k] = (int)strlen(parts[k]);
+                }
+            }
             t = lang_line(kPatterns[i]);
             fill(t, cap, capLen, n, out, size);
             return t != kPatterns[i];
