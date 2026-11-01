@@ -1849,14 +1849,14 @@ void A11yUi_Tab(void) {
                                              "Sound and screen reader, with Select", "Sound, also by itself",
                                              "Screen reader, also by itself", "Sound and screen reader, also by itself"};
     static const struct { const char *label, *tip; } kAlerts[] = {
-        {"Distance to the rival", "A tick that repeats faster as the rival comes nearer, higher when the rival is above\n"
-                                  "you and lower when below; two ticks within close range. By the screen reader: near,\n"
+        {"Distance to the rival", "A tick from the rival's side that repeats faster as the rival comes nearer, higher when the rival is\n"
+                                  "above you and lower when below; two ticks within close range. By the screen reader: near,\n"
                                   "middle distance or far, and above or below, when it changes."},
         {"Edge of the stage", "A gust of wind while you are near the stage's wall (where the game shows it), faster the\n"
                               "nearer; a high hiss under the stage's ceiling, and two knocks out of the World Tournament ring."},
         {"Health", "Two beeps when a player's health falls under three quarters, a half and a quarter, louder the\n"
-                   "less is left; under a quarter, yours again every three seconds. In the middle: yours clean, the\n"
-                   "rival's with a buzz."},
+                   "less is left; under a quarter, yours again every three seconds. Yours clean, in the middle; the\n"
+                   "rival's with a buzz, from the rival's side (in the middle with two players at one computer)."},
         {"Transformation and Ultimate Blast", "When one more transformation or the Ultimate Blast comes within reach."},
         {"Gauges: health, ki and blast", "Select in a fight (Create on a DualSense, View on an Xbox controller): once, where the rival is, a\n"
                               "ping from there and a few words; twice quickly, your gauges; three times, the rival's. F5 on the keyboard:\n"

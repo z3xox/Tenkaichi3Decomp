@@ -1914,3 +1914,31 @@ e43aab370d3af713	Sala%s%s
 a1de614b0dd56e12	Mirando %s contra %s
 # View: %s
 fb24a5aabc85fd92	Vista: %s
+# Distance to the rival, from the rival's side: it repeats faster the nearer the rival is; higher when the rival is above you, lower when below.
+ec297da8cb881cae	La distancia al rival, desde el lado del rival: se repite más rápido cuanto más cerca está; más agudo si el rival está más arriba que tú, más grave si está más abajo.
+# The rival's health, from the rival's side.
+0d616bd7e049e8ca	La vida del rival, desde el lado del rival.
+# The rival's ki is full, from the rival's side; higher, the rival's max power.
+75efe0e451728185	El ki del rival está lleno, desde el lado del rival; más agudas, el máximo poder del rival.
+# The same for the rival, from the rival's side.
+8dc0976bf41ecbb0	Lo mismo, del rival, desde su lado.
+# A tick from the rival's side that repeats faster as the rival comes nearer, higher when the rival is\nabove you and lower when below; two ticks within close range. By the screen reader: near,\nmiddle distance or far, and above or below, when it changes.
+7307d54760b75d49	Un tic desde el lado del rival, que se repite más rápido cuanto más cerca está, más agudo si el rival está más arriba y más grave si está más abajo; dos tics en el rango de cuerpo a cuerpo. Con el lector de pantalla: cerca, a media distancia o lejos, y arriba o abajo, cuando cambia.
+# Two beeps when a player's health falls under three quarters, a half and a quarter, louder the\nless is left; under a quarter, yours again every three seconds. Yours clean, in the middle; the\nrival's with a buzz, from the rival's side (in the middle with two players at one computer).
+df41d41601c9bf4d	Dos pitidos cuando la vida de un jugador baja de tres cuartos, de la mitad y de un cuarto, más fuertes cuanta menos queda; por debajo de un cuarto, los tuyos otra vez cada tres segundos. Los tuyos, limpios y al centro; los del rival, con un zumbido y desde su lado (al centro si juegan dos en la misma computadora).
+# Menus
+a597982e46a96c4b	Menús
+# Stretched
+95479016b39faf7b	Estirados
+# Widescreen (beta)
+13e72033d548bdef	Pantalla ancha (beta)
+# How the menus fill a picture wider than 4:3 (fights keep the wide picture):\nStretched: the 4:3 menus stretched to the width.\n4:3: at their own shape, with the side bars at the sides.\nWidescreen (beta): at their own shape across the whole width, the backdrops filling it,\neach menu's parts against the side they belong to.
+16a4032b4ee18db9	Cómo llenan los menús una imagen más ancha que 4:3 (las peleas mantienen la imagen ancha). Estirados: los menús 4:3 estirados a lo ancho. 4:3: con su forma propia y las barras a los costados. Pantalla ancha (beta): con su forma propia a todo lo ancho, los fondos llenándolo y cada parte del menú contra el lado al que pertenece.
+# What fills the sides where the picture is narrower than the window:\na 4:3 picture, or the menus with "Menus: 4:3", in a wide window.\nFighter panels: the border, and in a fight each side's fighter with its name and form.\nYour own: a folder "bars" next to the game with trim.png (the strip along the\npicture, kept in proportion) and fill.png (stretched over the rest). Read at start.
+7e1b861049afb278	Qué llena los costados donde la imagen es más angosta que la ventana: una imagen 4:3, o los menús con "Menús: 4:3", en una ventana ancha. Paneles de luchadores: el borde, y en una pelea el luchador de cada lado con su nombre y su forma. Las propias: una carpeta "bars" junto al juego con trim.png (la franja a lo largo de la imagen, en proporción) y fill.png (estirada sobre el resto). Se leen al arrancar.
+# text field
+75c027602b1a366e	campo de texto
+# editing
+e0407fa1e3aa274f	editando
+# %s tab
+95be84ab8260ed92	pestaña %s
