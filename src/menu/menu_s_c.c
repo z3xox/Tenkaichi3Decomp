@@ -1,6 +1,10 @@
 #include "common.h"
 #include "menu/menu_s.h"
 #include "sys/pad.h"
+#ifdef PORT
+extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
+extern void Port_MenuFill(int on);
+#endif
 
 /* The screen's work area (.data, 0x3B7440). */
 SurvResult *gSurvResult = NULL;
@@ -142,7 +146,14 @@ void SurvResult_Draw(void) {
     MFlash *flash;
     s32 i;
 
+#ifdef PORT
+    Port_MenuPage(36); /* widescreen menus: this screen's page, its backdrop filling the width */
+    Port_MenuFill(1);
     Sprite_DrawPicture(gSurvResult->bg, 0, 0, 0x80);
+    Port_MenuFill(0);
+#else
+    Sprite_DrawPicture(gSurvResult->bg, 0, 0, 0x80);
+#endif
     flash = &gSurvResult->flash[0];
     Flash_FindLabel(flash, "mc_guide_17go", "mc_guide_17go_eye", &ref);
     FlashAnim_Blink(flash, &ref, &gSurvResult->blink, 0);
@@ -274,6 +285,9 @@ void SurvResult_Draw(void) {
         Flash_Draw(&gSurvResult->flash[i]);
     }
     IconWin_Draw();
+#ifdef PORT
+    Port_MenuPage(0);
+#endif
 }
 
 /* Runs the leave timer and the movie, and acts on the movie's triggers. */

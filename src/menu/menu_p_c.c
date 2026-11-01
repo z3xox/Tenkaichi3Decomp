@@ -1,6 +1,10 @@
 #include "common.h"
 #include "menu/menu_p.h"
 #include "sys/pad.h"
+#ifdef PORT
+extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
+extern void Port_MenuFill(int on);
+#endif
 
 /* The screen's work area (.data, 0x3B7380). */
 UbMenu *gUbMenu = NULL;
@@ -134,7 +138,14 @@ void UbMenu_Draw(void) {
     MFlash *flash;
     s32 i;
 
+#ifdef PORT
+    Port_MenuPage(31); /* widescreen menus: this screen's page, its backdrop filling the width */
+    Port_MenuFill(1);
     Sprite_DrawPicture(gUbMenu->bg, 0, 0, 0x80);
+    Port_MenuFill(0);
+#else
+    Sprite_DrawPicture(gUbMenu->bg, 0, 0, 0x80);
+#endif
     flash = &gUbMenu->flash[0];
     for (i = 0; i < 2; i++) {
         Flash_FindLabel(flash, UM_GUIDE(i), i != 0 ? "mc_guide_18go_eye" : "mc_guide_17go_eye", &ref);
@@ -170,6 +181,9 @@ void UbMenu_Draw(void) {
     }
     IconWin_Draw();
     MsgWin_Draw(0, 0, gUbMenu->voiceLine);
+#ifdef PORT
+    Port_MenuPage(0);
+#endif
 }
 
 /* Runs the leave timer and the movie; after a greeting line ends, the guide comments on the current plate. */

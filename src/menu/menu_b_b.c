@@ -1,5 +1,9 @@
 #include "common.h"
 #include "menu/menu_b.h"
+#ifdef PORT
+extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
+extern void Port_MenuFill(int on);
+#endif
 
 ModeBg *gModeBg = NULL; /* 0x3B12F4 */
 
@@ -105,7 +109,14 @@ void ModeBg_Draw(void) {
             Flash_Advance(&gModeBg->flash[i]);
         }
     }
+#ifdef PORT
+    Port_MenuPage(11); /* widescreen menus: this screen's page, its backdrop filling the width */
+    Port_MenuFill(1);
     Sprite_DrawPicture(gModeBg->bg, 0, 0, 0x80);
+    Port_MenuFill(0);
+#else
+    Sprite_DrawPicture(gModeBg->bg, 0, 0, 0x80);
+#endif
     if (gProgress->subMenu != 3) {
         flash = &gModeBg->flash[0];
         switch (gProgress->subMenu) {
@@ -167,4 +178,7 @@ void ModeBg_Draw(void) {
         }
         Flash_Draw(&gModeBg->flash[0]);
     }
+#ifdef PORT
+    Port_MenuPage(0);
+#endif
 }

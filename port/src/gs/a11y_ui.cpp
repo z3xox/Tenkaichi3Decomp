@@ -31,6 +31,7 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "net_chat.h" // PortChat_Read: the other player's chat lines said
+#include "ui.h"       // UiA11y_*: upstream's reader interface, answered at the end
 
 extern "C" {
 int PortA11y_On(void); // a11y.c
@@ -1817,3 +1818,16 @@ void A11yUi_Tab(void) {
     }
     tab_tip(kReader);
 }
+
+// ---- Upstream's reader interface (ui.h) ----
+//
+// Upstream has a reader of its own for these windows (port/src/gs/ui_a11y.cpp, from 0.1.39.3), driven by these calls
+// in ui.cpp and by a line in ImDrawList::AddText (imgui_draw.cpp). This branch reads the windows here instead (with the
+// translations, the tooltips, the chat and the Accessibility tab), so that file is left out and its calls do nothing:
+// both readers at once would define the same Dear ImGui hooks and say every item twice.
+void UiA11y_Frame(int windowOpen, int sayClosed) { (void)windowOpen, (void)sayClosed; }
+void UiA11y_End(void) {}
+void UiA11y_Radio(int selected) { (void)selected; } // (a radio button's state comes from its ItemInfo here)
+void UiA11y_Field(const char *name, const char *text) { (void)name, (void)text; } // (the setup's only)
+void UiA11y_QueueNext(void) {}
+void ImGuiA11yHook_Text(const char *text_begin, const char *text_end) { (void)text_begin, (void)text_end; } // (the log has the texts)

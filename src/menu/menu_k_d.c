@@ -1,5 +1,9 @@
 #include "common.h"
 #include "menu/menu_k.h"
+#ifdef PORT
+extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
+extern void Port_MenuFill(int on);
+#endif
 
 /*
  * TourBg, 0x366F58..0x3673F8: the backdrop of the tournament screens (a picture and a movie of drifting clouds),
@@ -109,7 +113,14 @@ void TourBg_Draw(void) {
     for (i = 0; i < 1; i++) {
         Flash_Advance(&gTourBg->flash[i]);
     }
+#ifdef PORT
+    Port_MenuPage(22); /* widescreen menus: this screen's page, its backdrop filling the width */
+    Port_MenuFill(1);
     Sprite_DrawPicture(gTourBg->bg, 0, 0, 0x80);
+    Port_MenuFill(0);
+#else
+    Sprite_DrawPicture(gTourBg->bg, 0, 0, 0x80);
+#endif
     flash = &gTourBg->flash[0];
     uv.y1 = 0x100;
     uv.x1 = 0x200;
@@ -128,4 +139,7 @@ void TourBg_Draw(void) {
         break;
     }
     Flash_Draw(&gTourBg->flash[0]);
+#ifdef PORT
+    Port_MenuPage(0);
+#endif
 }

@@ -1,6 +1,10 @@
 #include "common.h"
 #include "menu/menu_l.h"
 #include "sys/pad.h"
+#ifdef PORT
+extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
+extern void Port_MenuFill(int on);
+#endif
 
 /*
  * SoloSel, 0x36B3E0..0x36E028: the one-character select of the modes 13..30 group (archive gMenuArc3; run for
@@ -300,7 +304,14 @@ void SoloSel_Draw(void) {
     s32 k;
     MFlash *flash;
 
+#ifdef PORT
+    Port_MenuPage(23); /* widescreen menus: this screen's page, its backdrop filling the width */
+    Port_MenuFill(1);
     Sprite_DrawPicture(gSoloSel->bg, 0, 0, 0x80);
+    Port_MenuFill(0);
+#else
+    Sprite_DrawPicture(gSoloSel->bg, 0, 0, 0x80);
+#endif
     flash = &gSoloSel->flash[0];
     for (k = 0; k < 2; k++) {
         /* the two guides: both blink, the one talking moves its mouth */
@@ -428,6 +439,9 @@ void SoloSel_Draw(void) {
     MsgWin_Draw(0, 0, gSoloSel->voiceLine);
     ItemPanel_Draw(0);
     ItemHelp_Draw(gSoloSel->helpItem);
+#ifdef PORT
+    Port_MenuPage(0);
+#endif
 }
 
 /* Advances the movies and the item panel; ends the chip-row scroll when its clip says so. */

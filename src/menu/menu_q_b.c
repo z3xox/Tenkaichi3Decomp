@@ -1,6 +1,11 @@
 #include "common.h"
 #include "menu/menu_q.h"
 #include "sys/pad.h"
+#ifdef PORT
+extern void Port_MenuPage(int screen);
+extern int Port_MenuPart(int part); /* port/src/gs_marker.c: widescreen menus */
+extern void Port_MenuFill(int on);
+#endif
 
 /* The screen's work area (.data, 0x3B7384). */
 SimDay *gSimDay = NULL;
@@ -1174,7 +1179,14 @@ void SimDay_Draw(void) {
     s32 n;
     s32 done;
 
+#ifdef PORT
+    Port_MenuPage(32); /* widescreen menus: this screen's page, its backdrop filling the width */
+    Port_MenuFill(1);
     Sprite_DrawPicture(gSimDay->bg, 0, 0, 0x80);
+    Port_MenuFill(0);
+#else
+    Sprite_DrawPicture(gSimDay->bg, 0, 0, 0x80);
+#endif
     flash = &gSimDay->flash[SIMDAY_FL_BOARD];
     Flash_FindLabel(flash, NULL, "mc_icon_timer", &ref);
     Flash_ClipSetFlags(flash, &ref, 0x400, 1);
@@ -1331,13 +1343,26 @@ void SimDay_Draw(void) {
     /* the message window goes between the fifth movie and the window's */
     done = 0;
     for (i = 0; i < SIMDAY_FLASH_NUM; i++) {
+#ifdef PORT
+        /* widescreen menus: the three-row window (the pause) at its true shape, its rows' labels with it: they are
+           pieces as wide as the 4:3 screen, which the page fills with (port/src/gs_marker.c) */
+        int prev = i == SIMDAY_FL_MENU ? Port_MenuPart(4 /* PORT_MENU_CENTER_ALL */) : 0;
         Flash_Draw(&gSimDay->flash[i]);
+        if (i == SIMDAY_FL_MENU) {
+            Port_MenuPart(prev);
+        }
+#else
+        Flash_Draw(&gSimDay->flash[i]);
+#endif
         if (i == 4 && !done) {
             done = 1;
             MsgWin_Draw(0, 0, gSimDay->msgLine);
         }
     }
     Dialog_Draw(1);
+#ifdef PORT
+    Port_MenuPage(0);
+#endif
 }
 
 /*

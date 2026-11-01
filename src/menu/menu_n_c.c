@@ -1,6 +1,10 @@
 #include "common.h"
 #include "menu/menu_n.h"
 #include "sys/pad.h"
+#ifdef PORT
+extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
+extern void Port_MenuFill(int on);
+#endif
 
 /*
  * UbRank, 0x373A68..0x3760C8: the ranking ladder of mode 26. A list of 100 places (five plates visible); the
@@ -311,7 +315,14 @@ void UbRank_Draw(void) {
     MTexRes *res;
     s32 i;
 
+#ifdef PORT
+    Port_MenuPage(26); /* widescreen menus: this screen's page, its backdrop filling the width */
+    Port_MenuFill(1);
     Sprite_DrawPicture(gUbRank->bg, 0, 0, 0x80);
+    Port_MenuFill(0);
+#else
+    Sprite_DrawPicture(gUbRank->bg, 0, 0, 0x80);
+#endif
     flash = &gUbRank->flash[0];
     Flash_FindLabel(flash, "mc_guide_17go", "mc_guide_17go_eye", &ref);
     FlashAnim_Blink(flash, &ref, &gUbRank->blink, 0);
@@ -433,6 +444,9 @@ void UbRank_Draw(void) {
     if (gUbRank->state != UBRANK_ST_WAIT) {
         IconWin_Draw();
     }
+#ifdef PORT
+    Port_MenuPage(0);
+#endif
 }
 
 /* Advances the leave timer and the movies; follows the marks of the list and panel movies. */

@@ -292,6 +292,14 @@ void Font_FlushAll(void) {
     Font_Flush(0);
 }
 
+#ifdef PORT
+/* Widescreen menus: the part of the screen (port/src/gs_marker.c) each queued command was made in, so that text
+   drawn when the queue is flushed, after the whole screen, keeps to the clip it belongs to */
+#define FONT_PART_MAX 4096
+static signed char sFontPart[FONT_PART_MAX];
+extern int Port_MenuPartNow(void);
+extern int Port_MenuPart(int part);
+#endif
 /* Matches only with Font_BeginPacket and Font_EndPacket DEFINED above it in the same file (otherwise the back
  * branch of the last loop comes out `bnezl` instead of `bnez`): evidence that the object starts at 0x239BB0. */
 /* Draws the queued commands from index first on, then truncates the queue to first and homes the cursor. */
@@ -319,6 +327,28 @@ void Font_Flush(s32 first) {
         }
         Font_BeginPacket(&pkt);
         cmd = &gFontCmds[first];
+#ifdef PORT
+        {
+            int partWas = Port_MenuPartNow(), part = partWas;
+        for (i = first; i < gFontCmdCount; i++, cmd++) {
+            int want = i < FONT_PART_MAX ? sFontPart[i] : partWas;
+            if (want != part && want >= 0) { /* (widescreen menus: the part the command was made in) */
+                Font_EndPacket(&pkt);
+                Port_MenuPart(want);
+                part = want;
+                Font_BeginPacket(&pkt);
+            }
+            Font_PutScissor(&pkt, cmd);
+            Font_OpenSpriteTag(&pkt, &tag);
+            Font_DrawCmd(&pkt, cmd);
+            Font_CloseSpriteTag(&pkt, &tag);
+        }
+        Font_EndPacket(&pkt);
+            if (part != partWas) {
+                Port_MenuPart(partWas);
+            }
+        }
+#else
         for (i = first; i < gFontCmdCount; i++, cmd++) {
             Font_PutScissor(&pkt, cmd);
             Font_OpenSpriteTag(&pkt, &tag);
@@ -326,6 +356,7 @@ void Font_Flush(s32 first) {
             Font_CloseSpriteTag(&pkt, &tag);
         }
         Font_EndPacket(&pkt);
+#endif
         Font_Home();
         Font_SetCmdCount(first);
     }
@@ -1055,6 +1086,13 @@ FontGlyph *Font_SearchGlyph(FontSlot *slot, u16 ch) {
 
 /* Takes the next free command (no bound check against gFontCmdMax). */
 FontCmd *Font_AllocCmd(void) {
+#ifdef PORT
+    if (gFontCmdCount < FONT_PART_MAX) {
+        int part = Port_MenuPartNow();
+        sFontPart[gFontCmdCount] = (signed char)(part == 1 || part == 8 ? 0 : part); /* (text is never stretched: in a
+            part that fills the width, 1, or the item shop's page, 8, whose room fills it, it is kept in the middle, 0) */
+    }
+#endif
     return &gFontCmds[gFontCmdCount++];
 }
 

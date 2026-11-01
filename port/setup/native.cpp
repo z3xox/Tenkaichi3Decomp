@@ -359,7 +359,8 @@ void step_test(const std::string &root) {
     SDL_SetEnvironmentVariable(env, "BT3_SAVES", saves.c_str(), true);
     SDL_SetEnvironmentVariable(env, "BT3_GS", "none", true); // no window: a release program opens one by default
     SDL_SetEnvironmentVariable(env, "BT3_A11Y", "0", true);  // nor the screen reader: the setup is speaking (setup_voice.cpp)
-    for (const char *name : {"BT3_REPLAY", "BT3_PAD_PLAY", "BT3_PAD_REC", "BT3_DATA"}) {
+    // (BT3_A11Y_LOG: the setup's own speech log, which the demo fight would start over)
+    for (const char *name : {"BT3_REPLAY", "BT3_PAD_PLAY", "BT3_PAD_REC", "BT3_DATA", "BT3_A11Y_LOG"}) {
         SDL_UnsetEnvironmentVariable(env, name);
     }
     SDL_PropertiesID props = SDL_CreateProperties();
@@ -373,7 +374,11 @@ void step_test(const std::string &root) {
     SDL_DestroyProperties(props);
     SDL_DestroyEnvironment(env);
     if (proc == NULL) {
+#ifdef __APPLE__
+        throw Stop{"The game could not be started. macOS may still be blocking it: see step 0 of README.txt.", SDL_GetError()};
+#else
         throw Stop{"The game could not be started. Security software may be blocking it.", SDL_GetError()};
+#endif
     }
     size_t size = 0;
     int code = -1;

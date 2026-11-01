@@ -4430,3 +4430,257 @@ the Worker for every run):
 Windows: built (mingw), not run. The PS2 build of port_tbo.c is unchanged (`cpp -P` md5; all of it is `#ifdef PORT`).
 Not tested: Dragon Net Battle's buttons pressed (only seen; they call what the pages call), a real second PC, the
 screen reader's lines of the new page.
+
+## Widescreen menus, beta (2026-10-29)
+
+F1 > UI > Menus: **Stretched** (as before: the 4:3 pages stretched to the width), **4:3** (the setting `menus_43`, as
+before) or **Widescreen (beta)** (setting `menus_wide`; `BT3_MENU_WIDE=0/1` over it). With the last, a screen
+converted for it has its 2D at its true shape across the whole width, the way the fight's HUD is:
+
+- The game marks its draw (`#ifdef PORT`; `port/src/gs_marker.c`): `Port_MenuPage(screen)` at the start of the
+  screen's draw and `Port_MenuPage(0)` at its end; `Port_MenuFill(1/0)` around its backdrops
+  (`Sprite_DrawPicture`); and `FlashSlot_Draw` (src/sys/gfxm_c.c) asks `Port_MenuClipPart` for each clip of its
+  movies, by the clip's name, which part it belongs to: the middle, the left edge, the right edge, or the whole
+  width. A clip's text drawn by its own callback goes with it; text the game queues and draws after the screen
+  (`Font_FlushAll`) does not, so a plate with such text stays in the middle.
+- Markers 0x22..0x25 (centre, fill, left, right) -> `gsAnchor` 9..12 (`GsGpu_Native`). The renderer narrows each
+  2D piece of the first, third and fourth about the middle, the left edge or the right edge, whatever its width
+  (a bar's pieces stay together), and leaves what fills alone, as it does a piece as wide as the whole 4:3 screen
+  (scenery, tints, panels across the screen). What lies beyond the 4:3 screen's edges (plates sliding in) is
+  clipped where that edge now is, as it was out of sight there.
+- Text the game queues and draws after the screen (`Font_Flush`, src/battle/col_c.c) keeps the part it was queued
+  in: each command remembers it (`Font_AllocCmd`), and the flush ends its packet and sends a marker where it
+  changes. Outside a converted screen nothing is sent.
+- Converted: the title (one page in the middle; sky and clouds fill; its New Game / Continue plates are sprites as
+  wide as the 4:3 screen, kept at their true shape with their shadows: `PORT_MENU_CENTER_ALL`), the main menu (the column of plates, the
+  dragon balls and the message against the left edge, the guides against the right, and a piece of the column
+  lying in the right half against its edge there: the gold cloud at the top right; sea, road and clouds fill), the
+  character, stage and music select with its VS picture: each player's name plates, windows and their text against
+  that player's edge (clips named `*_l` / `*_r`), and each player's roster with its cursor (movies 1 and 2, the
+  first player's against the left edge) and window of customisations (3 and 4) as well (`Port_MenuMovie`); the
+  rest one page in the middle at its true shape, the bars too
+  (their cells and the characters in them stay together); each player's big picture keeps to the line between the
+  two (the user's choice: the art is half a 4:3 screen wide, so it ends short of the outer edge); only the stage
+  pictures fill.
+- **The other screens** (numbers 10 on: Dragon History, Ultimate Battle with Sim Dragon, Mission 100, Survival and
+  the disc fusion, World Tournament, the versus menu, Training, Evolution Z with its customising and shop, the
+  Data Center with its catalog, password and replays, Character Reference, Options, the results and selection
+  screens of those modes; 36 draw functions, converted alike) are all of one kind: a title, plates, a guide or two,
+  a message across the bottom. Each is one page in the middle at its true shape: its parts are often clips of
+  their own that belong together (a frame and the digits in it, a keyboard and its letters, a monitor and the rows
+  on it), which a placing of each clip by itself tore apart (the user's report). Only the title row (`mc_title*`,
+  `mc_icon`) goes to the left, and the guides (`mc_guide_*`, `mc_pikkoro`, `mc_ch_gohan` / `_bidel` / `_goten` /
+  `_uron`) to the side they are on: such a clip is measured first, drawn once with `FlashDraw_Quad` recording
+  where its quads lie instead of drawing them, its callbacks left out (they queue text), no markers sent
+  (`gPortFlashMeasure`, src/sys/gfxm_c.c), and `Port_MenuClipPlace` puts one touching the 4:3 screen's left edge
+  against the left edge, its right edge the right, otherwise by the third its middle is in. The positions cross
+  as whole numbers: the game's code passes floats in other registers than the port's C (they arrived as 0). The
+  gold clouds in the top corners (a sprite from the screen's top edge in that half, against its edge) go to that
+  corner (part `PORT_MENU_PAGE`, anchor 16). Dragon History's page is its scenery, which fills (with its waterfall,
+  shimmer and fish clips). Evolution Z's customising (37) and the Data Center's password (44: its keyboard is one
+  picture as wide as the 4:3 screen, its letters on it) keep their full-width pieces at their true shape too. The
+  user's choices per screen: the Data Center's and Options' plates against the right edge, as their art runs off
+  it (`mc_menu_plate_*`), Options' "EXIT" (`mc_bottom_plate_*`) against the left; the item shop's counters of
+  zenni and of the share collected against the right edge, their digits (`mc_pay_num_*`, `mc_item_num_*`) and
+  their icons and frames, which are the page's own pieces (part `PORT_MENU_PAGE_TOP`, anchor 17: any piece in the
+  top 120 lines starting in the right half); World Tour's timer and list of tournaments, Character Reference's
+  list and a character's page against the right edge (their art is cut there), its picture against the left
+  (part `PORT_MENU_PAGE_EDGE`, anchor 18: a page's piece cut off at the right edge, from right of x 200, against it).
+  The character selects of Ultimate Battle and the World Tournament (15, 19, 23..25) keep their bars at their
+  true shape like the versus one. Evolution Z's column of plates (42) and the item shop's two (38, `menu_plate_*`) are
+  against the left edge, as the main
+  menu's: it slides in from the left, so it now comes in from the picture's edge. Known: what slides in from
+  beyond the 4:3 screen into a part kept in the middle appears at the 4:3 page's edge. The clipping there is
+  needed: the game parks pieces just off the screen (sprites 512 wide whose art is off it while their outline
+  overlaps it, so a piece's outline cannot tell a parked one from one sliding in); without it they show (seen on
+  Training, the shop and Options). A sliding part anchored to the edge it comes from has no such seam. A screen's draw can call another's (a backdrop drawn by its own
+  function): the pages stack. A screen marked again in the same draw (character select marks its page per stage
+  picture) is one page: before, each mark stacked and its end took off one, so after character select every later
+  screen kept part of its layout for whatever it drew after its own page (seen as Evolution Z's plates jumping
+  towards the middle on the first visit and when an option was chosen).
+- On the screens from 10 on, a clip set against an edge keeps every piece at its true shape, one as wide as the 4:3
+  screen too (`PORT_MENU_LEFT_ALL` / `_RIGHT_ALL`): a plate's sprite sliding in or out is that wide for a frame,
+  and was taken for scenery and stretched: the plates jumped towards the middle for a frame on entering and
+  leaving. The main menu keeps its look (its selected plate's streak fills the width).
+- More per screen (the user's): Training's plates (`mc_menu_plate_*`, 18) against the right edge; World Tour's
+  announcer poster (`mc_world_chirashi`) one picture in the middle (it was split by the right-edge rule); Dragon
+  History's plates at their true shape over its filling scenery; the character selects of Ultimate Battle and the
+  World Tournament (15, 19, 23..25) as one page whose full-width pieces fill (its message window), the player's
+  `*_l` plates and text against the left edge, the roster, its cells and the item windows at their true shape in
+  the middle, the roster and its cells against the left edge as the versus one's (the user's choice); character
+  select's title row on the left and its gold corner clouds (sprites up to 260 wide and 140 high from the top edge, not
+  the big pictures) against their corner.
+- The game's own clipping window (a roster's bar, which its cells scroll through) is in the 4:3 screen's
+  positions: in a converted part it is narrowed about the same point as the pieces (the cells were cut while
+  scrolling, the more the wider the picture). Character select's big pictures (taller than 300) are not cut at
+  the 4:3 edges: they fade and slide outwards when a stage is chosen. The versus menu's window of modes (Single,
+  Team, DP: `mc_mode_*`) is against the left edge with its plates. A roster that hides the cells outside its bar
+  with a mask clip (`mc_chara_mask`, the tournament's character select) has the mask with the roster: left in the
+  middle, it hid the leftmost cells. World Tour's window of a tournament's prizes, difficulty and number of
+  characters is in the middle with its frame (a piece of the page), its text, titles, digits and balls with it
+  (`mc_menu_text_*`, `mc_plate_text_*`, `mc_suji_01`, `mc_dragonball_off_*`); its list and timer stay on the right.
+- Moving pieces are not cut at the 4:3 edges (`menu_piece_moving`, gs_draw.c): a piece is known from frame to
+  frame by the part of its texture it shows (its first and last corners' texture coordinates, the same while it
+  moves or grows: the title's dragon ball and Nimbus grow and shrink as they fly; several alike in a frame, cells
+  or letters, are taken as still), and one whose edges moved since the frame before is drawn whole, so plates sliding in
+  or out come from and go to the wide picture's edges (the title's New Game / Continue, Options, the versus
+  window, Character Reference's list). Still pieces are cut as before: the game parks pieces just off the 4:3
+  screen. Checked: every screen's settled frames as before; only transition frames differ.
+  `BT3_MENU_MOVECLIP=1` (testing) cuts moving pieces too.
+  Dragon History's result screen (14): its panels with their text and digits (`mc_text_base_*`, `mc_point_text_*`,
+  `mc_get_point_*`, `mc_total_point_*`, `mc_battle_text`, `mc_result_text_*`, `mc_title_get*`) against the left
+  edge at their true shape, its lines (`mc_line_*`, `mc_noise`) filling: sliding in, a panel was as wide as the 4:3
+  screen in some frames and narrower in others, so it changed size every frame (seen on the user's recording).
+  The page's own pieces there (the panels' bodies) are on the left with them (part `PORT_MENU_LEFT_ALL`), and the
+  guide (`mc_chara_*`, Mr. Satan) on the right: he crosses the screen whole and comes to rest against its edge.
+  The game also tells it (`Port_MenuClipMoving`, gs_marker.c): a clip of a converted screen's movie whose position
+  changed since its screen's draw before is moving, and is drawn whole (markers 0x2D / 0x2E). The renderer's own
+  test cannot follow a plate drawn as several alike pieces: on the title, New Game's text slid in whole while its
+  plate was still cut. As soon as a piece stops it is cut again: plates that slide out and stop parked just off the
+  4:3 screen (Options' Save / Load) lingered at the wide picture's edges for 10 frames with a longer window.
+- Evolution Z (42) and Training (18), like Dragon History, have their page's own pieces filling the width: their
+  scenery (Kame House, the training ground) is drawn by the page in pieces, which narrowed broke it into blocks.
+  The item shop's page (anchor 17) fills likewise, its counters still against the right edge. Their scene
+  characters (`mc_ch_*`: Oolong at the shop's window, Goten, Videl) fill with the scenery: their clips hold
+  pieces of it as wide as the screen (a second tree in Training, clouds over the shop's window). Text queued in a
+  part that fills (their message windows) is kept at its true shape in the middle (`Font_AllocCmd`). World Tour's
+  window arrows (`mc_yajirusi_l` / `_r`, inside the list's arrow clip) are with the window (not seen by picture). World Tour's announcer poster is in the middle
+  and not cut at the 4:3 edges (part `PORT_MENU_CENTER_FREE`, anchor 19): it flies across the whole picture.
+- Known: Character Reference's shelves are pieces of the page like its window, so they stay in the middle and meet
+  the backdrop at the 4:3 page's edges.
+- Test aids: `BT3_MENU_MODE=<n>` starts the menus at progress mode n (6 Dragon History, 13 Ultimate Battle, 33 World
+  Tournament, 38 versus, 44 Training, 48 Evolution Z, 53 Data Center, 60 Character Reference, 62 Options), and a
+  pad file for `BT3_PAD_PLAY` is two 18-byte reads a frame, so a short script of presses reaches a screen without
+  a controller.
+- Parts that keep the 4:3 screen's full-width pieces too (`*_ALL`, markers 0x26..0x28, anchors 13..15) do so with
+  textured ones only: an untextured one (a fade) still covers the whole picture. A menu's narrower untextured
+  pieces (a plate's plain body, the music's plate) keep their shape like its art. Backdrop clips are `mc_bg_*`
+  and `mc_kumo_*` (not `mc_bgm_now`, the music's plate).
+- `BT3_MENU_NOCLIP=1` (testing): no clipping at the 4:3 edges (the portraits end where they did: it is their art).
+- `BT3_CLIP_LOG=1` (testing) lists each clip a converted screen draws, once: the names the table goes by.
+- Checked: the recording at 16:9 with the layout chosen, by picture (title, main menu, character select, stage
+  select, VS); with it not chosen, the 28 screenshots as before, both with "4:3" and with "Stretched".
+
+## Screen reader: the settings window and Dragon Net Battle (2026-10-30)
+
+The settings window (F1, START + SELECT) and Dragon Net Battle are Dear ImGui's windows, drawn over the picture,
+so a11y_game.c cannot see them: until now only the question before the game closes was said (`build_quit`), and
+the window said nothing, on Linux and on Windows. Now the item under the
+keyboard's or the controller's focus is said as the window shows it: its label, its value and its state, and the
+window's name and its tab when they change. File: `port/src/gs/ui_a11y.cpp`; calls from ui.cpp (`UiA11y_Frame`,
+`UiA11y_End`, `UiA11y_Radio` after the three radio buttons).
+
+What is said: on opening, "Settings, Video tab" and the focused item; a tab ("Effects, tab", "Audio, tab,
+selected"; "Controls tab" when the shoulder buttons change it); a list ("Aspect ratio, 16:9, combo box", its
+choices when it is open, the new choice when it closes); a checkbox ("V-sync, not checked", then "checked" when it
+is changed); a slider ("Music, 100%", "editing" once it is taken with Cross / Space, then each new value); a
+radio button ("Player 2, not selected"); a collapsing header ("Sticks, triggers and vibration, expanded"); a
+button ("Reset to defaults, button"); "unavailable" for a disabled item. A list or field whose label is hidden
+("##name") is named by the text before it on its line, or after it. The item's tooltip (SetItemTooltip, 58 of them)
+is said after it, queued, when the tooltip comes up for the focused item: the description a seeing player gets,
+after the same moment; long ones in pieces of at most 900 bytes ending with a sentence (a message of a11y.c holds
+1024). Closing the window says "Back to the game", as the exit question does. A new focus interrupts what was
+being said. Nothing is said while the speaker is off (`PortA11y_On`, new in a11y.c).
+
+**How it sees the items.** Dear ImGui has hooks for its test engine: with `IMGUI_ENABLE_TEST_ENGINE` it calls
+`ImGuiTestEngineHook_ItemAdd` for each item (its id and place) and `ImGuiTestEngineHook_ItemInfo` with its label and,
+for a checkbox or a tree node, whether it is checked or open. The define changes no structure of the library (the
+context's `TestEngineHookItems` is there either way; the define adds enum values and the calls), and the hooks are
+called only while `TestEngineHookItems` is on, which `UiA11y_Frame` sets while one of the two windows is open and the
+speaker is on. `port/tools/undefined.py` gives the define to the game's C++ (the library and gs/*.cpp); the setup's
+copy of the library (port/setup/build.sh) has it too since the section below. A library object built before the define has no
+hooks: delete `port/build/obj/cxx_imgui*.o` once (a release build starts clean).
+
+What an item shows besides its label (a slider's number, a combo's choice) reaches no hook. One change to the
+library gives it: `ImDrawList::AddText` (imgui_draw.cpp, marked "BT3 port", inside `#ifdef IMGUI_ENABLE_TEST_ENGINE`)
+hands each text it draws to `ImGuiA11yHook_Text`, and the text drawn while the focused item is the last item
+(`g.LastItemData.ID`) is that item's: its label and its value, in their order; the label (ItemInfo's, up to "##")
+is told from the value by being equal to it, and a combo, which has no ItemInfo, draws its choice and then its
+label. A text that is no item of its own (`ImGui::Text`) is kept for the item after it on its line, or the one before
+it. A tooltip's text is told by its window (`ImGuiWindowFlags_Tooltip`) and said only while the navigation cursor
+is shown (`g.NavCursorVisible`), never for the mouse. Two orders of the library are allowed for: a tab says its
+label (ItemInfo) before it is added (`TabItemEx`), so a focused tab starts in ItemInfo; and the radio button gives
+no checked state, so ui.cpp tells it (`UiA11y_Radio`).
+
+Not in it: a field or slider is not called one (ImGui's hooks give both only "inputable"); "editing" is said when
+one is taken. Typed letters in a field are not echoed. Text that is no item (the update panel's line, "Active GPU",
+"View: ...") cannot be focused and is said only as a label of the item beside it. No position ("3 of 12"). The
+Spanish file has no lines for the new words (tab, selected, checked, not checked, combo box, editing, button,
+expanded, collapsed, unavailable, "%s tab"): they are said in English until a11y_es.txt has them
+(`a11y_missing=1` lists them).
+
+Tests (Windows 11, the release container's build of this tree, a copy without prism.dll so that only the log took
+the speech: `BT3_A11Y_LOG`; its own settings and saves; keys sent to the window as a keyboard's, with their scan
+codes): opening and closing; the Video tab's combo boxes, a list opened and a choice taken ("4:3 (original)",
+"16:10", then "Aspect ratio, 16:10, combo box"), a checkbox checked and unchecked; the tab bar walked and the Audio
+and Controls tabs chosen; a volume slider taken and moved (100%, 98%, 96%); the Controls tab's checkbox, the
+Player 2 radio button chosen ("selected"), the controller combo, the collapsing header, a tooltip of 600 bytes
+whole. Screenshots matched what was said. Then the build in a player's own game folder with Prism 0.18.3 and
+NVDA on Windows: the window spoken, by the player's report. Not tested: a controller; Dragon Net Battle's window (the same code: its tabs, fields and radio buttons); Linux and macOS
+(the change is the same C++; not built here).
+
+## Screen reader: the setup window (2026-10-30)
+
+The setup window (`Tenkaichi3Decomp-setup`, port/setup/setup.cpp) said nothing to a screen reader: the first thing a
+player meets, before the game's own speech. It speaks now, through the same speaker as the game (Prism, when
+prism.dll is beside the program; `a11y=0` in a bt3_settings.txt beside it turns it off; `BT3_A11Y_LOG` for tests).
+port/setup/build.sh builds gs/a11y.c, gs/ui_a11y.cpp and plat_settings.c into it and gives Dear ImGui's item hooks
+(`IMGUI_ENABLE_TEST_ENGINE`) to its C++, so the focused control is said as in the settings window above. setup.cpp
+says the rest:
+
+- a page as it comes up, interrupting: its heading and its text ("Tenkaichi3Decomp. This sets the game up ...
+  Choose your disc image ... Needs about 4 GB of free space ..."; "Setting up. You can leave this running ...";
+  "Ready to play. The game is installed and its demo fight ran correctly ..."; "Setup stopped. ...", its reason and
+  any missing tools with their packages). The focused control is said after it, queued (`UiA11y_QueueNext`).
+- each step as it starts and ends ("Game data, step 2 of 3", "Disc image done: the USA release, checksums match"),
+  and the unpacking's progress every 10% (its note comes for every percent), queued.
+- a disc image chosen with Browse (the system's own file dialog, which the screen reader reads) or dropped on the
+  window: "Disc image: <file name>"; "Disc image: that file does not exist." under the field, once the field is left.
+- the two text fields by name and text ("Disc image, D:\...\disc.iso, text field"): a field's text is drawn with
+  `ImFont::RenderText`, not `ImDrawList::AddText`, so the hook above never sees it; `UiA11y_Field(name, text)`
+  after the field gives both. While a field is being typed in its text is not said at every letter.
+- F2 says the last words again (`PortA11y_Event`).
+
+Two changes a keyboard user sees too: when the page changes, the keyboard's focus goes to the new page's first
+control (`ImGui::NavInitWindow`). Before, it stayed on the button pressed on the page before (Install, Cancel), which
+the new page does not have, and Tab did nothing until the mouse was used. And the window is begun as "###setup"
+(no name; it has no title bar, so nothing visible changes) so that the page's heading is said instead of "setup".
+The self-test's game is started without `BT3_A11Y_LOG` (native.cpp), which would have started the setup's log over.
+
+The command line way stays: `Tenkaichi3Decomp-setup --install <disc image>` prints its steps as text.
+
+Tests (Windows 11, the release container's setup build in a fresh copy of the v0.1.39.2 release folder without
+prism.dll, speech to `BT3_A11Y_LOG`, keys sent as a keyboard's): the first page and its fields; a path that does not
+exist; Tab through every control to Install; the whole installation from a USA disc image (every step, progress,
+"Ready to play" after 15 s); Cancel during the unpacking ("Setup stopped ... Cancelled ..."), the stopped page's
+buttons; Tab on the "Ready to play" page after an installation and when the setup is started again on a folder set
+up before; F2. Linux build: compiled and linked in the container, not run. Not tested: real speech through Prism,
+a controller, the European disc's field with a real image, the Linux and macOS windows.
+## Widescreen menus: the user's second round (2026-10-31)
+
+- The main menu's selected plate's streak: a piece as wide as the 4:3 screen at some places of the column, it was
+  stretched across the picture when scrolling up; the main menu's edge-anchored clips now keep such pieces at their
+  true shape too, as the other screens' do.
+- The message windows' text (`mc_message_text`) against the left edge on every screen, as on the main menu.
+- The game's dialogs (save, load, quit, overwrite: `Dialog_Draw`, src/sys/dialog.c) a page of their own (50) at
+  their true shape, in the menus only. A piece covering the whole screen, all its width and height, fills in the
+  parts that keep wide pieces at their true shape (a popup's dimming of what is behind it).
+- The title (1) keeps its wide pieces at their true shape: its logo was stretched. The copyright page before it
+  (51) at its true shape with black beside it.
+- Evolution Z's character customising (37): the roster, the name plates, the picture and the type and stats panel against the left edge, the zenni, Ability Limit and Character Z Points against the right (the user's choice), by clip name; the page's own pieces (the panels' frames) against the edge of the half they start in (part `PORT_MENU_SPLIT`, marker 0x2F, anchor 21).
+- The item shop's Item Exchange: its list's rows, tabs and price bar at their true shape with their text (only pieces taller than 100 lines of its page fill: its room); the price's digits (`mc_shop_num_*`) in the bar, the counters' digits (`mc_pay_num_*`, `mc_item_num_*`) against the right edge. Seen on the user's recording of a new game.
+- The item shop's purchase question and item explanation windows (`mc_reconfir_plate_*`, `mc_item_details*`), its list rows and their text at their true shape whatever their size (`PORT_MENU_CENTER_ALL`): the explanation's frame, taller than 100 lines, was taken for the room and filled. The counters' rule (anchor 17) ends at line 114: an explanation's count badge just below stays in its window.
+- Tenkaichi Budokai Online's letters (src/menu/port_screen.c) narrowed by `Port_MenuTextNarrow` (3/4 at 16:9 with Widescreen menus; 1 otherwise), as its page is stretched; its message window's text (page 52) from the left at its true shape.
+- Not of the layout: the Data Center's replay list is read without the memory card window and its waits (`save_quick`, flow 7, src/sys/mcflow_a.c); a card error or a damaged file's question opens the window as the game has it.
+- Ultimate Battle (31): its plates and their labels (`mc_menu_plate_*`) CENTER_ALL: a plate sliding by a pixel was at one frame exactly as wide as the 4:3 screen, taken for scenery and stretched with its label.
+- The versus menu (16): its movie drawn under LEFT_ALL (src/menu/menu_g_c.c), so the windows' bodies, which are the movie's own shapes, slide in with their rows against the left edge (they came in split in two); its named clips with no rule of their own as the page's. `menu_piece_moving` ignores a jump of more than 128 in a frame: the window of values put off the 4:3 screen as the settings open was taken for sliding and shown for a frame.
+- Character Reference's pages of a character (53: details, introduction, voice, commentary, costume, model): the whole 4:3 page in the middle at its true shape (the introduction's window was cut in half, the panel behind the lines too, the voice's play button was off the middle); its list (17) as before.
+- Character Reference, second round (the user): its list (17, `PORT_MENU_PAGE_LIST`, marker 0x31) has its window's body, the page's pieces right of x 100 above line 400, against the right edge with its scroll bar's frame, the track inside the frame as on the 4:3 screen. A character's pages (53, `PORT_MENU_PAGE_EDGE_TOP`, marker 0x30): the picture and its arrows on the left, the name, the panel and the choices on the right (page pieces at the edges as on the list; the panels `mc_ch_base_*` by the edge they touch, measured), the introduction's window (page pieces starting below line 200) and its text and the voice's button in the middle, the band behind the title (`mc_window_up_*`) across the width, Chi-Chi's commentary in the message window from the left with her on the right.
+- The versus menu, second round: the battle settings' window in the middle (its movie drawn under CENTER_ALL while they are open, `Port_MenuDuelSettings`, their names and values with it), the window of modes on the left; its scenery, pieces as wide as the 4:3 screen reaching its bottom, fills in those parts too (marker 0x32), as do its clouds and smoke (`mc_kumo`, `mc_kemuri_*`): it ended at the 4:3 edge behind Vegeta and Nappa.
+- Character Reference, third round (the user): its list's title band (`mc_window_up_*`) across the width too; on a character's pages the dark veil over the right of the 4:3 screen (a page piece from x 320 to its right edge, the whole height, behind the introduction and the commentary) across the whole picture.
+- Fourth round (the user): the veil from the picture's right edge (256 x the narrowing) to the right edge, the picture bright as on the 4:3 screen, and while it slides in too (the whole height, not only at rest); the band behind a character page's title is two page pieces, 0..256 and 256..512, which parted at the middle (the more at 21:9): across the width. Seen at 16:9 and 21:9.
+- Fifth round (the user: the darkening came in from the right): while the veil fades in it was taken by the corner clouds' rule of part 18 (a page piece from the top edge in the right half, against the right edge) ahead of its own; its rule is now first.
+- The title (1): its default part CENTER_FREE (not cut at the 4:3 screen's edges): the characters' picture goes on past them (Piccolo's cape at the top right, seen in the user's PCSX2 dump); its plates parked off the screen keep their own rule. Approved shot 150 changes accordingly.
+- Sim Dragon's day (32, from the user's recordings): the fighter's panels (`mc_at_plate`, `mc_df_plate`, `mc_plate_potara*`) against the left edge (cut there on the 4:3 screen); the portrait and health bar (`mc_chara_pt_plate`) there too, 24 lines up, level with the Z points counter (`PORT_MENU_LEFT_UP`, marker 0x34); the counter (`mc_point_plate`) centred above the monitor (`PORT_MENU_CENTER_NUDGE`, marker 0x33: 18 to the right after the narrowing); the commands (`mc_sim_botan*`) and the turn timer (`mc_icon_timer`) against the right (all the user's choices). Its pause window (movie `SIMDAY_FL_MENU`, src/menu/menu_q_b.c) is drawn under CENTER_ALL: the labels not chosen are pieces exactly as wide as the 4:3 screen, which the page filled with (stretched); the chosen one is enlarged, so not as wide.
+- Dragon History's result, the window of what was won ("Battle Unlocked!", `GetWin_Draw`, src/menu/menu_c_c.c): a page of its own (54, CENTER_ALL) in the middle, its title, rows and text with it (the screens' title rule, `mc_title*` against the left, not on 54); the static over it (`mc_noise`) with it, not across the width. From the user's recording.
+- The default layout since 0.1.39.3 (the user's decision): `menus_wide` defaults to 1 (port/src/plat_stub.c), still labelled "Widescreen (beta)". A player who chose Stretched or 4:3 in F1 has both settings saved and keeps that; an older "Menus in 4:3" (menus_43 alone) wins over it in `Port_MenusWide`. Tests that compare with the 4:3 or Stretched pictures set `BT3_MENU_WIDE=0`.

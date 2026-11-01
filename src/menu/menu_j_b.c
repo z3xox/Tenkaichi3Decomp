@@ -2,6 +2,10 @@
 #include "menu/menu_j.h"
 #include "sys/pad.h"
 #include "sys/save.h"
+#ifdef PORT
+extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
+extern void Port_MenuFill(int on);
+#endif
 
 /*
  * TourMenu, 0x3623A8..0x364DA8: the tournament menu of Dragon World Tour (progress mode 33). One object (its
@@ -174,7 +178,14 @@ void TourMenu_Draw(void) {
     s32 i;
     MFlash *flash;
 
+#ifdef PORT
+    Port_MenuPage(20); /* widescreen menus: this screen's page, its backdrop filling the width */
+    Port_MenuFill(1);
     Sprite_DrawPicture(gTourMenu->bg, 0, 0, 0x80);
+    Port_MenuFill(0);
+#else
+    Sprite_DrawPicture(gTourMenu->bg, 0, 0, 0x80);
+#endif
     flash = &gTourMenu->flash[0];
     Flash_FindLabel(flash, NULL, "mc_guide_satan_eye", &ref);
     FlashAnim_Blink(flash, &ref, &gTourMenu->blink, 0);
@@ -297,6 +308,9 @@ void TourMenu_Draw(void) {
     }
     IconWin_Draw();
     MsgWin_Draw(0, 0, gTourMenu->voiceLine);
+#ifdef PORT
+    Port_MenuPage(0);
+#endif
 }
 
 /* Sends a clip of movie `movie` to a label: the plate under the cursor of menu level `kind`. */

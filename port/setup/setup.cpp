@@ -1049,6 +1049,7 @@ int main(int argc, char **argv) {
         "/usr/share/fonts/TTF/DejaVuSans.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
         "/usr/share/fonts/noto/NotoSans-Regular.ttf", "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
         "/usr/share/fonts/liberation/LiberationSans-Regular.ttf", "C:\\Windows\\Fonts\\segoeui.ttf",
+        "/System/Library/Fonts/Supplemental/Arial.ttf", "/System/Library/Fonts/Geneva.ttf", // (macOS)
     };
     ImGui_ImplSDLGPU3_InitInfo info;
     int shots = 0, shotKey = -1;
@@ -1061,6 +1062,15 @@ int main(int argc, char **argv) {
             argc = count;
             argv = args;
         }
+    }
+#endif
+#ifdef __APPLE__
+    {
+        // Started from Finder, a program gets only /usr/bin:/bin:/usr/sbin:/sbin: install.py would not find Homebrew's
+        // tools (glslc, spirv-cross, 7z) and call them missing. Homebrew's folders first, as in a Terminal.
+        const char *path = getenv("PATH");
+        std::string more = std::string("/opt/homebrew/bin:/usr/local/bin:") + (path != NULL && path[0] != '\0' ? path : "/usr/bin:/bin:/usr/sbin:/sbin");
+        setenv("PATH", more.c_str(), 1);
     }
 #endif
     if (argc > 2 && strcmp(argv[1], "--install") == 0) {
@@ -1132,10 +1142,18 @@ int main(int argc, char **argv) {
             for (int attempt = 0; attempt < 2 && sGl == NULL; attempt++) {
                 SDL_GL_ResetAttributes();
                 SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+#ifdef __APPLE__
+                // (macOS gives only a 3.2 or later core context, and only forward-compatible: GLSL 150)
+                SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+                SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+                SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
+                glsl = "#version 150";
+#else
                 SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, attempt == 0 ? 3 : 0);
                 SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, attempt == 0 ? SDL_GL_CONTEXT_PROFILE_CORE : 0);
-                SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
                 glsl = attempt == 0 ? "#version 330" : "#version 130";
+#endif
+                SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
                 sWindow = SDL_CreateWindow(GAME " - Setup", 760, 560, SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_OPENGL);
                 sGl = sWindow != NULL ? SDL_GL_CreateContext(sWindow) : NULL;
                 if (sGl == NULL && sWindow != NULL) {
@@ -1182,6 +1200,19 @@ int main(int argc, char **argv) {
         info.MSAASamples = SDL_GPU_SAMPLECOUNT_1;
         ImGui_ImplSDLGPU3_Init(&info);
     }
+#ifdef __APPLE__
+    if (sRelease) {
+        // A folder downloaded from the internet is marked "quarantined" by macOS, and a quarantined program started by
+        // another one is refused (posix_spawn: Bad file descriptor), the game included. This setup has been let through
+        // already (it runs): the mark is taken off the whole folder, as README.txt's step 0 does by hand.
+        const char *args[] = {"/usr/bin/xattr", "-dr", "com.apple.quarantine", sRoot.c_str(), NULL};
+        SDL_Process *x = SDL_CreateProcess(args, false);
+        if (x != NULL) {
+            SDL_WaitProcess(x, true, NULL);
+            SDL_DestroyProcess(x);
+        }
+    }
+#endif
     if (sRelease && Native_Installed(sRoot) && getenv("BT3_SETUP_ISO") == NULL) { // nothing left to do: offer Play
         reset_rows();
         for (auto &r : sRows) {

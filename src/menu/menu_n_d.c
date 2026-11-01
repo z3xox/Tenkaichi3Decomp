@@ -1,6 +1,10 @@
 #include "common.h"
 #include "menu/menu_o.h"
 #include "sys/pad.h"
+#ifdef PORT
+extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
+extern void Port_MenuFill(int on);
+#endif
 
 /*
  * UbResult, 0x3760C8..0x3782A8: the result screen of the two disc modes (modes 27 and 30); work pointer 0x3B7358,
@@ -179,7 +183,14 @@ void UbResult_Draw(void) {
     s32 i;
     s32 item;
 
+#ifdef PORT
+    Port_MenuPage(27); /* widescreen menus: this screen's page, its backdrop filling the width */
+    Port_MenuFill(1);
     Sprite_DrawPicture(gUbResult->bg, 0, 0, 0x80);
+    Port_MenuFill(0);
+#else
+    Sprite_DrawPicture(gUbResult->bg, 0, 0, 0x80);
+#endif
     flash = &gUbResult->flash[0];
     Flash_FindLabel(flash, "mc_guide_17go", "mc_guide_17go_eye", &ref);
     FlashAnim_Blink(flash, &ref, &gUbResult->blink, 0);
@@ -320,6 +331,9 @@ void UbResult_Draw(void) {
     }
     Flash_Draw(&gUbResult->flash[0]);
     IconWin_Draw();
+#ifdef PORT
+    Port_MenuPage(0);
+#endif
 }
 
 /* Per frame: the movie and what its triggers start (headline, page counting, the Z point and item windows). */

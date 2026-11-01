@@ -8,6 +8,10 @@ extern void Port_NetLeave(void);
 #endif
 #include "sys/pad.h"
 #include "sys/save.h"
+#ifdef PORT
+extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
+extern void Port_MenuFill(int on);
+#endif
 
 /* The screen's work (overlay .data, 0x3B0E80). */
 MainMenu *gMainMenu = NULL;
@@ -286,7 +290,14 @@ void MainMenu_Draw(void) {
     s32 item;
     MFlash *flash;
 
+#ifdef PORT
+    Port_MenuPage(2); /* widescreen menus: this screen's page (PORT_MENU_SCREEN in port/src/gs_marker.c), its backdrop filling the width */
+    Port_MenuFill(1);
     Sprite_DrawPicture(gMainMenu->bg, 0, 0, 0x80);
+    Port_MenuFill(0);
+#else
+    Sprite_DrawPicture(gMainMenu->bg, 0, 0, 0x80);
+#endif
     flash = &gMainMenu->flash[0];
     for (i = 0; i < 4; i++) {
         switch (i) {
@@ -419,6 +430,9 @@ void MainMenu_Draw(void) {
     }
     IconWin_Draw();
     MsgWin_Draw(0, 0, gMainMenu->voiceLine);
+#ifdef PORT
+    Port_MenuPage(0);
+#endif
 }
 
 /* Sends the plate under the cursor of movie `idx` to a label. */

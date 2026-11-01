@@ -1,6 +1,10 @@
 #include "common.h"
 #include "menu/menu_o.h"
 #include "sys/pad.h"
+#ifdef PORT
+extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
+extern void Port_MenuFill(int on);
+#endif
 
 /*
  * MisSel, 0x379F58..0x37B7C0: the mission list of mode 14. Work pointer gMisSel (0x3B7360), one initialised table
@@ -244,7 +248,14 @@ void MisSel_Draw(void) {
     s32 cur;
     MTexRes *chip;
 
+#ifdef PORT
+    Port_MenuPage(29); /* widescreen menus: this screen's page, its backdrop filling the width */
+    Port_MenuFill(1);
     Sprite_DrawPicture(gMisSel->bg, 0, 0, 0x80);
+    Port_MenuFill(0);
+#else
+    Sprite_DrawPicture(gMisSel->bg, 0, 0, 0x80);
+#endif
     flash = &gMisSel->flash[0];
     Flash_FindLabel(flash, "mc_guide_17go", "mc_guide_17go_eye", &ref);
     FlashAnim_Blink(flash, &ref, &gMisSel->blink, 0);
@@ -317,6 +328,9 @@ void MisSel_Draw(void) {
     }
     Flash_Draw(&gMisSel->flash[0]);
     IconWin_Draw();
+#ifdef PORT
+    Port_MenuPage(0);
+#endif
 }
 
 /* Runs the leave timer and the movie. */

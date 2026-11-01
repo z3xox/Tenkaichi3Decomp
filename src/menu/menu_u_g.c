@@ -1,5 +1,9 @@
 #include "common.h"
 #include "menu/menu_u.h"
+#ifdef PORT
+extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
+extern void Port_MenuFill(int on);
+#endif
 
 /* The customising screen's work pointer (0x3BB140): this object owns it. */
 UEvoZ *gEvoZ = NULL;
@@ -123,7 +127,14 @@ void EvoZ_Term(void) {
 void EvoZ_Draw(void) {
     s32 i;
 
+#ifdef PORT
+    Port_MenuPage(37); /* widescreen menus: this screen's page, its backdrop filling the width */
+    Port_MenuFill(1);
     Sprite_DrawPicture(gEvoZ->bg, 0, 0, 0x80);
+    Port_MenuFill(0);
+#else
+    Sprite_DrawPicture(gEvoZ->bg, 0, 0, 0x80);
+#endif
     EvoZ_Refresh(gEvoZ);
     for (i = 0; i < UEVOZ_FLASH_NUM; i++) {
         if (i != 1 || !(gEvoZ->flags & UEVOZ_REEL_READY)) {
@@ -133,6 +144,9 @@ void EvoZ_Draw(void) {
     Font_FlushAll();
     PassWin_Draw();
     ItemHelp_Draw(gEvoZ->helpItem);
+#ifdef PORT
+    Port_MenuPage(0);
+#endif
 }
 
 /* Advances the movies and turns Z points into experience, 33 a frame. */

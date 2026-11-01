@@ -2,6 +2,10 @@
 #include "menu/menu_b.h"
 #include "sys/pad.h"
 #include "sys/save.h"
+#ifdef PORT
+extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
+extern void Port_MenuFill(int on);
+#endif
 
 HistOutro *gHistOutro = NULL; /* 0x3B12F8 */
 
@@ -249,6 +253,9 @@ void HistOutro_Term(void) {
 
 /* Sets up the clips of the movie (both guides' faces, the three lines of the closing text) and draws. */
 void HistOutro_Draw(void) {
+#ifdef PORT
+    Port_MenuPage(12); /* widescreen menus: this screen's page */
+#endif
     MFlashRef ref;
     char name[64];
     char sub[64];
@@ -291,6 +298,9 @@ void HistOutro_Draw(void) {
     }
     Font_FlushAll();
     MsgWin_Draw(0, 0, gHistOutro->voiceLine);
+#ifdef PORT
+    Port_MenuPage(0);
+#endif
 }
 
 /* Advances the movie; brings the guide(s) in when the movie asks for it; scrolls the closing text. */

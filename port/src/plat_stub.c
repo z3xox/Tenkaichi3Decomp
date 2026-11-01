@@ -637,6 +637,27 @@ int Port_Menus43(void) {
 void Port_Menus43Set(int on) {
     sMenus43 = on != 0;
 }
+/* The menu layout "Widescreen" (setting menus_wide; BT3_MENU_WIDE=0/1 over it): the screens converted for it
+   (Port_MenuPage, port/src/gs_marker.c) have their 2D at its true shape and their backdrops across the whole width;
+   the others are stretched as before. Not with "Menus in 4:3". The default since 0.1.39.3: a player who never chose a
+   layout has it; one who chose Stretched or 4:3 keeps that (the choice saves both settings; an older "Menus in 4:3"
+   saved menus_43 alone, which still wins). */
+PORT_HOST static int sMenusWide = -1;
+int Port_MenusWide(void) {
+    if (sMenusWide < 0) {
+        const char *env = getenv("BT3_MENU_WIDE");
+        sMenusWide = env != NULL && env[0] != '\0' ? atoi(env) != 0 : Port_Setting("menus_wide", 1) != 0;
+    }
+    return sMenusWide && !Port_Menus43();
+}
+void Port_MenusWideSet(int on) {
+    sMenusWide = on != 0;
+}
+/* The Tenkaichi Budokai Online screens' letters across: 3/4 at 16:9 with the menu layout "Widescreen" (their page is
+   stretched, the letters then keep their shape), else 1 */
+float Port_MenuTextNarrow(void) {
+    return Port_MenusWide() && Port_IsWide() ? 1333.333f / (float)Port_AspectMilli() : 1.0f;
+}
 int Port_PageAspectMilli(void) {
     return gPortMenuMode && Port_Menus43() ? 1333 : Port_AspectMilli();
 }

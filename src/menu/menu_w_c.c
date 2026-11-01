@@ -1,6 +1,10 @@
 #include "common.h"
 #include "menu/menu_x.h"
 #include "sys/pad.h"
+#ifdef PORT
+extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
+extern void Port_MenuFill(int on);
+#endif
 
 /*
  * Menu overlay DBZP.BIN, 0x39EB08..0x39FAA8: the EvoTop object, the top menu of Evolution Z (progress mode 48;
@@ -270,13 +274,23 @@ void EvoTop_Draw(EvoTop *m) {
         Flash_FindLabel(flash, NULL, name, &ref);
         FlashAnim_Scroll(flash, &ref, &uv, &m->cloud, NULL, 0.28444445f, 0.0f);
     }
+#ifdef PORT
+    Port_MenuPage(42); /* widescreen menus: this screen's page, its backdrop filling the width */
+    Port_MenuFill(1);
     Sprite_DrawPicture(m->bg, 0, 0, 0x80);
+    Port_MenuFill(0);
+#else
+    Sprite_DrawPicture(m->bg, 0, 0, 0x80);
+#endif
     for (i = 0; i < EVOTOP_FLASH_NUM; i++) {
         Flash_Draw(&m->flash[i]);
     }
     IconWin_Draw();
     MsgWin_Draw(0, 0, m->voiceLine);
     DcSave_Update();
+#ifdef PORT
+    Port_MenuPage(0);
+#endif
 }
 
 /*

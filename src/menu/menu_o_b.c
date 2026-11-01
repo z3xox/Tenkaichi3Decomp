@@ -1,6 +1,10 @@
 #include "common.h"
 #include "menu/menu_o.h"
 #include "sys/pad.h"
+#ifdef PORT
+extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
+extern void Port_MenuFill(int on);
+#endif
 
 /*
  * DiscFusion, 0x3782A8..0x379908: the screen of mode 24. Two plates, one per earlier game disc; choosing a plate
@@ -148,7 +152,14 @@ void DiscFusion_Draw(void) {
     s32 x;
     s32 y;
 
+#ifdef PORT
+    Port_MenuPage(28); /* widescreen menus: this screen's page, its backdrop filling the width */
+    Port_MenuFill(1);
     Sprite_DrawPicture(gDiscFusion->bg, 0, 0, 0x80);
+    Port_MenuFill(0);
+#else
+    Sprite_DrawPicture(gDiscFusion->bg, 0, 0, 0x80);
+#endif
     flash = &gDiscFusion->flash[0];
     Flash_FindLabel(flash, "mc_guide_17go", "mc_guide_17go_eye", &ref);
     FlashAnim_Blink(flash, &ref, &gDiscFusion->blink[0], 0);
@@ -197,6 +208,9 @@ void DiscFusion_Draw(void) {
     MsgWin_Draw(0, 0, gDiscFusion->voiceLine);
     Dialog_Draw(1);
     Flash_Draw(&gDiscFusion->flash[1]);
+#ifdef PORT
+    Port_MenuPage(0);
+#endif
 }
 
 /* Per frame: the leave timer, the plate's line once the greeting has ended, the movies. */

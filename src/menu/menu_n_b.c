@@ -1,6 +1,10 @@
 #include "common.h"
 #include "menu/menu_n.h"
 #include "sys/pad.h"
+#ifdef PORT
+extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
+extern void Port_MenuFill(int on);
+#endif
 
 /*
  * UbzSel, 0x372560..0x373A68: the course select of mode 28 (five courses; each is a list of up to eight opponents
@@ -190,7 +194,14 @@ void UbzSel_Draw(void) {
     MFlash *flash;
     s32 i;
 
+#ifdef PORT
+    Port_MenuPage(25); /* widescreen menus: this screen's page, its backdrop filling the width */
+    Port_MenuFill(1);
     Sprite_DrawPicture(gUbzSel->bg, 0, 0, 0x80);
+    Port_MenuFill(0);
+#else
+    Sprite_DrawPicture(gUbzSel->bg, 0, 0, 0x80);
+#endif
     flash = &gUbzSel->flash[0];
     Flash_FindLabel(flash, "mc_guide_17go", "mc_guide_17go_eye", &ref);
     FlashAnim_Blink(flash, &ref, &gUbzSel->blink, 0);
@@ -244,6 +255,9 @@ void UbzSel_Draw(void) {
         Flash_Draw(&gUbzSel->flash[i]);
     }
     IconWin_Draw();
+#ifdef PORT
+    Port_MenuPage(0);
+#endif
 }
 
 /* Advances the leave timer and the movie. */

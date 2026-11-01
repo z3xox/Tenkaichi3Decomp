@@ -2,6 +2,10 @@
 #include "sys/heap.h"
 #include "sys/pad.h"
 #include "sys/dialog.h"
+#ifdef PORT
+extern int gPortMenuMode;                 /* headless.c: the menus are running */
+extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
+#endif
 
 typedef struct DialogProgress {
     /* 0x00 */ u8 unk0[0x14];
@@ -327,8 +331,18 @@ rect.y0 = i * 0x20;
         break;
     }
     gDialog->res.tex0 = visible != 0 ? gDialog->tex0 : NULL;
+#ifdef PORT
+    if (gPortMenuMode) {
+        Port_MenuPage(50); /* widescreen menus: the dialog a page of its own, at its true shape (port/src/gs_marker.c) */
+    }
+#endif
     Flash_Draw(gDialog->flash);
     Font_FlushAll();
+#ifdef PORT
+    if (gPortMenuMode) {
+        Port_MenuPage(0);
+    }
+#endif
 }
 
 /* Opens (0), closes (1) or shows without animation-in (2) the window; open and close play SE 4 / 5. */

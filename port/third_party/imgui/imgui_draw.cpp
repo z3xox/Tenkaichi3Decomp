@@ -1724,8 +1724,15 @@ void ImDrawList::AddBezierQuadratic(const ImVec2& p1, const ImVec2& p2, const Im
     PathStroke(col, thickness);
 }
 
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+extern void ImGuiA11yHook_Text(const char* text_begin, const char* text_end); // BT3 port: port/src/gs/ui_a11y.cpp
+#endif
+
 void ImDrawList::AddText(ImFont* font, float font_size, const ImVec2& pos, ImU32 col, const char* text_begin, const char* text_end, float wrap_width, const ImVec4* cpu_fine_clip_rect)
 {
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+    ImGuiA11yHook_Text(text_begin, text_end); // BT3 port: the screen reader hears the text an item shows (its value)
+#endif
     if ((col & IM_COL32_A_MASK) == 0)
         return;
 

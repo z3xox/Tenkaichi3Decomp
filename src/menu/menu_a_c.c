@@ -1,6 +1,10 @@
 #include "common.h"
 #include "menu/menu_a.h"
 #include "sys/pad.h"
+#ifdef PORT
+extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
+extern void Port_MenuFill(int on);
+#endif
 
 /* The screen's work (overlay .data, 0x3B0EB8). */
 Title *gTitle = NULL;
@@ -136,7 +140,14 @@ void Title_Draw(void) {
     s32 i;
     MFlash *flash;
 
+#ifdef PORT
+    Port_MenuPage(1); /* widescreen menus: this screen's page (PORT_MENU_SCREEN in port/src/gs_marker.c), its backdrop filling the width */
+    Port_MenuFill(1);
     Sprite_DrawPicture(gTitle->bg, 0, 0, 0x80);
+    Port_MenuFill(0);
+#else
+    Sprite_DrawPicture(gTitle->bg, 0, 0, 0x80);
+#endif
     flash = &gTitle->flash[0];
     for (i = 0; i < 2; i++) {
         uv.y0 = 0;
@@ -163,6 +174,9 @@ void Title_Draw(void) {
     for (i = 0; i < TITLE_FLASH_NUM; i++) {
         Flash_Draw(&gTitle->flash[i]);
     }
+#ifdef PORT
+    Port_MenuPage(0);
+#endif
 }
 
 /* Sends a clip of movie `idx` to a label: kind 1 the "press start" plate, kind 2 the plate under the cursor. */
@@ -327,7 +341,13 @@ s32 Title_Run(s32 section) {
         Pad_Update();
         Snd_Update();
         ColorFade_Update();
+#ifdef PORT
+        Port_MenuPage(51); /* widescreen menus: the logo page at its true shape, black beside it (port/src/gs_marker.c) */
         Sprite_DrawPicture(gTitle->logo, 0, 0, 0x80);
+        Port_MenuPage(0);
+#else
+        Sprite_DrawPicture(gTitle->logo, 0, 0, 0x80);
+#endif
         ColorFade_Draw();
         Gfx_EndFrame(1);
         Dma_Flush();

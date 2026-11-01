@@ -3,6 +3,10 @@
 #include "menu/menu_y.h"
 #include "sys/pad.h"
 #include "sys/save.h"
+#ifdef PORT
+extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
+extern void Port_MenuFill(int on);
+#endif
 
 Option *gOption = NULL; /* 0x3BC364 */
 
@@ -1329,7 +1333,14 @@ void Option_Draw(void) {
     f32 len;
 
     flash = gOption->flash;
+#ifdef PORT
+    Port_MenuPage(39); /* widescreen menus: this screen's page, its backdrop filling the width */
+    Port_MenuFill(1);
     Sprite_DrawPicture(gOption->bg, 0, 0, 0x80);
+    Port_MenuFill(0);
+#else
+    Sprite_DrawPicture(gOption->bg, 0, 0, 0x80);
+#endif
     Flash_Advance(gOption->flash);
     Flash_FindLabel(flash, NULL, "mc_dende_eye", &eye);
     Flash_FindLabel(flash, NULL, "mc_dende_mouth", &mouth);
@@ -1959,6 +1970,9 @@ void Option_Draw(void) {
     } else {
         Dialog_Draw(1);
     }
+#ifdef PORT
+    Port_MenuPage(0);
+#endif
 }
 
 /* Sends one of the screen's plates to a label of its timeline. */

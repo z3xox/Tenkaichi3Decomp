@@ -1,6 +1,10 @@
 #include "common.h"
 #include "menu/menu_r.h"
 #include "sys/pad.h"
+#ifdef PORT
+extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
+extern void Port_MenuFill(int on);
+#endif
 
 /*
  * SimTop, 0x387880..0x388EE0: the entry screen of the "sim" ladder (mode 20, run by SimTop_Run 0x388D70): three
@@ -175,7 +179,14 @@ void SimTop_Draw(void) {
     s32 chara;
     MTexRes *face;
 
+#ifdef PORT
+    Port_MenuPage(34); /* widescreen menus: this screen's page, its backdrop filling the width */
+    Port_MenuFill(1);
     Sprite_DrawPicture(gSimTop->bg, 0, 0, 0x80);
+    Port_MenuFill(0);
+#else
+    Sprite_DrawPicture(gSimTop->bg, 0, 0, 0x80);
+#endif
     flash = &gSimTop->flash[0];
     Flash_FindLabel(flash, "mc_guide_18go", "mc_guide_18go_eye", &ref);
     FlashAnim_Blink(flash, &ref, &gSimTop->blink, 0);
@@ -288,6 +299,9 @@ void SimTop_Draw(void) {
         Flash_Draw(&gSimTop->flash[i]);
     }
     IconWin_Draw();
+#ifdef PORT
+    Port_MenuPage(0);
+#endif
 }
 
 /*

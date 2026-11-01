@@ -1,5 +1,9 @@
 #include "common.h"
 #include "menu/menu_z.h"
+#ifdef PORT
+extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
+extern void Port_MenuFill(int on);
+#endif
 
 /*
  * Menu overlay DBZP.BIN, 0x3A65E8..0x3A9850: the DcList object, the list of saved custom characters of the Data
@@ -1143,13 +1147,23 @@ void DcList_Draw(DcList *list) {
     DcList_DrawItemPage(list);
     DcList_UpdateGuide(list);
     DcList_ScrollCloud(list);
+#ifdef PORT
+    Port_MenuPage(45); /* widescreen menus: this screen's page, its backdrop filling the width */
+    Port_MenuFill(1);
     Sprite_DrawPicture(list->view.bg, 0, 0, 0x80);
+    Port_MenuFill(0);
+#else
+    Sprite_DrawPicture(list->view.bg, 0, 0, 0x80);
+#endif
     Flash_Draw(&view->flash[0]);
     MsgWin_Draw(0, 0, list->voiceLine);
     Flash_Draw(&list->view.flash[1]);
     DcList_DrawDialog(list);
     DcList_DrawPassword(list);
     DcList_DrawItemHelp(list);
+#ifdef PORT
+    Port_MenuPage(0);
+#endif
 }
 
 /* Destroys the movies, frees the buffers and closes the shared windows. */

@@ -45,6 +45,8 @@ int Port_Menus43(void);                       // plat_stub.c: the menus are show
 int Port_LateInput(void);                     // plat_stub.c: "Low input lag", the blanks are waited for before the pad read
 void Port_LateInputSet(int on);
 void Port_Menus43Set(int on);
+int Port_MenusWide(void);                     // plat_stub.c: the menu layout "Widescreen" (beta)
+void Port_MenusWideSet(int on);
 int Port_HudLayout(void);                      // gs_draw.c: 2 = the HUD is about the middle of the screen
 int GsDraw_HudShown(void);                     // ... and 1 while the game is drawing the HUD's side panels
 const char *Port_NetName(int player);          // the name of the player of side 0 or 1 ("" outside a match)
@@ -980,6 +982,7 @@ static void build_net(void) {
                         snprintf(label, sizeof(label), "%s   (%d searching)###q%d", kQueue[i], n, i);
                     }
                     ImGui::RadioButton(label, &sQueue, i);
+                    UiA11y_Radio(sQueue == i);
                 }
                 ImGui::EndDisabled();
                 ImGui::TextDisabled("The two games connect to each other directly when they can, as in most online fighting");
@@ -1972,14 +1975,20 @@ static void ui_tab(PortVideo &v) {
                           "Long health bars: the bars reach from the edges to the timer.\n"
                           "In the middle: the original 4:3 arrangement, next to the timer.");
     {
-        bool m43 = Port_Menus43() != 0;
-        if (ImGui::Checkbox("Menus in 4:3", &m43)) {
-            Port_Menus43Set(m43);
-            Port_SettingSave("menus_43", m43);
+        static const char *const kMenus[] = {"Stretched", "4:3", "Widescreen (beta)"};
+        int m = Port_Menus43() ? 1 : Port_MenusWide() ? 2 : 0;
+        if (ImGui::Combo("Menus", &m, kMenus, 3)) {
+            Port_Menus43Set(m == 1);
+            Port_MenusWideSet(m == 2);
+            Port_SettingSave("menus_43", m == 1);
+            Port_SettingSave("menus_wide", m == 2);
             Port_SettingsWrite();
         }
-        ImGui::SetItemTooltip("In a picture wider than 4:3, show the menus at their own shape with black at the sides\n"
-                              "instead of stretched to the width. Fights keep the wide picture.");
+        ImGui::SetItemTooltip("How the menus fill a picture wider than 4:3 (fights keep the wide picture):\n"
+                              "Stretched: the 4:3 menus stretched to the width.\n"
+                              "4:3: at their own shape, with the side bars at the sides.\n"
+                              "Widescreen (beta): at their own shape across the whole width, the backdrops filling it,\n"
+                              "each menu's parts against the side they belong to.");
     }
     {
         static const char *const kBars[] = {"Black", "Border", "Fighter panels"};
@@ -1990,7 +1999,7 @@ static void ui_tab(PortVideo &v) {
             Port_SettingsWrite();
         }
         ImGui::SetItemTooltip("What fills the sides where the picture is narrower than the window:\n"
-                              "a 4:3 picture, or the menus with \"Menus in 4:3\", in a wide window.\n"
+                              "a 4:3 picture, or the menus with \"Menus: 4:3\", in a wide window.\n"
                               "Fighter panels: the border, and in a fight each side's fighter with its name and form.\n"
                               "Your own: a folder \"bars\" next to the game with trim.png (the strip along the\n"
                               "picture, kept in proportion) and fill.png (stretched over the rest). Read at start.");
@@ -2213,8 +2222,10 @@ static void controls_tab(void) {
     int count = 0;
 
     ImGui::RadioButton("Player 1", &player, 0);
+    UiA11y_Radio(player == 0);
     ImGui::SameLine();
     ImGui::RadioButton("Player 2", &player, 1);
+    UiA11y_Radio(player == 1);
     int *slot = PortInput_PadSlot(player), *keys = PortInput_Keys(player), *pads = PortInput_PadButtons(player);
     SDL_JoystickID *ids = SDL_GetGamepads(&count);
     if (*slot < 0) {
@@ -3019,6 +3030,7 @@ static bool frame_build(void) {
     meter_count();
     sBuilt = false;
     bool upd = updLine[0] != '\0';
+    UiA11y_Frame(sReady && sOpen && !sQuit, !sQuit); // (the screen reader in the windows: ui_a11y.cpp)
     if (!sReady || (!sOpen && !sQuit && !notice && !overlay && !meter && !names && !bars && !chat && !banner && !saving && !watched && !upd)) {
         return false;
     }
@@ -3068,6 +3080,7 @@ static bool frame_build(void) {
             build();
         }
     }
+    UiA11y_End(); // (what the window's focus is on, said; the windows after this one are not read)
     if (sQuit && PortQuit_Failed()) {
         build_quit();
     }

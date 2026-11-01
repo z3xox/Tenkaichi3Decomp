@@ -2,6 +2,10 @@
 #include "menu/menu_h.h"
 #include "menu/menu_i.h"
 #include "sys/pad.h"
+#ifdef PORT
+extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
+extern void Port_MenuFill(int on);
+#endif
 
 Train *gTrain = NULL; /* 0x3B4BA8 */
 
@@ -587,7 +591,13 @@ void Train_DrawBg(void) {
     uv.y1 = 0x80;
     Flash_FindLabel(&gTrain->flash[0], NULL, "mc_bg_cloud", &ref);
     FlashAnim_Scroll(&gTrain->flash[0], &ref, &uv, &gTrain->cloud, NULL, 0.047407407f, 0.0f);
+#ifdef PORT
+    Port_MenuFill(1); /* widescreen menus: the backdrop fills the width (port/src/gs_marker.c) */
     Sprite_DrawPicture(gTrain->bg, 0, 0, 0x80);
+    Port_MenuFill(0);
+#else
+    Sprite_DrawPicture(gTrain->bg, 0, 0, 0x80);
+#endif
 }
 
 /* The two guides: pose, and for the one who is talking (Videl below the top menu) eyes and mouth. */
@@ -811,6 +821,9 @@ void Train_Update(void) {
 
 /* Draws the screen. */
 void Train_Draw(void) {
+#ifdef PORT
+    Port_MenuPage(18); /* widescreen menus: this screen's page */
+#endif
     MFlashRef ref;
     s32 i = 0;
 
@@ -831,6 +844,9 @@ void Train_Draw(void) {
     }
     Train_DrawIconWin();
     MsgWin_Draw(0, 0, gTrain->voiceLine);
+#ifdef PORT
+    Port_MenuPage(0);
+#endif
 }
 
 /*

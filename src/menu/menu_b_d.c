@@ -2,6 +2,10 @@
 #include "menu/menu_c.h"
 #include "sys/pad.h"
 #include "sys/save.h"
+#ifdef PORT
+extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
+extern void Port_MenuFill(int on);
+#endif
 
 HistSel *gHistSel = NULL; /* 0x3B12FC */
 
@@ -354,7 +358,14 @@ void HistSel_Draw(void) {
     s32 i;
     MFlash *flash;
 
+#ifdef PORT
+    Port_MenuPage(13); /* widescreen menus: this screen's page, its backdrop filling the width */
+    Port_MenuFill(1);
     Sprite_DrawPicture(gHistSel->bg, 0, 0, 0x80);
+    Port_MenuFill(0);
+#else
+    Sprite_DrawPicture(gHistSel->bg, 0, 0, 0x80);
+#endif
     flash = &gHistSel->flash[0];
     Flash_FindLabel(flash, "mc_guide_gokuu", "mc_guide_gokuu_eye", &ref);
     FlashAnim_Blink(flash, &ref, &gHistSel->blink[0], 0);
@@ -482,6 +493,9 @@ void HistSel_Draw(void) {
     IconWin_Draw();
     MsgWin_SetText(gHistSel->msgText[gHistSel->guide]);
     MsgWin_Draw(0, 0, gHistSel->voiceLine);
+#ifdef PORT
+    Port_MenuPage(0);
+#endif
 }
 
 /* Sends the plate under a cursor to a label: kind 0 the menu plate, kind 2 the level plate. */

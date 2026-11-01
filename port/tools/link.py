@@ -45,7 +45,33 @@ def link_mac(objs, extra):
     segs = [s for s in mac_segments(EXE) if s[0] != "__PAGEZERO"]
     first = min(a for _, a, _ in segs)
     moved = [f"-Wl,-segaddr,{s},{MAC_BASE + a - first:#x}" for s, a, _ in segs if s != "__LINKEDIT"]
-    return subprocess.run(cmd + moved, capture_output=True, text=True)
+    r = subprocess.run(cmd + moved, capture_output=True, text=True)
+    if r.returncode == 0:
+        mac_pagezero(EXE)
+    return r
+
+def mac_pagezero(exe):
+    """A page zero of 4 GB in the program's header. Some linkers (Xcode 16's on GitHub's Mac) leave it 0 bytes when
+    every segment is moved with -segaddr, -pagezero_size or not, and macOS on Apple Silicon kills such a program
+    before it starts, without a word (found by josehs08). Nothing else lies below 4 GB here (the program is at 1 TB),
+    so the header's vmsize is set and the program signed again (ad hoc)."""
+    import struct
+    data = bytearray(exe.read_bytes())
+    magic, _, _, _, ncmds = struct.unpack_from("<IiiII", data, 0)
+    if magic != 0xFEEDFACF:
+        return
+    off = 32
+    for _ in range(ncmds):
+        cmd, size = struct.unpack_from("<II", data, off)
+        if cmd == 0x19 and data[off + 8:off + 24].rstrip(b"\0") == b"__PAGEZERO":  # LC_SEGMENT_64
+            vmaddr, vmsize = struct.unpack_from("<QQ", data, off + 24)
+            if vmaddr == 0 and vmsize < 0x100000000:
+                struct.pack_into("<Q", data, off + 32, 0x100000000)
+                exe.write_bytes(data)
+                subprocess.run(["codesign", "--force", "--sign", "-", str(exe)], check=True, capture_output=True)
+                print(f"__PAGEZERO {vmsize:#x} -> 4 GB")
+            return
+        off += size
 
 def link(objs, extra):
     if MAC:

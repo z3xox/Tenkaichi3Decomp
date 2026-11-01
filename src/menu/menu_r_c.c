@@ -1,6 +1,10 @@
 #include "common.h"
 #include "menu/menu_r.h"
 #include "sys/pad.h"
+#ifdef PORT
+extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
+extern void Port_MenuFill(int on);
+#endif
 
 /* The screen's work area (.data, 0x3B741C). */
 SimResult *gSimResult = NULL;
@@ -175,7 +179,14 @@ void SimResult_Draw(void) {
     s32 i;
     s32 x;
 
+#ifdef PORT
+    Port_MenuPage(33); /* widescreen menus: this screen's page, its backdrop filling the width */
+    Port_MenuFill(1);
     Sprite_DrawPicture(gSimResult->bg, 0, 0, 0x80);
+    Port_MenuFill(0);
+#else
+    Sprite_DrawPicture(gSimResult->bg, 0, 0, 0x80);
+#endif
     flash = &gSimResult->flash[0];
     Flash_FindLabel(flash, "mc_guide_18go", "mc_guide_18go_eye", &ref);
     FlashAnim_Blink(flash, &ref, &gSimResult->blink, 0);
@@ -351,6 +362,9 @@ void SimResult_Draw(void) {
         Flash_Draw(&gSimResult->flash[i]);
     }
     IconWin_Draw();
+#ifdef PORT
+    Port_MenuPage(0);
+#endif
 }
 
 /* Advances the movie and acts on its triggers: 1 = intro over, 4 = a page is in place, 8 = a plate may come in. */

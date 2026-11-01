@@ -174,6 +174,17 @@ int __wrap_Progress_Main(int arg) {
                             time == 0 ? "60" : time == 1 ? "90" : time == 2 ? "180" : time == 3 ? "240" : "none");
                 }
             }
+            {   /* BT3_MENU_MODE=<n> (testing): the menus start at progress mode n instead of the title (src/menu/menu_a_b.c:
+                   6 Dragon History, 13 Ultimate Battle, 33 World Tournament, 38 the versus menu, 44 Training, 48 Evolution Z,
+                   53 the disc fusion, 60 Character Reference, 62 Options, 70 Shenron): its screens, seen without the way
+                   there being pressed */
+                static int modeEntered;
+
+                if (!modeEntered && getenv("BT3_MENU_MODE") != NULL && !Port_NetSession() && gProgress != NULL && gSaveData != NULL) {
+                    modeEntered = 1;
+                    gProgress->mode = atoi(getenv("BT3_MENU_MODE"));
+                }
+            }
             {   /* BT3_TBO=1 (testing): the first menu is Tenkaichi Budokai Online's (src/menu/port_tbo.c), not the
                    title: its screens, a lobby's included (BT3_LOBBY), without a button pressed */
                 static int tboEntered;

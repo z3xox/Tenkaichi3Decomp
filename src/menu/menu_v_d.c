@@ -1,5 +1,9 @@
 #include "common.h"
 #include "menu/menu_w.h"
+#ifdef PORT
+extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
+extern void Port_MenuFill(int on);
+#endif
 
 /* The shop's work pointer (0x3BB148): this object owns it. */
 Shop *gShop = NULL;
@@ -409,7 +413,14 @@ void Shop_Draw(void) {
     s32 pos;
     f32 scale;
 
+#ifdef PORT
+    Port_MenuPage(38); /* widescreen menus: this screen's page, its backdrop filling the width */
+    Port_MenuFill(1);
     Sprite_DrawPicture(gShop->bg, 0, 0, 0x80);
+    Port_MenuFill(0);
+#else
+    Sprite_DrawPicture(gShop->bg, 0, 0, 0x80);
+#endif
 
     flash = &gShop->flash[SHOP_FL_MAIN];
     for (i = 0; i < 2; i++) {
@@ -695,6 +706,9 @@ void Shop_Draw(void) {
     Flash_Draw(&gShop->flash[SHOP_FL_CONFIRM]);
     Flash_Draw(&gShop->flash[SHOP_FL_COMPLETE]);
     ItemHelp_Draw(gShop->helpItem);
+#ifdef PORT
+    Port_MenuPage(0);
+#endif
 }
 
 /*

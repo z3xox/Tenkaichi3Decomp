@@ -1,6 +1,10 @@
 #include "common.h"
 #include "menu/menu_p.h"
 #include "sys/pad.h"
+#ifdef PORT
+extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
+extern void Port_MenuFill(int on);
+#endif
 
 /* The screen's work area (.data, 0x3B737C). */
 MisResult *gMisResult = NULL;
@@ -199,7 +203,14 @@ void MisResult_Draw(void) {
     s32 i;
     s32 mission;
 
+#ifdef PORT
+    Port_MenuPage(30); /* widescreen menus: this screen's page, its backdrop filling the width */
+    Port_MenuFill(1);
     Sprite_DrawPicture(MR->bg, 0, 0, 0x80);
+    Port_MenuFill(0);
+#else
+    Sprite_DrawPicture(MR->bg, 0, 0, 0x80);
+#endif
     flash = &MR->flash[0];
     Flash_FindLabel(flash, "mc_guide_17go", "mc_guide_17go_eye", &ref);
     FlashAnim_Blink(flash, &ref, &MR->blink, 0);
@@ -337,6 +348,9 @@ void MisResult_Draw(void) {
         Flash_Draw(&MR->flash[i]);
     }
     IconWin_Draw();
+#ifdef PORT
+    Port_MenuPage(0);
+#endif
 }
 
 /* After a page has finished counting: the next bonus page, or the rank with the guide's verdict. */

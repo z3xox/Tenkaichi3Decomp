@@ -255,6 +255,8 @@ def main():
         else:
             objs.append(str(o))
     # C++: the settings window (port/src/gs/ui.cpp) and Dear ImGui. The library is only compiled when it changed.
+    # IMGUI_ENABLE_TEST_ENGINE: Dear ImGui's item hooks, which the screen reader in the windows uses (gs/ui_a11y.cpp);
+    # an object of the library built before it was given lacks them (delete port/build/obj/cxx_imgui*.o once).
     imgui = ROOT / "port/third_party/imgui"
     for f in sorted(imgui.glob("*.cpp")) + sorted((ROOT / "port/src/gs").glob("*.cpp")):
         o = OBJ / ("cxx_" + f.stem + ".o")

@@ -1,5 +1,9 @@
 #include "common.h"
 #include "menu/menu_za.h"
+#ifdef PORT
+extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
+extern void Port_MenuFill(int on);
+#endif
 
 /* The screen's work (overlay .data, 0x3BC9F8). */
 ReplayMenu *gReplayMenu = NULL;
@@ -419,9 +423,19 @@ void ReplayMenu_Draw(void) {
         ReplayMenu_SetUv("mc_menu_play_plate", "mc_menu_text1_off", &uv);
     }
     ReplayMenu_DrawChips();
+#ifdef PORT
+    Port_MenuPage(41); /* widescreen menus: this screen's page, its backdrop filling the width */
+    Port_MenuFill(1);
     Sprite_DrawPicture(gReplayMenu->bg, 0, 0, 0x80);
+    Port_MenuFill(0);
+#else
+    Sprite_DrawPicture(gReplayMenu->bg, 0, 0, 0x80);
+#endif
     Flash_Draw(&gReplayMenu->flash[0]);
     gReplayMenu->mcState = McFlow_Update();
+#ifdef PORT
+    Port_MenuPage(0);
+#endif
 }
 
 /* Watches the card while no flow runs: rescans when one appears, reports when it goes away. */

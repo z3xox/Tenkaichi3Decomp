@@ -1,5 +1,9 @@
 #include "common.h"
 #include "menu/menu_za.h"
+#ifdef PORT
+extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
+extern void Port_MenuFill(int on);
+#endif
 
 /*
  * Menu overlay DBZP.BIN, 0x3AE648..0x3AEAB0: PassWin, the window that shows the password of a saved custom
@@ -94,6 +98,9 @@ void PassWin_FindKey(char c, s32 *col, s32 *row) {
 
 /* Advances and draws the window: sets the picture of each of the 34 password characters. */
 void PassWin_Draw(void) {
+#ifdef PORT
+    Port_MenuPage(40); /* widescreen menus: this screen's page */
+#endif
     MFlashUv uv;
     char name[0x100];
     s32 col;
@@ -126,6 +133,9 @@ void PassWin_Draw(void) {
         }
     }
     Flash_Draw(&gPassWin->flash[0]);
+#ifdef PORT
+    Port_MenuPage(0);
+#endif
 }
 
 /* Encodes the password of character `chara` with the eight items `items` and opens the window. */

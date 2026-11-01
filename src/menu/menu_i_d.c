@@ -3,6 +3,10 @@
 #include "menu/menu_j.h"
 #include "sys/pad.h"
 #include "sys/save.h"
+#ifdef PORT
+extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
+extern void Port_MenuFill(int on);
+#endif
 
 ESel *gEntrySel = NULL; /* 0x3B5910 */
 
@@ -383,6 +387,9 @@ void EntrySel_Term(void) {
 
 /* Sets up every clip of the four movies from the current state and draws the screen. */
 void EntrySel_Draw(void) {
+#ifdef PORT
+    Port_MenuPage(19); /* widescreen menus: this screen's page */
+#endif
     MFlashRef ref;
     MFlashUv uv;
     char name[64];
@@ -580,6 +587,9 @@ void EntrySel_Draw(void) {
     Flash_Draw(&gEntrySel->flash[3]);
     ItemPanel_Draw(0);
     ItemHelp_Draw(gEntrySel->helpItem);
+#ifdef PORT
+    Port_MenuPage(0);
+#endif
 }
 
 /* Advances the movies and the item panel; ends the chip-row scroll when its clip says so. */

@@ -2,6 +2,12 @@
 #include "menu/menu_g.h"
 #include "sys/pad.h"
 #include "sys/save.h"
+#ifdef PORT
+extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
+extern void Port_MenuFill(int on);
+extern int Port_MenuPart(int part);
+extern void Port_MenuDuelSettings(int on);
+#endif
 
 DuelMenu *gDuelMenu = NULL; /* 0x3B38E8 */
 
@@ -343,7 +349,14 @@ void DuelMenu_Draw(void) {
     s32 rule;
     MFlash *flash;
 
+#ifdef PORT
+    Port_MenuPage(16); /* widescreen menus: this screen's page, its backdrop filling the width */
+    Port_MenuFill(1);
     Sprite_DrawPicture(DM->bg, 0, 0, 0x80);
+    Port_MenuFill(0);
+#else
+    Sprite_DrawPicture(DM->bg, 0, 0, 0x80);
+#endif
     flash = &DM->flash[0];
     for (i = 0; i < 2; i++) {
         Flash_FindLabel(flash, DM_GUIDE(i), i ? "mc_guide_nappa_eye" : "mc_guide_bejita_eye", &ref);
@@ -468,11 +481,34 @@ void DuelMenu_Draw(void) {
             FlashAnim_Scroll(flash, &ref, &uv, NULL, &DM->smoke[i], 0.0f, speed[i]);
         }
     }
+#ifdef PORT
+    {   /* widescreen menus: the movie's own shapes, the bodies of its windows, with their rows: the window of modes
+           against the left edge under its plate, the battle settings' in the middle (port/src/gs_marker.c). The
+           last of the two that was open is kept while the menu is back at its plates (its window going away). */
+        static int settings;
+        int prev;
+        if (DM->level == DUEL_LEVEL_TYPE || DM->level == DUEL_LEVEL_DP) {
+            settings = 0;
+        } else if (DM->level == DUEL_LEVEL_SETTING || DM->level == DUEL_LEVEL_VALUE) {
+            settings = 1;
+        }
+        Port_MenuDuelSettings(settings);
+        prev = Port_MenuPart(settings ? 4 /* PORT_MENU_CENTER_ALL */ : 5 /* PORT_MENU_LEFT_ALL */);
+        for (i = 0; i < DUELMENU_FLASH_NUM; i++) {
+            Flash_Draw(&DM->flash[i]);
+        }
+        Port_MenuPart(prev);
+    }
+#else
     for (i = 0; i < DUELMENU_FLASH_NUM; i++) {
         Flash_Draw(&DM->flash[i]);
     }
+#endif
     IconWin_Draw();
     MsgWin_Draw(0, 0, DM->voiceLine);
+#ifdef PORT
+    Port_MenuPage(0);
+#endif
 }
 
 /* Sends the plate under the cursor of a level to a label. */

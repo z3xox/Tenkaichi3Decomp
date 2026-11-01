@@ -1,6 +1,10 @@
 #include "common.h"
 #include "menu/menu_z.h"
 #include "sys/misc_a.h"
+#ifdef PORT
+extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
+extern void Port_MenuFill(int on);
+#endif
 
 /*
  * Menu overlay DBZP.BIN, 0x3AAF30..0x3AE648: the DcPass object, the password entry screen of the Data Center
@@ -1110,10 +1114,20 @@ void DcPass_Draw(DcPass *pass) {
     DcPass_DrawNames(pass);
     DcPass_AnimGuide(pass);
     DcPass_AnimBg(pass);
+#ifdef PORT
+    Port_MenuPage(44); /* widescreen menus: this screen's page, its backdrop filling the width */
+    Port_MenuFill(1);
     Sprite_DrawPicture(pass->view.bg, 0, 0, 0x80);
+    Port_MenuFill(0);
+#else
+    Sprite_DrawPicture(pass->view.bg, 0, 0, 0x80);
+#endif
     Flash_Draw(&pass->view.flash[pass->movie]);
     MsgWin_Draw(0, 0, pass->voiceLine);
     Dialog_Draw(0);
+#ifdef PORT
+    Port_MenuPage(0);
+#endif
 }
 
 /* Plays the "chosen" animation of the plate the list's cursor is on. */

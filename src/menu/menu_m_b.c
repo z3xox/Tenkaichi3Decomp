@@ -2,6 +2,10 @@
 #include "menu/menu_m.h"
 #include "sys/pad.h"
 #include "sys/save.h"
+#ifdef PORT
+extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
+extern void Port_MenuFill(int on);
+#endif
 
 /*
  * UbTeamSel, 0x36E028..0x372148: the team select of the mode group 13..30 (run for mode 15 when
@@ -468,7 +472,14 @@ void UbTeamSel_Draw(void) {
     s32 chara;
     s32 cost;
 
+#ifdef PORT
+    Port_MenuPage(24); /* widescreen menus: this screen's page, its backdrop filling the width */
+    Port_MenuFill(1);
     Sprite_DrawPicture(gUbTeamSel->bg, 0, 0, 0x80);
+    Port_MenuFill(0);
+#else
+    Sprite_DrawPicture(gUbTeamSel->bg, 0, 0, 0x80);
+#endif
     flash = &gUbTeamSel->flash[0];
     for (i = 0; i < 2; i++) {
         /* the two guides ("17go", "18go"): only the one talking moves its mouth */
@@ -673,6 +684,9 @@ void UbTeamSel_Draw(void) {
     MsgWin_Draw(0, 0, gUbTeamSel->voiceLine);
     ItemPanel_Draw(0);
     ItemHelp_Draw(gUbTeamSel->help);
+#ifdef PORT
+    Port_MenuPage(0);
+#endif
 }
 
 /* Advances the movies and the item panel, and shows the chips again once the reel movie says so. */

@@ -1,5 +1,9 @@
 #include "common.h"
 #include "menu/menu_z.h"
+#ifdef PORT
+extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
+extern void Port_MenuFill(int on);
+#endif
 
 /*
  * Menu overlay DBZP.BIN, 0x3A9A70..0x3AAF30: DcMenu, the top menu of the Data Center (progress mode 53): three
@@ -263,11 +267,21 @@ void DcMenu_Draw(DcMenu *menu) {
     DcMenu_AnimGuide(menu);
     DcMenu_AnimBg(menu);
     DcMenu_DrawPlates(flash);
+#ifdef PORT
+    Port_MenuPage(43); /* widescreen menus: this screen's page, its backdrop filling the width */
+    Port_MenuFill(1);
     Sprite_DrawPicture(menu->view.bg, 0, 0, 0x80);
+    Port_MenuFill(0);
+#else
+    Sprite_DrawPicture(menu->view.bg, 0, 0, 0x80);
+#endif
     IconWin_Draw();
     Flash_Draw(flash);
     MsgWin_Draw(0, 0, menu->voiceLine);
     DcSave_Update();
+#ifdef PORT
+    Port_MenuPage(0);
+#endif
 }
 
 #define DCMENU_NEXT (DcMenu_VoiceEnded() || (gPad[0].gamePressed & ZPAD_OK))

@@ -6,6 +6,8 @@
     python3 port/tools/package.py          -> port/build/release/ and port/build/Tenkaichi3Decomp-linux-x64.zip
     BT3_CC=win64 python3 port/tools/package.py   (after the win64 build and `port/setup/build.sh win`)
                                            -> port/build/release-win/ and port/build/Tenkaichi3Decomp-windows-x64.zip
+    BT3_CC=mac64 python3 port/tools/package.py   (on a Mac, after the mac64 build and `port/setup/build.sh`; EXPERIMENTAL)
+                                           -> port/build/release-mac/ and port/build/Tenkaichi3Decomp-macos-arm64.zip
 
 Contents:  Tenkaichi3Decomp, Tenkaichi3Decomp.dat   the game without the data tables of the original programs (strip_data.py)
            Tenkaichi3Decomp-setup       the setup window: reads the user's own disc image and unpacks it into gamedata/
@@ -69,6 +71,16 @@ https://github.com/z3xox/Tenkaichi3Decomp
 
 WIN_README = README.replace("(Linux, 64-bit)", "(Windows, 64-bit)").replace("Start  Tenkaichi3Decomp-setup\n", "Start  Tenkaichi3Decomp-setup.exe\n") \
     .replace("start  Tenkaichi3Decomp  itself", "start  Tenkaichi3Decomp.exe  itself")
+
+MAC_README = README.replace("(Linux, 64-bit)", "(macOS, Apple Silicon) - EXPERIMENTAL") \
+    .replace("1. Start  Tenkaichi3Decomp-setup\n", """0. macOS blocks programs downloaded from the internet that are not signed by Apple, and this one is not.
+   Start the setup once with right-click > Open, then "Open" (or: System Settings > Privacy & Security > Open
+   Anyway); it then lets the rest of this folder through itself. If something is still refused, once in Terminal
+   (drag this folder onto the window after the command to fill in its place):
+       xattr -dr com.apple.quarantine <this folder>
+1. Start  Tenkaichi3Decomp-setup  (double-click; it opens a Terminal window beside the setup window)
+""").replace("libprism.so", "libprism.dylib") \
+    .replace("Updates: once per start the game asks GitHub", "Updates: the Mac version does not install updates itself yet: download the new release by hand.\nOn Linux and Windows, once per start the game asks GitHub")
 
 TEXTURES_NOTE = """Texture packs go here.
 
@@ -333,6 +345,93 @@ def main_win():
         if p.is_file():
             print(f"  {p.stat().st_size:>10,}  {p.relative_to(out)}")
 
+def main_mac():
+    """BT3_CC=mac64, on a Mac: bt3_mac (port/tools/link.py), Tenkaichi3Decomp-setup (port/setup/build.sh), and Homebrew's
+    SDL3 into lib/. Both programs are made to look for SDL3 only in lib/ (not in Homebrew's folder, whose SDL3 may be
+    another version or not there), and signed again ad hoc (a changed Mach-O file has to be, on Apple Silicon)."""
+    out, zpath = ROOT / "port/build/release-mac", ROOT / "port/build/Tenkaichi3Decomp-macos-arm64.zip"
+    exe, setup = ROOT / "port/build/bt3_mac", ROOT / "Tenkaichi3Decomp-setup"
+    sdl = pathlib.Path(os.environ.get("BT3_SDL3", "/opt/homebrew/opt/sdl3")) / "lib"
+    dylib = sdl / "libSDL3.0.dylib"
+    for need in (exe, setup, pathlib.Path(str(exe) + ".map"), dylib):
+        if not need.exists():
+            sys.exit(f"missing {need}: build first (BT3_CC=mac64 undefined.py and link.py; port/setup/build.sh; brew install sdl3)")
+    if out.exists():
+        shutil.rmtree(out)
+    take_program(exe, out)
+    take_lang(out)
+    take_translations(out)
+    shutil.copy2(setup, out / "Tenkaichi3Decomp-setup")
+    (out / "lib").mkdir()
+    shutil.copy2(dylib.resolve(), out / "lib/libSDL3.0.dylib")
+    (out / "lib/libSDL3.0.dylib").chmod(0o755)
+
+    def tool(*cmd):
+        r = subprocess.run(list(cmd), capture_output=True, text=True)
+        if r.returncode:
+            sys.exit(" ".join(cmd) + ":\n" + r.stdout + r.stderr)
+        return r.stdout
+
+    tool("install_name_tool", "-id", "@rpath/libSDL3.0.dylib", str(out / "lib/libSDL3.0.dylib"))
+    for f in (out / NAME, out / "Tenkaichi3Decomp-setup"):
+        for line in tool("otool", "-L", str(f)).splitlines()[1:]:
+            dep = line.strip().split(" (")[0]
+            if "libSDL3" in dep and not dep.startswith("@rpath/"):
+                tool("install_name_tool", "-change", dep, "@rpath/libSDL3.0.dylib", str(f))
+        rpaths = re.findall(r"cmd LC_RPATH\n\s+cmdsize \d+\n\s+path (\S+)", tool("otool", "-l", str(f)))
+        for r in rpaths:
+            if r != "@executable_path/lib":
+                tool("install_name_tool", "-delete_rpath", r, str(f))
+        if "@executable_path/lib" not in rpaths:
+            tool("install_name_tool", "-add_rpath", "@executable_path/lib", str(f))
+    for f in (out / "lib/libSDL3.0.dylib", out / NAME, out / "Tenkaichi3Decomp-setup"):
+        tool("codesign", "--force", "--sign", "-", str(f))
+    # macOS on Apple Silicon kills a program whose page zero is missing before it starts (no message): 4 GB, as linked
+    seg = re.search(r"segname __PAGEZERO\n\s+vmaddr \S+\n\s+vmsize (\S+)", tool("otool", "-l", str(out / NAME)))
+    if seg is None or int(seg.group(1), 16) != 0x100000000:
+        sys.exit(f"{NAME}: its __PAGEZERO is {seg.group(1) if seg else 'missing'}, not 4 GB: macOS would kill it at start")
+    # nothing may still point into Homebrew: a player has no Homebrew
+    left = [f"{f.name}: {line.strip()}" for f in (out / NAME, out / "Tenkaichi3Decomp-setup", out / "lib/libSDL3.0.dylib")
+            for line in tool("otool", "-L", str(f)).splitlines()[1:] if "/opt/homebrew" in line or "/usr/local/" in line]
+    if left:
+        sys.exit("still linked against Homebrew:\n  " + "\n  ".join(left))
+
+    (out / "README.txt").write_text(MAC_README)
+    lic = out / "licenses"
+    lic.mkdir()
+    shutil.copy2(ROOT / "LICENSE", lic / "tenkaichi3decomp-agpl.txt")
+    shutil.copy2(ROOT / "LICENSE-MIT", lic / "tenkaichi3decomp-mit.txt")
+    shutil.copy2(ROOT / "port/third_party/imgui/LICENSE.txt", lic / "dear-imgui.txt")
+    shutil.copy2(ROOT / "port/third_party/newlib_libm/COPYING.NEWLIB", lic / "newlib.txt")
+    shutil.copy2(ROOT / "port/third_party/xxhash/LICENSE", lic / "xxhash.txt")
+    shutil.copy2(ROOT / "port/third_party/miniaudio/LICENSE", lic / "miniaudio.txt")
+    shutil.copy2(ROOT / "port/third_party/miniz/LICENSE", lic / "miniz.txt")
+    shutil.copy2(ROOT / "port/third_party/monocypher/LICENCE.md", lic / "monocypher.txt")  # (the update's signature check)
+
+    take_fonts(out, lic)
+    take_tbo_art(out, lic)
+    (out / "textures").mkdir()
+    (out / "textures/README.txt").write_text(TEXTURES_NOTE)
+    for kind, note in (("stages", STAGES_NOTE), ("songs", SONGS_NOTE)):
+        (out / kind).mkdir()
+        (out / kind / "README.txt").write_text(note)
+    (lic / "sdl3.txt").write_text("SDL3 (lib/libSDL3.0.dylib) is distributed under the zlib license: https://www.libsdl.org/license.php\n")
+    if zpath.exists():
+        zpath.unlink()
+    with zipfile.ZipFile(zpath, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
+        for p in sorted(out.rglob("*")):
+            if p.is_file():
+                info = zipfile.ZipInfo.from_file(p, "Tenkaichi3Decomp/" + str(p.relative_to(out)))  # (keeps the programs executable)
+                info.compress_type = zipfile.ZIP_DEFLATED
+                z.writestr(info, p.read_bytes(), compresslevel=9)
+    print(f"{zpath.relative_to(ROOT)}: {zpath.stat().st_size / 1e6:.1f} MB")
+    for p in sorted(out.rglob("*")):
+        if p.is_file():
+            print(f"  {p.stat().st_size:>10,}  {p.relative_to(out)}")
+    for f in (NAME, "Tenkaichi3Decomp-setup", "lib/libSDL3.0.dylib"):  # the oldest macOS each one starts on
+        minos = re.search(r"minos (\S+)", tool("otool", "-l", str(out / f)))
+        print(f"  {f}: macOS {minos.group(1) if minos else '?'} or later")
+
 def main():
     exe = ROOT / "port/build/bt3_64"
     setup = ROOT / "Tenkaichi3Decomp-setup"
@@ -409,5 +508,7 @@ def portable(out):
 
 if os.environ.get("BT3_CC") == "win64":
     main_win()
+elif os.environ.get("BT3_CC") == "mac64":
+    main_mac()
 else:
     main()
