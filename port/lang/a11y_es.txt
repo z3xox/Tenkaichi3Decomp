@@ -1914,3 +1914,410 @@ e43aab370d3af713	Sala%s%s
 a1de614b0dd56e12	Mirando %s contra %s
 # View: %s
 fb24a5aabc85fd92	Vista: %s
+# Online: the online menu (Tenkaichi Budokai Online, src/menu/port_tbo.c), what its pages say and what the hosts say in the box
+# Tenkaichi Budokai Online
+2e4c90693827ba4f	Tenkaichi Budokai Online
+# New Lobby
+3eeea192f0350039	Sala nueva
+# Join|tbo
+45aa41c7c1ee8472	Entrar a una sala
+# Searching
+970de9ba0cf07677	Buscando
+# Quick Match
+ed0bbb8cffe03ccd	Partida rápida
+# Lobby|tbo
+a6d8b41405f9842c	Sala
+# Tournament|tbo
+6eb4b7f1d5067045	Torneo
+# Join by Address
+74f47e55bf2d177a	Entrar por dirección
+# Ranked Match
+4f51c6d88c1f8533	Partida clasificatoria
+# Friends|tbo
+58671922dcdf462d	Amigos
+# Replays
+2a3922b16d820a93	Repeticiones
+# Leaderboard
+84cff64095fd31ac	Clasificación
+# , soon|tbo
+b9b3d9ce15383051	, próximamente
+# Fight whoever is searching right now! No time limit, and you can train while you wait.
+079d2aee28cdaa60	¡Pelea contra quien esté buscando ahora mismo! Sin límite de tiempo, y puedes entrenar mientras esperas.
+# Fights that move your rank, season by season. That one is coming soon!
+ccf7e5bd8fc17f72	Peleas que mueven tu rango, temporada a temporada. ¡Eso llega pronto!
+# A lobby for your friends: up to eight, your rules, rematches, spectators and tournaments!
+f76a37557bfd32f6	¡Una sala para tus amigos: hasta ocho, con tus reglas, revanchas, espectadores y torneos!
+# Got a lobby's code? Type it in to join, to play or to watch! By Address joins by the owner's address.
+f04309b66016c8dd	¿Tienes el código de una sala? ¡Escríbelo para entrar, a jugar o a mirar! Por dirección entra con la dirección de quien abrió la sala.
+# Your rivals, who is online, and invites. That one is coming soon!
+9422c3dec382e093	Tus rivales, quién está conectado y las invitaciones. ¡Eso llega pronto!
+# The Tenkaichi Budokai itself: brackets of 4 to 16 players. That one is coming soon!
+e5e8361163b53872	El mismísimo Tenkaichi Budokai: cuadros de 4 a 16 jugadores. ¡Eso llega pronto!
+# Your last matches, saved to watch again. That one is coming soon!
+f30aa6dfa5490126	Tus últimas partidas, guardadas para volver a verlas. ¡Eso llega pronto!
+# The strongest in the world, among your friends, and with each fighter. Coming soon!
+837649b8226b0a4d	Los más fuertes del mundo, entre tus amigos y con cada luchador. ¡Próximamente!
+# The name your rivals see.
+e916463617dc0632	El nombre que ven tus rivales.
+# No code: the others type your address and this port on Join by Address. Left / right, L1 / R1 change it.
+f5306391170fcbee	Sin código: los demás escriben tu dirección y este puerto en Entrar por dirección. Izquierda y derecha, o L1 y R1, lo cambian.
+# Your lobby gets a code: give it to your friends, they type it on Join. Set the rules on its page!
+76024dd2395494bd	Tu sala recibe un código: dáselo a tus amigos y ellos lo escriben en Entrar a una sala. ¡Elige las reglas en su página!
+# Enter the lobby's code, or Paste the one they sent you! Then Join: to play, or to watch from the stands.
+cd2aa6fc046f4d2b	¡Escribe el código de la sala o pega el que te enviaron! Después, Entrar: para jugar o para mirar desde las gradas.
+# Type the lobby owner's address, and :port if it is not 7000. Then Join!
+f2b4bac5ac1f9883	Escribe la dirección de quien abrió la sala, y dos puntos y el puerto si no es 7000. ¡Después, Entrar!
+# Here we go! The match is starting!
+df7fd72b09da85d5	¡Allá vamos! ¡La partida está empezando!
+# Looking for a worthy challenger... Warm up in Training meanwhile!
+a605d98d30ea01b6	Buscando un rival digno... ¡Mientras tanto, calienta en el entrenamiento!
+# Sorry! Quick match is for the game straight off the disc. Modded? Play your friends in a lobby!
+43cca6bc1fab05b7	¡Lo siento! La partida rápida es para el juego tal como viene en el disco. ¿Tiene mods? ¡Juega con tus amigos en una sala!
+# Warm up at the tournament while we search! Pick yourself and a sparring partner.
+813b8abd83a6db26	¡Calienta en el torneo mientras buscamos! Elige tu luchador y un compañero de práctica.
+# Auto: rivals near you first. A region: players there first, everyone after 40 s. Anywhere: the fastest.
+520741df3bafced3	Automática: primero, rivales cerca de ti. Una región: primero, jugadores de ahí, y todos después de 40 segundos. Cualquier lugar: lo más rápido.
+# Pick a battle and we'll find you a rival! No time limit, and the game runs a little faster.
+48c0735e2555ae10	¡Elige un combate y te encontramos un rival! Sin límite de tiempo, y el juego va un poco más rápido.
+# Pick your letters, then Done! Square deletes, Start finishes.
+9de221d5f1ed3874	¡Elige tus letras y después, Listo! Cuadrado borra, Start termina.
+# Show everyone who you are! This is the name your rivals see.
+ddbbb5eaeba7339a	¡Muéstrales a todos quién eres! Este es el nombre que ven tus rivales.
+# Knocking at the lobby's door...
+fab2db4ed8225089	Tocando la puerta de la sala...
+# Opening your lobby! The others join it with your address.
+8ac82585d416077b	¡Abriendo tu sala! Los demás entran con tu dirección.
+# Opening your lobby! The others join it with its code.
+6f34c32cb5877d9f	¡Abriendo tu sala! Los demás entran con su código.
+# You are out of that lobby. OK takes you back to the online menu.
+93518c40e26cfd6c	Ya no estás en esa sala. Aceptar te lleva de vuelta al menú en línea.
+# Type a line for everyone in the lobby, then Done! Start sends it too.
+931d835cbdaf919c	¡Escribe un mensaje para todos los de la sala y después, Listo! Start también lo envía.
+# Welcome to the lobby! Its owner picks who plays and starts the match. Chat while you wait!
+e5f8d5f1d915e7f8	¡Te damos la bienvenida a la sala! Quien la abrió elige quién juega y empieza la partida. ¡Chatea mientras esperas!
+# Tournament: Entrants sets the player places. Move people into them (you too, to play), then Start Tournament!
+74975ac2fe5a32e6	Torneo: Participantes fija los lugares de jugador. Mueve a la gente a esos lugares (a ti también, si quieres jugar) y después, ¡Empezar el torneo!
+# Your lobby is open! Give the others its code: they type it on Join. Then put two of you in 1P and 2P.
+2f51b93556cc0996	¡Tu sala está abierta! Dales el código a los demás: lo escriben en Entrar a una sala. Después, pon a dos de ustedes en 1P y 2P.
+# Your lobby is open! The others join with your address and port (Join by Address). Then 1P and 2P.
+0cea3761067ef1d7	¡Tu sala está abierta! Los demás entran con tu dirección y tu puerto (Entrar por dirección). Después, 1P y 2P.
+# Open Lobby|tbo
+551922e2c2f9a4fa	Abrir una sala
+# Host by Address|tbo
+d329138d3d3a56c7	Abrir por dirección
+# WITH A CODE
+da1a7b772d24d477	con un código
+# PORT %d
+8b21d476179d4fc3	puerto %d
+# DELETE
+5cd15819e278608a	Borrar
+# PASTE
+934a87017914a348	Pegar
+# JOIN
+55f6f3e98cbfdd39	Entrar
+# BY ADDRESS
+51ce311c5288bf4c	Por dirección
+# Aa|tbo
+6cad3c79a904e558	Mayúsculas y minúsculas
+# SPACE
+c58fd8e487bbf685	Espacio
+# DONE
+f069fc72c5583a91	Listo
+# Opening the lobby
+bdba0b8ad09c4b24	Abriendo la sala
+# Joining the lobby
+c32704515b84d194	Entrando a la sala
+# The lobby is closed.
+7e12743a98f11b66	La sala está cerrada.
+# Close the lobby? 
+9dcf449495b837d7	¿Cerrar la sala? 
+# Leave the lobby? 
+ec50de0d5827f308	¿Salir de la sala? 
+# Call off the tournament? 
+72f91865a29c42a1	¿Cancelar el torneo? 
+# Move|tbo
+247032aa9a722bc7	Mover
+# Remove from the Lobby
+c076858311d9dd38	Sacar de la sala
+# Spectator %d
+dd7ca82500dc053f	Espectador %d
+# Move to 
+341debf7b4cec70f	Mover a 
+# empty|tbo
+8eb0c940858bc1d9	vacío
+# , owner
+35cf59b13f014c98	, quien abrió la sala
+# , ready
+579266a9874aa438	, listo
+# Mode|tbo
+1ee95453cab73745	Modo
+# Battle|tbo
+a21984adfe370938	Combate
+# Time Limit
+2eda8ec3492b2e2f	Límite de tiempo
+# Game Speed
+090d5d8c5b012280	Velocidad del juego
+# Input Delay
+338c90ebdf97e834	Retraso de entrada
+# Entrants
+923d8c3bfc9a8b16	Participantes
+# TOURNAMENT
+33d28c1462c67ef2	Torneo
+# VERSUS
+9ff6cfde5ec99ac3	Versus
+# %d PLAYERS
+59a2a67f418f683e	%d jugadores
+# SINGLE BATTLE
+84c12584f5f55f69	Combate individual
+# TEAM BATTLE
+6269f571a34fc90e	Combate por equipos
+# DP BATTLE: 10 DP
+a3f0eb8ad471e4ba	Combate PD: 10 PD
+# DP BATTLE: 15 DP
+ee7a57730be6998f	Combate PD: 15 PD
+# DP BATTLE: 20 DP
+99ba975591f35f9f	Combate PD: 20 PD
+# 60 SECONDS
+1e9f046c352dfe2e	60 segundos
+# 90 SECONDS
+5b22357437686859	90 segundos
+# 180 SECONDS
+265caec700349481	180 segundos
+# 240 SECONDS
+e862abe3b5d7bf70	240 segundos
+# NO LIMIT
+82572655e809231d	Sin límite
+# %d%% (STANDARD)
+2b27b7d9b48c25ae	%d %% (estándar)
+# %d%%|tbo
+18034233f4c2f7dd	%d %%
+# OFF|tbo
+84772a0b89f7eb3d	Desactivado
+# UP TO %d FRAMES
+7699c641663bb6b4	Hasta %d fotogramas
+# AUTOMATIC
+1a179b91602094e4	Automático
+# %d FRAME
+b2e90863a7dc6861	%d fotograma
+# %d FRAMES
+de6173563b850cf6	%d fotogramas
+# Match On
+28055da2020adedb	Partida en curso
+# Start Next Match
+792af679aae17591	Empezar la siguiente partida
+# New Tournament
+24e26b183b9c6b10	Torneo nuevo
+# Start Tournament
+47fbb13474a9fd5a	Empezar el torneo
+# Start Match
+1461b37685e6d1ae	Empezar la partida
+# Bracket
+7e87a6b2c1d7bc13	Cuadro del torneo
+# Not Ready
+b37aaf430e2b29dd	No estoy listo
+# Ready|tbo
+70f17c24f56f5b47	Estoy listo
+# Chat|tbo
+733cc2b4ca0b6144	Chat
+# Close Lobby
+d211d290c082bdaf	Cerrar la sala
+# Leave Lobby
+da259de0aca62c38	Salir de la sala
+# Back to the Lobby
+9950c2f673b381f8	Volver a la sala
+# Choose the winner: 
+f6a201f1a66354a8	Elige al ganador: 
+# Send|tbo
+bb9db78637c3c910	Enviar
+# OK|tbo
+205f3ad601fec170	Aceptar
+# Move Here
+cac6554173b3c72a	Mover aquí
+# Copy Address
+b89419b685e4ae1c	Copiar la dirección
+# Quick match, teams: searching
+8a3f05282178ffdd	Partida rápida, por equipos: buscando
+# Quick match, one on one: searching
+a285e79b8a97d08e	Partida rápida, uno contra uno: buscando
+# Joining lobby 
+edd33319274eb609	Entrando a la sala 
+# Battle: teams
+b1593f1f3edabc1d	Combate: por equipos
+# Battle: one on one
+150a0202f9ba621c	Combate: uno contra uno
+# Region: 
+bbcffc57ff40753f	Región: 
+# AUTO|tbo
+595515c598da3901	Automática
+# NORTH AMERICA
+9e2072916e979238	América del Norte
+# SOUTH AMERICA
+fd82cd53ee4a969e	América del Sur
+# EUROPE
+8497883090a82647	Europa
+# MIDDLE EAST
+e0dc24f8dd1d21d5	Medio Oriente
+# AFRICA
+c0389be1bdd3cfc7	África
+# ASIA
+26c6588bf8def3d7	Asia
+# OCEANIA
+d85344cf6edcea6b	Oceanía
+# ANYWHERE
+cc30391eb6cbaf40	Cualquier lugar
+# You: 
+4c67958fd6f46616	Tú: 
+# Partner: 
+01f4d4524d30a67b	Compañero: 
+# Start training
+1e0afe8020901f1f	Empezar a entrenar
+# No quick match. Quick match needs the original disc's data; with friends, both need the same data.
+15f1165c36c06bc8	Sin partida rápida. La partida rápida necesita los datos del disco original; con amigos, los dos necesitan los mismos datos.
+# Name: 
+3934f6f7d7ba151c	Nombre: 
+# Code: 
+5372a9552ba8505e	Código: 
+# Address: 
+1e04d9ddee957a31	Dirección: 
+# Chat: 
+d9a25916f37f9199	Chat: 
+# CHECKING YOUR GAME DATA AGAINST THE DISC... TRY AGAIN IN A MOMENT
+cd75769bba64925e	Comparando los datos de tu juego con el disco... Vuelve a intentarlo en un momento
+# THE NETWORK COULD NOT BE OPENED ON THIS PC
+2aac7bc43a9bdabc	No se pudo abrir la red en esta computadora
+# THE PORT AFTER THE COLON IS A NUMBER FROM 1 TO 65535
+4ac6d476df56b219	El puerto, después de los dos puntos, es un número del 1 al 65535
+# TYPE THE OWNER'S ADDRESS FIRST, AS 192.168.1.20 OR 192.168.1.20:7000
+c93f9286bcd07a3d	Primero escribe la dirección de quien abrió la sala, como 192.168.1.20 o 192.168.1.20:7000
+# THE CONNECTION WAS REFUSED
+dff0078808daa881	Se rechazó la conexión
+# THE TWO GAMES COULD NOT REACH EACH OTHER, EVEN THROUGH THE RELAY
+67a74f1ac3cd860e	Los dos juegos no pudieron conectarse entre sí, ni siquiera a través del relé
+# THE OTHER GAME IS ANOTHER VERSION: BOTH NEED THE SAME RELEASE
+a1c53b1a4eec7bc0	El otro juego es de otra versión: los dos necesitan la misma
+# THE SEARCH COULD NOT BE STARTED
+aa7a07c8aee855f0	No se pudo empezar la búsqueda
+# NOT OPEN YET: IT NEEDS MORE FROM THE MATCHMAKING SERVICE
+3a04bdba99396f89	Todavía no está abierto: necesita más del servicio de emparejamiento
+# A LOBBY'S CODE HAS SIX LETTERS AND NUMBERS
+68f83e2c8fd738c9	El código de una sala tiene seis letras y números
+# SAVED: YOUR RIVALS WILL SEE THIS NAME
+3347033d6f5ebb8e	Guardado: tus rivales verán este nombre
+# A MATCH IS ON ALREADY
+c3e0a7e76600b0b0	Ya hay una partida en curso
+# TWO PLAYERS ARE NEEDED: ONE IN 1P, ONE IN 2P
+f8cbc35a0a2a3aeb	Hacen falta dos jugadores: uno en 1P y otro en 2P
+# CHOOSE THE WINNER OF THE DISPUTED MATCH ON THE BRACKET
+8af9913a3d7a1785	Elige en el cuadro al ganador de la partida en disputa
+# WAITING FOR A PLAYER WHO LOST THE CONNECTION
+4d68b4de62a5e796	Esperando a un jugador que perdió la conexión
+# NO MATCH LEFT TO PLAY
+a1751dbd5b1cb991	No quedan partidas por jugar
+# PUT AT LEAST TWO PLAYERS IN THE PLAYER PLACES
+41ed66c92e88f519	Pon al menos dos jugadores en los lugares de jugador
+# THE ENTRANTS CANNOT CHANGE DURING A TOURNAMENT
+b6d1874dbb2662e3	Los participantes no pueden cambiar durante un torneo
+# THE RULES CANNOT CHANGE DURING A MATCH
+d130803bdcf4b4f1	Las reglas no pueden cambiar durante una partida
+# NOT DURING A MATCH: THE PLACES CHANGE BETWEEN MATCHES
+38df2bb3148b00cf	No durante una partida: los lugares cambian entre partidas
+# THE LOBBY'S OWNER CHOOSES WHO PLAYS
+4018c772c10eafb4	Quien abrió la sala elige quién juega
+# COPIED: PASTE THE CODE TO THE OTHERS
+37c87505c88af8b7	Copiado: pégales el código a los demás
+# COPIED: PASTE THE ADDRESS TO THE OTHERS
+175f7261aaa52790	Copiada: pégales la dirección a los demás
+# An update is being installed: online play is off until the game restarts (F1 > Restart now).
+7fa548047081f190	Se está instalando una actualización: el juego en línea queda desactivado hasta que el juego se reinicie (F1, Reiniciar ahora).
+# An update is ready: online play is off until it is installed (F1 > Restart now).
+fa60f796484ac6fa	Hay una actualización lista: el juego en línea queda desactivado hasta que se instale (F1, Reiniciar ahora).
+# An update is being downloaded: online play is off until it is installed.
+cdf720294947b93e	Se está descargando una actualización: el juego en línea queda desactivado hasta que se instale.
+# The owner went back to the lobby.
+7e00b2f7f76f6512	Quien abrió la sala volvió a ella.
+# The two players could not connect to each other.
+58d776875eee4b04	Los dos jugadores no pudieron conectarse entre sí.
+# The lobby was closed by its owner.
+1bc9531f346865d1	Quien abrió la sala la cerró.
+# The lobby's owner removed you from the lobby.
+21165ec63c9229e5	Quien abrió la sala te sacó de ella.
+# The connection to the lobby's owner was lost: the lobby is closed.
+411b362dd0217935	Se perdió la conexión con quien abrió la sala: la sala está cerrada.
+# This lobby is full (8 places).
+5cd51e141b20ea7b	Esta sala está llena (8 lugares).
+# The lobby owner's game is a different version: joining needs the same release.
+0eeaae93fea5df84	El juego de quien abrió la sala es de otra versión: para entrar hace falta la misma.
+# The game at that address is a different version: joining needs the same release.
+fddecc62c25cb511	El juego de esa dirección es de otra versión: para entrar hace falta la misma.
+# Someone with another version of the game tried to join.
+c727333e5a3d4b65	Alguien con otra versión del juego intentó entrar.
+# The lobby owner's game data are not the same as yours (a modified disc image or mods on one side): you cannot join.
+024cc37814d71930	Los datos del juego de quien abrió la sala no son iguales a los tuyos (una imagen de disco modificada o mods en uno de los dos lados): no puedes entrar.
+# No socket could be opened.
+f98b82fb337a27c2	No se pudo abrir ningún socket.
+# Lobbies need the game's state list (the .mem file beside the program): copy all the files of the release.
+8738610901edb560	Las salas necesitan la lista de estados del juego (el archivo .mem junto al programa): copia todos los archivos de la versión.
+# The tournament was called off.
+126ab1006a1005c8	Se canceló el torneo.
+# The match will be played again.
+ab6b5fcd44cb7e63	La partida se va a jugar de nuevo.
+# No winner: the match will be played again.
+9f96a4f6fde0ecb1	Sin ganador: la partida se va a jugar de nuevo.
+# The players' results differ: the match will be played again.
+3939d264cc78631b	Los resultados de los jugadores no coinciden: la partida se va a jugar de nuevo.
+# Only one player's result came: the match will be played again.
+06068d12c28031cf	Solo llegó el resultado de un jugador: la partida se va a jugar de nuevo.
+# The two games disagree on this match: the owner chooses the winner.
+a13a93830a57febb	Los dos juegos no coinciden en esta partida: quien abrió la sala elige al ganador.
+# The host's game data are not the same as yours (a modified disc image or mods on one side): you cannot watch this match.
+036c3eb5bc110835	Los datos del juego del anfitrión no son iguales a los tuyos (una imagen de disco modificada o mods en uno de los dos lados): no puedes mirar esta partida.
+# This match already has as many spectators as it can take (6).
+adaf42365837fa1c	Esta partida ya tiene todos los espectadores que admite (6).
+# The host does not let anyone watch its matches.
+3328324571ee3d83	El anfitrión no deja que nadie mire sus partidas.
+# This match cannot be watched (it was not started from the online menus).
+cdc70ea4e57da007	Esta partida no se puede mirar (no empezó desde los menús en línea).
+# That is the address of the player who joined, not of the host: spectators connect to the host.
+785965963ded929e	Esa es la dirección del jugador que se unió, no la del anfitrión: los espectadores se conectan al anfitrión.
+# This match is a lobby's: join the lobby (its code, or its owner's address) to watch it.
+cc3b57bdaf4f1c3f	Esta partida es de una sala: entra a la sala (con su código o con la dirección de quien la abrió) para mirarla.
+# The host's game is a different version: watching needs the same release as the host's.
+d3f549f5d32cb375	El juego del anfitrión es de otra versión: para mirar hace falta la misma versión que la del anfitrión.
+# No answer from the host. Check the address and port. Watching a match needs a release newer than 0.1.38.7 on the host as well (an older host does not answer spectators).
+1a38aacb538e571b	El anfitrión no responde. Revisa la dirección y el puerto. Para mirar una partida, el anfitrión también necesita una versión posterior a la 0.1.38.7 (uno más viejo no les responde a los espectadores).
+# Your game data and the other player's are not the same (a modified disc image or mods on one side): an online match needs the same on both.
+7790fe2804e808df	Los datos de tu juego y los del otro jugador no son iguales (una imagen de disco modificada o mods en uno de los dos lados): una partida en línea necesita los mismos en los dos.
+# Too many have asked to watch that room in the last two minutes; try again soon.
+019a00747708abae	Demasiadas personas pidieron mirar esa sala en los últimos dos minutos; vuelve a intentarlo pronto.
+# No room with that code, or the matchmaking service does not take spectators yet. (Codes last ten minutes; a host on 0.1.38.7 or older gives its room up when the match begins.)
+2c3db256ba521e93	No hay ninguna sala con ese código, o el servicio de emparejamiento todavía no acepta espectadores. (Los códigos duran diez minutos; un anfitrión con la 0.1.38.7 o anterior deja la sala cuando empieza la partida.)
+# The matchmaking service could not be reached (is the network up?).
+2a009bcfed7c221e	No se pudo llegar al servicio de emparejamiento (¿está funcionando la red?).
+# Too many wrong codes from this address; try again in an hour.
+71b43a5bbdb8c707	Demasiados códigos equivocados desde esta dirección; vuelve a intentarlo en una hora.
+# %s joined the lobby
+eb8ea8956f744c7d	%s entró a la sala
+# %s left the lobby
+2e1680126eca88a5	%s salió de la sala
+# %s was removed from the lobby
+452c5f5c39c7756f	Sacaron a %s de la sala
+# %s lost the connection to the lobby
+7695e47436ceb0ac	%s perdió la conexión con la sala
+# %s won the match
+c3f81b96db9d024f	%s ganó la partida
+# %s won by walkover
+ed847e2471e4fd25	%s ganó porque el rival no se presentó
+# %s is the champion!
+af45618062590aee	¡%s gana el torneo!
+# %s lost the connection: the place is held for 90 s
+a29f2218dd59d67c	%s perdió la conexión: su lugar se guarda durante 90 segundos
+# %s is back in the tournament
+e09d599f0067707d	%s volvió al torneo
+# %s did not come back in time
+1fc02209d8c6e862	%s no volvió a tiempo
+# %s won the match (the owner's choice)
+23299f90b4f3c029	%s ganó la partida (lo eligió quien abrió la sala)
+# Tournament: %d entrants
+aa590d172c7d489c	Torneo: %d participantes
+# Match %d: %s vs %s
+60ac455192b5c874	Partida %d: %s contra %s
