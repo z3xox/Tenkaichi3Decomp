@@ -23,14 +23,30 @@
 #include <unistd.h>
 #endif
 #include "imgui.h"
+#include "imgui_internal.h" // ImGui::NavInitWindow
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_sdlgpu3.h"
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_opengl3_loader.h" // glViewport, glClear for the OpenGL window (set up by ImGui_ImplOpenGL3_Init)
 #include "native.h"
+#include "ui.h" // UiA11y_*: the focused control said to the screen reader (port/src/gs/ui_a11y.cpp)
 #include "setup_voice.h"
 
 #define GAME "Tenkaichi3Decomp" /* the program this sets up: GAME, GAME.dat; this program is GAME-setup */
+
+// The screen reader, as in the game: through Prism when prism.dll is beside this program (port/src/gs/a11y.c, with
+// its settings in bt3_settings.txt when there is one: a11y=0 turns it off). ui_a11y.cpp says the focused control;
+// said here are each page as it comes up (its heading and text), a disc image chosen, a problem under a field, and
+// the installation's steps as they start and end.
+extern "C" {
+int PortA11y_Begin(void);
+void PortA11y_Say(const char *text, int flags);
+void PortA11y_Event(const SDL_Event *ev);
+// a11y.c's links to the game's sound, which the setup never uses (it plays no cue and no voice)
+SDL_AudioDeviceID Port_AudioDevice(void) { return 0; }
+int PortA11y_VoicePercent(const void *player) { (void)player; return -1; }
+}
+#define A11Y_INTERRUPT 1 // (gs/a11y.c)
 
 enum Page { PAGE_PICK, PAGE_RUN, PAGE_DONE, PAGE_FAILED };
 enum State { PENDING, RUNNING, OK, SKIPPED, FAILED };
@@ -83,7 +99,6 @@ static bool sDialogReady, sQuit;
 static Uint64 sRunStart, sRunEnd;
 static std::vector<std::string> sCandidates; // disc images of the folder still to try (setup_voice.cpp)
 static Uint64 sAutoPlayAt;                    // when the game opens by itself, 0 not
-static int sSaidPercent;                      // the last quarter of the copy that was said
 static Page sShownPage;                       // the page whose change was last told (page_changed)
 static bool sChosen;                          // sIso was chosen by the player (argument, Browse, a drop, typed), not found
 static bool sStopAsked;                       // Cancel was pressed in this run: whatever ends it, the game does not open
@@ -120,6 +135,30 @@ static void remember(std::vector<Stamp> &list, const std::string &path) {
 
 static const ImVec4 kAccent(0.96f, 0.55f, 0.13f, 1.0f), kGreen(0.36f, 0.80f, 0.45f, 1.0f), kRed(0.93f, 0.36f, 0.33f, 1.0f),
     kDim(0.60f, 0.63f, 0.70f, 1.0f);
+// For the screen reader (see the top): the page's words as this frame drew them, the problem shown under a field, and
+// what happened since the last frame (steps, a file chosen), said after the page so that the page does not cut it.
+static std::string sPageWords, sProblem, sSaidProblem, sNews;
+static int sSaidPage = -1, sNotePercent;
+static bool sNoDisc; // BT3 a11y: the folder was looked at and has no disc image (look_for_disc)
+
+static void page_words(const std::string &text) {
+    if (!text.empty()) {
+        sPageWords += (sPageWords.empty() ? "" : " ") + Voice_Words(text); // BT3 a11y: Voice_Words
+    }
+}
+
+static void news(const std::string &text) {
+    if (!text.empty()) {
+        sNews += (sNews.empty() ? "" : ". ") + Voice_Words(text); // BT3 a11y: Voice_Words
+    }
+}
+
+// A file name without its folder (what is said of a disc image chosen).
+static std::string file_name(const char *path) {
+    const char *slash = strrchr(path, '/'), *back = strrchr(path, '\\');
+    const char *p = slash > back ? slash : back;
+    return p != NULL ? p + 1 : path;
+}
 
 static bool file_exists(const char *path) {
     SDL_PathInfo info;
@@ -291,25 +330,29 @@ static void event(const std::string &line) {
             sRows[i - 1].state = RUNNING;
             sRows[i - 1].start = SDL_GetTicks();
             sRows[i - 1].detail.clear();
-            // (said: what the step does, in words a child knows)
-            const std::string &t = sRows[i - 1].title;
-            Voice_Say(Voice_Tr(t == "Disc image" ? "Reading your disc." : t == "Game data" ? "Copying the game's files. This is the long part."
-                                                  : t == "Self-test" ? "Testing the game." : t.c_str()), false);
-            sSaidPercent = 0;
+            news(sRows[i - 1].title + ", step " + std::to_string(i) + " of " + std::to_string(sRows.size()));
+            sNotePercent = 0;
         }
     } else if (cur != NULL && kind == "note") {
         cur->detail = text;
-        int percent = atoi(text.c_str()); // ("@note 25%, ... files" while the files are copied)
-        if (cur->title == "Game data" && percent / 25 > sSaidPercent / 25 && percent < 100) {
-            char said[64];
-            sSaidPercent = percent / 25 * 25;
-            snprintf(said, sizeof(said), Voice_TrFormat("%d percent"), sSaidPercent);
-            Voice_Say(said, false);
+        // a progress note ("37%, 1200 files") comes for every percent: said every 10
+        int percent = text.find('%') != std::string::npos ? atoi(text.c_str()) : -1, part, whole;
+        if (percent < 0 && sscanf(text.c_str(), "%d of %d", &part, &whole) == 2 && whole > 0) {
+            percent = part * 100 / whole; // BT3 a11y: the European step's "12 of 410" (one per file), every 10 too
+        }
+        if (percent < 0) {
+            news(text);
+        } else if (percent / 10 > sNotePercent / 10) {
+            news(text);
+            sNotePercent = percent;
         }
     } else if (cur != NULL && (kind == "ok" || kind == "skip" || kind == "fail")) {
         cur->state = kind == "ok" ? OK : kind == "skip" ? SKIPPED : FAILED;
         cur->end = SDL_GetTicks();
         cur->detail = kind == "fail" ? "" : text;
+        if (kind != "fail") { // (a failure is said by the page that comes up)
+            news(cur->title + (kind == "ok" ? " done" : " skipped") + (text.empty() ? "" : ": " + text));
+        }
     } else if (kind == "missing") {
         Missing m;
         size_t a = text.find('|'), b = text.find('|', a == std::string::npos ? 0 : a + 1);
@@ -413,6 +456,8 @@ static void SDLCALL dialog_done(void *userdata, const char *const *files, int fi
 }
 
 static void heading(const char *title, const char *sub) {
+    page_words(std::string(title) + ".");
+    page_words(sub);
     ImGui::PushFont(NULL, 30.0f);
     ImGui::TextUnformatted(title);
     ImGui::PopFont();
@@ -452,6 +497,7 @@ static bool eu_field() {
     ImGui::TextUnformatted("European disc image (optional)");
     ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 130.0f);
     ImGui::InputTextWithHint("##isoeu", "the European release (SLES-54945)", sIsoEu, sizeof(sIsoEu));
+    UiA11y_Field("European disc image (optional)", sIsoEu);
     ImGui::SameLine();
     if (ImGui::Button("Browse...##eu", ImVec2(120.0f, 0.0f))) {
         {
@@ -462,6 +508,7 @@ static bool eu_field() {
     }
     if (sIsoEu[0] != '\0' && !file_exists(sIsoEu)) {
         ImGui::TextColored(kRed, "That file does not exist.");
+        sProblem += Voice_Words("European disc image: that file does not exist.") + " "; // BT3 a11y: Voice_Words
         return false;
     }
     ImGui::PushStyleColor(ImGuiCol_Text, kDim);
@@ -470,16 +517,44 @@ static bool eu_field() {
     return true;
 }
 
+// What Enter and Escape do on the page now (page_key), shown and said with it: for a player who cannot see the buttons.
+static const char *page_keys() {
+    switch (sPage) {
+    case PAGE_PICK:
+        return !sRelease ? "Escape closes." : sChosen && file_exists(sIso) ? "Enter installs it, Escape closes." : "Enter looks for it again, Escape closes.";
+    case PAGE_RUN: return "Still installing. Please wait.";
+    case PAGE_DONE:
+        return sAutoPlayAt != 0 ? "The game opens by itself in a few seconds: Enter opens it now, Escape stays here." : "Enter opens the game, Escape closes.";
+    case PAGE_FAILED: return sRelease ? "Press Enter to try again, or Escape to close." : "Escape closes.";
+    }
+    return "";
+}
+
+// The page's keys as a line of it (not on the running page: its Cancel button is the only thing to do there).
+static void keys_line() {
+    ImGui::TextColored(kDim, "%s", page_keys());
+    page_words(page_keys());
+}
+
 static void page_pick() {
     static const SDL_DialogFileFilter filters[] = {{"PS2 disc image", "iso;bin;img"}, {"All files", "*"}};
     bool ok = file_exists(sIso);
 
     heading(GAME, "This sets the game up on your computer from your own PlayStation 2 disc.");
-    ImGui::TextWrapped("Choose your disc image of Dragon Ball Z: Budokai Tenkaichi 3, USA release (SLUS-21678), as an .iso file. "
-                       "The game's data is taken from it and stays on this computer. %s",
-                       sRelease ? "Nothing is downloaded." : "Nothing is downloaded except one small tool.");
+    std::string intro = std::string("Choose your disc image of Dragon Ball Z: Budokai Tenkaichi 3, USA release (SLUS-21678), as an .iso file. "
+                                    "The game's data is taken from it and stays on this computer. ") +
+                        (sRelease ? "Nothing is downloaded." : "Nothing is downloaded except one small tool.");
+    ImGui::TextWrapped("%s", intro.c_str());
+    page_words(intro);
     if (sRelease) {
-        ImGui::TextWrapped("Or put it next to the zip you unpacked, or in this program's folder: it is found there by itself.");
+        static const char *where = "Or put it next to the zip you unpacked, or in this program's folder: it is found there by itself.";
+        ImGui::TextWrapped("%s", where);
+        page_words(where);
+        if (sNoDisc && !(sChosen && ok)) {
+            ImGui::TextColored(kRed, "No disc image was found.");
+            page_words("No disc image was found.");
+        }
+        keys_line();
     }
     ImGui::Dummy(ImVec2(0.0f, 10.0f));
     ImGui::TextUnformatted("Disc image");
@@ -487,6 +562,7 @@ static void page_pick() {
     if (ImGui::InputTextWithHint("##iso", "drop the file on this window, or browse", sIso, sizeof(sIso))) {
         sChosen = true;
     }
+    UiA11y_Field("Disc image", sIso);
     ImGui::SameLine();
     if (ImGui::Button("Browse...", ImVec2(120.0f, 0.0f))) {
         {
@@ -497,10 +573,15 @@ static void page_pick() {
     }
     if (sIso[0] != '\0' && !ok) {
         ImGui::TextColored(kRed, "That file does not exist.");
+        sProblem += Voice_Words("Disc image: that file does not exist.") + " "; // BT3 a11y: Voice_Words
     } else if (sRoot.empty()) {
-        ImGui::TextColored(kRed, "Neither the game (" GAME ", " GAME ".dat) nor install.py was found next to this program.");
+        static const char *none = "Neither the game (" GAME ", " GAME ".dat) nor install.py was found next to this program.";
+        ImGui::TextColored(kRed, "%s", none);
+        sProblem += Voice_Words(none); // BT3 a11y: Voice_Words
     } else {
-        ImGui::TextColored(kDim, sRelease ? "Needs about 4 GB of free space and takes a minute or two." : "Needs about 4 GB of free space and takes 5 to 10 minutes.");
+        const char *need = sRelease ? "Needs about 4 GB of free space and takes a minute or two." : "Needs about 4 GB of free space and takes 5 to 10 minutes.";
+        ImGui::TextColored(kDim, "%s", need);
+        page_words(need);
     }
     bool euOk = eu_field();
     bottom_row(2);
@@ -617,9 +698,16 @@ static void page_done() {
         snprintf(sub, sizeof(sub), "The game is installed.");
     }
     heading("Ready to play", sub);
+    keys_line();
     step_list();
     ImGui::Dummy(ImVec2(0.0f, 4.0f));
     ImGui::TextColored(kDim, "In the game, F1 opens the settings: resolution, widescreen, controls and sound.");
+    page_words("In the game, F1 opens the settings: resolution, widescreen, controls and sound.");
+    {
+        static const char *access = "Their Accessibility tab has the fight's sounds and the blind player profile, which turns on by itself with NVDA or JAWS.";
+        ImGui::TextColored(kDim, "%s", access);
+        page_words(access);
+    }
     if (sRelease && !Native_EuInstalled(sRoot)) { // the languages can be added at any time
         static const SDL_DialogFileFilter filters[] = {{"PS2 disc image", "iso;bin;img"}, {"All files", "*"}};
         ImGui::Dummy(ImVec2(0.0f, 4.0f));
@@ -644,11 +732,16 @@ static void page_failed() {
     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.93f, 0.36f, 0.33f, 0.10f));
     ImGui::BeginChild("why", ImVec2(0.0f, sMissing.empty() ? 150.0f : 90.0f), ImGuiChildFlags_AlwaysUseWindowPadding);
     ImGui::TextWrapped("%s", sError.c_str());
+    page_words(sError);
+    for (auto &m : sMissing) {
+        page_words("Missing: " + m.name + ", used for " + m.why + ", package to install: " + m.pkg + ".");
+    }
     if (!sErrorDetail.empty()) {
         ImGui::TextColored(kDim, "%s", sErrorDetail.c_str());
     }
     ImGui::EndChild();
     ImGui::PopStyleColor();
+    keys_line();
     if (!sMissing.empty() && ImGui::BeginTable("missing", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV)) {
         ImGui::TableSetupColumn("Missing");
         ImGui::TableSetupColumn("Used for");
@@ -678,9 +771,19 @@ static void page_failed() {
 
 static void build_ui() {
     ImGuiIO &io = ImGui::GetIO();
+    int drawn = sPage; // (a button can change the page while it is drawn: its words are this one's)
+    sPageWords.clear();
+    sProblem.clear();
+    UiA11y_Frame(1, 0);
     ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
     ImGui::SetNextWindowSize(io.DisplaySize);
-    ImGui::Begin("setup", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
+    // (no name before "###": the screen reader says the page's heading, not the window's name)
+    ImGui::Begin("###setup", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
+    static int navPage = -1;
+    if (sPage != navPage) { // the keyboard's focus to the new page's first control (it was on one of the page before: Tab
+        navPage = sPage;    // and the arrows then went nowhere)
+        ImGui::NavInitWindow(ImGui::GetCurrentWindow(), true);
+    }
     switch (sPage) {
     case PAGE_PICK: page_pick(); break;
     case PAGE_RUN: page_run(); break;
@@ -688,6 +791,26 @@ static void build_ui() {
     case PAGE_FAILED: page_failed(); break;
     }
     ImGui::End();
+    UiA11y_End();
+    // a page that came up: all its words, interrupting; then what happened (queued), then a new problem under a field
+    // once the field is left (not while a path is typed into it)
+    if (drawn != sSaidPage && drawn == sPage) {
+        sSaidPage = drawn;
+        sSaidProblem.clear();
+        PortA11y_Say(sPageWords.c_str(), A11Y_INTERRUPT);
+        UiA11y_QueueNext(); // (the control the focus comes to is said after the page, not over it)
+        if (drawn != PAGE_RUN) {
+            sNews.clear(); // (the last step's end: "Ready to play" or "Setup stopped" says how it went)
+        }
+    }
+    if (!sNews.empty()) {
+        PortA11y_Say(sNews.c_str(), 0);
+        sNews.clear();
+    }
+    if (sProblem != sSaidProblem && !ImGui::IsAnyItemActive()) {
+        sSaidProblem = sProblem;
+        PortA11y_Say(sProblem.c_str(), 0);
+    }
 }
 
 // ------------------------------------------------------------------------------------------ the setup by itself
@@ -701,9 +824,9 @@ static std::string base_name(const std::string &path) {
     return slash == std::string::npos ? path : path.substr(slash + 1);
 }
 
-// The next disc image found in the folder, installed; false when none is left. `cut`: what was being said stops.
-static bool start_found(bool cut = true) {
-    char said[1024];
+// The next disc image found in the folder, installed; false when none is left. Its name is said after the running
+// page's words (news).
+static bool start_found() {
     if (sCandidates.empty()) {
         return false;
     }
@@ -711,8 +834,8 @@ static bool start_found(bool cut = true) {
     sCandidates.erase(sCandidates.begin());
     sChosen = false;
     sEuOnly = false;
-    snprintf(said, sizeof(said), Voice_TrFormat("Found your disc image, %s. Installing the game: it takes a minute or two."), base_name(sIso).c_str());
-    Voice_Say(said, cut);
+    sNoDisc = false;
+    news("Found your disc image, " + base_name(sIso)); // (the running page says it is being set up)
     start_install();
     return true;
 }
@@ -722,15 +845,8 @@ static bool disc_failed() {
     return sRelease && !sRows.empty() && sRows[0].state == FAILED;
 }
 
-static const char kNoDisc[] = "No disc image was found. Copy your disc image of Dragon Ball Z Budokai Tenkaichi 3, the file "
-                              "that ends in .iso, into the same folder as this program: it is found there by itself once it "
-                              "is copied. Escape closes.";
-
-static const char kNotGame[] = "The disc images found are not the game's. Copy your disc image of Dragon Ball Z Budokai "
-                               "Tenkaichi 3, the file that ends in .iso, into the same folder as this program: it is found "
-                               "there by itself once it is copied. Escape closes.";
-
 // The folder's images, tried in turn; those that failed already last (the player may have put the right one there).
+// None there: the first page, which says so; when it is up already (Enter on it), only that is said.
 static void look_for_disc() {
     sBest = Best();
     sCandidates = Voice_FindIsos(sRoot);
@@ -739,8 +855,12 @@ static void look_for_disc() {
         remember(sKnown, p);
     }
     if (!start_found()) {
+        bool shown = sPage == PAGE_PICK && sSaidPage == PAGE_PICK;
         sPage = PAGE_PICK;
-        Voice_Say(Voice_Tr(kNoDisc), true);
+        sNoDisc = true;
+        if (shown) {
+            Voice_Say(std::string(Voice_Tr("No disc image was found.")) + " " + Voice_Tr(page_keys()), true);
+        }
     }
 }
 
@@ -790,46 +910,26 @@ static void watch_folder() {
     }
 }
 
-static void say_failure(bool cut) {
-    std::string said = std::string(Voice_Tr("The setup stopped.")) + " " + Voice_Tr(sError.c_str()) + " " +
-                       Voice_Tr(sRelease ? "Press Enter to try again, or Escape to close." : "Escape closes.");
-    Voice_Say(said, cut);
-}
-
-// Where the setup is, said again when its window comes back to the front (a second setup brings it there).
+// Where the setup is, said again when its window comes back to the front (a second setup brings it there): short,
+// the page's own words were said already.
 static void say_page() {
-    switch (sPage) {
-    case PAGE_PICK:
-        if (!sRelease) {
-            Voice_Say(Voice_Tr("Escape closes."), false);
-        } else if (sChosen && file_exists(sIso)) {
-            char said[1024];
-            snprintf(said, sizeof(said), Voice_TrFormat("Your disc image is %s. Enter installs it, Escape closes."), base_name(sIso).c_str());
-            Voice_Say(said, false);
-        } else {
-            Voice_Say(Voice_Tr(sBad.empty() ? kNoDisc : kNotGame), false);
-        }
-        break;
-    case PAGE_RUN: Voice_Say(Voice_Tr("Still installing. Please wait."), false); break;
-    case PAGE_DONE: Voice_Say(Voice_Tr("Ready: the game is installed. Enter opens it, Escape closes."), false); break;
-    case PAGE_FAILED: say_failure(false); break;
+    std::string said = Voice_Tr(page_keys());
+    if (sPage == PAGE_PICK && sNoDisc && !(sChosen && file_exists(sIso))) {
+        said = std::string(Voice_Tr("No disc image was found.")) + " " + said;
+    } else if (sPage == PAGE_FAILED) {
+        said = Voice_Words(sError) + " " + said;
     }
+    Voice_Say(said, false);
 }
 
-// What is said when the page changes; and where the next disc image of the folder is tried.
+// Where the next disc image of the folder is tried; and in a release, the game opened by itself once installed. The
+// page's words (build_ui) say what changed.
 static void page_changed(Page from) {
     if (sPage == PAGE_DONE) {
-        if (!sRelease || sStopAsked) { // (a source checkout shows its result; a player who cancelled decides)
-            Voice_Say(Voice_Tr("Ready: the game is installed. Enter opens it, Escape closes."), true);
-            return;
+        if (sRelease && !sStopAsked) { // (a source checkout shows its result; a player who cancelled decides)
+            // the page is said first: the first time it also has where the game's accessibility is
+            sAutoPlayAt = SDL_GetTicks() + (from == PAGE_RUN ? 15000 : 8000);
         }
-        Voice_Say(Voice_Tr(from == PAGE_RUN ? "Ready: the game is installed. It opens now."
-                                            : "The game is installed already. It opens now; Escape stays here."), true);
-        if (from == PAGE_RUN) { // (the first time: where the accessibility is, before the game's own welcome)
-            Voice_Say(Voice_Tr("In the game, F1 opens the settings: their Accessibility tab has the fight's sounds and the "
-                               "blind player profile, which is turned on by itself with NVDA or JAWS."), false);
-        }
-        sAutoPlayAt = SDL_GetTicks() + (from == PAGE_RUN ? 9000 : 4000);
     } else if (sPage == PAGE_FAILED) {
         if (disc_failed() && !sStopAsked) {
             // the more an error says the image is the game's (its programs changed, then cut short, then another
@@ -843,8 +943,8 @@ static void page_changed(Page from) {
             // only an image that is not the game's makes the next one of the folder worth a try: a full disk or a
             // self-test that could not run would fail the same with any image, and its reason has to be heard
             if (!sCandidates.empty()) {
-                Voice_Say(Voice_Tr("That disc image is not the right one; trying the next one."), true);
-                start_found(false);
+                news("That disc image is not the right one; trying the next one.");
+                start_found();
                 return;
             }
             if (sBest.iso != sIso) {
@@ -853,7 +953,6 @@ static void page_changed(Page from) {
                 SDL_strlcpy(sIso, sBest.iso.c_str(), sizeof(sIso));
             }
         }
-        say_failure(true);
     }
 }
 
@@ -1249,11 +1348,13 @@ int main(int argc, char **argv) {
     }
     while (!sQuit) {
         SDL_Event ev;
+        PortA11y_Begin(); // (the first call starts the speaker, when prism.dll is there)
         while (SDL_PollEvent(&ev)) {
             if (page_key(ev)) {
                 continue;
             }
             ImGui_ImplSDL3_ProcessEvent(&ev);
+            PortA11y_Event(&ev); // (F2 says the last words again)
             if (ev.type == SDL_EVENT_QUIT || ev.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED) {
                 sQuit = true;
             } else if (ev.type == SDL_EVENT_WINDOW_FOCUS_GAINED) {
@@ -1267,9 +1368,11 @@ int main(int argc, char **argv) {
                 // (into the USA image's field, unless that one is filled already: then into the European one's)
                 if (file_exists(sIso) && strcmp(sIso, ev.drop.data) != 0) {
                     SDL_strlcpy(sIsoEu, ev.drop.data, sizeof(sIsoEu));
+                    news("European disc image: " + file_name(ev.drop.data));
                 } else {
                     SDL_strlcpy(sIso, ev.drop.data, sizeof(sIso));
                     sChosen = true;
+                    news("Disc image: " + file_name(ev.drop.data));
                 }
             }
         }
@@ -1278,10 +1381,12 @@ int main(int argc, char **argv) {
             if (sDialogReady) {
                 if (sDialogFor) { // the European image: its field on the first page, or "Add languages..." on the last
                     SDL_strlcpy(sIsoEu, sDialogResult.c_str(), sizeof(sIsoEu));
+                    news("European disc image: " + file_name(sDialogResult.c_str()));
                 } else if (sPage == PAGE_PICK && !sNative && sProc == NULL) {
                     // (the USA image on the first page only: an install that started meanwhile is not credited to it)
                     SDL_strlcpy(sIso, sDialogResult.c_str(), sizeof(sIso));
                     sChosen = true;
+                    news("Disc image: " + file_name(sDialogResult.c_str()));
                 }
                 sDialogReady = false;
                 if (sDialogFor && sPage == PAGE_DONE && sRelease && !Native_Running()) { // "Add languages...": only that step
@@ -1305,7 +1410,7 @@ int main(int argc, char **argv) {
             if (SDL_GetWindowFlags(sWindow) & SDL_WINDOW_INPUT_FOCUS) {
                 launch_game();
             } else { // (Windows would not bring the game's window to the front from a setup behind others)
-                Voice_Say(Voice_Tr("Ready: the game is installed. Enter opens it, Escape closes."), true);
+                Voice_Say(Voice_Tr("Enter opens the game, Escape closes."), true);
             }
         }
         if (sUseGl) {

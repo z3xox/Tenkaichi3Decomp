@@ -1942,3 +1942,165 @@ a597982e46a96c4b	Menús
 e0407fa1e3aa274f	editando
 # %s tab
 95be84ab8260ed92	pestaña %s
+# Tenkaichi3Decomp.
+ee9e545123128b46	Tenkaichi3Decomp.
+# This sets the game up on your computer from your own PlayStation 2 disc.
+dd5caee66ef0286d	Esto instala el juego en tu computadora a partir de tu propio disco de PlayStation 2.
+# Choose your disc image of Dragon Ball Z: Budokai Tenkaichi 3, USA release (SLUS-21678), as an .iso file. The game's data is taken from it and stays on this computer. Nothing is downloaded.
+1c3763049ca1063b	Elige tu imagen de disco de Dragon Ball Z: Budokai Tenkaichi 3, versión de Estados Unidos (SLUS-21678), en un archivo .iso. Los datos del juego se sacan de ahí y quedan en esta computadora. No se descarga nada.
+# Choose your disc image of Dragon Ball Z: Budokai Tenkaichi 3, USA release (SLUS-21678), as an .iso file. The game's data is taken from it and stays on this computer. Nothing is downloaded except one small tool.
+58832c3e2d45580f	Elige tu imagen de disco de Dragon Ball Z: Budokai Tenkaichi 3, versión de Estados Unidos (SLUS-21678), en un archivo .iso. Los datos del juego se sacan de ahí y quedan en esta computadora. No se descarga nada salvo una herramienta pequeña.
+# Or put it next to the zip you unpacked, or in this program's folder: it is found there by itself.
+8ccadff6aa2f1d7f	O ponla junto al zip que descomprimiste, o en la carpeta de este programa: ahí la encuentro sola.
+# No disc image was found.
+605678cac4329967	No encontré ninguna imagen de disco.
+# Enter looks for it again, Escape closes.
+e87b1a2dcb2b2f79	Enter la busca de nuevo, Escape cierra.
+# Enter installs it, Escape closes.
+428509f077cf47d2	Enter la instala, Escape cierra.
+# The game opens by itself in a few seconds: Enter opens it now, Escape stays here.
+f750f047d4f4b4f9	El juego se abre solo en unos segundos: Enter lo abre ya, Escape se queda aquí.
+# Enter opens the game, Escape closes.
+8a9e7abc1488eb89	Enter abre el juego, Escape cierra.
+# Needs about 4 GB of free space and takes a minute or two.
+c38b843eb7afa3dc	Necesita unos 4 GB libres y tarda uno o dos minutos.
+# Needs about 4 GB of free space and takes 5 to 10 minutes.
+e430989f38e0d040	Necesita unos 4 GB libres y tarda de 5 a 10 minutos.
+# Disc image
+589332d6976292f1	Imagen de disco
+# European disc image (optional)
+caeae161c1a30cc7	Imagen de disco europea (opcional)
+# Disc image: that file does not exist.
+cea6ee4a1377e487	Imagen de disco: ese archivo no existe.
+# European disc image: that file does not exist.
+c7f7f4e192e13eac	Imagen de disco europea: ese archivo no existe.
+# That file does not exist.
+ea30589c7df7d5c9	Ese archivo no existe.
+# Neither the game (Tenkaichi3Decomp, Tenkaichi3Decomp.dat) nor install.py was found next to this program.
+513590683e14abb1	No encontré ni el juego (Tenkaichi3Decomp, Tenkaichi3Decomp.dat) ni install.py junto a este programa.
+# drop the file on this window, or browse
+8c7d95c8e39a7875	suelta el archivo en esta ventana, o búscalo
+# the European release (SLES-54945)
+a76e05033cc23f5c	la versión europea (SLES-54945)
+# Adds Spanish, German, French and Italian: menus, battle screen and text, as the European release has them. F1 > UI > Language picks one.
+331cc37bf7275c54	Agrega español, alemán, francés e italiano: menús, pantalla de pelea y textos, como los trae la versión europea. Se elige uno en F1, pestaña Interfaz, Idioma.
+# Setting up.
+a1921148f0a74eee	Instalando.
+# You can leave this running. Finished steps are kept if it is interrupted.
+b48b9c11ebc47dc3	Puedes dejarlo trabajando. Si se interrumpe, los pasos terminados se guardan.
+# Ready to play.
+da8cdf9b4cfa1ac9	Listo para jugar.
+# The game is installed.
+af74a720981faa2a	El juego está instalado.
+# The game is installed and its demo fight ran correctly.  (%d min %d s)
+3e0fa375cb443088	El juego está instalado y su pelea de demostración salió bien. (%d min %d s)
+# In the game, F1 opens the settings: resolution, widescreen, controls and sound.
+7623b4c546296e9a	En el juego, F1 abre los ajustes: resolución, pantalla ancha, controles y sonido.
+# Their Accessibility tab has the fight's sounds and the blind player profile, which turns on by itself with NVDA or JAWS.
+308e169773c45471	Su pestaña Accesibilidad tiene los sonidos de la pelea y el perfil para jugar sin ver, que se activa solo con NVDA o JAWS.
+# Spanish, German, French and Italian, plus the opening soundtrack: add a European disc image (SLES-54945).
+6c1de9436e462a2a	Español, alemán, francés e italiano, más la música de la introducción: agrega una imagen de disco europea (SLES-54945).
+# Add languages and music...
+890962dc99b5a2dd	Agregar idiomas y música...
+# Setup stopped.
+2fd29cbf38616c83	La instalación se detuvo.
+# Nothing is broken: finished steps are kept, and Install continues from where it stopped.
+bdd84c44c6fd939b	No se rompió nada: los pasos terminados se guardan, e Instalar sigue desde donde se detuvo.
+# The setup script stopped unexpectedly. The details are in install.log.
+8ca3ea39b0d73106	El script de instalación se detuvo de forma inesperada. Los detalles están en install.log.
+# Open the log
+4981afe753b13040	Abrir el registro
+# Browse...
+61e993a94b0b3983	Buscar...
+# Close
+5e8250fb85d64c23	Cerrar
+# Install
+6196153c4b0c1ea0	Instalar
+# Play
+cd105819b5a10243	Jugar
+# Missing
+b52f6b2e5a4bc127	Falta
+# Used for
+96cf0056d8986a7f	Sirve para
+# Package to install
+60262e2bea923883	Paquete a instalar
+# Requirements
+38c6db7c7aaa7dc1	Requisitos
+# Game data
+41ac47f3179d3b25	Datos del juego
+# Executable data
+76ee03efa7f228bf	Datos del ejecutable
+# Build
+3fe3ff490adaaa63	Compilación
+# Self-test
+e42b060ee7b1b836	Prueba
+# European languages
+2221ee99619277cf	Idiomas europeos
+# Compilers and tools on this computer
+dba351c9254312a9	Compiladores y herramientas de esta computadora
+# Your disc image is read and checked
+883d1d36b1bd642e	Se lee y se comprueba tu imagen de disco
+# Models, sounds and text are unpacked
+7aea7405eb904d8e	Se descomprimen modelos, sonidos y textos
+# The data tables of the game's programs
+7f5e3113183a61e4	Las tablas de datos de los programas del juego
+# The port is compiled (a few minutes)
+60fbf3639720d8af	Se compila el port (unos minutos)
+# The game's demo fight, without a window
+806fe25c40cd3604	La pelea de demostración del juego, sin ventana
+# Spanish, German, French and Italian, plus the opening soundtrack
+5a624ae61605a77b	Español, alemán, francés e italiano, más la música de la introducción
+# %s, step %d of %d
+d75e308380df18be	%s, paso %d de %d
+# %s done: %s
+23807b7f9520c119	%s, listo: %s
+# %s done
+d2f6d7eb6b00beb7	%s, listo
+# %s skipped: %s
+184a825adc685f33	%s, omitido: %s
+# %s skipped
+cc1fa7de64b73631	%s, omitido
+# %d%%, %d files
+fc6de907e7301800	%d%%, %d archivos
+# %d files in gamedata/
+7f3d440166a2eb09	%d archivos en gamedata/
+# European disc image: %s
+2b44379f67bb6d4a	Imagen de disco europea: %s
+# Disc image: %s
+315ef2c81b55c173	Imagen de disco: %s
+# Found your disc image, %s
+259cd51c1d66a94a	Encontré tu imagen de disco, %s
+# Missing: %s, used for %s, package to install: %s.
+ef29c17819e22401	Falta: %s, sirve para %s, paquete a instalar: %s.
+# Could not write %s.
+5177b3eb7b7c843a	No se pudo escribir %s.
+# Could not start python3: %s\nPython 3 has to be installed to set the game up.
+9ae6a65cebece5c2	No se pudo iniciar python3: %s\nPara instalar el juego hace falta Python 3.
+# checking
+7552a529de9717f1	comprobando
+# the USA release, checksums match
+b70366ec56b8647b	la versión de Estados Unidos, las sumas de control coinciden
+# already unpacked
+6f692727d7dcabe2	ya estaba descomprimido
+# already done
+3d1bfa1a46f9b761	ya hecho
+# the game's demo fight, no window
+9cdf43573331d712	la pelea de demostración del juego, sin ventana
+# the demo fight ran to its end
+73879f70a83664fe	la pelea de demostración llegó al final
+# European languages and opening soundtrack: the game makes the languages at its next start
+80bc2190de59d11a	idiomas europeos y música de la introducción: el juego arma los idiomas la próxima vez que se abra
+# The game could not be started. macOS may still be blocking it: see step 0 of README.txt.
+78a1ea946645b025	No se pudo abrir el juego. Puede que macOS todavía lo esté bloqueando: consulta el paso 0 de README.txt.
+# This is not a disc image of the European release of Budokai Tenkaichi 3 (no SLES_549.45 on it).\nThe languages come from the European release (SLES-54945); the game itself is set up from the USA one.
+483eb64e581174d2	Esta no es una imagen de disco de la versión europea de Budokai Tenkaichi 3. Los idiomas salen de la versión europea (SLES-54945); el juego en sí se instala desde la de Estados Unidos.
+# An archive on the European disc image (DATA/PZS3EU1.AFS) is damaged.
+f4a58f06c20a47fb	Un archivo de la imagen de disco europea (DATA/PZS3EU1.AFS) está dañado.
+# An archive on the European disc image (DATA/PZS3EU1.AFS) is damaged or not the European release's.
+18a4dd78e62ee502	Un archivo de la imagen de disco europea (DATA/PZS3EU1.AFS) está dañado o no es el de la versión europea.
+# The language selector archive on the European disc image (DATA/PZS3EU0.AFS) is damaged.
+55580ba0c3abf0d7	El archivo del selector de idioma de la imagen de disco europea (DATA/PZS3EU0.AFS) está dañado.
+# The European opening soundtrack has an invalid size.
+959cd041811428c2	La música europea de la introducción tiene un tamaño no válido.
+# The European opening soundtrack has an invalid header.
+c6a62fd07602a396	La música europea de la introducción tiene una cabecera no válida.
