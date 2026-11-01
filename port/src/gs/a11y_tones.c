@@ -11,7 +11,7 @@
  *   ring       two low knocks: out over the grass of the World Tournament ring, where landing loses
  *   health     two beeps, high then low (E6, C6), as the low-health alarm of the Pokémon games
  *   ki         three quick notes going up (G6, B6, D7): the ki is full; a fourth higher, max power
- *   where      a sonar ping (A5) from where the rival is (Select in a fight: PortA11y_ToneAt)
+ *   where      a sonar ping (A5) from where the rival is (Select in a fight: PortA11y_ToneFrom)
  *   cues       a tone that slides up (a transformation more within reach) and a small bell struck twice (G5: the
  *              Ultimate Blast)
  *
@@ -19,8 +19,10 @@
  * port/tools/a11y_check.py checks that no two share a note): the fight's music, voices and blows fill the middle,
  * where all of these were before, and a tick of 25 ms there was a click lost in the mix. The stereo is kept for where
  * a sound is: whose it is goes by its timbre. Yours (and the ones that are nobody's) are clean; the rival's are the
- * same notes with odd harmonics over them, a buzz. Only the "where" ping is placed, by the rival's direction (from
- * the left to the right, and muffled behind you); the game's Mono setting puts it in the middle too.
+ * same notes with odd harmonics over them, a buzz. What tells of the rival is placed by the rival's direction (from
+ * the left to the right, and muffled behind you; a11y_fight.c decides when): the "where" ping, the distance tick and
+ * the rival's own sounds (health, ki, the two cues), which keep their buzz behind too (muffle_rival). Yours stay in
+ * the middle. The game's Mono setting puts everything in the middle.
  *
  * Made here from sine waves and noise (nothing of the game's sounds), on a stream of their own for each kind (they
  * can sound together), at the cues' volume (a11y_cue_volume, a loudness scale: a11y.c). Only integers come from
@@ -264,19 +266,59 @@ static int tone_wave(int kind, int who, int pitch, float *out) {
     return len;
 }
 
+/* The muffle's start softened over 8 ms and its faint echo 40 ms after. */
+static void soften(float *w, int len) {
+    int i, echo = 40 * TONE_MS;
+
+    for (i = 0; i < len && i < 8 * TONE_MS; i++) {
+        w[i] *= (float)i / (8 * TONE_MS);
+    }
+    for (i = len - 1; i >= echo; i--) {
+        w[i] += 0.3f * w[i - echo];
+    }
+}
+
 /* Behind: the same sound muffled (two low-passes at 1.2 kHz), its start softened and a faint echo 40 ms after, as
    heard from the back. */
 static void muffle(float *w, int len) {
     float a = 1.0f - expf(-TONE_TAU * 1200.0f / TONE_RATE), y1 = 0.0f, y2 = 0.0f;
-    int i, echo = 40 * TONE_MS;
+    int i;
 
     for (i = 0; i < len; i++) {
         y1 += a * (w[i] - y1);
         y2 += a * (y1 - y2);
-        w[i] = y2 * 1.6f * (i < 8 * TONE_MS ? (float)i / (8 * TONE_MS) : 1.0f);
+        w[i] = y2 * 1.6f;
     }
-    for (i = len - 1; i >= echo; i--) {
-        w[i] += 0.3f * w[i - echo];
+    soften(w, len);
+}
+
+/* Behind, a sound of the rival's (w, its wave): the notes muffled as any other's, and the buzz (what the rival's has
+   over the same sound of yours) over them, softened and echoed alike but not low-passed, at the level the muffle
+   leaves the notes. The low-pass alone takes the buzz away (the notes are at 1 to 3 kHz, the buzz is their 3rd to
+   7th harmonics): measured by the spectral centroid, the rival's health beeps behind came out as bright as yours in
+   front (1151 Hz against 1182) and would be taken for yours. This way each of the rival's sounds behind is 9 to 17 %
+   duller than in front and 16 to 28 % brighter than yours. */
+static void muffle_rival(int kind, int pitch, float *w, int len) {
+    static float body[TONE_MAX];
+    float before = 0.0f, after = 0.0f, k;
+    int i;
+
+    if (tone_wave(kind, 0, pitch, body) != len) {
+        muffle(w, len);
+        return;
+    }
+    for (i = 0; i < len; i++) {
+        w[i] -= body[i]; /* (the buzz alone) */
+        before += body[i] * body[i];
+    }
+    muffle(body, len);
+    for (i = 0; i < len; i++) {
+        after += body[i] * body[i];
+    }
+    k = before > 0.0f ? sqrtf(after / before) : 0.0f;
+    soften(w, len);
+    for (i = 0; i < len; i++) {
+        w[i] = body[i] + k * w[i];
     }
 }
 
@@ -313,11 +355,16 @@ static int tone_pcm(int kind, int who, int pitch, int placed, int az, float gain
     float l = 1.0f, r = 1.0f, a, b;
     int len, i;
 
-    len = tone_wave(kind, who, pitch < -24 ? -24 : pitch > 24 ? 24 : pitch, wave);
+    pitch = pitch < -24 ? -24 : pitch > 24 ? 24 : pitch;
+    len = tone_wave(kind, who, pitch, wave);
     if (placed) {
         pan_of(az, &l, &r);
         if (behind(az)) {
-            muffle(wave, len);
+            if (who == 1) {
+                muffle_rival(kind, pitch, wave, len);
+            } else {
+                muffle(wave, len);
+            }
         }
     }
     {
@@ -389,12 +436,18 @@ static void play_locked(int kind, int who, int pitch, int loud, int placed, int 
     }
     gain *= (float)(loud > 100 ? 100 : loud) / 100.0f;
     {
-        static int played; /* (the first of each kind goes to the log: that the fight asked for it and it was played) */
-        if (!(played & (1 << kind))) {
-            char note[128];
-            played |= 1 << kind;
-            snprintf(note, sizeof(note), "tones: first of kind %d played (%s, loud %d, gain %.1f dB%s)", kind,
-                     who == 1 ? "the rival's" : "yours", loud, 20.0f * log10f(gain), Port_AudioMono() ? ", mono" : "");
+        /* (the first of each kind, yours and the rival's apart, goes to the log: that the fight asked for it and it
+           was played, and from where) */
+        static int played;
+        int bit = 1 << (kind * 2 + (who == 1));
+        if (!(played & bit)) {
+            char note[160], from[40] = "in the middle";
+            played |= bit;
+            if (placed) {
+                snprintf(from, sizeof(from), "from %+d degrees%s", az / 100, behind(az) ? ", muffled" : "");
+            }
+            snprintf(note, sizeof(note), "tones: first of kind %d played (%s, loud %d, gain %.1f dB, %s%s)", kind,
+                     who == 1 ? "the rival's" : "yours", loud, 20.0f * log10f(gain), from, Port_AudioMono() ? ", mono" : "");
             PortA11y_Note(note);
         }
     }
@@ -416,6 +469,12 @@ void PortA11y_Tone(int kind, int who, int pitch, int loud) {
 /* Plays a sound from a direction: az in hundredths of a degree from ahead (+ to the right, +-18000 behind). */
 void PortA11y_ToneAt(int kind, int az, int pitch, int loud) {
     play(kind, 0, pitch, loud, 1, az);
+}
+
+/* The same with whose it is: `who` 1 the rival's (its timbre, kept behind too). For a11y_fight.c: the rival's own
+   sounds from where the rival is; kind may be a cue's (TONE_CUE_TRANSFORM + n), played as PortA11y_Cue plays it. */
+void PortA11y_ToneFrom(int kind, int who, int az, int pitch, int loud) {
+    play(kind, who, pitch, loud, 1, az);
 }
 
 /* A cue for a11y_fight.c (the game's thread): kind 0, one transformation more can be taken; kind 1, the Ultimate

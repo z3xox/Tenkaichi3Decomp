@@ -27,9 +27,12 @@
  *             Pokémon games. By voice, the percent.
  *
  * Only the local player's distance and edge are told (online: that player's side; else player 1); health is told
- * for both, in the middle: the local player's beeps clean, the rival's with a buzz (gs/a11y_tones.c). The stereo is
- * kept for where a sound is: it used to be player 1 on the left and player 2 on the right, which a player took for
- * where the two were.
+ * for both: the local player's beeps clean, the rival's with a buzz (gs/a11y_tones.c). What tells of the rival comes
+ * from the rival's direction, read once as the sound starts, the same as the "where" ping's (rel): the distance tick,
+ * and the rival's own health, ki and cues when there is one "you" to hear them from (one_you: online, or player 1
+ * against the computer). The local player's own stay in the middle, and so does everything while the rival is not
+ * seen (a vanish, or the player blinded). The stereo is kept for where a sound is: it used to be player 1 on the
+ * left and player 2 on the right, which a player took for where the two were.
  *
  * It only reads, by the game's own read-only calls and fields; nothing of the game is written or drawn. a11y_game.c
  * calls it once per blank that is not run again after a rollback, and only while a fight is on with no menu over it.
@@ -54,9 +57,8 @@ extern const char *PortA11y_Tr(const char *label) __attribute__((format_arg(1)))
 #define tr(label) PortA11y_Tr(label)
 extern void PortA11y_Say(const char *text, int flags);
 extern void PortA11y_Note(const char *text);
-extern void PortA11y_Cue(int who, int kind);                      /* gs/a11y_tones.c: who 0 yours, 1 the rival's */
-extern void PortA11y_Tone(int kind, int who, int pitch, int loud);  /* (in the middle) */
-extern void PortA11y_ToneAt(int kind, int az, int pitch, int loud); /* (from a direction, hundredths of a degree) */
+extern void PortA11y_Tone(int kind, int who, int pitch, int loud);              /* gs/a11y_tones.c: who 0 yours, 1 the rival's */
+extern void PortA11y_ToneFrom(int kind, int who, int az, int pitch, int loud); /* (from a direction, hundredths of a degree) */
 extern int Port_Setting(const char *name, int def);               /* plat_settings.c */
 extern void Port_SettingSave(const char *name, int value);
 extern int Port_NetActive(void), Port_NetMe(void);                 /* gs/net.c */
@@ -81,6 +83,7 @@ extern int BtlCharApi_IsHidden(int objId);   /* the object is not drawn (a vanis
 extern int BtlChar_GetFrame(void);           /* the fight's frame (two blanks each) */
 extern int BtlStage_IsReady(void);
 extern int Battle_GetStage(void);
+extern int BattleSide_IsCpu(int side); /* src/battle/battle_load.c: the side is the computer's (only read) */
 
 /* include/battle/stg_a.h: BtlStage and StgBounds (+Y is down: `top` is the smallest y). */
 typedef struct {
@@ -115,7 +118,8 @@ extern A11yBound GAME_PTR gEftBound;
 #define HIGH 60.0f        /* inferred: about three fighters' height, "above" / "below" from here */
 
 /* gs/a11y_tones.c */
-enum { TONE_DISTANCE, TONE_DISTANCE_CLOSE, TONE_EDGE_WALL, TONE_EDGE_TOP, TONE_EDGE_FLOOR, TONE_RING, TONE_HEALTH, TONE_KI, TONE_WHERE };
+enum { TONE_DISTANCE, TONE_DISTANCE_CLOSE, TONE_EDGE_WALL, TONE_EDGE_TOP, TONE_EDGE_FLOOR, TONE_RING, TONE_HEALTH, TONE_KI, TONE_WHERE,
+       TONE_CUE_TRANSFORM, TONE_CUE_ULTIMATE };
 #define WHO_YOURS 0
 #define WHO_RIVAL 1
 
@@ -277,6 +281,55 @@ static int who_of(int side) {
     return side == local_side() ? WHO_YOURS : WHO_RIVAL;
 }
 
+/* ---- where the rival's sounds come from ---- */
+
+static int rel(int me, int *az, int *el, int *d);
+
+/* The direction the rival's sounds come from for `me`, read once as a sound starts: 1 and az in whole degrees as rel()
+   gives it to the "where" ping (from ahead as the stick goes, + to the right, +-180 behind), or 0, in the middle: no
+   such fight, or the rival not seen (a vanish, or you blinded: a player who sees does not see where the rival is
+   then either, and the ping is not played). */
+static int rival_dir(int me, int *az) {
+    void GAME_PTR chr = BtlChar_FindBySide(me);
+    int el, d;
+
+    return chr != NULL && !BtlChar_TestFlag(chr, CHR_BLINDED) && !BtlCharApi_IsHidden(me ^ 1) && rel(me, az, &el, &d);
+}
+
+/* 1 when there is one "you" to hear the rival's own sounds from: online, the side this copy plays; else player 1
+   against the computer. Not with two players at one computer: one stereo for two players, each with a camera of
+   their own, and the rival of one is the other (from player 1's camera, player 2's own beeps, asked from player 2's
+   controller, would come from where player 1 is); their sounds stay in the middle, as before. Not with the computer
+   against the computer, or the computer as player 1, either. */
+static int one_you(void) {
+    int me = local_side();
+
+    return Port_NetActive() || (!BattleSide_IsCpu(me) && BattleSide_IsCpu(me ^ 1));
+}
+
+/* Whether a sound of `side`'s own (its health, ki, cues) comes from where the rival is, and from where (az, as
+   rival_dir): only the rival's, and only with one "you". */
+static int rival_placed(int side, int *az) {
+    return side != local_side() && one_you() && rival_dir(local_side(), az);
+}
+
+/* Plays a sound from the rival's direction az (whole degrees, as rel) when `placed`, else in the middle; `who` picks
+   its timbre. Every sound placed by the rival goes through here. */
+static void tone_by_rival(int kind, int who, int pitch, int loud, int placed, int az) {
+    if (placed) {
+        PortA11y_ToneFrom(kind, who, az * 100, pitch, loud);
+    } else {
+        PortA11y_Tone(kind, who, pitch, loud);
+    }
+}
+
+/* A sound of `side`'s own: its timbre by whose it is, its place by rival_placed. */
+static void side_tone(int side, int kind, int pitch, int loud) {
+    int az = 0, placed = rival_placed(side, &az);
+
+    tone_by_rival(kind, who_of(side), pitch, loud, placed, az);
+}
+
 /* How loud the health beeps are for a side when health falls: from 70 % at full health to all at none (under 70 %
    they were lost in a fight; the loudness says little anyway, the beeps say "health"). */
 static int health_loud(int hp, int max) {
@@ -289,19 +342,25 @@ static int health_loud(int hp, int max) {
    caller says them when that includes the voice. */
 int PortA11y_GaugesQuery(int side, int byItself) {
     extern int PortA11y_CueVolume(void); /* gs/a11y.c */
-    int m = gauges_how();
+    int m = gauges_how(), az = 0, placed = rival_placed(side, &az);
 
     if (m == BY_SOUND && PortA11y_CueVolume() <= 0) {
         m = BY_VOICE; /* (the cues turned off: the beeps would be silent, and a question gets an answer) */
     }
 
     if (m & BY_SOUND) {
-        PortA11y_Tone(TONE_HEALTH, who_of(side), 0, 100);
+        tone_by_rival(TONE_HEALTH, who_of(side), 0, 100, placed, az);
     }
     {
-        char note[112];
-        snprintf(note, sizeof(note), "gauges %s: player %d (%s), told by %s", byItself ? "changed" : "asked", side + 1,
-                 who_of(side) == WHO_YOURS ? "yours" : "the rival's", m == BY_SOUND ? "sound" : m == BY_VOICE ? "voice" : "sound and voice");
+        char note[160], from[40] = "";
+        if ((m & BY_SOUND) && placed) {
+            snprintf(from, sizeof(from), ", the beeps from %+d degrees", az);
+        } else if (m & BY_SOUND) {
+            snprintf(from, sizeof(from), ", the beeps in the middle");
+        }
+        snprintf(note, sizeof(note), "gauges %s: player %d (%s), told by %s%s", byItself ? "changed" : "asked", side + 1,
+                 who_of(side) == WHO_YOURS ? "yours" : "the rival's", m == BY_SOUND ? "sound" : m == BY_VOICE ? "voice" : "sound and voice",
+                 from);
         PortA11y_Note(note);
     }
     return m;
@@ -313,8 +372,8 @@ void PortA11y_PowerCue(int side, int kind, int count) {
     char text[128];
     int m = mode(ALERT_POWER);
 
-    if (m & BY_SOUND) {
-        PortA11y_Cue(who_of(side), kind);
+    if ((m & BY_SOUND) && (unsigned)kind <= 1) {
+        side_tone(side, TONE_CUE_TRANSFORM + kind, 0, 100); /* (as PortA11y_Cue plays it, placed as the rival's) */
     }
     if (m & BY_VOICE) {
         if (kind == 0) {
@@ -400,7 +459,7 @@ static void where_ping(int az, int el, int d) {
     pitch = el > 8 ? (el - 8) * 12 / 52 : el < -8 ? (el + 8) * 12 / 52 : 0;
     pitch = pitch > 12 ? 12 : pitch < -12 ? -12 : pitch;
     loud = d <= 150 ? 100 : d >= 1500 ? 55 : 100 - (d - 150) * 45 / 1350;
-    PortA11y_ToneAt(TONE_WHERE, az * 100, pitch, loud);
+    tone_by_rival(TONE_WHERE, WHO_YOURS, pitch, loud, 1, az);
 }
 
 /* Select once in a fight (a11y.c): where the rival is, a sonar ping from there (where_ping: higher above, lower
@@ -550,7 +609,7 @@ static void sign_report(void) {
 static void distance(int me, A11yVec *a, A11yVec *b) {
     static int next, zone = -1, heard = -1, held;
     float dx = b->x - a->x, dy = a->y - b->y, dz = b->z - a->z, d = sqrtf(dx * dx + dy * dy + dz * dz);
-    int m = mode(ALERT_DISTANCE), close = BtlCharApi_IsClose(me) != 0, gap, pitch, now;
+    int m = mode(ALERT_DISTANCE), close = BtlCharApi_IsClose(me) != 0, gap, pitch, now, az = 0, placed;
     float x;
     char text[128];
 
@@ -564,7 +623,8 @@ static void distance(int me, A11yVec *a, A11yVec *b) {
         if (sBlank >= next) {
             x = 12.0f * dy / (fabsf(dy) + HIGH);
             pitch = (int)(x < 0.0f ? x - 0.5f : x + 0.5f); /* (rounded here: the C library's lrintf is the host's, SSE) */
-            PortA11y_Tone(close ? TONE_DISTANCE_CLOSE : TONE_DISTANCE, WHO_YOURS, pitch, 100);
+            placed = rival_dir(me, &az); /* (from where the rival is, as the "where" ping) */
+            tone_by_rival(close ? TONE_DISTANCE_CLOSE : TONE_DISTANCE, WHO_YOURS, pitch, 100, placed, az);
             next = sBlank + gap;
         }
     }
@@ -651,7 +711,7 @@ static void health(int me) {
         }
         if (now < level[side]) {
             if (m & BY_SOUND) {
-                PortA11y_Tone(TONE_HEALTH, who_of(side), 0, health_loud(hp, max));
+                side_tone(side, TONE_HEALTH, 0, health_loud(hp, max));
             }
             if (m & BY_VOICE) {
                 if (now == 0) {
@@ -667,7 +727,7 @@ static void health(int me) {
         }
         level[side] = now;
         if (side == me && now == 0 && hp > 0 && (m & BY_SOUND) && sBlank >= next) {
-            PortA11y_Tone(TONE_HEALTH, who_of(side), 0, health_loud(hp, max)); /* the alarm, every three seconds */
+            side_tone(side, TONE_HEALTH, 0, health_loud(hp, max)); /* the alarm, every three seconds */
             next = sBlank + 180;
         }
     }
@@ -714,7 +774,7 @@ static void moments(void) {
         }
         if (now < bars[side] && now >= 1) {
             if (m & BY_SOUND) {
-                PortA11y_Tone(TONE_HEALTH, who_of(side), 0, health_loud(hp, BtlCharApi_GetHpMax(side)));
+                side_tone(side, TONE_HEALTH, 0, health_loud(hp, BtlCharApi_GetHpMax(side)));
             }
             if (m & BY_VOICE) {
                 snprintf(text, sizeof(text), now == 2 ? tr("Player %d: 2 bars of health left") : tr("Player %d: 1 bar of health left"),
@@ -725,7 +785,7 @@ static void moments(void) {
         }
         if (full && !kiFull[side]) {
             if (m & BY_SOUND) {
-                PortA11y_Tone(TONE_KI, who_of(side), 0, 100);
+                side_tone(side, TONE_KI, 0, 100);
             }
             if (m & BY_VOICE) {
                 snprintf(text, sizeof(text), tr("Player %d: ki full"), side + 1);
@@ -735,7 +795,7 @@ static void moments(void) {
         }
         if (up && !power[side]) {
             if (m & BY_SOUND) {
-                PortA11y_Tone(TONE_KI, who_of(side), 5, 100); /* (the ki's notes a fourth higher: C7, E7, G7) */
+                side_tone(side, TONE_KI, 5, 100); /* (the ki's notes a fourth higher: C7, E7, G7) */
             }
             if (m & BY_VOICE) {
                 snprintf(text, sizeof(text), tr("Player %d: max power"), side + 1);
@@ -765,15 +825,15 @@ void PortA11y_FightAlerts(int fight) {
         return;
     }
     if (!was) {
-        char note[224];
+        char note[288];
         was = 1;
         sBlank += 600; /* (whatever was waiting from the last fight is due) */
         where_reset();
         extern int PortA11y_CueVolume(void), PortA11y_FightMusic(void); /* gs/a11y.c, a11y_game.c */
         snprintf(note, sizeof(note), "fight alerts: distance %d, edge %d, health %d, moments %d, power %d, gauges %d, where %d (0 off, "
-                 "1 sound, 2 voice, 3 both); cues %d %%, music in fights %d %%", mode(ALERT_DISTANCE), mode(ALERT_EDGE),
-                 mode(ALERT_HEALTH), mode(ALERT_MOMENTS), mode(ALERT_POWER), mode(ALERT_GAUGES), mode(ALERT_WHERE),
-                 PortA11y_CueVolume(), PortA11y_FightMusic());
+                 "1 sound, 2 voice, 3 both); cues %d %%, music in fights %d %%; the rival's own sounds %s", mode(ALERT_DISTANCE),
+                 mode(ALERT_EDGE), mode(ALERT_HEALTH), mode(ALERT_MOMENTS), mode(ALERT_POWER), mode(ALERT_GAUGES), mode(ALERT_WHERE),
+                 PortA11y_CueVolume(), PortA11y_FightMusic(), one_you() ? "from the rival's side" : "in the middle (no one \"you\")");
         PortA11y_Note(note);
     }
     sBlank++;
