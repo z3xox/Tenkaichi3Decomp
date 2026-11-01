@@ -271,6 +271,11 @@ void PortA11y_TboPrompt(int kind, const char *label) {
     snprintf(sTboHint + n, sizeof(sTboHint) - n, "%s%s", n > 0 ? " " : "", part);
 }
 
+/* A text of those pages as Tb_Speak puts it into words (port_tbo.c's TB_SAID): in the screen reader's language */
+char *PortA11y_TboSaid(const char *label) {
+    return (char *)PortA11y_TrSense("tbo", label);
+}
+
 void PortA11y_TboPromptsSay(int typing) {
     if (typing && PortA11y_PadFamily(0) == 0) { /* (a keypad typed on with the PC's keyboard: the keys that type) */
         snprintf(sTboHint, sizeof(sTboHint), "%s",

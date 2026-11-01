@@ -412,6 +412,17 @@ static s32 sTbBgFrames; /* how long it had been searching when the sparring figh
 s32 gPortTboSpar;       /* the battle that runs is Train While Waiting's sparring fight (its sign, its pause menu) */
 static char sTbBgCode[CODE_LEN + 1];
 static f32 Tb_Beat(s32 period);
+/* 1 while Tb_Speak puts the page into words: a text is then the screen reader's, in the language it speaks
+   (port/lang/a11y_<code>.txt, gs/a11y.c; the English as it is with the reader off), not the screen's */
+static s32 sTbSaying;
+extern char *PortA11y_TboSaid(const char *label);
+static char *Tb_Said(char *s) {
+    if (sTbSaying) {
+        return PortA11y_TboSaid(s);
+    }
+    return s;
+}
+#define TB_SAID(s) Tb_Said((char *)(s))
 /* A format with a number in it ("%d FRAME") in the chosen language, for sprintf (the translation file's line keeps
    its %d slots, or it is not used: port/src/gs/menu_translation.c). */
 static char *Tb_Fmt(char *format) {
@@ -420,6 +431,9 @@ static char *Tb_Fmt(char *format) {
     extern int Port_TrLine(const char *original, char *out, int size);
 
     k = (k + 1) & 3;
+    if (sTbSaying && Tb_Said(format) != format) { /* (the reader's line; without one, the screen's as before) */
+        return Tb_Said(format);
+    }
     return Port_TrLine(format, buf[k], 160) ? buf[k] : format;
 }
 
@@ -543,7 +557,7 @@ static void Tb_LoadChoices(void) {
 
 static void Tb_DelayText(char *out, s32 delay) {
     if (delay < 0) {
-        sprintf(out, "AUTOMATIC");
+        sprintf(out, "%s", TB_SAID("AUTOMATIC"));
     } else {
         sprintf(out, delay == 1 ? Tb_Fmt("%d FRAME") : Tb_Fmt("%d FRAMES"), (int)delay); /* (two lines to translate: not every language adds an S) */
     }
@@ -1592,7 +1606,7 @@ static void Tb_CreateValue(char *out, s32 i) {
     if (i == CR_ADDR) {
         sprintf(out, Tb_Fmt("PORT %d"), (int)sTb->port);
     } else {
-        Ps_Copy(out, "WITH A CODE", 32);
+        Ps_Copy(out, TB_SAID("WITH A CODE"), 32);
     }
 }
 
@@ -2061,7 +2075,7 @@ static void Tb_LobbyLine(char *out, s32 size, const char *in) {
     }
     (void)sTbLobbyLines; /* (they are translated as whole lines, by Ps_Copy) */
     (void)sTbNetLines;
-    Ps_Copy(out, in, size); /* (a whole line of the file in its language, as it is otherwise) */
+    Ps_Copy(out, TB_SAID(in), size); /* (a whole line of the file in its language, as it is otherwise) */
 }
 
 /* The value of the page's rule row i. */
@@ -2070,23 +2084,23 @@ static void Tb_RuleValue(char *out, s32 i) {
 
     switch (Tb_LbRule(i)) {
     case LOBBY_RULE_MODE:
-        Ps_Copy(out, v->mode ? "TOURNAMENT" : "VERSUS", 32);
+        Ps_Copy(out, TB_SAID(v->mode ? "TOURNAMENT" : "VERSUS"), 32);
         break;
     case LOBBY_RULE_ENTRANTS:
         sprintf(out, Tb_Fmt("%d PLAYERS"), (int)v->entrants);
         break;
     case LOBBY_RULE_BATTLE:
-        Ps_Copy(out, sTbBattleName[v->battle % 5], 32);
+        Ps_Copy(out, TB_SAID(sTbBattleName[v->battle % 5]), 32);
         break;
     case LOBBY_RULE_TIME:
-        Ps_Copy(out, sTbTime[v->time % 5], 32);
+        Ps_Copy(out, TB_SAID(sTbTime[v->time % 5]), 32);
         break;
     case LOBBY_RULE_SPEED:
         sprintf(out, v->speed == Port_NetSpeedStandard() ? Tb_Fmt("%d%% (STANDARD)") : Tb_Fmt("%d%%"), (int)v->speed);
         break;
     case LOBBY_RULE_ROLLBACK:
         if (v->rollback <= 0) {
-            Ps_Copy(out, "OFF", 32);
+            Ps_Copy(out, TB_SAID("OFF"), 32);
         } else {
             sprintf(out, Tb_Fmt("UP TO %d FRAMES"), (int)v->rollback);
         }
@@ -3066,7 +3080,7 @@ static void Tb_LobbyFocus(char *focus, char *now) {
     s32 i = sTb->lbPlace;
 
     if (v->state == 1) {
-        Ps_Copy(focus, v->owner ? "Opening the lobby" : "Joining the lobby", 160);
+        Ps_Copy(focus, TB_SAID(v->owner ? "Opening the lobby" : "Joining the lobby"), 160);
     } else if (v->state == 3) {
         if (v->error[0] != 0) {
             Tb_LobbyLine(focus, 160, v->error);
@@ -3077,42 +3091,42 @@ static void Tb_LobbyFocus(char *focus, char *now) {
         Tb_KeyFocus(focus, NAME_ROWS, sTbNameKeys[sTb->lower], sTbNameBtn, 4);
         Ps_Copy(now, sTb->chat, 40);
     } else if (sTb->lbPop == LB_POP_LEAVE) {
-        Ps_Copy(focus, v->owner ? "Close the lobby? " : "Leave the lobby? ", 160);
-        Ps_Cat(focus, Tb_LobbyPopItem(sTb->lbPopCur), 160);
+        Ps_Copy(focus, TB_SAID(v->owner ? "Close the lobby? " : "Leave the lobby? "), 160);
+        Ps_Cat(focus, TB_SAID(Tb_LobbyPopItem(sTb->lbPopCur)), 160);
     } else if (sTb->lbPop == LB_POP_CALLOFF) {
-        Ps_Copy(focus, "Call off the tournament? ", 160);
-        Ps_Cat(focus, Tb_LobbyPopItem(sTb->lbPopCur), 160);
+        Ps_Copy(focus, TB_SAID("Call off the tournament? "), 160);
+        Ps_Cat(focus, TB_SAID(Tb_LobbyPopItem(sTb->lbPopCur)), 160);
     } else if (sTb->lbPop == LB_POP_MEMBER) {
         Ps_Copy(focus, v->name[sTb->lbPopPlace], 160);
         Ps_Cat(focus, ": ", 160);
-        Ps_Cat(focus, Tb_LobbyPopItem(sTb->lbPopCur), 160);
+        Ps_Cat(focus, TB_SAID(Tb_LobbyPopItem(sTb->lbPopCur)), 160);
     } else if (sTb->lbCol == 0) {
         if (i < v->entrants) {
             sprintf(part, Tb_Fmt("Player %d"), (int)(i + 1));
         } else {
             sprintf(part, Tb_Fmt("Spectator %d"), (int)(i - v->entrants + 1));
         }
-        Ps_Copy(focus, sTb->lbPicked >= 0 ? "Move to " : "", 160);
+        Ps_Copy(focus, sTb->lbPicked >= 0 ? TB_SAID("Move to ") : "", 160);
         Ps_Cat(focus, part, 160);
         Ps_Cat(focus, ": ", 160);
         if (v->taken[i]) {
             Ps_Cat(focus, v->name[i], 160);
         } else {
-            Ps_Cat(focus, "empty", 160);
+            Ps_Cat(focus, TB_SAID("empty"), 160);
         }
         if (v->taken[i] && v->isOwner[i]) {
-            Ps_Cat(focus, ", owner", 160);
+            Ps_Cat(focus, TB_SAID(", owner"), 160);
         }
         if (v->taken[i] && v->ready[i]) {
-            Ps_Cat(focus, ", ready", 160);
+            Ps_Cat(focus, TB_SAID(", ready"), 160);
         }
     } else if (sTb->lbRight < LB_BTN) {
-        Ps_Copy(focus, Tb_RuleName(sTb->lbRight), 160); /* (the row's: Tb_RuleValue takes the row too) */
+        Ps_Copy(focus, TB_SAID(Tb_RuleName(sTb->lbRight)), 160); /* (the row's: Tb_RuleValue takes the row too) */
         Ps_Cat(focus, ": ", 160);
         Tb_RuleValue(part, sTb->lbRight);
         Ps_Cat(focus, part, 160);
     } else {
-        Ps_Copy(focus, Tb_LobbyActName(Tb_LobbyAct(sTb->lbRight - LB_BTN)), 160);
+        Ps_Copy(focus, TB_SAID(Tb_LobbyActName(Tb_LobbyAct(sTb->lbRight - LB_BTN))), 160);
     }
 }
 
@@ -3259,9 +3273,9 @@ static char *Tb_BracketActName(s32 act) {
         return v->tourName[act == BR_ACT_PICK_A ? v->tourA[m] : v->tourB[m]];
     }
     if (act == BR_ACT_START) {
-        return v->phase ? "Match On" : v->tour == 2 ? "New Tournament" : "Start Next Match";
+        return TB_SAID(v->phase ? "Match On" : v->tour == 2 ? "New Tournament" : "Start Next Match");
     }
-    return "Back to the Lobby";
+    return TB_SAID("Back to the Lobby");
 }
 
 static s32 Tb_BracketCanStart(void) {
@@ -3565,7 +3579,7 @@ static char *Tb_BracketHelp(void) {
 static void Tb_BracketFocus(char *focus) {
     s32 act = Tb_BracketAct(sTb->brCur);
 
-    Ps_Copy(focus, act == BR_ACT_PICK_A || act == BR_ACT_PICK_B ? "Choose the winner: " : "", 160);
+    Ps_Copy(focus, act == BR_ACT_PICK_A || act == BR_ACT_PICK_B ? TB_SAID("Choose the winner: ") : "", 160);
     Ps_Cat(focus, Tb_BracketActName(act), 160);
 }
 
@@ -3658,7 +3672,7 @@ static void Tb_KeyFocus(char *out, s32 rows, char (*keys)[KEY_COLS + 1], const T
     }
     for (k = 0; k < nb; k++) {
         if (sTb->keyRow == rows + b[k].row && sTb->keyCol >= b[k].c0 && sTb->keyCol <= b[k].c1) {
-            Ps_Copy(out, b[k].label, 32);
+            Ps_Copy(out, TB_SAID(b[k].label), 32);
         }
     }
 }
@@ -3688,6 +3702,7 @@ static void Tb_Speak(void) {
     s32 count;
     s32 pk;
 
+    sTbSaying = 1;
     if (sTb->frames == 0) { /* (the screens opened again) */
         mode = -1;
         typed[0] = 0;
@@ -3697,13 +3712,13 @@ static void Tb_Speak(void) {
     now[0] = 0;
     switch (sTb->mode) {
     case TB_HUB:
-        Ps_Copy(focus, sTbHubName[sTb->hubCur], 160);
+        Ps_Copy(focus, TB_SAID(sTbHubName[sTb->hubCur]), 160);
         if (!sTbHubReady[sTb->hubCur]) {
-            Ps_Cat(focus, ", soon", 160);
+            Ps_Cat(focus, TB_SAID(", soon"), 160);
         }
         break;
     case TB_CREATE: {
-        Ps_Copy(focus, sTbCreateLabel[sTb->crCur], 160);
+        Ps_Copy(focus, TB_SAID(sTbCreateLabel[sTb->crCur]), 160);
         Tb_CreateValue(part, sTb->crCur);
         if (part[0] != 0) {
             Ps_Cat(focus, ": ", 160);
@@ -3727,36 +3742,36 @@ static void Tb_Speak(void) {
         if (sTb->found) {
             Ps_Copy(focus, said, 160); /* (nothing new: the match's banner says the rival is there, its name and region) */
         } else if (sTb->host == 2) {
-            Ps_Copy(focus, sTb->queue ? "Quick match, teams: searching" : "Quick match, one on one: searching", 160);
+            Ps_Copy(focus, TB_SAID(sTb->queue ? "Quick match, teams: searching" : "Quick match, one on one: searching"), 160);
         } else {
-            Ps_Copy(focus, "Joining lobby ", 160);
+            Ps_Copy(focus, TB_SAID("Joining lobby "), 160);
             Tb_Spell(part, sTb->code, 64);
             Ps_Cat(focus, part, 160);
         }
         break;
     case TB_QUICK:
         if (sTb->qkCur == 0) {
-            Ps_Copy(focus, sTb->queue ? "Battle: teams" : "Battle: one on one", 160);
+            Ps_Copy(focus, TB_SAID(sTb->queue ? "Battle: teams" : "Battle: one on one"), 160);
         } else if (sTb->qkCur == 1) {
-            Ps_Copy(focus, "Region: ", 160);
-            Ps_Cat(focus, sTbRegionName[sTb->region], 160);
+            Ps_Copy(focus, TB_SAID("Region: "), 160);
+            Ps_Cat(focus, TB_SAID(sTbRegionName[sTb->region]), 160);
         } else {
-            Ps_Copy(focus, "Search", 160);
+            Ps_Copy(focus, TB_SAID("Search"), 160);
         }
         break;
     case TB_SPAR:
         if (sTb->spCur == 0) {
-            Ps_Copy(focus, "You: ", 160);
+            Ps_Copy(focus, TB_SAID("You: "), 160);
             Ps_Cat(focus, Tb_Fighter(sTb->spMe), 160);
         } else if (sTb->spCur == 1) {
-            Ps_Copy(focus, "Partner: ", 160);
+            Ps_Copy(focus, TB_SAID("Partner: "), 160);
             Ps_Cat(focus, Tb_Fighter(sTb->spFoe), 160);
         } else {
-            Ps_Copy(focus, "Start training", 160);
+            Ps_Copy(focus, TB_SAID("Start training"), 160);
         }
         break;
     case TB_BLOCK:
-        Ps_Copy(focus, "No quick match. Quick match needs the original disc's data; with friends, both need the same data.", 160);
+        Ps_Copy(focus, TB_SAID("No quick match. Quick match needs the original disc's data; with friends, both need the same data."), 160);
         break;
     case TB_LOBBY:
         Tb_LobbyFocus(focus, now);
@@ -3765,7 +3780,7 @@ static void Tb_Speak(void) {
         Tb_BracketFocus(focus);
         break;
     default:
-        Ps_Copy(focus, "Name: ", 160);
+        Ps_Copy(focus, TB_SAID("Name: "), 160);
         Ps_Cat(focus, (char *)Port_NetNameGet(), 160);
         break;
     }
@@ -3773,7 +3788,7 @@ static void Tb_Speak(void) {
         static char line[224];
 
         mode = sTb->mode;
-        Ps_Copy(line, sTbTitle[mode], 224);
+        Ps_Copy(line, TB_SAID(sTbTitle[mode]), 224);
         Ps_Cat(line, ". ", 224);
         Ps_Cat(line, focus, 224);
         PortA11y_Say(line, TB_SAY_INTERRUPT);
@@ -3790,12 +3805,12 @@ static void Tb_Speak(void) {
         }
         if (now[k] != typed[k]) { /* the code or the name typed so far */
             Ps_Copy(typed, now, 40);
-            Ps_Copy(line, sTb->mode == TB_JOIN ? "Code: " : sTb->mode == TB_ADDR ? "Address: " : sTb->mode == TB_LOBBY ? "Chat: " : "Name: ", 256);
+            Ps_Copy(line, TB_SAID(sTb->mode == TB_JOIN ? "Code: " : sTb->mode == TB_ADDR ? "Address: " : sTb->mode == TB_LOBBY ? "Chat: " : "Name: "), 256);
             if (sTb->mode == TB_JOIN) {
                 Tb_Spell(part, now, 64);
-                Ps_Cat(line, now[0] != 0 ? part : "empty", 256);
+                Ps_Cat(line, now[0] != 0 ? part : TB_SAID("empty"), 256);
             } else {
-                Ps_Cat(line, now[0] != 0 ? now : "empty", 256);
+                Ps_Cat(line, now[0] != 0 ? now : TB_SAID("empty"), 256);
             }
         }
         for (k = 0; focus[k] == said[k] && focus[k] != 0; k++) {
@@ -3824,7 +3839,7 @@ static void Tb_Speak(void) {
         prompts = count;
     }
     if (sTb->note > 0 && !noted) { /* a note (copied, a code that did not work ...) */
-        PortA11y_Say(sTb->noteLine, 0);
+        PortA11y_Say(TB_SAID(sTb->noteLine), 0);
     }
     {   /* the lobby: what happened (who came, the chat) as it comes */
         static unsigned heard;
@@ -3845,6 +3860,7 @@ static void Tb_Speak(void) {
         heard = sTbLv.logTotal;
     }
     noted = sTb->note > 0;
+    sTbSaying = 0;
 }
 
 /* The hosts' line (Tb_Help) for the game's box, in the game's text: 16-bit, 0xFEFF first, cut at spaces into lines of
