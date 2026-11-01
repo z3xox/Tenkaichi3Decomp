@@ -1,7 +1,8 @@
 /*
  * Accessibility: the glossary of the fight's sounds. Each entry is a sound the accessibility makes (gs/a11y_tones.c)
- * and what it means: the rival's sounds are the player's own with a buzz over them (their timbre; the stereo is for
- * where a sound is; the "where" ping is played from a side, as in a fight). It is played from the settings window
+ * and what it means: the rival's sounds are the player's own with a buzz over them (their timbre). The stereo is for
+ * where a sound is: what tells of the rival (the "where" ping, the distance ticks, the rival's own sounds) is played
+ * here from the right, as in a fight it comes from where the rival is (a11y_fight.c). It is played from the settings window
  * (a11y_ui.cpp: the Accessibility tab's "Sound glossary", one button per sound) and in a fight's pause menu (a11y.c:
  * Select steps through it).
  *
@@ -13,14 +14,15 @@
 #include <string.h>
 
 extern void PortA11y_Tone(int kind, int who, int pitch, int loud); /* a11y_tones.c */
-extern void PortA11y_ToneAt(int kind, int az, int pitch, int loud);
-extern void PortA11y_Cue(int who, int kind);
+extern void PortA11y_ToneFrom(int kind, int who, int az, int pitch, int loud);
 extern void PortA11y_Say(const char *text, int flags);
 extern const char *PortA11y_TrSense(const char *sense, const char *label);
 
 #define A11Y_INTERRUPT 1 /* (a11y.c) */
-enum { TONE_DISTANCE, TONE_DISTANCE_CLOSE, TONE_EDGE_WALL, TONE_EDGE_TOP, TONE_EDGE_FLOOR, TONE_RING, TONE_HEALTH, TONE_KI, TONE_WHERE };
+enum { TONE_DISTANCE, TONE_DISTANCE_CLOSE, TONE_EDGE_WALL, TONE_EDGE_TOP, TONE_EDGE_FLOOR, TONE_RING, TONE_HEALTH, TONE_KI, TONE_WHERE,
+       TONE_CUE_TRANSFORM };
 #define CUE 100 /* kind CUE + n: the cue n (0 a transformation, 1 the Ultimate Blast) */
+#define RIGHT 6000 /* az: from the right, where the rival's sounds are played here */
 #define RIVAL 1 /* who: the rival's timbre */
 #define PLACED_NO 99999
 
@@ -29,22 +31,23 @@ static const struct {
     int kind, pitch, who, az; /* az: played from that direction (hundredths of a degree, + right), PLACED_NO: in the middle */
 } kEntries[] = {
     {"A sonar ping, here from the right", "Where the rival is, Select once in a fight: the ping comes from the rival's side, "
-                                          "higher when the rival is above you, lower when below.", TONE_WHERE, 0, 0, 6000},
+                                          "higher when the rival is above you, lower when below.", TONE_WHERE, 0, 0, RIGHT},
     {"A muffled sonar ping", "The rival is behind you.", TONE_WHERE, 0, 0, 18000},
-    {"Tick", "Distance to the rival: it repeats faster the nearer the rival is; higher when the rival is above you, lower "
-             "when below.", TONE_DISTANCE, 0, 0, PLACED_NO},
-    {"Two ticks", "The rival is within close range.", TONE_DISTANCE_CLOSE, 0, 0, PLACED_NO},
+    {"Tick", "Distance to the rival, from the rival's side: it repeats faster the nearer the rival is; higher when the "
+             "rival is above you, lower when below.", TONE_DISTANCE, 0, 0, RIGHT},
+    {"Two ticks", "The rival is within close range.", TONE_DISTANCE_CLOSE, 0, 0, RIGHT},
     {"A gust", "You are near the stage's wall; faster the nearer.", TONE_EDGE_WALL, 0, 0, PLACED_NO},
     {"A high hiss", "You are under the stage's ceiling.", TONE_EDGE_TOP, 0, 0, PLACED_NO},
     {"Two low knocks", "You are out of the World Tournament ring.", TONE_RING, 0, 0, PLACED_NO},
     {"Two beeps, high then low", "Your health: louder the less is left.", TONE_HEALTH, 0, 0, PLACED_NO},
-    {"Two buzzing beeps, high then low", "The rival's health.", TONE_HEALTH, 0, RIVAL, PLACED_NO},
+    {"Two buzzing beeps, high then low", "The rival's health, from the rival's side.", TONE_HEALTH, 0, RIVAL, RIGHT},
     {"Three notes going up", "Your ki is full.", TONE_KI, 0, 0, PLACED_NO},
     {"Three higher notes going up", "Max power.", TONE_KI, 5, 0, PLACED_NO},
-    {"Three buzzing notes going up", "The rival's ki is full; higher, the rival's max power.", TONE_KI, 0, RIVAL, PLACED_NO},
+    {"Three buzzing notes going up", "The rival's ki is full, from the rival's side; higher, the rival's max power.", TONE_KI,
+     0, RIVAL, RIGHT},
     {"A tone that slides up", "One more transformation can be taken.", CUE + 0, 0, 0, PLACED_NO},
     {"A small bell, twice", "The Ultimate Blast can be fired.", CUE + 1, 0, 0, PLACED_NO},
-    {"Buzzing, a tone that slides up or a bell", "The same for the rival.", CUE + 0, 0, RIVAL, PLACED_NO},
+    {"Buzzing, a tone that slides up or a bell", "The same for the rival, from the rival's side.", CUE + 0, 0, RIVAL, RIGHT},
 };
 #define ENTRIES ((int)(sizeof(kEntries) / sizeof(kEntries[0])))
 
@@ -73,16 +76,16 @@ static Uint32 SDLCALL say_later(void *text, SDL_TimerID id, Uint32 interval) {
 void PortA11y_GlossaryPlay(int i, int numbered) {
     char text[512], head[48] = "";
     char *copy;
+    int kind;
 
     if (i < 0 || i >= ENTRIES) {
         return;
     }
-    if (kEntries[i].kind >= CUE) {
-        PortA11y_Cue(kEntries[i].who, kEntries[i].kind - CUE);
-    } else if (kEntries[i].az != PLACED_NO) {
-        PortA11y_ToneAt(kEntries[i].kind, kEntries[i].az, kEntries[i].pitch, 100);
+    kind = kEntries[i].kind >= CUE ? TONE_CUE_TRANSFORM + kEntries[i].kind - CUE : kEntries[i].kind; /* (a cue as PortA11y_Cue plays it) */
+    if (kEntries[i].az != PLACED_NO) {
+        PortA11y_ToneFrom(kind, kEntries[i].who, kEntries[i].az, kEntries[i].pitch, 100);
     } else {
-        PortA11y_Tone(kEntries[i].kind, kEntries[i].who, kEntries[i].pitch, 100);
+        PortA11y_Tone(kind, kEntries[i].who, kEntries[i].pitch, 100);
     }
     if (numbered) {
         snprintf(head, sizeof(head), PortA11y_TrSense(NULL, "%d of %d"), i + 1, ENTRIES);
