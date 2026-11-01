@@ -102,6 +102,7 @@ const char *Port_NetWatcher(int i);                          // ... their names
 }
 void A11yUi_Init(void); int A11yUi_Tabs(void); void A11yUi_Tab(void); // a11y_ui.cpp: the window read aloud, its own tab
 int A11yUi_InRegion(void); // a11y_ui.cpp: the focus is in a region (the bindings table): Circle leaves it, not the window
+void A11yUi_UpstreamEnd(int open); // a11y_ui.cpp: ui_a11y.cpp has read the windows built so far (open: it was on)
 static bool sReady, sOpen;
 static MenuTranslationOption sLanguages[256];
 static int sLanguageCount, sLanguageChoice;
@@ -3081,6 +3082,7 @@ static bool frame_build(void) {
         }
     }
     UiA11y_End(); // (what the window's focus is on, said; the windows after this one are not read)
+    A11yUi_UpstreamEnd(sReady && sOpen && !sQuit); // BT3 a11y: the notice after it is read by a11y_ui.cpp
     if (sQuit && PortQuit_Failed()) {
         build_quit();
     }

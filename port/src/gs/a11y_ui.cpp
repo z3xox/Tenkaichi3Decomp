@@ -12,6 +12,13 @@
 // D-pad does on an active slider: for that one item, the slider sees itself activated by the controller with D-pad left
 // or right just pressed, and all of that is put back as it was right after (push_slider / pop_slider).
 //
+// Upstream has a reader of its own for these windows (ui_a11y.cpp, from 0.1.39.3): it says the item the focus is on,
+// the window and the tab it opens, and the tooltip. This one goes on top of it, not instead: its Dear ImGui hooks are
+// that file's, which hands them on here (A11yUi_ItemAdd / A11yUi_ItemInfo), and the texts it says go through tr here
+// (A11yUi_Words). In a window it read (upstream_reads), this one says only what it does not: the description lines
+// before the item, the column of a table, the slider's hint and the window's closing lines, queued after it. The
+// windows after it (the notice), and the right stick, the chat and the Accessibility tab, are this file's alone.
+//
 // With the accessibility off (PortA11y_On() == 0) none of this runs: no log, no hook, no tab.
 //
 // Tests without a controller or a screen reader ($BT3_A11Y_LOG has what is said):
@@ -31,7 +38,6 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "net_chat.h" // PortChat_Read: the other player's chat lines said
-#include "ui.h"       // UiA11y_*: upstream's reader interface, answered at the end
 
 extern "C" {
 int PortA11y_On(void); // a11y.c
@@ -104,6 +110,8 @@ const int kItems = 768, kPieces = 2048;
 Item sItem[kItems];
 int sCount;
 bool sReading;
+bool sUpstream;     // upstream's reader (ui_a11y.cpp) was on this frame: it said the items of the windows built before
+int sUpstreamItems; // ... its end, sItem[0, sUpstreamItems) (A11yUi_UpstreamEnd)
 ImGuiID sPendId; // an ItemInfo before its ItemAdd (a tab)
 ImGuiItemStatusFlags sPendStatus;
 char sPendLabel[96];
@@ -153,6 +161,14 @@ struct Bar {
     ImGuiID id, selected;
 } sBar[4];
 Uint64 sTabSaidMs;
+// A tab chosen with L1 / R1 in a window upstream's reader reads: the focus goes to the tab's first item in that same
+// frame, as the window is built (tab_moved, tab_first_item), before that reader takes the focused item; it says the
+// tab and that item then, once, together. Put there at the frame's end, it said the tab, and the item a frame later
+// over it.
+bool sUpstreamWas;        // upstream's reader was on last frame
+ImGuiTabBar *sMoveBar;    // the bar whose chosen tab changed this frame, until the tab's first item
+bool sMoveIn;             // its chosen tab came: the items after it are the tab's, up to the bar's next tab
+ImGuiTabBar *sMovedBar;   // the focus went to its chosen tab's first item this frame
 
 // Test keys
 struct TestKey {
@@ -514,9 +530,60 @@ void copy_label(char *out, int size, const char *label) {
     snprintf(out, size, "%.*s", (int)(end - label), label);
 }
 
+// At a tab (its ItemInfo, before its ItemAdd and before upstream's hook): its bar's chosen tab is not last frame's, the
+// focus is in its window and not on the tab chosen (Cross on a tab: it stays there). A focus left on another tab of the
+// bar is taken off it here: upstream's reader would say only what changed of that tab, "tab", and not the tab chosen.
+void tab_moved(ImGuiContext &g, ImGuiID id) {
+    ImGuiTabBar *bar = g.CurrentTabBar;
+    if (!sUpstreamWas || sMoveBar != NULL || sMovedBar != NULL || bar == NULL || bar->SelectedTabId == 0 ||
+        ImGui::TabBarFindTabByID(bar, id) == NULL) {
+        return;
+    }
+    const Bar *slot = NULL;
+    for (const Bar &b : sBar) {
+        slot = b.id == bar->ID ? &b : slot;
+    }
+    if (slot == NULL || slot->selected == 0 || slot->selected == bar->SelectedTabId || g.NavId == bar->SelectedTabId ||
+        g.NavWindow == NULL || g.NavWindow->RootWindow != g.CurrentWindow->RootWindow) {
+        return;
+    }
+    sMoveBar = bar;
+    sMoveIn = false;
+    if (ImGui::TabBarFindTabByID(bar, g.NavId) != NULL) {
+        g.NavId = 0; // (set again at the tab's first item, or at the frame's end on the tab: speak)
+    }
+}
+
+// Item k, just added: the first item of the tab chosen (sMoveBar) gets the focus.
+void tab_first_item(ImGuiContext &g, int k) {
+    const Item &it = sItem[k];
+    if (it.tabBar == sMoveBar) {
+        if (it.id == sMoveBar->SelectedTabId) {
+            sMoveIn = true;
+        } else if (sMoveIn) {
+            sMoveBar = NULL; // (the tab had no item)
+        }
+        return;
+    }
+    if (!sMoveIn || !navigable(k)) {
+        return;
+    }
+    ImGuiWindow *w = it.window;
+    if (g.CurrentTabBar != sMoveBar || g.NavWindow == NULL || g.NavWindow->RootWindow != w->RootWindow || w->Hidden) {
+        sMoveBar = NULL;
+        return;
+    }
+    if (g.NavWindow != w) {
+        ImGui::SetNavWindow(w);
+    }
+    ImGui::SetNavID(it.id, ImGuiNavLayer_Main, it.scope, ImGui::WindowRectAbsToRel(w, it.nav));
+    sMovedBar = sMoveBar;
+    sMoveBar = NULL;
+}
+
 } // namespace
 
-void ImGuiTestEngineHook_ItemAdd(ImGuiContext *ctx, ImGuiID id, const ImRect &bb, const ImGuiLastItemData *data) {
+void A11yUi_ItemAdd(ImGuiContext *ctx, ImGuiID id, const ImRect &bb, const ImGuiLastItemData *data) {
     ImGuiContext &g = *ctx;
     if (!sReading || id == 0 || sCount == kItems) {
         return;
@@ -564,13 +631,17 @@ void ImGuiTestEngineHook_ItemAdd(ImGuiContext *ctx, ImGuiID id, const ImRect &bb
     if (id == sSliderId && sStep != 0) {
         push_slider(g, id);
     }
+    if (sMoveBar != NULL) {
+        tab_first_item(g, sCount - 1);
+    }
 }
 
-void ImGuiTestEngineHook_ItemInfo(ImGuiContext *ctx, ImGuiID id, const char *label, ImGuiItemStatusFlags flags) {
+void A11yUi_ItemInfo(ImGuiContext *ctx, ImGuiID id, const char *label, ImGuiItemStatusFlags flags) {
     ImGuiContext &g = *ctx;
     if (!sReading || id == 0) {
         return;
     }
+    tab_moved(g, id);
     for (int k = sCount - 1; k >= 0 && k >= sCount - 16; k--) {
         Item &it = sItem[k];
         if (it.id != id) {
@@ -594,13 +665,6 @@ void ImGuiTestEngineHook_ItemInfo(ImGuiContext *ctx, ImGuiID id, const char *lab
     sPendId = id;
     sPendStatus = flags;
     copy_label(sPendLabel, sizeof(sPendLabel), label);
-}
-
-void ImGuiTestEngineHook_Log(ImGuiContext *ctx, const char *fmt, ...) {
-}
-
-const char *ImGuiTestEngine_FindItemDebugLabel(ImGuiContext *ctx, ImGuiID id) {
-    return NULL;
 }
 
 namespace {
@@ -1078,15 +1142,38 @@ void reach(ImGuiWindow *R, int &first, int &last) {
     }
 }
 
-// A window as it appears: its title, its open tab (tab: the focus is not on a tab) and the lines before the first
-// item that can be reached.
-void add_intro(ImGuiContext &g, Speech &sp, ImGuiWindow *R, bool tab, int first) {
-    char title[128];
+// Whether upstream's reader said this frame what the focus is on in a root window: its item, its window's name, its tab
+// and its tooltip. What this file says there then is what that reader does not: the lines around the item.
+bool upstream_reads(ImGuiWindow *R) {
+    for (int k = 0; sUpstream && k < sUpstreamItems; k++) {
+        if (sItem[k].root == R) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Whether a tab bar of root window R has no tab chosen yet: its first frame (the tab is chosen in the next one).
+bool unchosen_bar(ImGuiWindow *R) {
+    for (int k = 0; k < sCount; k++) {
+        if (sItem[k].root == R && sItem[k].tabBar != NULL && sItem[k].tabBar->SelectedTabId == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// A window as it appears: its title (title: upstream's reader does not say it), its open tab (tab: the focus is not
+// on a tab) and the lines before the first item that can be reached.
+void add_intro(ImGuiContext &g, Speech &sp, ImGuiWindow *R, bool tab, int first, bool title) {
+    char name[128];
     if (sShownCount < 16) {
         sShown[sShownCount++] = R->ID;
     }
-    visible_name(R, title, sizeof(title));
-    add_tr(sp, title, ". ");
+    visible_name(R, name, sizeof(name));
+    if (title) {
+        add_tr(sp, name, ". ");
+    }
     for (int j = 0; j < sCount && tab; j++) {
         if (sItem[j].root == R && sItem[j].tabBar && sItem[j].tabBar->SelectedTabId == sItem[j].id) {
             add_tr(sp, sItem[j].label, ". ");
@@ -1197,13 +1284,17 @@ void speak(ImGuiContext &g) {
                 Speech sp = {};
                 Desc d;
                 describe(g, j, d);
-                add_item(g, sp, j, d, true);
-                PortA11y_Say(sp.s, A11Y_INTERRUPT);
-                sTabSaidMs = now;
-                said = true;
+                if (!upstream_reads(sItem[j].root)) { // (that reader says the tab that opens)
+                    add_item(g, sp, j, d, true);
+                    PortA11y_Say(sp.s, A11Y_INTERRUPT);
+                    sTabSaidMs = now;
+                    said = true;
+                }
                 // and the focus goes to it: left on an item of the tab before (gone now), the next press of the D-pad
-                // would go from where that item was, past the first ones of this tab
-                if (focus_item(g, j)) {
+                // would go from where that item was, past the first ones of this tab. In a window upstream's reader
+                // reads, it went to the tab's first item already, as the window was built (tab_first_item): said below
+                if (sMovedBar == bar) {
+                } else if (focus_item(g, j)) {
                     sFocusId = sItem[j].id;
                     sFocusTable = 0;
                     sFocus = d;
@@ -1238,12 +1329,18 @@ void speak(ImGuiContext &g) {
         sComboWait = f >= 0 && w.kind == K_COMBO && sFocus.kind == K_OPTION && !sComboWait;
     }
 
-    if (f >= 0 && !sComboWait) {
+    // A window upstream's reader reads, in the first frame of a tab bar of it: that reader says in the next frame the
+    // tab chosen then, cutting what is said before. The window's introduction waits for that frame, to go after it.
+    ImGuiWindow *H = f >= 0 ? sItem[f].root : g.NavWindow != NULL ? g.NavWindow->RootWindow : NULL;
+    bool hold = H != NULL && !in_list(sShown, sShownCount, H->ID) && upstream_reads(H) && unchosen_bar(H);
+
+    if (f >= 0 && !sComboWait && !hold) {
         const Item &it = sItem[f];
         ImGuiWindow *R = it.root;
         Desc d;
         int fp = piece_of(f);
         bool intro = !in_list(sShown, sShownCount, R->ID), introduced = intro || sIntroOnly == R->ID;
+        bool up = upstream_reads(R); // (the item itself, and what changes of it, are that reader's: said after it)
         describe(g, f, d);
         int label = fp >= 0 ? sPiece[fp].label : -1;
         if (d.label[0] == '\0' && label >= 0) {
@@ -1252,12 +1349,12 @@ void speak(ImGuiContext &g) {
             label = -1;
         }
         Speech sp = {};
-        int flags = now - sTabSaidMs < 600 ? 0 : A11Y_INTERRUPT;
+        int flags = up || now - sTabSaidMs < 600 ? 0 : A11Y_INTERRUPT;
         if (intro || it.id != sFocusId) {
             int first, last;
             reach(R, first, last);
             if (intro) {
-                add_intro(g, sp, R, d.kind != K_TAB, first);
+                add_intro(g, sp, R, d.kind != K_TAB && !up, first, !up);
             }
             // A table: the row's own lines when the row changes, the column's name when the column does
             if (it.table && !it.header) {
@@ -1278,7 +1375,7 @@ void speak(ImGuiContext &g) {
                         }
                     }
                     for (int i = from; i < fp; i++) {
-                        if (sPiece[i].root == R && sPiece[i].item < 0) {
+                        if (sPiece[i].root == R && sPiece[i].item < 0 && !(up && i == label)) {
                             add_piece_speech(g, sp, i);
                         }
                     }
@@ -1287,10 +1384,12 @@ void speak(ImGuiContext &g) {
                     add_tr(sp, it.columnName, ". ");
                 }
             }
-            add_item(g, sp, f, d, true);
+            if (!up) {
+                add_item(g, sp, f, d, true);
+            }
             // A table: the text after it in its row, up to the next item, in the column after its own (the
-            // controller column of a stick's row, that has no button)
-            if (it.table && !it.header) {
+            // controller column of a stick's row, that has no button; upstream's reader says it with the item)
+            if (it.table && !it.header && !up) {
                 ImGuiTable *t = ImGui::TableFindByID(it.table);
                 bool named = false;
                 for (int i = fp + 1; i < sPieces; i++) {
@@ -1346,8 +1445,9 @@ void speak(ImGuiContext &g) {
                     }
                 }
             }
-            // and the text after it on its line (after the last item, the window's own help: said once, below)
-            for (int i = fp + 1; i <= last && fp >= 0 && !it.table; i++) {
+            // and the text after it on its line (after the last item, the window's own help: said once, below; with
+            // upstream's reader, it says that text with the item)
+            for (int i = fp + 1; i <= last && fp >= 0 && !it.table && !up; i++) {
                 if (sPiece[i].root == R) {
                     if (!trails(i)) {
                         break;
@@ -1358,7 +1458,7 @@ void speak(ImGuiContext &g) {
             if (intro) {
                 add_trailing(g, sp, R, last);
             }
-        } else {
+        } else if (!up) {
             // The same item: what changed in it
             if (strcmp(d.label, sFocus.label) != 0) {
                 add_tr(sp, d.label, ". ");
@@ -1393,7 +1493,7 @@ void speak(ImGuiContext &g) {
         if (g.NavId != sTipId) {
             sTipId = 0;
         }
-    } else if (f < 0 && g.NavWindow != NULL && !in_list(sShown, sShownCount, g.NavWindow->RootWindow->ID)) {
+    } else if (f < 0 && !hold && g.NavWindow != NULL && !in_list(sShown, sShownCount, g.NavWindow->RootWindow->ID)) {
         // A window that opens with nothing under the cursor yet (or with an item of a tab that is gone): what it
         // shows, so the first press of the D-pad does not come first
         ImGuiWindow *R = g.NavWindow->RootWindow;
@@ -1401,11 +1501,12 @@ void speak(ImGuiContext &g) {
         Speech sp = {};
         reach(R, first, last);
         if (first >= 0) {
-            add_intro(g, sp, R, true, first);
+            bool up = upstream_reads(R);
+            add_intro(g, sp, R, !up, first, !up);
             add_trailing(g, sp, R, last);
             sIntroOnly = R->ID;
             if (sp.n > 0) {
-                PortA11y_Say(sp.s, A11Y_INTERRUPT);
+                PortA11y_Say(sp.s, up ? 0 : A11Y_INTERRUPT);
                 said = true;
             }
         }
@@ -1459,7 +1560,7 @@ void speak(ImGuiContext &g) {
         tip = {};
         add(tip, sFullTip, ". ");
     }
-    if (tip.n > 0 && f >= 0 && !sComboWait && g.NavCursorVisible && sTipId != g.NavId) {
+    if (tip.n > 0 && f >= 0 && !sComboWait && g.NavCursorVisible && sTipId != g.NavId && !upstream_reads(sItem[f].root)) {
         sTipId = g.NavId;
         PortA11y_Say(tip.s, 0);
         said = true;
@@ -1544,6 +1645,11 @@ void frame_begin(ImGuiContext *ctx, ImGuiContextHook *) {
     sTipOpen = false;
     sTipTemp[0] = '\0';
     sFullTipId = 0;
+    sUpstreamWas = sUpstream;
+    sUpstream = false;
+    sUpstreamItems = 0;
+    sMoveBar = sMovedBar = NULL;
+    sMoveIn = false;
     stick(g);
     ImGui::LogToBuffer(0);
     g.LogWindow = NULL; // (End() of the window that began the log would end it)
@@ -1819,15 +1925,37 @@ void A11yUi_Tab(void) {
     tab_tip(kReader);
 }
 
-// ---- Upstream's reader interface (ui.h) ----
+// ---- Upstream's reader (ui_a11y.cpp) ----
 //
-// Upstream has a reader of its own for these windows (port/src/gs/ui_a11y.cpp, from 0.1.39.3), driven by these calls
-// in ui.cpp and by a line in ImDrawList::AddText (imgui_draw.cpp). This branch reads the windows here instead (with the
-// translations, the tooltips, the chat and the Accessibility tab), so that file is left out and its calls do nothing:
-// both readers at once would define the same Dear ImGui hooks and say every item twice.
-void UiA11y_Frame(int windowOpen, int sayClosed) { (void)windowOpen, (void)sayClosed; }
-void UiA11y_End(void) {}
-void UiA11y_Radio(int selected) { (void)selected; } // (a radio button's state comes from its ItemInfo here)
-void UiA11y_Field(const char *name, const char *text) { (void)name, (void)text; } // (the setup's only)
-void UiA11y_QueueNext(void) {}
-void ImGuiA11yHook_Text(const char *text_begin, const char *text_end) { (void)text_begin, (void)text_end; } // (the log has the texts)
+// A text it says, in the language spoken (tr): the window's pad words, patterns and lines with a sense of their own,
+// that PortA11y_Label alone does not know. Four buffers in turn, so that a few of them can be in one snprintf.
+const char *A11yUi_Words(const char *en) {
+    static char buf[4][2048];
+    static int next;
+    char *out = buf[next++ % 4];
+    if (en == NULL) {
+        out[0] = '\0';
+        return out;
+    }
+    // (runs of spaces as one, as this file finds the window's lines: the window lines words up with them, "D-pad:
+    // move   Cross / A: choose")
+    char one[2048];
+    int o = 0;
+    for (const char *p = en; *p != '\0' && o < (int)sizeof(one) - 1; p++) {
+        if (*p != ' ' || o == 0 || one[o - 1] != ' ') {
+            one[o++] = *p;
+        }
+    }
+    one[o] = '\0';
+    tr(one, out, sizeof(buf[0]));
+    return out;
+}
+
+// ui.cpp, right after UiA11y_End: that reader has said the windows built so far (open: it was on this frame), and its
+// end turned the item hooks off; the ones drawn after it (the notice) are this file's to read, so they go on.
+void A11yUi_UpstreamEnd(int open) {
+    ImGuiContext &g = *GImGui;
+    sUpstream = open && sReading;
+    sUpstreamItems = sCount;
+    g.TestEngineHookItems = sReading;
+}
