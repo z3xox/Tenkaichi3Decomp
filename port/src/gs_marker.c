@@ -455,6 +455,21 @@ static int clip_part(const char *name, int x, int top) {
     if (sMenuScreen == 13 && top && (starts(name, "mc_menu_plate_") || starts(name, "mc_level_plate_") || starts(name, "mc_scenario"))) {
         return PORT_MENU_CENTER; /* (Dragon History: its plates at their true shape, over the scenery that fills) */
     }
+    if ((sMenuScreen == 15 || sMenuScreen == 19 || (sMenuScreen >= 23 && sMenuScreen <= 25)) && top &&
+        (strcmp(name, "mc_single_chara_l") == 0 || strcmp(name, "mc_face_mask_l") == 0)) {
+        return PORT_MENU_CENTER_FREE; /* (the big picture: at its true shape where it is, sliding in too, not taken
+                                         for a moving piece of the page and drawn elsewhere for its first frames) */
+    }
+    if ((sMenuScreen == 21 || sMenuScreen == 22) && top && strcmp(name, "mc_noise") == 0) {
+        return PORT_MENU_FILL; /* (the burst of lines behind the emblem: across the whole width) */
+    }
+    if ((sMenuScreen == 21 || sMenuScreen == 22) && top &&
+        (starts(name, "mc_taikaimoji") || strcmp(name, "mc_flash_ef") == 0 || starts(name, "mc_tournament") ||
+         strcmp(name, "mc_victory_text") == 0 || starts(name, "mc_taikai_text0") || strcmp(name, "mc_menu_title_plate") == 0)) {
+        /* (the World Tournament's opening, its emblem and the ring round it, and its bracket, a strip that scrolls
+           across: at their true shape over the whole wide picture, not stretched or cut at the 4:3 screen's edges) */
+        return PORT_MENU_CENTER_FREE;
+    }
     if ((sMenuScreen == 15 || sMenuScreen == 19 || (sMenuScreen >= 23 && sMenuScreen <= 25)) && top) {
         /* (the character selects of Ultimate Battle and the World Tournament: the player's name plate, picture side
            and their text against the left edge as in the versus one; the roster with its cells in the middle) */
