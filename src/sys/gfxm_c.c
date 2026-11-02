@@ -20,8 +20,7 @@ static int gPortFlashMeasure;  /* FlashDraw_Quad only measures (gPortFlashBox: t
 static float gPortFlashBox[2];
 static int gPortFeather;       /* the clip being drawn fades out at an edge (Port_MenuFeather): 1 left, 2 right */
 static float gPortFeatherW;    /* the band's width */
-static float gPortFeatherEdge; /* where the picture's art is cut (its outer edge) */
-static int gPortMeasureArt;    /* measuring leaves out the mask's quads (they are wider than the picture) */
+static float gPortFeatherEdge; /* where the picture's art is cut: its quad's outer edge, wherever it slides */
 static FlashQuad gPortMaskQuad; /* the last mask drawn (see-through pictures are drawn through it) */
 static FlashTex *gPortMaskTex;
 static int gPortMaskHave;
@@ -700,21 +699,10 @@ void FlashSlot_Draw(FlashSlot *slot, FlashProp *parent, Flash *flash) {
             {
                 int fw;
                 int fside = Port_MenuFeather(clip->name, parent == NULL, &fw);
-                if (fside != 0) { /* (where its art ends: faded there if that is at or past the 4:3 screen's edge) */
-                    gPortFlashMeasure = 1;
-                    gPortMeasureArt = 1;
-                    gPortFlashBox[0] = 1e9f;
-                    gPortFlashBox[1] = -1e9f;
-                    FlashTl_Draw(&clip->tl, &prop);
-                    gPortMeasureArt = 0;
-                    gPortFlashMeasure = 0;
-                    if (gPortFlashBox[0] < gPortFlashBox[1] &&
-                        (fside == 1 ? gPortFlashBox[0] <= 1.0f : gPortFlashBox[1] >= 511.0f)) {
-                        featherPrev = gPortFeather;
-                        gPortFeather = fside;
-                        gPortFeatherW = (f32)fw;
-                        gPortFeatherEdge = fside == 1 ? gPortFlashBox[0] : gPortFlashBox[1];
-                    }
+                if (fside != 0) {
+                    featherPrev = gPortFeather;
+                    gPortFeather = fside;
+                    gPortFeatherW = (f32)fw;
                 }
             }
             {
@@ -962,7 +950,8 @@ static int Port_FeatherQuad(FlashTex *tex, FlashQuad *q) {
     s32 ua, ub, run;
     FlashQuad s;
 
-    if (u1 <= u0 || q->pt[2][0] != x0 || q->pt[3][0] != x1 || x0 == x1) {
+    if (u1 <= u0 || fabsf(q->pt[2][0] - x0) > 0.5f || fabsf(q->pt[3][0] - x1) > 0.5f || x0 == x1) { /* (corners a
+                                                                     fraction apart as it slides: still upright) */
         return 0; /* (only upright quads, not turned) */
     }
     if (x1 < x0) { /* (drawn mirrored: the mask of the right picture) */
@@ -1037,9 +1026,6 @@ void FlashDraw_Quad(FlashTex *tex, FlashQuad *q) {
 #ifdef PORT
     if (gPortFlashMeasure) { /* widescreen menus: where the clip being measured lies (FlashSlot_Draw) */
         s32 i;
-        if (gPortMeasureArt && (q->flags & FLASH_QUAD_MASK_SET)) {
-            return;
-        }
         for (i = 0; i < 4; i++) {
             gPortFlashBox[0] = q->pt[i][0] < gPortFlashBox[0] ? q->pt[i][0] : gPortFlashBox[0];
             gPortFlashBox[1] = q->pt[i][0] > gPortFlashBox[1] ? q->pt[i][0] : gPortFlashBox[1];
@@ -1054,10 +1040,15 @@ void FlashDraw_Quad(FlashTex *tex, FlashQuad *q) {
             gPortMaskTex = tex;
             gPortMaskHave = 1;
         } else if ((q->flags & FLASH_QUAD_MASK) && gPortFeather != 0 && gPortMaskHave) {
+            f32 a = q->pt[0][0] < q->pt[1][0] ? q->pt[0][0] : q->pt[1][0], b = q->pt[0][0] < q->pt[1][0] ? q->pt[1][0] : q->pt[0][0];
+            gPortFeatherEdge = gPortFeather == 1 ? a : b; /* (the picture's edge, not the mask's: it is wider) */
             Port_FeatherQuad(gPortMaskTex, &gPortMaskQuad);
         }
     }
-    if (gPortFeather != 0 && !gPortFeatherBusy && tex != NULL && !(q->flags & FLASH_QUAD_MASK) && Port_FeatherQuad(tex, q)) {
+    if (gPortFeather != 0 && !gPortFeatherBusy && tex != NULL && !(q->flags & FLASH_QUAD_MASK) && !(q->flags & FLASH_QUAD_MASK_SET) &&
+        (gPortFeatherEdge = gPortFeather == 1 ? (q->pt[0][0] < q->pt[1][0] ? q->pt[0][0] : q->pt[1][0])
+                                              : (q->pt[0][0] < q->pt[1][0] ? q->pt[1][0] : q->pt[0][0]),
+         Port_FeatherQuad(tex, q))) {
         /* (the picture, or the mask that map select's see-through pictures are drawn through; not those pictures
            themselves: what shows of them is the mask's alpha, theirs does nothing) */
         return;

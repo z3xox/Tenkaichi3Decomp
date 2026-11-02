@@ -109,9 +109,9 @@ int Port_MenuReelShift(void) {
 }
 
 /* The big pictures of the characters chosen (mc_single_chara_l / _r, the masks over them): on a wide screen their
-   art ends at the 4:3 screen's edge, cut there. Until there is art for the whole width, their outer band fades out
-   (src/sys/gfxm_c.c FlashDraw_Quad): 1 the left picture (from the 4:3 screen's left edge), 2 the right one (to its
-   right edge), 0 any other clip. `width`: the band's, in 4:3 units (BT3_FEATHER over 40). */
+   art is cut at its outer edge (at the 4:3 screen's edge, or past it in map select). Until there is art for the
+   whole width, their outer band fades out (src/sys/gfxm_c.c FlashDraw_Quad): 1 the left picture, 2 the right one,
+   0 any other clip. `width`: the band's, in 4:3 units (BT3_FEATHER over 40). */
 int Port_MenuFeather(const char *name, int top, int *width) {
     static int w = -1;
     int left, right;
@@ -120,7 +120,8 @@ int Port_MenuFeather(const char *name, int top, int *width) {
         w = e != NULL ? atoi(e) : 40;
     }
     *width = w;
-    if (!top || w <= 0 || sMenuScreen < 3 || !Port_MenusWide() || !Port_IsWide()) { /* (any screen that has them) */
+    if (!top || w <= 0 || sMenuScreen < 3 || sMenuScreen == 17 || sMenuScreen == 53 || !Port_MenusWide() || !Port_IsWide()) {
+        /* (any screen that has them but Character Reference: its picture is whole, in a frame) */
         return 0;
     }
     left = strcmp(name, "mc_single_chara_l") == 0 || strcmp(name, "mc_face_mask_l") == 0;
