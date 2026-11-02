@@ -120,8 +120,7 @@ int Port_MenuFeather(const char *name, int top, int *width) {
         w = e != NULL ? atoi(e) : 40;
     }
     *width = w;
-    if (!top || w <= 0 || !Port_MenusWide() || !Port_IsWide() ||
-        !(sMenuScreen == 3 || sMenuScreen == 15 || sMenuScreen == 19 || (sMenuScreen >= 23 && sMenuScreen <= 25))) {
+    if (!top || w <= 0 || sMenuScreen < 3 || !Port_MenusWide() || !Port_IsWide()) { /* (any screen that has them) */
         return 0;
     }
     left = strcmp(name, "mc_single_chara_l") == 0 || strcmp(name, "mc_face_mask_l") == 0;
