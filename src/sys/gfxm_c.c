@@ -20,6 +20,11 @@ static int gPortFlashMeasure;  /* FlashDraw_Quad only measures (gPortFlashBox: t
 static float gPortFlashBox[2];
 static int gPortFeather;       /* the clip being drawn fades out at an edge (Port_MenuFeather): 1 left, 2 right */
 static float gPortFeatherW;    /* the band's width */
+static float gPortFeatherEdge; /* where the picture's art is cut (its outer edge) */
+static int gPortMeasureArt;    /* measuring leaves out the mask's quads (they are wider than the picture) */
+static FlashQuad gPortMaskQuad; /* the last mask drawn (see-through pictures are drawn through it) */
+static FlashTex *gPortMaskTex;
+static int gPortMaskHave;
 static int gPortFeatherBusy;   /* (drawing its slices) */
 static int gPortSpriteExact;   /* FlashDraw_PutSprite takes the u of its quad as it is (the slices of a fading quad) */
 extern int Port_MenuFeather(const char *name, int top, int *width);
@@ -695,10 +700,21 @@ void FlashSlot_Draw(FlashSlot *slot, FlashProp *parent, Flash *flash) {
             {
                 int fw;
                 int fside = Port_MenuFeather(clip->name, parent == NULL, &fw);
-                if (fside != 0) {
-                    featherPrev = gPortFeather;
-                    gPortFeather = fside;
-                    gPortFeatherW = (f32)fw;
+                if (fside != 0) { /* (where its art ends: faded there if that is at or past the 4:3 screen's edge) */
+                    gPortFlashMeasure = 1;
+                    gPortMeasureArt = 1;
+                    gPortFlashBox[0] = 1e9f;
+                    gPortFlashBox[1] = -1e9f;
+                    FlashTl_Draw(&clip->tl, &prop);
+                    gPortMeasureArt = 0;
+                    gPortFlashMeasure = 0;
+                    if (gPortFlashBox[0] < gPortFlashBox[1] &&
+                        (fside == 1 ? gPortFlashBox[0] <= 1.0f : gPortFlashBox[1] >= 511.0f)) {
+                        featherPrev = gPortFeather;
+                        gPortFeather = fside;
+                        gPortFeatherW = (f32)fw;
+                        gPortFeatherEdge = fside == 1 ? gPortFlashBox[0] : gPortFlashBox[1];
+                    }
                 }
             }
             {
@@ -941,19 +957,30 @@ void FlashDraw_Quad(FlashTex *tex, FlashQuad *q);
    in one piece). Returns 0 for a quad not in the band (drawn as it is). */
 static int Port_FeatherQuad(FlashTex *tex, FlashQuad *q) {
     f32 x0 = q->pt[0][0], x1 = q->pt[1][0];
-    f32 edge = gPortFeather == 1 ? 0.0f : 512.0f, w = gPortFeatherW;
+    f32 edge = gPortFeatherEdge, w = gPortFeatherW;
     s32 u0 = q->uv.u0, u1 = q->uv.u1, flip = (q->flags & FLASH_QUAD_FLIPX) != 0;
     s32 ua, ub, run;
     FlashQuad s;
 
-    if (x1 <= x0 || u1 <= u0 || q->pt[2][0] != x0 || q->pt[3][0] != x1) {
+    if (u1 <= u0 || q->pt[2][0] != x0 || q->pt[3][0] != x1 || x0 == x1) {
         return 0; /* (only upright quads, not turned) */
+    }
+    if (x1 < x0) { /* (drawn mirrored: the mask of the right picture) */
+        f32 t = x0;
+        x0 = x1;
+        x1 = t;
+        flip = !flip;
     }
     if (gPortFeather == 1 ? x0 >= edge + w : x1 <= edge - w) {
         return 0;
     }
 #define FEATHER_X(u) (x0 + (x1 - x0) * (f32)(flip ? u1 - (u) : (u) - u0) / (f32)(u1 - u0))
 #define FEATHER_A(x) (gPortFeather == 1 ? ((x) - edge) / w : (edge - (x)) / w)
+    if (q->flags & FLASH_QUAD_MASK_SET) {
+        /* (the mask that the picture is then drawn through, its alpha what shows of it: faded the same way; it
+           clears the alpha plane first, once) */
+        Gfx_ClearScreen(0xFFFFFF, 0);
+    }
     gPortFeatherBusy = 1;
     gPortSpriteExact = 1;
     run = u0;
@@ -975,12 +1002,13 @@ static int Port_FeatherQuad(FlashTex *tex, FlashQuad *q) {
             s = *q;
             s.pt[0][0] = s.pt[2][0] = ra < xb ? ra : xb;
             s.pt[1][0] = s.pt[3][0] = ra < xb ? xb : ra;
-            s.uv.u0 = run == u0 ? run + 1 : run;
-            s.uv.u1 = ub == u1 ? ub - 1 : ub;
-            if (flip) { /* (PutSprite swaps them back) */
-                s32 t = s.uv.u0;
-                s.uv.u0 = s.uv.u1;
-                s.uv.u1 = t;
+            {
+                /* (the slice drawn upright, u0 at its left and u1 at its right: the lower u at the left unless the
+                   texture runs right to left, flipped or the quad mirrored) */
+                s32 lo = run == u0 ? run + 1 : run, hi = ub == u1 ? ub - 1 : ub;
+                s.flags &= ~FLASH_QUAD_FLIPX;
+                s.uv.u0 = flip ? hi : lo;
+                s.uv.u1 = flip ? lo : hi;
             }
             s.rgba[3] = (s32)((f32)q->rgba[3] * a + 0.5f);
             if (s.rgba[3] > 0) {
@@ -1009,14 +1037,29 @@ void FlashDraw_Quad(FlashTex *tex, FlashQuad *q) {
 #ifdef PORT
     if (gPortFlashMeasure) { /* widescreen menus: where the clip being measured lies (FlashSlot_Draw) */
         s32 i;
+        if (gPortMeasureArt && (q->flags & FLASH_QUAD_MASK_SET)) {
+            return;
+        }
         for (i = 0; i < 4; i++) {
             gPortFlashBox[0] = q->pt[i][0] < gPortFlashBox[0] ? q->pt[i][0] : gPortFlashBox[0];
             gPortFlashBox[1] = q->pt[i][0] > gPortFlashBox[1] ? q->pt[i][0] : gPortFlashBox[1];
         }
         return;
     }
-    if (gPortFeather != 0 && !gPortFeatherBusy && tex != NULL && !(q->flags & (FLASH_QUAD_MASK | FLASH_QUAD_MASK_SET)) &&
-        Port_FeatherQuad(tex, q)) {
+    if (!gPortFeatherBusy) {
+        /* (a see-through picture, drawn through the mask before it, in a clip of its own: that mask drawn again,
+           faded the picture's way, just before it) */
+        if ((q->flags & FLASH_QUAD_MASK_SET) && tex != NULL) {
+            gPortMaskQuad = *q;
+            gPortMaskTex = tex;
+            gPortMaskHave = 1;
+        } else if ((q->flags & FLASH_QUAD_MASK) && gPortFeather != 0 && gPortMaskHave) {
+            Port_FeatherQuad(gPortMaskTex, &gPortMaskQuad);
+        }
+    }
+    if (gPortFeather != 0 && !gPortFeatherBusy && tex != NULL && !(q->flags & FLASH_QUAD_MASK) && Port_FeatherQuad(tex, q)) {
+        /* (the picture, or the mask that map select's see-through pictures are drawn through; not those pictures
+           themselves: what shows of them is the mask's alpha, theirs does nothing) */
         return;
     }
 #endif
@@ -1028,6 +1071,9 @@ void FlashDraw_Quad(FlashTex *tex, FlashQuad *q) {
         return;
     }
     if (q->flags & FLASH_QUAD_MASK_SET) {
+#ifdef PORT
+        if (!gPortFeatherBusy) /* (a fading mask's slices: cleared once, before them) */
+#endif
         Gfx_ClearScreen(0xFFFFFF, 0);
         FlashDraw_MaskQuad(q, tex0, 1);
         return;
