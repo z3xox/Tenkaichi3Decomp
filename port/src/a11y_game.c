@@ -3421,7 +3421,9 @@ static void get_win(void) {
     /* The title strips' words (the Spanish disc's; the two the strip cuts short, "desbloq." and "desbloque.", are
        written out, and its "Bola Dragón" is said "Esfera del Dragón", the name Latin America knows, by the owner's
        choice). Of the English, only "Battle Unlocked!" (a recording of the game, docs/port/README.md) and the
-       term Z Points are the game's; the rest is our wording, as the US disc was not at hand. */
+       term Z Points are the game's; the rest is our wording, as the US disc was not at hand. Z Points is also
+       what the save's money is called by the game's own counters (mc_zpoint_suji, mc_num_use_zp) and by the US
+       players' guides, the item shop's prices included; the US manual's "Zenie" for the shop is not followed. */
     switch (kind) {
     case GETWIN_CHARA: label = tr("Character unlocked!"); break;
     case GETWIN_STAGE: label = tr("Battle stage unlocked!"); break;
