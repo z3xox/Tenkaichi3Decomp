@@ -407,7 +407,10 @@ static int clip_part(const char *name, int x, int top) {
             /* (with its mask: the cells outside the bar are hidden by it, so it has to be where they are) */
             return PORT_MENU_LEFT_ALL; /* (the player's roster against the left edge, as the versus one's: the user's choice) */
         }
-        if (starts(name, "mc_custom_") || starts(name, "mc_item_") || starts(name, "mc_icon_item_")) {
+        if (starts(name, "mc_custom_") || starts(name, "mc_color_")) {
+            return PORT_MENU_LEFT_ALL; /* (Custom Select and Select Color: against the left edge as the versus one's) */
+        }
+        if (starts(name, "mc_item_") || starts(name, "mc_icon_item_")) {
             return PORT_MENU_CENTER_ALL;
         }
     }
