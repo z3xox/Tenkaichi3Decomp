@@ -297,6 +297,10 @@ static int clip_part(const char *name, int x, int top) {
             return PORT_MENU_RIGHT;
         }
     }
+    if (sMenuScreen == 3 && top && (starts(name, "mc_dp_total_l_") || starts(name, "mc_dp_total_r_"))) {
+        return name[12] == 'l' ? PORT_MENU_LEFT : PORT_MENU_RIGHT; /* (DP Battle: a team's points, the digits before its
+                                                                      plate's "/ 10", with that plate) */
+    }
     if (sMenuScreen == 3) {
         /* character select: each player's name plates, windows and their text against that player's edge (the
            text is queued and drawn after the screen, Font_Flush, in the part it was queued in). The big pictures
