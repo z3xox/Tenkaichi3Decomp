@@ -56,6 +56,7 @@ enum { PORT_MENU_NONE = -1, PORT_MENU_CENTER, PORT_MENU_FILL, PORT_MENU_LEFT, PO
        PORT_MENU_PAGE_EDGE_TOP, PORT_MENU_PAGE_LIST, PORT_MENU_CENTER_NUDGE, PORT_MENU_LEFT_UP };
 extern int Port_MenusWide(void); /* port/src/plat_stub.c */
 extern int Port_IsWide(void);
+static int starts(const char *name, const char *prefix);
 static int sMenuPart = PORT_MENU_NONE;
 static int sItemPanel; /* a character select's item window is being drawn (Port_MenuItemPanel): 1 the first side's, 2 the other's */
 static int sDuelSettings; /* the versus menu's battle settings are open (or the last of its windows): in the middle */
@@ -127,6 +128,14 @@ int Port_MenuFeather(const char *name, int top, int *width) {
     left = strcmp(name, "mc_single_chara_l") == 0 || strcmp(name, "mc_face_mask_l") == 0;
     right = strcmp(name, "mc_single_chara_r") == 0 || strcmp(name, "mc_face_mask_r") == 0;
     return left ? 1 : right ? 2 : 0;
+}
+
+/* A clip that the 4:3 screen hides by keeping it parked past its right edge, and that a wide screen would show in
+   its margin: World Tournament's bracket, out of the way behind the VS. Such a clip, when it does not move, is not
+   drawn while all of it is past that edge (src/sys/gfxm_c.c FlashSlot_Draw measures it). */
+int Port_MenuParkedClip(const char *name, int top) {
+    return (sMenuScreen == 21 || sMenuScreen == 22) && top && Port_MenusWide() &&
+           (starts(name, "mc_tournament") || strcmp(name, "mc_victory_text") == 0);
 }
 
 /* A character select's item window (Custom 1.. and Right / Left: src/menu/menu_g.c ItemPanel_Draw) is drawn from
@@ -464,11 +473,17 @@ static int clip_part(const char *name, int x, int top) {
         return PORT_MENU_FILL; /* (the burst of lines behind the emblem: across the whole width) */
     }
     if ((sMenuScreen == 21 || sMenuScreen == 22) && top &&
-        (starts(name, "mc_taikaimoji") || strcmp(name, "mc_flash_ef") == 0 || starts(name, "mc_tournament") ||
-         strcmp(name, "mc_victory_text") == 0 || starts(name, "mc_taikai_text0") || strcmp(name, "mc_menu_title_plate") == 0)) {
-        /* (the World Tournament's opening, its emblem and the ring round it, and its bracket, a strip that scrolls
-           across: at their true shape over the whole wide picture, not stretched or cut at the 4:3 screen's edges) */
+        (starts(name, "mc_taikaimoji") || strcmp(name, "mc_flash_ef") == 0)) {
+        /* (the World Tournament's opening, its emblem and the ring round it: at their true shape over the whole wide
+           picture, not stretched or cut at the 4:3 screen's edges) */
         return PORT_MENU_CENTER_FREE;
+    }
+    if ((sMenuScreen == 21 || sMenuScreen == 22) && top &&
+        (starts(name, "mc_tournament") || strcmp(name, "mc_victory_text") == 0 || starts(name, "mc_taikai_text0") ||
+         strcmp(name, "mc_menu_title_plate") == 0)) {
+        /* (its bracket, a strip that scrolls across: at its true shape, whole while it moves (Port_MenuClipMoving),
+           cut at the 4:3 screen's edges once it stops: parked past the right one behind the VS, it is gone) */
+        return PORT_MENU_CENTER_ALL;
     }
     if ((sMenuScreen == 15 || sMenuScreen == 19 || (sMenuScreen >= 23 && sMenuScreen <= 25)) && top) {
         /* (the character selects of Ultimate Battle and the World Tournament: the player's name plate, picture side

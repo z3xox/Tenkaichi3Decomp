@@ -12,6 +12,7 @@
 /* (whole numbers across: the game's code passes floats in other registers than the port's C does) */
 extern int Port_MenuClipPart(const char *name, int x, int top); /* port/src/gs_marker.c: widescreen menus */
 extern int Port_MenuCapMirror(const char *name, int top);
+extern int Port_MenuParkedClip(const char *name, int top);
 extern int Port_MenuReelShift(void);
 extern int Port_MenuClipPlace(int x0, int x1);
 extern int Port_MenuClipMoving(const char *name, int x, int top);
@@ -687,6 +688,23 @@ void FlashSlot_Draw(FlashSlot *slot, FlashProp *parent, Flash *flash) {
             int freePrev = moving ? Port_MenuFree(1) : -1;
             int featherPrev = -1;
             int prev;
+            if (Port_MenuParkedClip(clip->name, parent == NULL)) {
+                /* (the bracket's frame decides: when it is all past the 4:3 screen's right edge, parked there out of
+                   sight, it and the pieces of the bracket there are not drawn; while it is in sight they all are) */
+                static int parked;
+                int frame = strcmp(clip->name, "mc_tournament") == 0;
+                gPortFlashMeasure = 1;
+                gPortFlashBox[0] = 1e9f;
+                gPortFlashBox[1] = -1e9f;
+                FlashTl_Draw(&clip->tl, &prop);
+                gPortFlashMeasure = 0;
+                if (frame) {
+                    parked = gPortFlashBox[0] < gPortFlashBox[1] && gPortFlashBox[0] >= 504.0f;
+                }
+                if (parked && gPortFlashBox[0] < gPortFlashBox[1] && gPortFlashBox[0] >= 504.0f) {
+                    return;
+                }
+            }
             if (part == -2) {
                 gPortFlashMeasure = 1;
                 gPortFlashBox[0] = 1e9f;
