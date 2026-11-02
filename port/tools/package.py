@@ -172,18 +172,20 @@ def take_lang(out):
 
 PRISM_VERSION = "0.18.3"
 PRISM_DLL = "dynamic/release/bin/prism.dll"  # in Prism's prism-windows-x64.zip
+PRISM_DYLIB = "dynamic/release/lib/libprism.dylib"  # in Prism's prism-macos-universal.zip (arm64 and x86_64)
 
-def take_prism(out, lic):
-    """The screen reader's speech library, for the accessible release (Windows): with BT3_PRISM naming Prism's
-    release archive prism-windows-x64.zip of release 0.18.3 (or its prism.dll, with BT3_PRISM_SRC naming a checkout of
-    that release or the unpacked archive), prism.dll goes next to the program with the licences it is shipped under:
+def take_prism(out, lic, member=PRISM_DLL, archive="prism-windows-x64.zip"):
+    """The screen reader's speech library, for the accessible release (Windows, and macOS with member=PRISM_DYLIB):
+    with BT3_PRISM naming Prism's release archive (prism-windows-x64.zip, prism-macos-universal.zip) of release
+    0.18.3 (or the library itself, with BT3_PRISM_SRC naming a checkout of that release or the unpacked archive), the
+    library (prism.dll, libprism.dylib) goes next to the program with the licences it is shipped under:
     Prism's NOTICE and every licence of LICENSES/ (MPL-2.0 for Prism; MIT, BSD, Apache-2.0, LGPL-2.1 and others for
     the code compiled into the library), and the instructions of port/release/a11y. A library without them is not
     shipped: the build stops. Without BT3_PRISM nothing changes, and the reader stays off until the player puts the
     library there; that is the ordinary release, which must not speak to a player who did not ask for it (with the
     library there and no screen reader running, Prism speaks through the system's voice).
-    Windows only for now: the Linux archive does not take Prism's libprism.so (prism-linux-x64.zip has one, in
-    dynamic/release/lib), so on Linux the player puts it next to the program."""
+    Not on Linux for now: the Linux archive does not take Prism's libprism.so (prism-linux-x64.zip has one, in
+    dynamic/release/lib), so there the player puts it next to the program."""
     given = os.environ.get("BT3_PRISM")
     if not given:
         return
@@ -195,19 +197,19 @@ def take_prism(out, lic):
     if given.suffix.lower() == ".zip":
         with zipfile.ZipFile(given) as z:
             names = z.namelist()
-            if PRISM_DLL not in names:
-                sys.exit(f"BT3_PRISM: {given} has no {PRISM_DLL}: not Prism's prism-windows-x64.zip")
-            data = z.read(PRISM_DLL)
+            if member not in names:
+                sys.exit(f"BT3_PRISM: {given} has no {member}: not Prism's {archive}")
+            data = z.read(member)
             for n in names:
                 if (n == "NOTICE" or n == "LICENSE" or n.startswith("LICENSES/")) and not n.endswith("/"):
                     (dest / n).parent.mkdir(parents=True, exist_ok=True)
                     (dest / n).write_bytes(z.read(n))
-        name = "prism.dll"
+        name = pathlib.PurePosixPath(member).name
     else:
         src = pathlib.Path(os.environ.get("BT3_PRISM_SRC") or "/nonexistent")
         if not (src / "NOTICE").is_file() or not (src / "LICENSES").is_dir():
             sys.exit("BT3_PRISM_SRC must name a checkout of Prism's release (or its unpacked archive): "
-                     "prism.dll is shipped with its NOTICE and LICENSES/")
+                     "the library is shipped with its NOTICE and LICENSES/")
         data = given.read_bytes()
         name = given.name
         for p in [src / "NOTICE", src / "LICENSE"] + sorted((src / "LICENSES").rglob("*")):
@@ -376,7 +378,8 @@ def main_win():
 def main_mac():
     """BT3_CC=mac64, on a Mac: bt3_mac (port/tools/link.py), Tenkaichi3Decomp-setup (port/setup/build.sh), and Homebrew's
     SDL3 into lib/. Both programs are made to look for SDL3 only in lib/ (not in Homebrew's folder, whose SDL3 may be
-    another version or not there), and signed again ad hoc (a changed Mach-O file has to be, on Apple Silicon)."""
+    another version or not there), and signed again ad hoc (a changed Mach-O file has to be, on Apple Silicon).
+    With BT3_PRISM (the accessible release), Prism's libprism.dylib beside them, as take_prism does on Windows."""
     out, zpath = ROOT / "port/build/release-mac", ROOT / "port/build/Tenkaichi3Decomp-macos-arm64.zip"
     exe, setup = ROOT / "port/build/bt3_mac", ROOT / "Tenkaichi3Decomp-setup"
     sdl = pathlib.Path(os.environ.get("BT3_SDL3", "/opt/homebrew/opt/sdl3")) / "lib"
@@ -439,6 +442,7 @@ def main_mac():
 
     take_fonts(out, lic)
     take_tbo_art(out, lic)
+    take_prism(out, lic, PRISM_DYLIB, "prism-macos-universal.zip")  # (shipped as Prism signed it: not changed here)
     (out / "textures").mkdir()
     (out / "textures/README.txt").write_text(TEXTURES_NOTE)
     for kind, note in (("stages", STAGES_NOTE), ("songs", SONGS_NOTE), ("mods", MODS_NOTE)):
@@ -458,7 +462,9 @@ def main_mac():
     for p in sorted(out.rglob("*")):
         if p.is_file():
             print(f"  {p.stat().st_size:>10,}  {p.relative_to(out)}")
-    for f in (NAME, "Tenkaichi3Decomp-setup", "lib/libSDL3.0.dylib"):  # the oldest macOS each one starts on
+    for f in (NAME, "Tenkaichi3Decomp-setup", "lib/libSDL3.0.dylib", "libprism.dylib"):  # the oldest macOS each one starts on
+        if not (out / f).exists():
+            continue
         minos = re.search(r"minos (\S+)", tool("otool", "-l", str(out / f)))
         print(f"  {f}: macOS {minos.group(1) if minos else '?'} or later")
 

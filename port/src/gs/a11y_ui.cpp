@@ -1962,7 +1962,8 @@ void A11yUi_Tab(void) {
     }
     tab_tip("Distance, edge and health by a sound; the important moments by the screen reader; where the rival is, a\n"
             "transformation, the Ultimate Blast and the gauges on request by both; the cues at 85 and the music in\n"
-            "fights at 70. Each one can be changed below afterwards. With NVDA or JAWS this is done by itself the first time.");
+            "fights at 70. Each one can be changed below afterwards. With NVDA, JAWS or VoiceOver this is done by itself "
+            "the first time.");
     if (ImGui::Button(label_id("Everything by itself: every alert by sound and screen reader"))) {
         PortA11y_AllByItself();
         PortA11y_Say(shown("Everything by itself on: nothing needs Select."), A11Y_INTERRUPT);
@@ -2082,8 +2083,14 @@ void A11yUi_Tab(void) {
     }
     ImGui::Spacing();
     // (A button, not a line of text: a line after the last item would be said with the next one, Exit game)
+#ifdef __APPLE__
+    // (a11y.c: on macOS the game speaks with AVSpeech before VoiceOver, so the reader's own volume is not the one)
+    static const char kReader[] = "On a Mac the game speaks with the system's own voice, not through VoiceOver: its volume "
+                                  "follows the Mac's volume.";
+#else
     static const char kReader[] = "The screen reader's volume is set in the screen reader itself. With NVDA: NVDA+Control+left "
                                   "or right arrow until Volume, then NVDA+Control+up or down arrow.";
+#endif
     if (ImGui::Button(label_id("Screen reader volume"))) {
         PortA11y_Say(shown(kReader), A11Y_INTERRUPT);
     }

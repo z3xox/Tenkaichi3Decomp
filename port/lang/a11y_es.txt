@@ -1032,6 +1032,8 @@ d5360e2a1f46eb59	Voces del juego en los menús
 d0e741cae2d37bfe	Las voces de los luchadores durante la pelea, por debajo del lector de pantalla.
 # The screen reader's volume is set in the screen reader itself. With NVDA: NVDA+Control+left or right arrow until Volume, then NVDA+Control+up or down arrow.
 94b70106439a5d5d	El volumen del lector de pantalla se cambia en el propio lector. Con NVDA: NVDA+Control+flecha izquierda o derecha hasta Volumen, y después NVDA+Control+flecha arriba o abajo.
+# On a Mac the game speaks with the system's own voice, not through VoiceOver: its volume follows the Mac's volume.
+d755a0470b0a7920	En la Mac el juego habla con la voz del sistema, no a través de VoiceOver: su volumen sigue al volumen de la Mac.
 # button
 1aa9c45c0f9ef371	botón
 # check box
@@ -1488,8 +1490,8 @@ c6c2c5dc93725972	Hola. Este juego habla con tu lector de pantalla. %s repite lo 
 45914f97abac6f5f	Perfil para jugar sin ver: activar lo recomendado
 # Blind player profile on.
 2ae6ea3bed1aaf19	Perfil para jugar sin ver activado.
-# Distance, edge and health by a sound; the important moments by the screen reader; where the rival is, a\ntransformation, the Ultimate Blast and the gauges on request by both; the cues at 85 and the music in\nfights at 70. Each one can be changed below afterwards. With NVDA or JAWS this is done by itself the first time.
-70a01512c725b5d0	Distancia, borde y vida con sonido; los momentos importantes con el lector de pantalla; dónde está el rival, la transformación, el ataque definitivo y el estado a pedido con los dos; los avisos al 85 y la música en la pelea al 70. Cada uno se puede cambiar después aquí abajo. Con NVDA o JAWS esto se hace solo la primera vez.
+# Distance, edge and health by a sound; the important moments by the screen reader; where the rival is, a\ntransformation, the Ultimate Blast and the gauges on request by both; the cues at 85 and the music in\nfights at 70. Each one can be changed below afterwards. With NVDA, JAWS or VoiceOver this is done by itself the first time.
+4d7ca364fb5aee0c	Distancia, borde y vida con sonido; los momentos importantes con el lector de pantalla; dónde está el rival, la transformación, el ataque definitivo y el estado a pedido con los dos; los avisos al 85 y la música en la pelea al 70. Cada uno se puede cambiar después aquí abajo. Con NVDA, JAWS o VoiceOver esto se hace solo la primera vez.
 # In the game, F1 opens the settings: their Accessibility tab has the fight's sounds and the blind player profile, which is turned on by itself with NVDA or JAWS.
 932dbc406cdc5dab	En el juego, F1 abre los ajustes: su pestaña Accesibilidad tiene los sonidos de la pelea y el perfil para jugar sin ver, que se activa solo con NVDA o JAWS.
 # The settings window's texts added by upstream 0.1.36 to 0.1.37.1 (UI, Misc, the chat window), found with
@@ -1988,8 +1990,8 @@ af74a720981faa2a	El juego está instalado.
 3e0fa375cb443088	El juego está instalado y su pelea de demostración salió bien. (%d min %d s)
 # In the game, F1 opens the settings: resolution, widescreen, controls and sound.
 7623b4c546296e9a	En el juego, F1 abre los ajustes: resolución, pantalla ancha, controles y sonido.
-# Their Accessibility tab has the fight's sounds and the blind player profile, which turns on by itself with NVDA or JAWS.
-308e169773c45471	Su pestaña Accesibilidad tiene los sonidos de la pelea y el perfil para jugar sin ver, que se activa solo con NVDA o JAWS.
+# Their Accessibility tab has the fight's sounds and the blind player profile, which turns on by itself with NVDA, JAWS or VoiceOver.
+e45773c91ee7e6d3	Su pestaña Accesibilidad tiene los sonidos de la pelea y el perfil para jugar sin ver, que se activa solo con NVDA, JAWS o VoiceOver.
 # Spanish, German, French and Italian, plus the opening soundtrack: add a European disc image (SLES-54945).
 6c1de9436e462a2a	Español, alemán, francés e italiano, más la música de la introducción: agrega una imagen de disco europea (SLES-54945).
 # Add languages and music...

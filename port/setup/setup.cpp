@@ -704,7 +704,7 @@ static void page_done() {
     ImGui::TextColored(kDim, "In the game, F1 opens the settings: resolution, widescreen, controls and sound.");
     page_words("In the game, F1 opens the settings: resolution, widescreen, controls and sound.");
     {
-        static const char *access = "Their Accessibility tab has the fight's sounds and the blind player profile, which turns on by itself with NVDA or JAWS.";
+        static const char *access = "Their Accessibility tab has the fight's sounds and the blind player profile, which turns on by itself with NVDA, JAWS or VoiceOver.";
         ImGui::TextColored(kDim, "%s", access);
         page_words(access);
     }

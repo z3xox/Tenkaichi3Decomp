@@ -164,7 +164,7 @@ def log_profile(log, on):
         said = [t for b, k, t in log if k != "#" and ("Perfil para jugar sin ver" in t or "Blind player profile" in t)]
         check(len(said) == 1, "el aviso del perfil se dijo %d vez/veces" % len(said), "una sola vez")
     else:
-        check(not applied, "el perfil no se aplicó (lector que no es NVDA ni JAWS)", "que no se aplique")
+        check(not applied, "el perfil no se aplicó (lector que no es NVDA, JAWS ni VoiceOver)", "que no se aplique")
     fights = [t for b, k, t in log if k == "#" and t.startswith("fight alerts:")]
     if not fights:
         print("dato: el registro no tiene ninguna pelea")

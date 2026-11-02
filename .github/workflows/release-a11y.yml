@@ -1,13 +1,16 @@
 # The accessible release (the fork piapenia/Tenkaichi3Decompa11y). A tag v<version>-a11y.<n> (v0.1.38.5-a11y.2) builds
 # the programs as release.yml does, with the screen reader's library (Prism) and the community's controller mappings
-# in the Windows archive, and publishes the release at once, not as a draft, with one download: the Windows archive,
-# ready to install and play,
+# in the Windows archive, and publishes the release at once, not as a draft, with its downloads: the Windows archive,
+# ready to install and play, and the experimental Mac one (Apple Silicon, built as macos.yml does, with Prism's
+# libprism.dylib),
 #     Tenkaichi3Decomp-a11y-<tag>-windows-x64.zip
-# and its link at the top of the notes. GitHub adds the source code to every release by itself ("Source code (zip)"
-# and "(tar.gz)"); the notes say that is not what is played. A tag with -test or -rc in it is published as a
-# pre-release. The Linux archive (no screen reader there yet) is kept as the run's artifact only.
+#     Tenkaichi3Decomp-a11y-<tag>-macos-arm64.zip
+# and their links at the top of the notes. A Mac build that fails does not hold the Windows one back: the release goes
+# out without the Mac archive and without its part of the notes. GitHub adds the source code to every release by
+# itself ("Source code (zip)" and "(tar.gz)"); the notes say that is not what is played. A tag with -test or -rc in it
+# is published as a pre-release. The Linux archive (no screen reader there yet) is kept as the run's artifact only.
 #
-#   a tag v*-a11y*            build, then publish (or, when the tag already has a release, replace its archive and
+#   a tag v*-a11y*            build, then publish (or, when the tag already has a release, replace its archives and
 #                             keep its notes)
 #   "Run workflow" button     the same for a tag that exists (its name asked for): to build a release again
 name: accessible release
@@ -31,9 +34,11 @@ concurrency:
 env:
   TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
   # Prism, the screen reader's library (MPL-2.0, github.com/ethindp/prism): the release every accessible release has
-  # shipped, and the SHA-256 of its prism.dll (licenses/prism/SOURCE.txt of those releases). A newer Prism: both here.
+  # shipped, and the SHA-256 of its prism.dll (licenses/prism/SOURCE.txt of those releases) and of its libprism.dylib
+  # (prism-macos-universal.zip, arm64 and x86_64, macOS 11). A newer Prism: all three here.
   PRISM_VERSION: "0.18.3"
   PRISM_DLL_SHA256: "7c7d09c8c7306e8e1a0c46d603ccb2a391c194c77843400c11b746e7dd56a467"
+  PRISM_DYLIB_SHA256: "42b16bc4bcacae1249bfc4c43f8f1423f8fe2950139278575bfd904a9008fecf"
 
 jobs:
   build:
@@ -83,22 +88,139 @@ jobs:
           name: Tenkaichi3Decomp-linux-x64
           path: port/build/Tenkaichi3Decomp-linux-x64.zip
           if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: a11y-windows
+          path: port/build/Tenkaichi3Decomp-windows-x64.zip
+          if-no-files-found: error
+
+  # The Mac archive, as macos.yml builds it (SDL3 for macOS 11, Homebrew's LLVM, BT3_SKELETON=1), with Prism's
+  # libprism.dylib and the instructions of port/release/a11y. Like the Windows build above, without the release's key
+  # (upstream's secret) and its number.
+  mac:
+    runs-on: macos-15   # Apple Silicon (arm64)
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ env.TAG }}
+
+      - name: SDL3 for macOS 11 (cache)
+        id: sdl
+        uses: actions/cache@v4
+        with:
+          path: sdl3-mac11
+          key: sdl3-3.4.12-macos11-arm64
+
+      - name: SDL3 for macOS 11 (build)
+        if: steps.sdl.outputs.cache-hit != 'true'
+        run: |
+          curl -fsSL -o sdl.tar.gz https://github.com/libsdl-org/SDL/releases/download/release-3.4.12/SDL3-3.4.12.tar.gz
+          tar -xzf sdl.tar.gz
+          cmake -S SDL3-3.4.12 -B sdl-build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$PWD/sdl3-mac11" \
+                -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 \
+                -DSDL_SHARED=ON -DSDL_STATIC=OFF -DSDL_TEST_LIBRARY=OFF -DSDL_TESTS=OFF -DSDL_EXAMPLES=OFF
+          cmake --build sdl-build -j 4 && cmake --install sdl-build
+          rm -rf sdl.tar.gz SDL3-3.4.12 sdl-build
+
+      - name: Tools
+        run: |
+          echo "BT3_SDL3=$PWD/sdl3-mac11" >> "$GITHUB_ENV"
+          brew install llvm shaderc spirv-cross
+          python3 -m venv --system-site-packages .venv
+          .venv/bin/python -m pip install --quiet libclang==18.1.1
+
+      - name: Prism
+        run: |
+          mkdir -p port/build/prism
+          curl -fsSL -o port/build/prism/prism-macos-universal.zip \
+            "https://github.com/ethindp/prism/releases/download/v${PRISM_VERSION}/prism-macos-universal.zip"
+          got=$(unzip -p port/build/prism/prism-macos-universal.zip dynamic/release/lib/libprism.dylib | shasum -a 256 | cut -d' ' -f1)
+          echo "libprism.dylib ${PRISM_VERSION}: ${got}"
+          if [ "$got" != "$PRISM_DYLIB_SHA256" ]; then
+            echo "::error::libprism.dylib is not the one the accessible releases ship (expected ${PRISM_DYLIB_SHA256})"
+            exit 1
+          fi
+
+      - name: Build
+        env:
+          BT3_CC: mac64
+          BT3_SKELETON: "1"
+        run: |
+          mkdir -p port/build
+          .venv/bin/python port/tools/undefined.py > port/build/compile_mac64.txt 2>&1 || { tail -40 port/build/compile_mac64.txt; exit 1; }
+          if grep -q "^FAILED" port/build/compile_mac64.txt; then grep -A12 "^FAILED" port/build/compile_mac64.txt | head -80; exit 1; fi
+          .venv/bin/python port/tools/link.py 2>&1 | tee port/build/link_mac64.txt
+          test -x port/build/bt3_mac
+          sh port/setup/build.sh
+
+      - name: Package
+        env:
+          BT3_CC: mac64
+        run: |
+          BT3_PRISM="$PWD/port/build/prism/prism-macos-universal.zip" .venv/bin/python port/tools/package.py
+          # (an archive without the reader's library or its instructions is not published)
+          list=$(unzip -l port/build/Tenkaichi3Decomp-macos-arm64.zip)
+          for f in libprism.dylib LEEME.txt README-accessibility.txt a11y_es.txt Tenkaichi3Decomp Tenkaichi3Decomp-setup lib/libSDL3.0.dylib; do
+            echo "$list" | grep -q "Tenkaichi3Decomp/$f\$" || { echo "::error::the Mac archive has no $f"; exit 1; }
+          done
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: a11y-mac-build-logs
+          path: port/build/*_mac64.txt
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        with:
+          name: a11y-mac
+          path: port/build/Tenkaichi3Decomp-macos-arm64.zip
+          if-no-files-found: error
+
+  publish:
+    needs: [build, mac]
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ env.TAG }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: a11y-windows
+          path: dl/windows
+      - uses: actions/download-artifact@v4
+        if: needs.mac.result == 'success'
+        with:
+          name: a11y-mac
+          path: dl/mac
 
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          base="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}"
           zip="Tenkaichi3Decomp-a11y-${TAG}-windows-x64.zip"
-          cp port/build/Tenkaichi3Decomp-windows-x64.zip "$zip"
-          url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${zip}"
-          sed -e "s|@ZIP@|${zip}|g" -e "s|@URL@|${url}|g" -e "s|@TAG@|${TAG}|g" port/release/a11y/release-notes.md > notes.md
+          cp dl/windows/Tenkaichi3Decomp-windows-x64.zip "$zip"
+          files="$zip"
+          maczip="Tenkaichi3Decomp-a11y-${TAG}-macos-arm64.zip"
+          if [ -f dl/mac/Tenkaichi3Decomp-macos-arm64.zip ]; then
+            cp dl/mac/Tenkaichi3Decomp-macos-arm64.zip "$maczip"
+            files="$files $maczip"
+            cut='/^<!-- \/\?mac -->$/d'                   # (the Mac parts of the notes stay, without their markers)
+          else
+            echo "::warning::the Mac build failed: the release goes out with the Windows archive alone"
+            cut='/^<!-- mac -->$/,/^<!-- \/mac -->$/d'   # (and the notes without their Mac parts)
+          fi
+          sed -e "$cut" -e "s|@ZIP@|${zip}|g" -e "s|@URL@|${base}/${zip}|g" -e "s|@MACZIP@|${maczip}|g" \
+              -e "s|@MACURL@|${base}/${maczip}|g" -e "s|@TAG@|${TAG}|g" port/release/a11y/release-notes.md > notes.md
           pre=""
           case "$TAG" in *-test*|*-rc*) pre="--prerelease" ;; esac
           if gh release view "$TAG" >/dev/null 2>&1; then
-            # (a release made by hand first, with its notes: they stay; only the archive is this build's)
-            gh release upload "$TAG" "$zip" --clobber
+            # (a release made by hand first, with its notes: they stay; only the archives are this build's)
+            gh release upload "$TAG" $files --clobber
             gh release edit "$TAG" --draft=false $pre
           else
-            gh release create "$TAG" "$zip" --title "Tenkaichi 3 accesible ${TAG#v}" --notes-file notes.md $pre
+            gh release create "$TAG" $files --title "Tenkaichi 3 accesible ${TAG#v}" --notes-file notes.md $pre
           fi
-          echo "published: ${url}"
+          for f in $files; do echo "published: ${base}/${f}"; done

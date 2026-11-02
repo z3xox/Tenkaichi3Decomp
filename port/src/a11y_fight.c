@@ -207,11 +207,12 @@ void PortA11y_AllByItself(void) {
  * and where the rival is (by itself), by both; the cues at 85 %; the music in fights at 70 % (about 3 dB under). The
  * rest as it is by default.
  * The Accessibility tab's first button applies it; and it is applied by itself once, the first time NVDA or JAWS
- * speaks, unless the alerts or the cues' volume were set by hand before (bt3_settings.txt has one of them): the
- * setting a11y_profile is 1 once it was applied, 0 when it was not because of those. With another reader or a voice
- * of the system's nothing is written, so that a later run with NVDA or JAWS still applies it. */
+ * speaks (on macOS: the first time the game speaks with VoiceOver running), unless the alerts or the cues' volume
+ * were set by hand before (bt3_settings.txt has one of them): the setting a11y_profile is 1 once it was applied, 0
+ * when it was not because of those. With another reader or a voice of the system's alone nothing is written, so that
+ * a later run with NVDA, JAWS or VoiceOver still applies it. */
 #define NOT_SET (-12345)
-extern int PortA11y_ReaderKind(void); /* gs/a11y.c: -1 not known yet, 1 NVDA, 2 JAWS */
+extern int PortA11y_ReaderKind(void); /* gs/a11y.c: -1 not known yet, 1 NVDA, 2 JAWS, 3 another, 4 VoiceOver running */
 extern const char *PortA11y_ReaderName(int kind);
 extern void PortA11y_SetCueVolume(int percent);
 extern void PortA11y_SetFightMusic(int percent); /* a11y_game.c */
@@ -257,7 +258,7 @@ int PortA11y_ProfileTick(void) {
         PortA11y_Note("profile: not applied (the alerts were set by hand)");
         return sProfile;
     }
-    if (kind != 1 && kind != 2) {
+    if (kind != 1 && kind != 2 && kind != 4) {
         snprintf(note, sizeof(note), "profile: not applied (reader: %s)", PortA11y_ReaderName(kind));
         PortA11y_Note(note);
         return sProfile;

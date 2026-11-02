@@ -1,7 +1,8 @@
 /*
  * Screen reader output (accessibility): speech and braille through Prism (https://github.com/ethindp/prism,
- * MPL-2.0), loaded at run time from prism.dll (libprism.so elsewhere) in the program's folder. Without that
- * library, and without $BT3_A11Y_LOG, all of this stays off: no thread, no file, no key, nothing said.
+ * MPL-2.0), loaded at run time from prism.dll (libprism.dylib on macOS, libprism.so elsewhere) in the program's
+ * folder. Without that library, and without $BT3_A11Y_LOG, all of this stays off: no thread, no file, no key, nothing
+ * said.
  *
  * One speaker for the whole program. port/src/a11y_game.c (the game's thread, once per blank) says what changed on
  * the game's screens; the render thread's event loops pass their events here for the repeat key and button. The
@@ -40,17 +41,25 @@
  * The screen reader is chosen by trying them: NVDA, then JAWS, then the others in Prism's order. A screen reader
  * is used only when it starts (prism_backend_initialize), not because it is installed: Prism's own "best" choice
  * took NVDA while NVDA was not running (0.16.5).
+ * On macOS the system's own voice (AVSpeechSynthesizer) is tried first instead, as the owner chose (2026-11-02): it
+ * queues and can be cut, which VoiceOver's announcements cannot (Prism has no stop for them and joins what comes
+ * within 15 ms into one); then the others in Prism's order, VoiceOver among them. That voice has no braille, and it
+ * is set to full volume (Prism starts it at half). Whether VoiceOver is running is asked apart, for the blind player
+ * profile (READER_VOICEOVER). Prism hands that voice's calls to the main thread, which on macOS is the game's
+ * (port/src/plat_mem.c) and runs them as it reads its events, once per frame: a frame that takes long delays what
+ * is said, it never holds up the game.
  *
  * Prism's version: written against release 0.18.3, the one to put beside the program. Its header is not in the
- * repository; the eleven functions used are declared below by hand and found by name, and a library without one of
+ * repository; the twelve functions used are declared below by hand and found by name, and a library without one of
  * them is not used. What a later release could change, and what is done about it:
  *   - PrismConfig growing (it is returned by value, into memory of the caller's): the memory given is
  *     PRISM_CONFIG_ROOM bytes, several times the struct of 0.18.3, and none of its fields is read or written here
  *     but the first byte, its `version`, which goes to the log. It is handed back to prism_init as it came.
- *   - not guarded: a change in the parameters of one of the eleven functions, in the feature bits or in the ids of
- *     NVDA and JAWS; a PrismConfig beyond PRISM_CONFIG_ROOM; prism_config_init no longer returning the struct by
- *     value. None of the functions declared here tells the library's version, so there is no check of it at load
- *     time: with another release than 0.18.3 the line "a11y: prism config version" in the output is the only sign.
+ *   - not guarded: a change in the parameters of one of the twelve functions, in the feature bits or in the ids of
+ *     NVDA, JAWS, AVSpeech and VoiceOver; a PrismConfig beyond PRISM_CONFIG_ROOM; prism_config_init no longer
+ *     returning the struct by value. None of the functions declared here tells the library's version, so there is no
+ *     check of it at load time: with another release than 0.18.3 the line "a11y: prism config version" in the output
+ *     is the only sign.
  */
 #include <SDL3/SDL.h>
 #include <math.h>
@@ -92,6 +101,9 @@ static FILE *open_utf8(const char *path, const char *mode) {
 #ifdef _WIN32
 #define PRISM_CALL __cdecl
 #define PRISM_LIB "prism.dll"
+#elif defined(__APPLE__)
+#define PRISM_CALL
+#define PRISM_LIB "libprism.dylib"
 #else
 #define PRISM_CALL
 #define PRISM_LIB "libprism.so"
@@ -117,10 +129,13 @@ typedef union {
 } PrismConfig;
 
 #define PRISM_OK 0
+#define PRISM_SUPPORTED_AT_RUNTIME (1ULL << 0)
 #define PRISM_SUPPORTS_SPEAK (1ULL << 2)
 #define PRISM_SUPPORTS_OUTPUT (1ULL << 5)
 #define PRISM_NVDA 0x89CC19C5C4AC1A56ULL
 #define PRISM_JAWS 0xAC3D60E9BD84B53EULL
+#define PRISM_AV_SPEECH 0x28E3429577805C24ULL
+#define PRISM_VOICE_OVER 0xCB4897961A754BCBULL
 
 static struct {
     PrismConfig(PRISM_CALL *config_init)(void);
@@ -134,6 +149,7 @@ static struct {
     int(PRISM_CALL *initialize)(PrismBackend *backend);
     int(PRISM_CALL *output)(PrismBackend *backend, const char *text, bool interrupt);
     int(PRISM_CALL *speak)(PrismBackend *backend, const char *text, bool interrupt);
+    int(PRISM_CALL *set_volume)(PrismBackend *backend, float volume);
 } P;
 
 static SDL_SharedObject *sLib;
@@ -142,7 +158,8 @@ static int load_prism(void) {
     static const char *const names[] = {"prism_config_init", "prism_init", "prism_registry_count",
                                         "prism_registry_id_at", "prism_registry_name", "prism_registry_create",
                                         "prism_backend_free", "prism_backend_get_features",
-                                        "prism_backend_initialize", "prism_backend_output", "prism_backend_speak"};
+                                        "prism_backend_initialize", "prism_backend_output", "prism_backend_speak",
+                                        "prism_backend_set_volume"};
     SDL_FunctionPointer *slot = (SDL_FunctionPointer *)&P;
     char path[1024];
     const char *base = SDL_GetBasePath(); /* (the program's folder only: not the current one, not the search path) */
@@ -182,55 +199,84 @@ static PrismBackend *try_backend(PrismContext *ctx, uint64_t id) {
     return b;
 }
 
-/* Which screen reader speaks (PortA11y_ReaderKind): -1 not known yet, then READER_. */
+/* Which screen reader the player listens with (PortA11y_ReaderKind): -1 not known yet, then READER_. */
 #define READER_NONE 0
 #define READER_NVDA 1
 #define READER_JAWS 2
-#define READER_OTHER 3 /* another one, or a voice of the system's (SAPI and the like) */
+#define READER_OTHER 3     /* another one, or a voice of the system's (SAPI and the like) */
+#define READER_VOICEOVER 4 /* macOS: VoiceOver is running, whatever speaks the game's words */
 static SDL_AtomicInt sReaderKind = {-1};
 
-static PrismBackend *choose_backend(PrismContext *ctx) {
-    static const uint64_t first[] = {PRISM_NVDA, PRISM_JAWS};
-    PrismBackend *b;
-    uint64_t id;
-    size_t i, n = P.count(ctx);
+/* The READER_ of the backend `id` that speaks. On macOS VoiceOver counts when it is running, the system's voice
+   speaking or not: a VoiceOver backend made and not started says so in its features. */
+static int reader_kind(PrismContext *ctx, uint64_t id) {
+#ifdef __APPLE__
+    PrismBackend *vo = id != PRISM_VOICE_OVER ? P.create(ctx, PRISM_VOICE_OVER) : NULL;
+    int on = vo != NULL && (P.features(vo) & PRISM_SUPPORTED_AT_RUNTIME) != 0;
 
-    for (i = 0; i < 2; i++) {
-        if ((b = try_backend(ctx, first[i])) != NULL) {
-            fprintf(stderr, "a11y: speaking through %s\n", P.name(ctx, first[i]));
-            SDL_SetAtomicInt(&sReaderKind, i == 0 ? READER_NVDA : READER_JAWS);
-            return b;
-        }
+    if (vo != NULL) {
+        P.free_backend(vo);
     }
-    for (i = 0; i < n; i++) {
-        id = P.id_at(ctx, i);
-        if (id != PRISM_NVDA && id != PRISM_JAWS && (b = try_backend(ctx, id)) != NULL) {
-            fprintf(stderr, "a11y: speaking through %s\n", P.name(ctx, id));
-            SDL_SetAtomicInt(&sReaderKind, READER_OTHER);
-            return b;
-        }
+    if (id == PRISM_VOICE_OVER || on) {
+        return READER_VOICEOVER;
     }
-    fprintf(stderr, "a11y: no screen reader or voice started\n");
-    SDL_SetAtomicInt(&sReaderKind, READER_NONE);
-    return NULL;
+#endif
+    (void)ctx;
+    return id == PRISM_NVDA ? READER_NVDA : id == PRISM_JAWS ? READER_JAWS : READER_OTHER;
 }
 
-/* For a11y_fight.c (the blind player profile, applied the first time NVDA or JAWS speaks): which screen reader
-   speaks, READER_*, or -1 while the speaker is still choosing. $BT3_A11Y_READER (tests: "nvda", "jaws", another
-   word for another reader) says it without one. */
+static PrismBackend *choose_backend(PrismContext *ctx) {
+#ifdef __APPLE__
+    static const uint64_t first[] = {PRISM_AV_SPEECH};
+#else
+    static const uint64_t first[] = {PRISM_NVDA, PRISM_JAWS};
+#endif
+    const size_t m = sizeof(first) / sizeof(first[0]);
+    PrismBackend *b = NULL;
+    uint64_t id = 0;
+    size_t i, n = P.count(ctx);
+
+    for (i = 0; i < m && b == NULL; i++) {
+        b = try_backend(ctx, id = first[i]);
+    }
+    for (i = 0; i < n && b == NULL; i++) {
+        id = P.id_at(ctx, i);
+        if (id != first[0] && id != first[m - 1]) { /* (the ones tried above: one or two) */
+            b = try_backend(ctx, id);
+        }
+    }
+    if (b == NULL) {
+        fprintf(stderr, "a11y: no screen reader or voice started\n");
+        SDL_SetAtomicInt(&sReaderKind, READER_NONE);
+        return NULL;
+    }
+    if (id == PRISM_AV_SPEECH) {
+        (void)P.set_volume(b, 1.0f); /* (Prism starts it at 0.5; an utterance's own default is 1) */
+    }
+    fprintf(stderr, "a11y: speaking through %s\n", P.name(ctx, id));
+    SDL_SetAtomicInt(&sReaderKind, reader_kind(ctx, id));
+    return b;
+}
+
+/* For a11y_fight.c (the blind player profile, applied the first time NVDA or JAWS speaks, or on macOS with
+   VoiceOver running): which screen reader the player listens with, READER_*, or -1 while the speaker is still
+   choosing. $BT3_A11Y_READER (tests: "nvda", "jaws", "voiceover", another word for another reader) says it without
+   one. */
 int PortA11y_ReaderKind(void) {
     static int test = -2;
 
     if (test == -2) {
         const char *r = getenv("BT3_A11Y_READER");
-        test = r == NULL ? -1 : SDL_strcasecmp(r, "nvda") == 0 ? READER_NVDA : SDL_strcasecmp(r, "jaws") == 0 ? READER_JAWS : READER_OTHER;
+        test = r == NULL ? -1 : SDL_strcasecmp(r, "nvda") == 0 ? READER_NVDA : SDL_strcasecmp(r, "jaws") == 0 ? READER_JAWS
+               : SDL_strcasecmp(r, "voiceover") == 0 ? READER_VOICEOVER : READER_OTHER;
     }
     return test >= 0 ? test : SDL_GetAtomicInt(&sReaderKind);
 }
 
 /* Its name, for the log. */
 const char *PortA11y_ReaderName(int kind) {
-    return kind == READER_NVDA ? "NVDA" : kind == READER_JAWS ? "JAWS" : kind == READER_OTHER ? "another reader or voice" : "none";
+    return kind == READER_NVDA ? "NVDA" : kind == READER_JAWS ? "JAWS" : kind == READER_VOICEOVER ? "VoiceOver"
+           : kind == READER_OTHER ? "another reader or voice" : "none";
 }
 
 /* ---- the speaker ---- */

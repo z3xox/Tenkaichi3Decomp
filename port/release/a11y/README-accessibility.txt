@@ -11,6 +11,13 @@ To play later, open Tenkaichi3Decomp. Opening the game before it is installed op
 
 If Windows says "Windows protected your PC", choose "More info" and then "Run anyway". It says so because the program has no digital signature.
 
+On a Mac (an experimental version, not yet tried on a Mac): it runs only on Macs with Apple's chip (M1 or later) and macOS 11 or later; on Intel Macs it does not open.
+1. Extract the zip with a double click, beside your disc image.
+2. macOS does not open programs that Apple did not sign, and this one is not. To let it, once: in the Finder, select the Tenkaichi3Decomp folder and press Command+Option+C, which copies its path.
+3. Open Terminal (Command+Space, type Terminal and press Return). Type xattr -dr com.apple.quarantine, a space and a double quote; paste with Command+V; type another double quote and press Return.
+4. Open Tenkaichi3Decomp-setup, inside the folder. A Terminal window opens with it: do not close it while you play.
+On a Mac the game speaks with the system's own voice, apart from VoiceOver, in the system's language, and sends no braille. Its volume follows the Mac's volume. If macOS asks whether it may use your Personal Voice, any answer will do; until you answer, the game does not speak. With VoiceOver running, the blind player profile is turned on by itself the first time. The Mac version does not update itself: each new release is downloaded by hand.
+
 You need your own disc image of the USA release (SLUS-21678), with the game's programs unmodified. Do not share or ask for disc images.
 
 In the game:
