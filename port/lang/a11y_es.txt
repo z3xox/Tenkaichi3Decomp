@@ -463,8 +463,6 @@ efc01e70f86cac66	%sX reproduce una frase, triángulo vuelve
 80d94efed1c0d360	Modelo en pantalla. Triángulo vuelve
 # Item shop
 b3712dcd4b15c8ee	Tienda de objetos
-# . Money: %d zeni. Collection: %d of %d, %d percent
-c6a2e70147f00399	. Dinero: %d zeni. Colección: %d de %d, %d por ciento
 # Tab %d of %d%s. 
 07002e4e059937d9	Pestaña %d de %d%s. 
 # , all
@@ -475,12 +473,6 @@ c6a2e70147f00399	. Dinero: %d zeni. Colección: %d de %d, %d por ciento
 de5e2e2723bc7063	Objeto %d
 # %s, owned
 84ab42d5e3d52796	%s, ya lo tienes
-# %s, %d zeni
-c82d80095f275878	%s, %d zeni
-# Buy %s for %d zeni? You have %d. 
-5d4e05ec12b977f0	¿Comprar %s por %d zeni? Tienes %d. 
-# Bought %s. %d zeni left. X to go on
-5acf97467b7dd114	Compraste %s. Te quedan %d zeni. X para seguir
 # : 1P %s, 2P %s
 e5bdf85006acf000	: jugador 1 %s, jugador 2 %s
 # Duel|screen
@@ -2610,3 +2602,58 @@ e93eb0c7d778f5eb	menús
 f1997f825cedde6a	La partida rápida necesita los datos del disco original, y los datos de tu juego no son los del disco (cambiaron: %s). Con amigos (un código de sala, una sala o una dirección) pueden jugar si los dos tienen los mismos datos.
 # Quick match needs the original disc's data, and your game data are not the disc's (%s differs). With friends (a room code, a lobby or an address) you can play when both have the same data.
 6ec881e33ff214b9	La partida rápida necesita los datos del disco original, y los datos de tu juego no son los del disco (cambiaron: %s). Con amigos (un código de sala, una sala o una dirección) pueden jugar si los dos tienen los mismos datos.
+# The update's line over the main menu and the online screens (gs/ui.cpp, update_line)
+# Update %s available. F1 to update.
+c4946ad068dd0394	Hay una actualización: %s. F1 para actualizar.
+# Downloading update %s: %d%%
+ee1ca1ab61ec70d5	Descargando la actualización %s: %d%%
+# Update %s is ready. F1 > Restart now.
+be803c275f5b19cd	La actualización %s está lista. F1, Reiniciar ahora.
+# . Z points: %d. Collection: %d of %d, %d percent
+ee5f3743676efb36	. Puntos Z: %d. Colección: %d de %d, %d por ciento
+# %s, %d Z points
+fc4b4bc144b50aa1	%s, %d puntos Z
+# Buy %s for %d Z points? You have %d. 
+e352eb3b019579a7	¿Comprar %s por %d puntos Z? Tienes %d. 
+# Bought %s. %d Z points left. X to go on
+c5088a2a0d5f2033	Compraste %s. Te quedan %d puntos Z. X para seguir
+# New character
+e466d19bf5cd35a2	Nuevo personaje
+# New stage
+d8417b41ca27bc8f	Nuevo escenario
+# Item
+52cfa1d198476806	Objeto
+# New saga
+8dfbbaf37631e897	Nueva saga
+# New episode
+f30193d4f3ccebcc	Nuevo episodio
+# Dragon Ball
+ffbecc439c925feb	Esfera del Dragón
+# %d Z points
+7a90fa32e19ee7a9	%d puntos Z
+# Z points earned: %d
+5d47887b9b057a64	Puntos Z ganados: %d
+# You have %d Z points
+00d49b84466b670c	Tienes %d puntos Z
+# Health left: %d percent, %d points
+f3cf9ecc409e7c9a	Vida restante: %d por ciento, %d puntos
+# Longest combo: %d hits, %d points
+f6fe202e7efe3e12	Combo máximo: %d golpes, %d puntos
+# Biggest damage: %d, %d points
+1dec4ba772f83394	Daño máximo: %d, %d puntos
+# Foes beaten: %d, %d points
+268770c250779262	Derrotados: %d, %d puntos
+# Time: %d hours, %d minutes, %d seconds
+294cfe74bb9b52fc	Tiempo: %d horas, %d minutos, %d segundos
+# Time: %d minutes, %d seconds
+78601d065af4a37e	Tiempo: %d minutos, %d segundos
+# Bonus page %d of %d
+28886474a32badee	Página de bonos %d de %d
+# %s, %d points
+b0d78b96e3419953	%s, %d puntos
+# Score: %d. Rank %d of 4
+85b63e3641b27bd0	Puntaje: %d. Rango %d de 4
+# Score: %d
+b01ec5df1afd4766	Puntaje: %d
+# . New record
+4fa36bed3b858f78	. Nuevo récord

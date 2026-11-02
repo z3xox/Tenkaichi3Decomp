@@ -471,24 +471,27 @@ static void say_item(const char *label, int index, int count, int flags) {
    entry 0 is the number of lines) to UTF-16 strings that begin with U+FEFF (src/sys/dialog.c DIALOG_TEXT,
    src/battle/view_b.c TextBox_AttachLine). The strings come after the table, so the table ends where the first
    one starts: an entry from there on is not read. Empty when it does not look like such a line. Returns the
-   length. */
-static int text_line(char *out, int cap, uint32_t GAME_PTR file, int n) {
+   length (text_addr: the string in the game's memory, NULL then). */
+static uint16_t GAME_PTR text_addr(uint32_t GAME_PTR file, int n) {
     uint32_t ofs;
     uint16_t GAME_PTR str;
 
-    out[0] = '\0';
     if (file == NULL || n < 0 || n >= 0x1000 || (uint32_t)n + 1 >= file[1] >> 2) {
-        return 0;
+        return NULL;
     }
     ofs = file[n + 1] >> 2 << 2;
     if (ofs == 0 || ofs >= 0x200000) {
-        return 0;
+        return NULL;
     }
     str = (uint16_t GAME_PTR)((uint8_t GAME_PTR)file + ofs);
-    if (str[0] != 0xFEFF) {
-        return 0;
-    }
-    return PortA11y_Utf8(out, cap, (const uint16_t *)str);
+    return str[0] == 0xFEFF ? str : NULL;
+}
+
+static int text_line(char *out, int cap, uint32_t GAME_PTR file, int n) {
+    uint16_t GAME_PTR str = text_addr(file, n);
+
+    out[0] = '\0';
+    return str != NULL ? PortA11y_Utf8(out, cap, (const uint16_t *)str) : 0;
 }
 
 /* The memory card window: its text when it opens or changes, then the choice under the cursor. */
@@ -2452,7 +2455,7 @@ static void shop(void) {
         if (level != SHOP_LV_MENU) {
             len = (int)strlen(text);
             snprintf(text + len, sizeof(text) - len,
-                     tr(". Money: %d zeni. Collection: %d of %d, %d percent"),
+                     tr(". Z points: %d. Collection: %d of %d, %d percent"),
                      gSaveData->money, s->owned, s->total, s->percent);
         }
         PortA11y_Say(text, follow());
@@ -2491,7 +2494,7 @@ static void shop(void) {
             } else if (owned) {
                 snprintf(text + len, sizeof(text) - len, tr("%s, owned"), name);
             } else if (!(it->flags & WITEM_HIDDEN) && (it->flags & WITEM_SOLD)) {
-                snprintf(text + len, sizeof(text) - len, tr("%s, %d zeni"), name, it->price);
+                snprintf(text + len, sizeof(text) - len, tr("%s, %d Z points"), name, it->price);
             } else {
                 snprintf(text + len, sizeof(text) - len, "%s", name);
             }
@@ -2512,7 +2515,7 @@ static void shop(void) {
                        ? l->ids[l->tab][l->cur[l->tab]]
                        : -1;
             if (item >= 0 && item < SAVE_ITEMS && text_line(name, sizeof(name), s->itemText, item) > 0) {
-                snprintf(text, sizeof(text), tr("Buy %s for %d zeni? You have %d. "),
+                snprintf(text, sizeof(text), tr("Buy %s for %d Z points? You have %d. "),
                          name, s->items[item].price, gSaveData->money);
             }
         }
@@ -2527,7 +2530,7 @@ static void shop(void) {
             if (text_line(name, sizeof(name), s->itemText, s->item) == 0) {
                 snprintf(name, sizeof(name), tr("Item %d"), s->item + 1);
             }
-            snprintf(text, sizeof(text), tr("Bought %s. %d zeni left. X to go on"),
+            snprintf(text, sizeof(text), tr("Bought %s. %d Z points left. X to go on"),
                      name, gSaveData->money);
             PortA11y_Say(text, follow());
         }
@@ -3348,6 +3351,348 @@ static void screen_change(void) {
     }
 }
 
+/* The reward window (include/battle/view_a.h, GetWin): a prize per Setup, in the story's result, the tournament's
+   prizes and the dragon's wishes. Its title strip is a picture of the kind; its lines are lines of the screen's text
+   files (box1 / box2 name the file of each), but the Z points' amount is a number drawn as an image. */
+typedef struct {
+    uint32_t GAME_PTR text[5];    /* 0x000: the screen pack's sections 8, 7, 9, 11, 11 */
+    char unk14[0x334 - 0x14];
+    int kind;                     /* 0x334: GETWIN_ */
+    int box1, box2;               /* 0x338 */
+    int line1, line2;             /* 0x340: -1 = none; GETWIN_MONEY: line2 is the amount */
+    int tall;                     /* 0x348 */
+    int se;                       /* 0x34C: 0 until the first Setup (Init clears the window) */
+} A11yGetWin;
+LAYOUT_ASSERT(sizeof(A11yGetWin) == 0x350 && offsetof(A11yGetWin, kind) == 0x334 && offsetof(A11yGetWin, se) == 0x34C,
+              "GetWin");
+extern A11yGetWin GAME_PTR gGetWin; /* NULL outside those screens */
+#define GETWIN_CHARA 0
+#define GETWIN_STAGE 1
+#define GETWIN_ITEM 3 /* 3..5, by the item's kind */
+#define GETWIN_MONEY 6
+#define GETWIN_SAGA 7
+#define GETWIN_EPISODE 8
+#define GETWIN_BALL 9
+
+/* 1: the string at `str` is a line the reward window shows now (get_win says it, not shown_text). */
+static int getwin_line(uint32_t str) {
+    A11yGetWin GAME_PTR g = gGetWin;
+    uint32_t a;
+    int k, box;
+
+    if (g == NULL || g->se == 0 || str == 0) {
+        return 0;
+    }
+    for (k = 0; k < 2; k++) {
+        box = k ? g->box2 : g->box1;
+        if (box < 0 || box >= 5 || (k && g->kind == GETWIN_MONEY)) {
+            continue;
+        }
+        a = (uint32_t)(uintptr_t)text_addr(g->text[box], k ? g->line2 : g->line1);
+        if (a != 0 && (str == a || str == a + 2)) { /* (with or without the U+FEFF) */
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/* Each prize as the window shows it: its kind and its lines. The first one is queued behind what the screen said;
+   the next ones, which the player calls with the confirm button, cut the last. */
+static void get_win(void) {
+    static uint32_t win;
+    static int kind, line1, line2, said;
+    A11yGetWin GAME_PTR g = gGetWin;
+    char text[A11Y_TEXT], first[256], second[256];
+    const char *label;
+
+    if (g == NULL || g->se == 0) {
+        win = 0;
+        said = 0;
+        return;
+    }
+    if ((uint32_t)(uintptr_t)g == win && g->kind == kind && g->line1 == line1 && g->line2 == line2) {
+        return;
+    }
+    win = (uint32_t)(uintptr_t)g;
+    kind = g->kind;
+    line1 = g->line1;
+    line2 = g->line2;
+    switch (kind) {
+    case GETWIN_CHARA: label = tr("New character"); break;
+    case GETWIN_STAGE: label = tr("New stage"); break;
+    case GETWIN_ITEM:
+    case GETWIN_ITEM + 1:
+    case GETWIN_ITEM + 2: label = tr("Item"); break;
+    case GETWIN_SAGA: label = tr("New saga"); break;
+    case GETWIN_EPISODE: label = tr("New episode"); break;
+    case GETWIN_BALL: label = tr("Dragon Ball"); break;
+    default: label = NULL; break;
+    }
+    if (kind == GETWIN_MONEY) {
+        snprintf(text, sizeof(text), tr("%d Z points"), line2);
+    } else if (label == NULL) {
+        PortA11y_Note("reward window: a kind this reader does not know");
+        return;
+    } else {
+        text_line(first, sizeof(first), g->box1 >= 0 && g->box1 < 5 ? g->text[g->box1] : NULL, line1);
+        text_line(second, sizeof(second), g->box2 >= 0 && g->box2 < 5 ? g->text[g->box2] : NULL, line2);
+        if (first[0] != '\0' && second[0] != '\0') {
+            snprintf(text, sizeof(text), "%s: %s, %s", label, first, second);
+        } else if (first[0] != '\0' || second[0] != '\0') {
+            snprintf(text, sizeof(text), "%s: %s", label, first[0] != '\0' ? first : second);
+        } else {
+            snprintf(text, sizeof(text), "%s", label);
+        }
+    }
+    PortA11y_Say(text, said ? A11Y_INTERRUPT : 0);
+    said = 1;
+}
+
+/* The score sheet of the mission, survival, Sim Dragon and ranking results (include/menu/menu_p.h UbScore; the
+   other three have its layout): lines counted into a total, pages of bonus plates, the rank, and the total paid out
+   as Z points. Every number on it is an image (Num_Draw); the bonus names are lines of the screen's text. */
+typedef struct {
+    int value;                    /* what was measured; a bonus: its line of the screen's text - 0x20 */
+    int remain;                   /* not counted into the total yet */
+    int points;                   /* shown * 100 */
+} A11yScoreLine;
+typedef struct {
+    int total;                    /* 0x000: shown * 100; paid out as that many Z points */
+    int saved;                    /* 0x004: the total, copied as the pay-out starts */
+    int convert;                  /* 0x008 */
+    int unkC;
+    A11yScoreLine line[4];        /* 0x010: health left (percent), longest combo, biggest damage, (survival) foes beaten */
+    A11yScoreLine bonus[48];      /* 0x040: three to a page */
+    int shown[3];                 /* 0x280 */
+    int lineCount;                /* 0x28C */
+    int bonusCount;               /* 0x290 */
+    unsigned ticks;               /* 0x294: the fight's clock */
+    short hours, minutes, seconds, ms, timeLeft, unk2A2;
+    int rank;                     /* 0x2A4: 0 none, 1 (the lowest, drawn as "C") .. 4 */
+} A11yScore;
+LAYOUT_ASSERT(sizeof(A11yScore) == 0x2A8 && offsetof(A11yScore, bonus) == 0x40 && offsetof(A11yScore, lineCount) == 0x28C &&
+              offsetof(A11yScore, hours) == 0x298 && offsetof(A11yScore, rank) == 0x2A4, "UbScore");
+extern uint8_t GAME_PTR gMisResult;  /* src/menu/menu_p_b.c; each NULL outside its screen */
+extern uint8_t GAME_PTR gSurvResult; /* menu_s_c.c */
+extern uint8_t GAME_PTR gSimResult;  /* menu_r_c.c */
+extern uint8_t GAME_PTR gUbResult;   /* menu_n_d.c */
+
+/* Where each screen keeps its sheet's state (MisResult, SurvResult, SimResult, UbResult): the lines count in state 1,
+   the pages turn in state 2, then the pay-out, whose sub step 4 waits with the money paid. */
+typedef struct {
+    uint32_t state, pages, page, record, score, step; /* offsets in the screen's work; record 0: it has none */
+    int money;                    /* the pay-out's state */
+} A11yResultAt;
+static const A11yResultAt kResultAt[4] = {
+    {0x524, 0x544, 0x548, 0x554, 0x56C, 0x818, 3}, /* include/menu/menu_p.h */
+    {0x50C, 0x52C, 0x530, 0x538, 0x544, 0x7F0, 3}, /* menu_s.h */
+    {0x544, 0x564, 0x568, 0, 0x57C, 0x828, 7},     /* menu_r.h (pages: the last page, as in the others) */
+    {0x490, 0x4B0, 0x4B4, 0x4BC, 0x4D0, 0x77C, 3}, /* menu_o.h */
+};
+#define RESULT_COUNT 1
+#define RESULT_PAGES 2
+#define RESULT_PAID 4
+#define RESULT_TEXT 0x00C /* every one's section 12: the bonus names */
+#define RESULT_INT(w, ofs) (*(int GAME_PTR)((w) + (ofs)))
+
+/* The result screen with a score sheet that is up, and which of kResultAt; NULL when none. */
+static uint8_t GAME_PTR result_work(int *which) {
+    uint8_t GAME_PTR w[4];
+    int i;
+
+    w[0] = gMisResult;
+    w[1] = gSurvResult;
+    w[2] = gSimResult;
+    w[3] = gUbResult;
+    for (i = 0; i < 4; i++) {
+        if (w[i] != NULL) {
+            *which = i;
+            return w[i];
+        }
+    }
+    return NULL;
+}
+
+/* 1: the string at `str` is the name on a bonus plate of the sheet that is up (result_sheet says it, not
+   shown_text; the rest of the screen's text, such as the outcome, is left to shown_text). */
+static int result_line(uint32_t str) {
+    int which, k;
+    uint8_t GAME_PTR w = result_work(&which);
+    A11yScore GAME_PTR sc;
+    uint32_t GAME_PTR text;
+    uint32_t a;
+
+    if (w == NULL || str == 0) {
+        return 0;
+    }
+    sc = (A11yScore GAME_PTR)(w + kResultAt[which].score);
+    text = *(uint32_t GAME_PTR GAME_PTR)(w + RESULT_TEXT);
+    for (k = 0; k < sc->bonusCount && k < 48; k++) {
+        a = (uint32_t)(uintptr_t)text_addr(text, sc->bonus[k].value + 0x20);
+        if (a != 0 && (str == a || str == a + 2)) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/* "Z points earned: 1500" into text and "You have 5300 Z points" after it, when have >= 0. */
+static void say_points(int earned, int have, int flags) {
+    char text[256];
+    size_t len;
+
+    text[0] = '\0';
+    if (earned >= 0) {
+        snprintf(text, sizeof(text), tr("Z points earned: %d"), earned);
+    }
+    if (have >= 0) {
+        len = strlen(text);
+        snprintf(text + len, sizeof(text) - len, "%s", len > 0 ? ". " : "");
+        len = strlen(text);
+        snprintf(text + len, sizeof(text) - len, tr("You have %d Z points"), have);
+    }
+    PortA11y_Say(text, flags);
+}
+
+/* Page `page` of a sheet: the lines with their points and the fight's time, or a page of bonus plates. */
+static void say_sheet_page(A11yScore GAME_PTR sc, uint32_t GAME_PTR text, int page, int pages, int flags) {
+    char out[A11Y_TEXT], line[256], name[160];
+    size_t len;
+    int i, k;
+
+    out[0] = '\0';
+    if (page == 0) {
+        for (i = 0; i < sc->lineCount && i < 4; i++) {
+            switch (i) {
+            case 0: snprintf(line, sizeof(line), tr("Health left: %d percent, %d points"), sc->line[i].value, sc->line[i].points * 100); break;
+            case 1: snprintf(line, sizeof(line), tr("Longest combo: %d hits, %d points"), sc->line[i].value, sc->line[i].points * 100); break;
+            case 2: snprintf(line, sizeof(line), tr("Biggest damage: %d, %d points"), sc->line[i].value, sc->line[i].points * 100); break;
+            default: snprintf(line, sizeof(line), tr("Foes beaten: %d, %d points"), sc->line[i].value, sc->line[i].points * 100); break;
+            }
+            len = strlen(out);
+            snprintf(out + len, sizeof(out) - len, "%s%s", len > 0 ? ". " : "", line);
+        }
+        if (sc->hours > 0) {
+            snprintf(line, sizeof(line), tr("Time: %d hours, %d minutes, %d seconds"), sc->hours, sc->minutes, sc->seconds);
+        } else {
+            snprintf(line, sizeof(line), tr("Time: %d minutes, %d seconds"), sc->minutes, sc->seconds);
+        }
+    } else {
+        snprintf(out, sizeof(out), tr("Bonus page %d of %d"), page, pages);
+        for (i = 0; i < 3; i++) {
+            k = (page - 1) * 3 + i; /* (UbScore_SetPage) */
+            if (k >= sc->bonusCount || k >= 48) {
+                break;
+            }
+            if (text_line(name, sizeof(name), text, sc->bonus[k].value + 0x20) == 0) {
+                continue;
+            }
+            snprintf(line, sizeof(line), tr("%s, %d points"), name, sc->bonus[k].points * 100);
+            len = strlen(out);
+            snprintf(out + len, sizeof(out) - len, ". %s", line);
+        }
+        line[0] = '\0';
+    }
+    len = strlen(out);
+    snprintf(out + len, sizeof(out) - len, "%s%s", len > 0 && line[0] != '\0' ? ". " : "", line);
+    if (out[0] != '\0') {
+        PortA11y_Say(out, flags);
+    }
+}
+
+/* The sheets after a mission, a survival, a Sim Dragon day and a ranking fight: each page as it shows, the score
+   and the rank once all is counted, then the Z points the score made. While the game counts, each is queued behind
+   the screen's name and the one before; a page the player turns cuts what was said. */
+static void result_sheet(void) {
+    static uint32_t seen;
+    static int state, page, paid;
+    int which, s, p, n, rec;
+    uint8_t GAME_PTR w = result_work(&which);
+    const A11yResultAt *at;
+    A11yScore GAME_PTR sc;
+    char text[256];
+    size_t len;
+
+    if (w == NULL) {
+        seen = 0;
+        return;
+    }
+    at = &kResultAt[which];
+    if ((uint32_t)(uintptr_t)w != seen) {
+        seen = (uint32_t)(uintptr_t)w;
+        state = page = -1;
+        paid = 0;
+    }
+    sc = (A11yScore GAME_PTR)(w + at->score);
+    s = RESULT_INT(w, at->state);
+    p = RESULT_INT(w, at->page);
+    n = RESULT_INT(w, at->pages);
+    if ((s == RESULT_COUNT || s == RESULT_PAGES) && p != page && p >= 0 && p <= n && n < 17) {
+        say_sheet_page(sc, *(uint32_t GAME_PTR GAME_PTR)(w + RESULT_TEXT), p, n,
+                       s == RESULT_PAGES && state == RESULT_PAGES ? A11Y_INTERRUPT : 0);
+        page = p;
+    }
+    if (s == RESULT_PAGES && state != RESULT_PAGES) {
+        if (sc->rank >= 1 && sc->rank <= 4) {
+            snprintf(text, sizeof(text), tr("Score: %d. Rank %d of 4"), sc->total * 100, sc->rank);
+        } else {
+            snprintf(text, sizeof(text), tr("Score: %d"), sc->total * 100);
+        }
+        rec = at->record != 0 ? RESULT_INT(w, at->record) : 0;
+        if (rec) {
+            len = strlen(text);
+            snprintf(text + len, sizeof(text) - len, "%s", tr(". New record"));
+        }
+        PortA11y_Say(text, 0);
+    }
+    if (s == at->money && RESULT_INT(w, at->step) == RESULT_PAID && !paid && gSaveData != NULL) {
+        paid = 1;
+        say_points(sc->saved, gSaveData->money, 0);
+    }
+    state = s;
+}
+
+/* The story's result (include/menu/menu_c.h, HistResult): after a won fight the points count up (state 2) and wait
+   for the confirm button (3), which pays them out (4); a lost fight shows no points. The numbers are images. */
+typedef struct {
+    char unk0[0x80];
+    int flags;                    /* 0x080: HISTRESULT_ */
+    char unk84[0x90 - 0x84];
+    int state;                    /* 0x090: 0 before the count and after the pay-out; 51.. the reward windows */
+    int points;                   /* 0x094: counted so far, then left to pay */
+    int pointsTotal;              /* 0x098: the fight's Z points */
+    char unk9C[0x140 - 0x9C];
+} A11yHistResult;
+LAYOUT_ASSERT(sizeof(A11yHistResult) == 0x140 && offsetof(A11yHistResult, state) == 0x90, "HistResult");
+extern A11yHistResult GAME_PTR gHistResult; /* NULL outside the screen */
+#define HISTRESULT_LOST 0x20
+
+/* The Z points the story's fight made when the count stops, and what the player has once they are paid. */
+static void hist_result(void) {
+    static uint32_t seen;
+    static int said; /* 1: the points, 2: the new total */
+    A11yHistResult GAME_PTR h = gHistResult;
+
+    if (h == NULL) {
+        seen = 0;
+        return;
+    }
+    if ((uint32_t)(uintptr_t)h != seen) {
+        seen = (uint32_t)(uintptr_t)h;
+        said = 0;
+    }
+    if ((h->flags & HISTRESULT_LOST) || gSaveData == NULL) {
+        return;
+    }
+    if (said == 0 && h->state == 3) {
+        say_points(h->pointsTotal, -1, 0);
+        said = 1;
+    } else if (said == 1 && (h->state == 5 || h->state == 0 || h->state > 50)) {
+        say_points(-1, gSaveData->money, A11Y_INTERRUPT);
+        said = 2;
+    }
+}
+
 /* 1: one of the readers above has this screen (what it draws is not read again from the text). */
 static int own_screen(void) {
     A11yBtlMenu GAME_PTR btl = btl_menu_shown();
@@ -3466,7 +3811,7 @@ static void shown_text(void) {
         if (e->hash == 0 || e->done || e->last < sBlank - 2) { /* (a frame can last two blanks) */
             continue;
         }
-        if (own || e->str == skip) {
+        if (own || e->str == skip || getwin_line(e->str) || result_line(e->str)) {
             e->done = 1;
             continue;
         }
@@ -3518,7 +3863,8 @@ static void shown_text(void) {
         }
         PortA11y_Note(note);
     } else if (text[0] != '\0') {
-        PortA11y_Say(text, follow());
+        /* (over a score sheet, the outcome is queued behind its page: result_sheet) */
+        PortA11y_Say(text, result_work(&k) != NULL ? 0 : follow());
     }
 }
 
@@ -3940,6 +4286,9 @@ void PortA11y_GameTick(void) {
     disc_fusion();
     btl_menu();
     msg_window();
+    result_sheet();
+    hist_result();
+    get_win();
     shown_text();
     fight_gauges();
     fight_cues();

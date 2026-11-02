@@ -157,6 +157,7 @@ ImGuiID sFullTipId;
 char sFullTip[1024];
 bool sComboWait; // back on a combo box from its list: a frame waited for it to show the choice
 char sNotice[512];
+char sUpdate[512]; // the update's line last said (without its percentage: no_percent), kept while the window opens
 struct Bar {
     ImGuiID id, selected;
 } sBar[4];
@@ -200,6 +201,9 @@ const char *const kPatterns[] = {
     "stick %s %s",
     "game %s %s",
     "Update available: 0.%d.%d. F1 for the download page.",
+    "Update %s available. F1 to update.",
+    "Downloading update %s: %d%%",
+    "Update %s is ready. F1 > Restart now.",
     "%dx (%d x %d)",
     "Running now: %s. %s from the next start.",
     "%d pictures a second",
@@ -459,6 +463,21 @@ void add(Speech &sp, const char *text, const char *sep) {
         sp.n += snprintf(sp.s + sp.n, sizeof(sp.s) - sp.n, "%s", s);
     }
     sp.n += snprintf(sp.s + sp.n, sizeof(sp.s) - sp.n, "%s", text);
+}
+
+// A line without the numbers of its percentages ("37%" is "%"): what it says, however far the download has got.
+void no_percent(const char *s, char *out, int size) {
+    int o = 0;
+
+    for (int i = 0; s[i] != '\0' && o + 1 < size; i++) {
+        int k = i;
+        while (s[k] >= '0' && s[k] <= '9') {
+            k++;
+        }
+        i = k > i && s[k] == '%' ? k : i;
+        out[o++] = s[i];
+    }
+    out[o] = '\0';
 }
 
 void add_tr(Speech &sp, const char *en, const char *sep) {
@@ -1553,15 +1572,18 @@ void speak(ImGuiContext &g) {
         }
     }
 
-    // A tooltip over the item that has the focus, once; the notice at the bottom when it changes. The level meters
-    // (##meter) say nothing.
-    Speech tip = {}, notice = {};
+    // A tooltip over the item that has the focus, once; the notice at the bottom when it changes, and the update's line
+    // at the top (##update). The level meters (##meter) say nothing.
+    Speech tip = {}, notice = {}, update = {};
     for (int k = 0; k < sCount; k++) {
         const Item &it = sItem[k];
         if (!it.isWindow || it.window != it.root) {
             continue;
         }
-        Speech *sp = (it.window->Flags & ImGuiWindowFlags_Tooltip) ? &tip : strcmp(it.window->Name, "##notice") == 0 ? &notice : NULL;
+        Speech *sp = (it.window->Flags & ImGuiWindowFlags_Tooltip) ? &tip
+                     : strcmp(it.window->Name, "##notice") == 0   ? &notice
+                     : strcmp(it.window->Name, "##update") == 0   ? &update
+                                                                  : NULL;
         if (sp == NULL) {
             continue;
         }
@@ -1612,6 +1634,15 @@ void speak(ImGuiContext &g) {
             PortA11y_Say(notice.s, 0);
             said = true;
         }
+    }
+    // (the update's line once for each thing it says: not at each step of the download, nor each time the main menu
+    // shows it again; the settings window's top has where it stands)
+    char shape[512];
+    no_percent(update.s, shape, sizeof(shape));
+    if (update.n > 0 && strcmp(shape, sUpdate) != 0) {
+        snprintf(sUpdate, sizeof(sUpdate), "%s", shape);
+        PortA11y_Say(update.s, 0);
+        said = true;
     }
     if (sDebug > 1 || (sDebug && said)) {
         debug_dump(g);
