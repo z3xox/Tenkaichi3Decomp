@@ -12,7 +12,7 @@
 /* (whole numbers across: the game's code passes floats in other registers than the port's C does) */
 extern int Port_MenuClipPart(const char *name, int x, int top); /* port/src/gs_marker.c: widescreen menus */
 extern int Port_MenuCapMirror(const char *name, int top);
-extern int Port_MenuReelShift(const char *name, int top);
+extern int Port_MenuReelShift(void);
 extern int Port_MenuClipPlace(int x0, int x1);
 extern int Port_MenuClipMoving(const char *name, int x, int top);
 extern int Port_MenuFree(int on);
@@ -674,7 +674,6 @@ void FlashSlot_Draw(FlashSlot *slot, FlashProp *parent, Flash *flash) {
             /* widescreen menus: the clip (and what it holds, its text too) anchored as its screen has it
                (port/src/gs_marker.c); a clip whose side goes by where it is is measured first */
             int part = Port_MenuClipPart(clip->name, (int)(prop.mtx.m[2] + (f32)flash->ofs[0]), parent == NULL);
-            prop.mtx.m[2] += (f32)Port_MenuReelShift(clip->name, parent == NULL);
             int moving = Port_MenuClipMoving(clip->name, (int)(prop.mtx.m[2] + (f32)flash->ofs[0]), parent == NULL);
             int freePrev = moving ? Port_MenuFree(1) : -1;
             int prev;
@@ -1171,7 +1170,16 @@ void Flash_Advance(Flash *flash) {
 void Flash_Draw(Flash *flash) {
     Gfx_AddDefaultEnv();
     if (!(flash->flags & FLASH_HIDE)) {
+#ifdef PORT
+        /* widescreen menus: a versus select's roster, all of it (its cells' mask too), moved to have its bar in the
+           middle (port/src/gs_marker.c Port_MenuReelShift) */
+        s32 shift = Port_MenuReelShift();
+        flash->ofs[0] += shift;
         FlashTl_Draw(flash->root, NULL);
+        flash->ofs[0] -= shift;
+#else
+        FlashTl_Draw(flash->root, NULL);
+#endif
     }
 }
 

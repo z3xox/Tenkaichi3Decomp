@@ -1349,7 +1349,8 @@ void TeamSel_Draw(void) {
 #ifdef PORT
     Port_MenuPage(3); /* (also when no backdrop was drawn above) */
     for (i = 0; i < TEAMSEL_FLASH_NUM; i++) {
-        Port_MenuMovie(i); /* (its movies as the one-on-one select's: 1, 3 and 5 the first player's, 2, 4, 6 the other's) */
+        Port_MenuMovie(i == 3 || i == 4 ? i | 0x100 : i); /* (its movies as the one-on-one select's: 1, 3 and 5 the first
+                                                             player's, 2, 4, 6 the other's; 3 and 4 the rosters) */
         Flash_Draw(&gTeamSel->flash[i]);
     }
     Port_MenuMovie(0);

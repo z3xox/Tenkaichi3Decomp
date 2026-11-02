@@ -55,7 +55,6 @@ enum { PORT_MENU_NONE = -1, PORT_MENU_CENTER, PORT_MENU_FILL, PORT_MENU_LEFT, PO
        PORT_MENU_RIGHT_ALL, PORT_MENU_PAGE, PORT_MENU_PAGE_TOP, PORT_MENU_PAGE_EDGE, PORT_MENU_CENTER_FREE, PORT_MENU_SPLIT,
        PORT_MENU_PAGE_EDGE_TOP, PORT_MENU_PAGE_LIST, PORT_MENU_CENTER_NUDGE, PORT_MENU_LEFT_UP };
 extern int Port_MenusWide(void); /* port/src/plat_stub.c */
-static int starts(const char *name, const char *prefix);
 static int sMenuPart = PORT_MENU_NONE;
 static int sItemPanel; /* a character select's item window is being drawn (Port_MenuItemPanel): 1 the first side's, 2 the other's */
 static int sDuelSettings; /* the versus menu's battle settings are open (or the last of its windows): in the middle */
@@ -68,12 +67,19 @@ static int sMenuScreen;              /* PORT_MENU_SCREEN_* of the page being dra
 
 int Port_MenuPart(int part);
 
-/* The screen's movie `index` is drawn next. Character select: movie 1 is the first player's roster and 3 that
-   player's window of customisations, 2 and 4 the other player's: each against that player's edge. */
+/* The screen's movie `index` is drawn next (| PORT_MENU_MOVIE_REEL: a player's roster). Character select: movie 1
+   is the first player's roster and 3 that player's window of customisations, 2 and 4 the other player's: each
+   against that player's edge, the rosters in the middle (the widescreen layout: each bar with both its ends rounded,
+   Port_MenuCapMirror, the whole movie moved by Port_MenuReelShift: its cells' mask too). */
+static int sMenuReel;
 void Port_MenuMovie(int index) {
+    sMenuReel = (index & 0x100) != 0;
+    index &= 0xFF;
     sMenuMovie = index;
     if (sMenuScreen == 3) {
-        Port_MenuPart(index == 0 ? PORT_MENU_CENTER_ALL : index & 1 ? PORT_MENU_LEFT_ALL : PORT_MENU_RIGHT_ALL);
+        Port_MenuPart(index == 0 || (sMenuReel && Port_MenusWide()) ? PORT_MENU_CENTER_ALL
+                      : index & 1                                  ? PORT_MENU_LEFT_ALL
+                                                                   : PORT_MENU_RIGHT_ALL);
     }
 }
 
@@ -89,19 +95,15 @@ int Port_MenuCapMirror(const char *name, int top) {
         const char *e = getenv("BT3_CAP");
         cap = e != NULL ? atoi(e) : 20;
     }
-    if (sMenuScreen != 3 || !top || sMenuMovie == 0 || strcmp(name, "mc_plate") != 0 || !Port_MenusWide()) {
+    if (sMenuScreen != 3 || !top || !sMenuReel || strcmp(name, "mc_plate") != 0 || !Port_MenusWide()) {
         return 0;
     }
     return sMenuMovie & 1 ? cap : -cap;
 }
 
-/* How far a versus select's roster (its bar, cells and arrows: the top clips put in the middle) is moved, so
-   that the bar with both its rounded ends is in the middle: half the mirrored end's way, the other way */
-int Port_MenuReelShift(const char *name, int top) {
-    if (sMenuScreen != 3 || !top || sMenuMovie == 0 || !Port_MenusWide() ||
-        !(strcmp(name, "mc_plate") == 0 || starts(name, "mc_chara_chip_") || starts(name, "mc_yajirusi_"))) {
-        return 0;
-    }
+/* How far the roster movie being drawn (Port_MenuMovie) is moved, so that its bar with both its rounded ends is in
+   the middle: half the mirrored end's way, the other way; 0 for any other movie */
+int Port_MenuReelShift(void) {
     return Port_MenuCapMirror("mc_plate", 1) / 2;
 }
 
@@ -294,11 +296,6 @@ static int clip_part(const char *name, int x, int top) {
         if (starts(name, "mc_guide_") || starts(name, "mc_uide_")) { /* ("mc_uide_ghn_bdl_hair": so named in the movie) */
             return PORT_MENU_RIGHT;
         }
-    }
-    if (sMenuScreen == 3 && top && Port_MenusWide() &&
-        (strcmp(name, "mc_plate") == 0 || starts(name, "mc_chara_chip_") || starts(name, "mc_yajirusi_"))) {
-        return PORT_MENU_CENTER_ALL; /* (the versus selects' rosters, their bar with its cells and arrows, in the middle,
-                                        each bar with both its ends rounded: Port_MenuCapMirror) */
     }
     if (sMenuScreen == 3) {
         /* character select: each player's name plates, windows and their text against that player's edge (the
