@@ -55,6 +55,7 @@ enum { PORT_MENU_NONE = -1, PORT_MENU_CENTER, PORT_MENU_FILL, PORT_MENU_LEFT, PO
        PORT_MENU_RIGHT_ALL, PORT_MENU_PAGE, PORT_MENU_PAGE_TOP, PORT_MENU_PAGE_EDGE, PORT_MENU_CENTER_FREE, PORT_MENU_SPLIT,
        PORT_MENU_PAGE_EDGE_TOP, PORT_MENU_PAGE_LIST, PORT_MENU_CENTER_NUDGE, PORT_MENU_LEFT_UP };
 static int sMenuPart = PORT_MENU_NONE;
+static int sItemPanel; /* a character select's item window is being drawn (Port_MenuItemPanel): 1 the first side's, 2 the other's */
 static int sDuelSettings; /* the versus menu's battle settings are open (or the last of its windows): in the middle */
 
 void Port_MenuDuelSettings(int on) {
@@ -71,6 +72,26 @@ void Port_MenuMovie(int index) {
     sMenuMovie = index;
     if (sMenuScreen == 3) {
         Port_MenuPart(index == 0 ? PORT_MENU_CENTER_ALL : index & 1 ? PORT_MENU_LEFT_ALL : PORT_MENU_RIGHT_ALL);
+    }
+}
+
+int Port_MenuPart(int part);
+
+/* A character select's item window (Custom 1.. and Right / Left: src/menu/menu_g.c ItemPanel_Draw) is drawn from
+   `on` (1 the first side's, 2 the other's) to its end (0), in any of the screens that have one: its name and form
+   plates against the edge of that side, the rest of it (the set's name, the ability limit, the list) against the
+   other, as they are at the 4:3 screen's edges (the other side's window is the first's mirrored). */
+void Port_MenuItemPanel(int on) {
+    static int prev;
+    if (sMenuScreen == 0) {
+        return;
+    }
+    if (on) {
+        sItemPanel = on;
+        prev = Port_MenuPart(on == 1 ? PORT_MENU_RIGHT_ALL : PORT_MENU_LEFT_ALL);
+    } else if (sItemPanel) {
+        sItemPanel = 0;
+        Port_MenuPart(prev);
     }
 }
 
@@ -222,6 +243,13 @@ static int clip_part(const char *name, int x, int top) {
             snprintf(seen[n++], 64, "%s", key);
             fprintf(stderr, "bt3: menu clip %s%s x %d\n", key, top ? " (top)" : "", x);
         }
+    }
+    if (sItemPanel) { /* (Port_MenuItemPanel) */
+        if (top && (strcmp(name, "mc_name_plate") == 0 || strcmp(name, "mc_form_plate") == 0 || strcmp(name, "mc_name_text") == 0 ||
+                    strcmp(name, "mc_form_text") == 0)) {
+            return sItemPanel == 1 ? PORT_MENU_LEFT_ALL : PORT_MENU_RIGHT_ALL;
+        }
+        return !top ? PORT_MENU_NONE : sItemPanel == 1 ? PORT_MENU_RIGHT_ALL : PORT_MENU_LEFT_ALL;
     }
     if (starts(name, "mc_bg_") || starts(name, "mc_kumo_")) { /* (not "mc_bgm_now": the music's plate) */
         return PORT_MENU_FILL;
