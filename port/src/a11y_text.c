@@ -29,6 +29,13 @@
 #else
 #define GAME_PTR *
 #endif
+/* The game's layouts. On Apple arm64 only where its pointers are 4 bytes, as in a11y_game.c: ptr32.py's libclang 18
+   parse there ignores __ptr32, and the compile after it checks them */
+#if defined(__APPLE__) && defined(__aarch64__)
+#define LAYOUT_ASSERT(c, m) _Static_assert(sizeof(void GAME_PTR) != 4 || (c), m)
+#else
+#define LAYOUT_ASSERT(c, m) _Static_assert(c, m)
+#endif
 
 extern const char *PortA11y_ActionName(int player, int action); /* gs/a11y_pad.c */
 extern const char *PortA11y_TrSense(const char *sense, const char *label);
@@ -44,7 +51,7 @@ typedef struct {
     void GAME_PTR icon;
     int scale; /* (a float; not read) */
 } A11yIconEntry;
-_Static_assert(sizeof(A11yIconName) == 0xC && sizeof(A11yIconEntry) == 0xC, "FontIcon");
+LAYOUT_ASSERT(sizeof(A11yIconName) == 0xC && sizeof(A11yIconEntry) == 0xC, "FontIcon");
 extern A11yIconEntry GAME_PTR gFontIconTables[4];
 
 /* The actions of gs_input.c, and three marks that are not one button. */

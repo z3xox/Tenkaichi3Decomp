@@ -30,6 +30,13 @@
 #else
 #define GAME_PTR *
 #endif
+/* The game's layouts. On Apple arm64 only where its pointers are 4 bytes, as in a11y_game.c: ptr32.py's libclang 18
+   parse there ignores __ptr32, and the compile after it checks them */
+#if defined(__APPLE__) && defined(__aarch64__)
+#define LAYOUT_ASSERT(c, m) _Static_assert(sizeof(void GAME_PTR) != 4 || (c), m)
+#else
+#define LAYOUT_ASSERT(c, m) _Static_assert(c, m)
+#endif
 
 #define A11Y_INTERRUPT 1 /* gs/a11y.c */
 extern const char *PortA11y_Tr(const char *label) __attribute__((format_arg(1)));
@@ -58,7 +65,7 @@ typedef struct {
     char unk1C[4];
     A11ySkillList list[2];   /* 0x20 */
 } A11ySkillWork;
-_Static_assert(offsetof(A11ySkillWork, list) == 0x20 && sizeof(A11ySkillList) == 0x80, "BtlMenuWork");
+LAYOUT_ASSERT(offsetof(A11ySkillWork, list) == 0x20 && sizeof(A11ySkillList) == 0x80, "BtlMenuWork");
 extern A11ySkillWork GAME_PTR gBtlMenu;
 extern uint64_t GAME_PTR gSaveData;        /* (as btl_seq.c sees it: only the characters' unlock bits, +0xC10) */
 extern int BtlCtrl_TestMemberUnk70(int side); /* src/battle/btl_tech_a.c (only reads) */
