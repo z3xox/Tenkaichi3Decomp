@@ -54,6 +54,8 @@ void Port_GsMarker(int effect) {
 enum { PORT_MENU_NONE = -1, PORT_MENU_CENTER, PORT_MENU_FILL, PORT_MENU_LEFT, PORT_MENU_RIGHT, PORT_MENU_CENTER_ALL, PORT_MENU_LEFT_ALL,
        PORT_MENU_RIGHT_ALL, PORT_MENU_PAGE, PORT_MENU_PAGE_TOP, PORT_MENU_PAGE_EDGE, PORT_MENU_CENTER_FREE, PORT_MENU_SPLIT,
        PORT_MENU_PAGE_EDGE_TOP, PORT_MENU_PAGE_LIST, PORT_MENU_CENTER_NUDGE, PORT_MENU_LEFT_UP };
+extern int Port_MenusWide(void); /* port/src/plat_stub.c */
+static int starts(const char *name, const char *prefix);
 static int sMenuPart = PORT_MENU_NONE;
 static int sItemPanel; /* a character select's item window is being drawn (Port_MenuItemPanel): 1 the first side's, 2 the other's */
 static int sDuelSettings; /* the versus menu's battle settings are open (or the last of its windows): in the middle */
@@ -76,6 +78,32 @@ void Port_MenuMovie(int index) {
 }
 
 int Port_MenuPart(int part);
+
+/* The versus selects' roster bars (mc_plate), in the middle of a wide screen: the bar's art is as wide as the 4:3
+   screen, rounded at one end and cut at the other, the one at that screen's edge (the label's: 1P, 2P, COM). The bar
+   is drawn once more first, mirrored and moved out by the returned amount, so that its rounded end shows past the
+   cut one: > 0 to the left (the first player's bar, the odd movies), < 0 to the right; 0 for any other clip. */
+int Port_MenuCapMirror(const char *name, int top) {
+    static int cap = -1;
+    if (cap < 0) {
+        const char *e = getenv("BT3_CAP");
+        cap = e != NULL ? atoi(e) : 20;
+    }
+    if (sMenuScreen != 3 || !top || sMenuMovie == 0 || strcmp(name, "mc_plate") != 0 || !Port_MenusWide()) {
+        return 0;
+    }
+    return sMenuMovie & 1 ? cap : -cap;
+}
+
+/* How far a versus select's roster (its bar, cells and arrows: the top clips put in the middle) is moved, so
+   that the bar with both its rounded ends is in the middle: half the mirrored end's way, the other way */
+int Port_MenuReelShift(const char *name, int top) {
+    if (sMenuScreen != 3 || !top || sMenuMovie == 0 || !Port_MenusWide() ||
+        !(strcmp(name, "mc_plate") == 0 || starts(name, "mc_chara_chip_") || starts(name, "mc_yajirusi_"))) {
+        return 0;
+    }
+    return Port_MenuCapMirror("mc_plate", 1) / 2;
+}
 
 /* A character select's item window (Custom 1.. and Right / Left: src/menu/menu_g.c ItemPanel_Draw) is drawn from
    `on` (1 the first side's, 2 the other's) to its end (0), in any of the screens that have one: its name and form
@@ -266,6 +294,11 @@ static int clip_part(const char *name, int x, int top) {
         if (starts(name, "mc_guide_") || starts(name, "mc_uide_")) { /* ("mc_uide_ghn_bdl_hair": so named in the movie) */
             return PORT_MENU_RIGHT;
         }
+    }
+    if (sMenuScreen == 3 && top && Port_MenusWide() &&
+        (strcmp(name, "mc_plate") == 0 || starts(name, "mc_chara_chip_") || starts(name, "mc_yajirusi_"))) {
+        return PORT_MENU_CENTER_ALL; /* (the versus selects' rosters, their bar with its cells and arrows, in the middle,
+                                        each bar with both its ends rounded: Port_MenuCapMirror) */
     }
     if (sMenuScreen == 3) {
         /* character select: each player's name plates, windows and their text against that player's edge (the

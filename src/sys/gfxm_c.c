@@ -11,6 +11,8 @@
 #ifdef PORT
 /* (whole numbers across: the game's code passes floats in other registers than the port's C does) */
 extern int Port_MenuClipPart(const char *name, int x, int top); /* port/src/gs_marker.c: widescreen menus */
+extern int Port_MenuCapMirror(const char *name, int top);
+extern int Port_MenuReelShift(const char *name, int top);
 extern int Port_MenuClipPlace(int x0, int x1);
 extern int Port_MenuClipMoving(const char *name, int x, int top);
 extern int Port_MenuFree(int on);
@@ -672,6 +674,7 @@ void FlashSlot_Draw(FlashSlot *slot, FlashProp *parent, Flash *flash) {
             /* widescreen menus: the clip (and what it holds, its text too) anchored as its screen has it
                (port/src/gs_marker.c); a clip whose side goes by where it is is measured first */
             int part = Port_MenuClipPart(clip->name, (int)(prop.mtx.m[2] + (f32)flash->ofs[0]), parent == NULL);
+            prop.mtx.m[2] += (f32)Port_MenuReelShift(clip->name, parent == NULL);
             int moving = Port_MenuClipMoving(clip->name, (int)(prop.mtx.m[2] + (f32)flash->ofs[0]), parent == NULL);
             int freePrev = moving ? Port_MenuFree(1) : -1;
             int prev;
@@ -684,6 +687,27 @@ void FlashSlot_Draw(FlashSlot *slot, FlashProp *parent, Flash *flash) {
                 part = Port_MenuClipPlace((int)gPortFlashBox[0], (int)gPortFlashBox[1]);
             }
             prev = part >= 0 ? Port_MenuPart(part) : 0;
+            {
+                int cap = Port_MenuCapMirror(clip->name, parent == NULL);
+                if (cap != 0) { /* (the clip mirrored under itself, its rounded end past its cut one, and both not cut
+                                   at the 4:3 screen's edges) */
+                    FlashProp mp = prop;
+                    if (freePrev < 0) {
+                        freePrev = Port_MenuFree(1);
+                    }
+                    gPortFlashMeasure = 1;
+                    gPortFlashBox[0] = 1e9f;
+                    gPortFlashBox[1] = -1e9f;
+                    FlashTl_Draw(&clip->tl, &prop);
+                    gPortFlashMeasure = 0;
+                    if (gPortFlashBox[0] < gPortFlashBox[1]) {
+                        mp.mtx.m[0] = -prop.mtx.m[0];
+                        mp.mtx.m[1] = -prop.mtx.m[1];
+                        mp.mtx.m[2] = gPortFlashBox[0] + gPortFlashBox[1] - prop.mtx.m[2] - 2.0f * (f32)flash->ofs[0] - (f32)cap;
+                        FlashTl_Draw(&clip->tl, &mp);
+                    }
+                }
+            }
 #endif
         FlashTl_Draw(&clip->tl, &prop);
         if (clip->drawOver != NULL) {
