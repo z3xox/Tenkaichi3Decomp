@@ -243,6 +243,12 @@ const char *const kPatterns[] = {
     "code, a lobby or an address) you can play when both have the same data.",
     "Quick match needs the original disc's data, and your game data are not the disc's (%s differs). With friends (a room "
     "code, a lobby or an address) you can play when both have the same data.",
+    "Script mods: Lua scripts in the folder \"%s\" next to the game, one folder per mod with a mod.lua in it. They can "
+    "draw over the picture and change how the fight camera is shown; they cannot change a fight, so they can be used "
+    "online. See docs/port/mods.md.",
+    "Stopped: %s",
+    "by %s",
+    "Folder: %s/%s Uses:%s%s%s",
 };
 // Texts one of them would take too, that have a line of their own
 const char *const kNotPatterns[] = {"Keypad Enter", "Looking for the lobby..."};

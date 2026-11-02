@@ -875,14 +875,14 @@ static int user_file(const char *rel) {
         "saves/",       /* the memory cards */
         "gamedata/",    /* the game's data unpacked from the player's disc; its mods/, the menu text made from the disc,
                            the translations copied there and edited */
-        "mods/",        /* (mods kept beside the folder by some players) */
+        "mods/",        /* the script mods (gs/mods.c), and file mods kept beside the folder by some players */
         "update/",      /* the update's own folder */
         "bars/",        /* bars/faces.txt: the player's own faces of the fight panels */
         "net_session/", /* what an online session leaves for the next start */
         "screenshots/", "replays/", "shots/",
     };
     static const char *const files[] = {
-        "bt3_settings.txt", "bt3_pipelines.txt", "online_name.txt", "zdump.bin", "a11y_log.txt", "a11y_untranslated.txt",
+        "bt3_settings.txt", "bt3_mods.txt", "bt3_pipelines.txt", "online_name.txt", "zdump.bin", "a11y_log.txt", "a11y_untranslated.txt",
         "prism.dll", "libprism.so", /* the screen reader's library, placed there by the player */
     };
     static const char *const own[] = {"textures/", "songs/", "stages/"}; /* packs, added songs and stages */
@@ -984,6 +984,20 @@ typedef struct {
 
 static void path_of(char *out, size_t size, const char *rel, const char *suffix) {
     SDL_snprintf(out, size, "%s%s%s", sU.root, rel, suffix);
+}
+
+/* The script mods that come with a release (port/tools/package.py, mods/<name>/...): a file of one the player does not
+   have yet is installed like the program's own; one they have, changed or not, stays theirs (user_file). So a new
+   example mod reaches a player who updates, and nothing of theirs is overwritten. (One the player deleted comes back,
+   switched off as every mod starts.) */
+static int new_bundled_mod(const char *rel) {
+    char path[1024];
+    SDL_PathInfo info;
+    if (strncmp(rel, "mods/", 5) != 0 || strchr(rel + 5, '/') == NULL) { /* (a mod's folder's files; not mods/README.txt) */
+        return 0;
+    }
+    path_of(path, sizeof(path), rel, "");
+    return !SDL_GetPathInfo(path, &info);
 }
 
 /* Folders a path needs, made; those made are listed in `made` (for undoing). */
@@ -1112,7 +1126,7 @@ static int SDLCALL install_thread(void *arg) {
         if (why[0] != '\0') {
             break;
         }
-        if (user_file(rel)) {
+        if (user_file(rel) && !new_bundled_mod(rel)) {
             fprintf(stderr, "bt3: update: kept yours (the archive has it, it is not written): %s\n", rel);
             kept++;
             continue;

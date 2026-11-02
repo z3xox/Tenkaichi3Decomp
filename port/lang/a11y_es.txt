@@ -2663,3 +2663,33 @@ b01ec5df1afd4766	Puntuación: %d
 36c37fcd46c76f36	¡Superado!
 # . New record
 4fa36bed3b858f78	. Nuevo récord
+# Tech
+24aadbfb1b1a1a11	Técnica
+# Z Counter fix
+5669007533513116	Arreglo del Z Counter
+# Bombardment fix
+475d09bc9f4721b5	Arreglo del Bombardment
+# Fixes for the original game's fighting mechanics, made by the community. Each one changes how fights play, so they are off by default. They apply from the next fight, offline only: online matches and replays always use the game's original rules.
+92b8f31aa6e934ed	Arreglos de la comunidad a las mecánicas de pelea del juego original. Cada uno cambia cómo se juegan las peleas, por eso vienen apagados. Se aplican desde la próxima pelea y solo fuera de línea: las partidas en línea y las repeticiones siempre usan las reglas originales del juego.
+# From the community's "BT3 PS2 Port Gameplay Source" v0.3.1 (Z Counter 2 v0.9.0, Bombardment v2.2).
+8ee8fc5312be5444	Del "BT3 PS2 Port Gameplay Source" v0.3.1 de la comunidad (Z Counter 2 v0.9.0, Bombardment v2.2).
+# In a chain of smash Ki blasts with dashes between them, body contact with the opponent could\nstop the dash one frame before the next smash blast is ready, breaking the chain. With this,\nthat one stop waits one frame, only when the next smash blast is exactly one frame away.\nKi costs, timing (six frames) and priorities stay the original ones.
+4f875d590d538c1d	En una cadena de ráfagas de ki fuertes con impulsos entre ellas, el contacto con el rival podía frenar el impulso un cuadro antes de que la siguiente ráfaga estuviera lista, y la cadena se cortaba. Con esto, ese freno espera un cuadro, solo cuando a la siguiente ráfaga le falta exactamente un cuadro. El costo de ki, los tiempos (seis cuadros) y las prioridades siguen siendo los originales.
+# Keeps a valid Z Counter (Up + attack, timed) that the original game loses when your movement\nchanges your hitbox in the same frame the attack arrives. The input timing, cooldown and\nrequirements stay the original ones; it only checks the counter against your pose at the\nmoment you pressed it.
+49dde00a66628a6f	Mantiene un Z Counter válido (arriba más ataque, a tiempo) que el juego original pierde cuando tu movimiento cambia tu zona de impacto en el mismo cuadro en que llega el ataque. El tiempo para apretar, la espera y los requisitos siguen siendo los originales; solo comprueba el contraataque contra tu postura en el momento en que lo apretaste.
+# Reload the scripts
+96f9865c414e3a6b	Volver a cargar los scripts
+# Loads every mod again from its folder (after adding one, or after changing a script).
+7d8066b541f72ecf	Vuelve a cargar cada mod desde su carpeta (después de agregar uno o de cambiar un script).
+# No mods found.
+73916c06b1b46957	No se encontró ningún mod.
+# Defaults
+48022f6d5501d677	Predeterminados
+# Script mods: Lua scripts in the folder "%s" next to the game, one folder per mod with a mod.lua in it. They can draw over the picture and change how the fight camera is shown; they cannot change a fight, so they can be used online. See docs/port/mods.md.
+a84ae7f1cd7cd90c	Mods con scripts: scripts de Lua en la carpeta "%s" junto al juego, una carpeta por mod con un mod.lua adentro. Pueden dibujar sobre la imagen y cambiar cómo se muestra la cámara de la pelea; no pueden cambiar una pelea, así que se pueden usar en línea. Más información en docs/port/mods.md.
+# Stopped: %s
+9aade808f42f35d0	Detenido: %s
+# by %s
+08632c48ec96c7f8	de %s
+# Folder: %s/%s Uses:%s%s%s
+84a20807c097273a	Carpeta: %s/%s. Usa:%s%s%s

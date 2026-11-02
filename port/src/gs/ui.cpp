@@ -8,6 +8,7 @@
 #include <string.h>
 #include <stdint.h>
 #include "imgui.h"
+#include "imgui_internal.h" // ImGuiTabBar: the settings window as wide as its tabs
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_sdlgpu3.h"
 #include "imgui_impl_opengl3.h"
@@ -114,6 +115,9 @@ extern "C" volatile int gPortSpecMenuAsk;
 volatile int gPortSpecMenuAsk;
 extern "C" void Port_UiNotice(const char *text);
 static void spec_view_next(void);               // watching a match: the next view (player 1, player 2, both)
+void ModsUi_Tab(void);                          // gs/mods_ui.cpp: the settings window's Mods tab
+void ModsUi_Draw(void);                         // ... the script mods' shapes over the picture
+extern "C" int Mods_HudActive(void);            // gs/mods.c: they drew something at the last blank
 static const char *spec_view_name(int view);
 static int sForceTab = -1;                     // BT3_UI_OPEN=<tab>: open at start on that tab (testing)
 static int sCapKind, sCapPlayer, sCapAction;   // waiting for a key (1) or a controller button (2) to bind
@@ -595,13 +599,17 @@ int Ui_Init(SDL_Window *window, SDL_GPUDevice *device, void *gl_context, const c
             sForceTab = -1;
             gPortNetMenuRequest = 1;
         }
-        if (sForceTab == 8) { // testing: the exit question
+        if (sForceTab == 10) { // testing: the Tech tab (8 is the exit question's)
+            sForceTab = 9;
+        } else if (sForceTab == 11) { // testing: the Mods tab
+            sForceTab = 8;
+        } else if (sForceTab == 8) { // testing: the exit question
             sForceTab = -1;
             sQuit = true;
             PortQuit_Request();
         }
-        if (sForceTab == 10) { // testing: the Accessibility tab (its own index, 8, is the exit question's code)
-            sForceTab = 8;
+        if (sForceTab == 12) { // testing: the Accessibility tab (its own index, 10, is the Tech tab's code)
+            sForceTab = 10;
         }
         sOpen = !sQuit;
         gPortOverlayOpen = 1;
@@ -624,9 +632,9 @@ static void set_open(bool open) {
         chat_close();
     }
     if (open && A11yUi_Tabs() && !(Port_Setting("a11y_tour", 0) & 2)) {
-        // The first time the window opens with the reader on: on the Accessibility tab, the last of nine, where
+        // The first time the window opens with the reader on: on the Accessibility tab, the last of eleven, where
         // the fight's sounds and the blind player profile are (a11y_tour bit 1; the welcome is bit 0, a11y_game.c)
-        sForceTab = 8;
+        sForceTab = 10;
         Port_SettingSave("a11y_tour", Port_Setting("a11y_tour", 0) | 2);
         Port_SettingsWrite();
     }
@@ -2059,6 +2067,38 @@ extern "C" int Port_GameSpeed(void);          // plat_stub.c: the player's own g
 extern "C" void Port_GameSpeedSet(int percent);
 extern "C" void Port_AudioRefresh(void);
 
+// The community's fixes of the game's fighting mechanics (port/src/bt3_zcounter2.c, bt3_bombardment.c): each one on or
+// off, read when a fight starts (src/battle/btl_char_mgr.c). Off, the game's own code runs, unchanged. Never online
+// (both players would have to agree on them) and never in a replay (it was recorded with the game's own rules).
+static void tech_tab(void) {
+    ImGui::TextWrapped("Fixes for the original game's fighting mechanics, made by the community. Each one changes how fights "
+                       "play, so they are off by default. They apply from the next fight, offline only: online matches and "
+                       "replays always use the game's original rules.");
+    ImGui::Spacing();
+    bool z = Port_Setting("tech_zcounter2", 0) != 0;
+    if (ImGui::Checkbox("Z Counter fix", &z)) {
+        Port_SettingSave("tech_zcounter2", z);
+        Port_SettingsWrite();
+    }
+    ImGui::SetItemTooltip("Keeps a valid Z Counter (Up + attack, timed) that the original game loses when your movement\n"
+                          "changes your hitbox in the same frame the attack arrives. The input timing, cooldown and\n"
+                          "requirements stay the original ones; it only checks the counter against your pose at the\n"
+                          "moment you pressed it.");
+    bool b = Port_Setting("tech_bombardment", 0) != 0;
+    if (ImGui::Checkbox("Bombardment fix", &b)) {
+        Port_SettingSave("tech_bombardment", b);
+        Port_SettingsWrite();
+    }
+    ImGui::SetItemTooltip("In a chain of smash Ki blasts with dashes between them, body contact with the opponent could\n"
+                          "stop the dash one frame before the next smash blast is ready, breaking the chain. With this,\n"
+                          "that one stop waits one frame, only when the next smash blast is exactly one frame away.\n"
+                          "Ki costs, timing (six frames) and priorities stay the original ones.");
+    ImGui::Spacing();
+    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+    ImGui::TextWrapped("From the community's \"BT3 PS2 Port Gameplay Source\" v0.3.1 (Z Counter 2 v0.9.0, Bombardment v2.2).");
+    ImGui::PopStyleColor();
+}
+
 static void cheats_tab(void) {
     {
         int speed = Port_GameSpeed();
@@ -2360,7 +2400,7 @@ static void build(void) {
         open = false;
     }
     if (sForceTab < 0 && (pad_pressed(ImGuiKey_GamepadL1) || pad_pressed(ImGuiKey_GamepadR1))) {
-        sForceTab = (sTab + (ImGui::IsKeyPressed(ImGuiKey_GamepadL1, false) ? 7 + A11yUi_Tabs() : 1)) % (8 + A11yUi_Tabs());
+        sForceTab = (sTab + (ImGui::IsKeyPressed(ImGuiKey_GamepadL1, false) ? 9 + A11yUi_Tabs() : 1)) % (10 + A11yUi_Tabs());
         sPadTab = true;
     }
     ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.5f), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
@@ -2452,7 +2492,18 @@ static void build(void) {
             if (tab("Cheats", 5)) { cheats_tab(); ImGui::EndTabItem(); }
             if (tab("Misc", 6)) { misc_tab(); ImGui::EndTabItem(); }
             if (tab("Online", 7)) { online_tab(); ImGui::EndTabItem(); }
-            if (A11yUi_Tabs() && tab("Accessibility", 8)) { A11yUi_Tab(); ImGui::EndTabItem(); }
+            if (tab("Mods", 8)) { ModsUi_Tab(); ImGui::EndTabItem(); }
+            if (tab("Tech", 9)) { tech_tab(); ImGui::EndTabItem(); }
+            if (A11yUi_Tabs() && tab("Accessibility", 10)) { A11yUi_Tab(); ImGui::EndTabItem(); }
+            { // the window as wide as its row of tabs needs, at the menu's size (all in sight, none squeezed)
+                ImGuiTabBar *bar = ImGui::GetCurrentContext()->CurrentTabBar;
+                ImGuiWindow *win = ImGui::FindWindowByName("Settings"); // (the tabs' content is a child: the window itself)
+                float need = bar != NULL && bar->WidthAllTabsIdeal > 0.0f ? bar->WidthAllTabsIdeal - bar->BarRect.GetWidth() : 0.0f;
+                if (win != NULL && need > 0.5f) {
+                    float w = win->Size.x + need + U(2.0f), most = io.DisplaySize.x * 0.96f;
+                    ImGui::SetWindowSize("Settings", ImVec2(w < most ? w : most, win->Size.y));
+                }
+            }
             ImGui::EndTabBar();
         }
         ImGui::EndChild();
@@ -3028,11 +3079,12 @@ static bool frame_build(void) {
     Uint64 now = SDL_GetTicks();
     bool saving = save_icon_on(now) && sReady && gUiPresentW > 0 && gUiPresentH > 0;
     bool watched = sReady && Port_NetWatchers() > 0 && !sOpen;  // a player's: who watches the match
+    bool mods = sReady && Mods_HudActive();                      // the script mods drew over the picture (gs/mods.c)
     meter_count();
     sBuilt = false;
     bool upd = updLine[0] != '\0';
     UiA11y_Frame(sReady && sOpen && !sQuit, !sQuit); // (the screen reader in the windows: ui_a11y.cpp)
-    if (!sReady || (!sOpen && !sQuit && !notice && !overlay && !meter && !names && !bars && !chat && !banner && !saving && !watched && !upd)) {
+    if (!sReady || (!sOpen && !sQuit && !notice && !overlay && !meter && !names && !bars && !chat && !banner && !saving && !watched && !upd && !mods)) {
         return false;
     }
     if (sPadHold && sCapKind != 2) { // a binding was taken: the controller works the window again once nothing is held
@@ -3074,6 +3126,7 @@ static bool frame_build(void) {
     if (bars) {
         bars_draw();
     }
+    ModsUi_Draw(); // (the script mods' shapes over the picture: gs/mods_ui.cpp)
     if (sOpen) {
         if (sNet) {
             build_net();

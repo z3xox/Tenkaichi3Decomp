@@ -44,7 +44,7 @@ In the game, F1 opens the settings: resolution, widescreen, controls and sound.
 With the European languages added, the first launch shows a language list in the game window before loading game or memory card data. Change it later with F1 > UI > Language.
 Saves are kept in saves/. A file placed in gamedata/mods/<same path as the original> replaces the original.
 Texture packs (PCSX2 naming, .dds or .png) go into textures/, stages and music from outside the disc into
-stages/ and songs/: see the note in each folder.
+stages/ and songs/: see the note in each folder. Script mods (Lua) go into mods/: see mods/README.txt.
 F1 > UI has three font settings, all starting on "Original": "Menu font" draws menu labels, "Battle font" draws
 announcements and HUD text, and "Dialogue / UI font" draws the game's ordinary text. Their fonts and licences are
 in fonts/. To add a .ttf, put it there and list it in fonts.tsv. The third column says where it can be used:
@@ -115,6 +115,24 @@ not listed while the .mp3 is there (it can be deleted). Anything else (ogg, m4a.
 Optional: a file songs.txt here, one line per song, "file|Name In The Menu", gives other names and an order.
 
 Added songs are not written to your save, and they are not offered in an online match (Tenkaichi Budokai Online).
+"""
+
+
+MODS_NOTE = """Script mods.
+
+Each mod is a folder here with a file mod.lua in it (a Lua script): mods/<name>/mod.lua. A mod can draw over the
+game's picture, read the fight (health, ki, positions) and change how the fight camera is shown. It cannot change a
+fight, read or write files or reach the network, so mods can be used in an online match.
+
+In the game, F1 > Mods lists them: switch each on or off, change its settings, see why one stopped, and load them all
+again after adding or changing one. Your choices are kept in bt3_mods.txt. A mod starts switched off.
+
+The ones that come with the game: modern_hud (a HUD in the style of later games), modern_camera (inertia, tilt, hit
+reactions, distance, height and zoom), modern_look (anime shading, rim light, colours, ambient shadows), skill_list
+(your moves and their buttons while you hold charge), and two small examples to start from (example_hud,
+example_camera).
+
+How to write one: docs/port/mods.md in the source repository.
 """
 
 
@@ -256,6 +274,14 @@ def take_fonts(out, lic):
             if p.name == "LICENSE":
                 shutil.copy2(p, lic / f"{p.parent.name}-fonts.txt")
 
+def take_example_mods(out):
+    """The example script mods (port/examples/mods) into mods/, each in its own folder. A mod starts switched off, so
+    they change nothing until the player switches one on in F1 > Mods. (The automatic update leaves mods/ alone: a
+    player who updates keeps their own mods and gets these from a fresh download.)"""
+    src = ROOT / "port/examples/mods"
+    for d in sorted(p for p in src.iterdir() if p.is_dir() and (p / "mod.lua").exists()):
+        shutil.copytree(d, out / "mods" / d.name)
+
 def take_tbo_art(out, lic):
     """The pictures of the Tenkaichi Budokai Online screens, and who made them (port/tbo/ui/CREDITS.md)."""
     src = ROOT / "port/tbo/ui"
@@ -320,6 +346,7 @@ def main_win():
     shutil.copy2(ROOT / "port/third_party/xxhash/LICENSE", lic / "xxhash.txt")
     shutil.copy2(ROOT / "port/third_party/miniaudio/LICENSE", lic / "miniaudio.txt")
     shutil.copy2(ROOT / "port/third_party/miniz/LICENSE", lic / "miniz.txt")
+    shutil.copy2(ROOT / "port/third_party/lua/LICENSE", lic / "lua.txt")  # (the script mods)
     shutil.copy2(ROOT / "port/third_party/monocypher/LICENCE.md", lic / "monocypher.txt")  # (the update's signature check)
 
     take_fonts(out, lic)
@@ -328,9 +355,10 @@ def main_win():
     take_gamecontrollerdb(out, lic)
     (out / "textures").mkdir()
     (out / "textures/README.txt").write_text(TEXTURES_NOTE.replace("\n", "\r\n"))
-    for kind, note in (("stages", STAGES_NOTE), ("songs", SONGS_NOTE)):
+    for kind, note in (("stages", STAGES_NOTE), ("songs", SONGS_NOTE), ("mods", MODS_NOTE)):
         (out / kind).mkdir()
         (out / kind / "README.txt").write_text(note.replace("\n", "\r\n"))
+    take_example_mods(out)
     (lic / "sdl3.txt").write_text("SDL3 (SDL3.dll) is distributed under the zlib license: https://www.libsdl.org/license.php\n")
     for f in (out / "Tenkaichi3Decomp.exe", out / "Tenkaichi3Decomp-setup.exe"):
         subprocess.run([toolchain.PREFIX + "strip", "--strip-debug", str(f)], check=False)
@@ -406,15 +434,17 @@ def main_mac():
     shutil.copy2(ROOT / "port/third_party/xxhash/LICENSE", lic / "xxhash.txt")
     shutil.copy2(ROOT / "port/third_party/miniaudio/LICENSE", lic / "miniaudio.txt")
     shutil.copy2(ROOT / "port/third_party/miniz/LICENSE", lic / "miniz.txt")
+    shutil.copy2(ROOT / "port/third_party/lua/LICENSE", lic / "lua.txt")  # (the script mods)
     shutil.copy2(ROOT / "port/third_party/monocypher/LICENCE.md", lic / "monocypher.txt")  # (the update's signature check)
 
     take_fonts(out, lic)
     take_tbo_art(out, lic)
     (out / "textures").mkdir()
     (out / "textures/README.txt").write_text(TEXTURES_NOTE)
-    for kind, note in (("stages", STAGES_NOTE), ("songs", SONGS_NOTE)):
+    for kind, note in (("stages", STAGES_NOTE), ("songs", SONGS_NOTE), ("mods", MODS_NOTE)):
         (out / kind).mkdir()
         (out / kind / "README.txt").write_text(note)
+    take_example_mods(out)
     (lic / "sdl3.txt").write_text("SDL3 (lib/libSDL3.0.dylib) is distributed under the zlib license: https://www.libsdl.org/license.php\n")
     if zpath.exists():
         zpath.unlink()
@@ -459,6 +489,7 @@ def main():
     shutil.copy2(ROOT / "port/third_party/xxhash/LICENSE", lic / "xxhash.txt")
     shutil.copy2(ROOT / "port/third_party/miniaudio/LICENSE", lic / "miniaudio.txt")
     shutil.copy2(ROOT / "port/third_party/miniz/LICENSE", lic / "miniz.txt")
+    shutil.copy2(ROOT / "port/third_party/lua/LICENSE", lic / "lua.txt")  # (the script mods)
     shutil.copy2(ROOT / "port/third_party/monocypher/LICENCE.md", lic / "monocypher.txt")  # (the update's signature check)
 
     take_fonts(OUT, lic)
@@ -466,9 +497,10 @@ def main():
     take_gamecontrollerdb(OUT, lic)
     (OUT / "textures").mkdir()
     (OUT / "textures/README.txt").write_text(TEXTURES_NOTE)
-    for kind, note in (("stages", STAGES_NOTE), ("songs", SONGS_NOTE)):
+    for kind, note in (("stages", STAGES_NOTE), ("songs", SONGS_NOTE), ("mods", MODS_NOTE)):
         (OUT / kind).mkdir()
         (OUT / kind / "README.txt").write_text(note)
+    take_example_mods(OUT)
     (lic / "sdl3.txt").write_text("SDL3 (lib/libSDL3.so.0) is distributed under the zlib license: https://www.libsdl.org/license.php\n")
     for f in (OUT / "Tenkaichi3Decomp", OUT / "Tenkaichi3Decomp-setup"):
         subprocess.run(["strip", "--strip-debug", str(f)], check=False)  # the symbol names stay (crash reports use them)
