@@ -78,7 +78,7 @@ e001d184ecd2118f	Desierto, mediodía
 # Muscle Tower
 cb4c2d8c53dd93e3	Torre Músculo
 # Mount Paozu
-d88567c52795b11f	Monte Paozu
+d88567c52795b11f	Montaña Paoz
 # Wasteland - Evening
 4c476b1a3472d743	Yermos, tarde
 # Wasteland - Night
@@ -164,11 +164,11 @@ a458c5015ed94d30	Transformación
 # Very Strong
 3942ee29c6331e2c	Muy fuerte
 # Ox-King
-f10bf0d8985a32ee	Rey Ox
+f10bf0d8985a32ee	Ox Satán
 # Videl
 85186d61e0d560c5	Videl
 # Supreme Kai
-5e7de8d5b0fcffa7	Kaiyoshin
+5e7de8d5b0fcffa7	Supremo Kaiosama
 # Announcer 1
 890339300643b24b	Locutor 1
 # Announcer 2
