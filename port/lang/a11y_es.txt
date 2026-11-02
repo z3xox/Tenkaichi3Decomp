@@ -1018,6 +1018,14 @@ bdae693f8670e0ae	a donde se estaba. Los controles del anfitrión también maneja
 814673eebd1d3b2b	Sonidos y voces de la accesibilidad. El lector de pantalla tiene su propio volumen: lo explica el último botón.
 # Screen reader volume
 74d8db8d07159c36	Volumen del lector
+# Speed of the Mac's voice
+5330a1718ac56851	Velocidad de la voz de la Mac
+# How fast the game's words are said. 50 is the Mac's usual speed; more is faster.
+751756e03bbc8c17	Qué tan rápido se dicen las palabras del juego. 50 es la velocidad habitual de la Mac; más es más rápido.
+# Volume of the Mac's voice
+bf2e4358a2815ebc	Volumen de la voz de la Mac
+# How loud the game's words are said, in percent of the Mac's own volume. It goes no lower than 10, so that\nthe voice is always heard.
+4e6b14544c74fc0f	Qué tan fuerte se dicen las palabras del juego, en porcentaje del volumen de la Mac. No baja de 10, para que la voz siempre se escuche.
 # Cue sounds
 17a1621c0e524514	Sonidos de aviso
 # The short sounds of a fight: a transformation or the Ultimate Blast within reach. 0 turns them off.
@@ -1032,8 +1040,10 @@ d5360e2a1f46eb59	Voces del juego en los menús
 d0e741cae2d37bfe	Las voces de los luchadores durante la pelea, por debajo del lector de pantalla.
 # The screen reader's volume is set in the screen reader itself. With NVDA: NVDA+Control+left or right arrow until Volume, then NVDA+Control+up or down arrow.
 94b70106439a5d5d	El volumen del lector de pantalla se cambia en el propio lector. Con NVDA: NVDA+Control+flecha izquierda o derecha hasta Volumen, y después NVDA+Control+flecha arriba o abajo.
-# On a Mac the game speaks with the system's own voice, not through VoiceOver: its volume follows the Mac's volume.
-d755a0470b0a7920	En la Mac el juego habla con la voz del sistema, no a través de VoiceOver: su volumen sigue al volumen de la Mac.
+# On a Mac the game speaks with the system's own voice, not through VoiceOver: its speed and its volume are the first two sliders of this tab, under the Mac's own volume.
+a7213a7d29b623f5	En la Mac el juego habla con la voz del sistema, no a través de VoiceOver: su velocidad y su volumen son los dos primeros deslizadores de esta pestaña, por debajo del volumen de la Mac.
+# VoiceOver's volume is set in VoiceOver itself.
+1c8e45e970c75ea1	El volumen de VoiceOver se cambia en el propio VoiceOver.
 # button
 1aa9c45c0f9ef371	botón
 # check box

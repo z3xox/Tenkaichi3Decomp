@@ -45,6 +45,11 @@ const char *PortA11y_TrSense(const char *sense, const char *label);
 void PortA11y_Say(const char *text, int flags);
 int PortA11y_CueVolume(void);
 void PortA11y_SetCueVolume(int percent);
+int PortA11y_VoiceOwn(void); // 1 while the Mac's own voice speaks, with the two below
+int PortA11y_VoiceRate(void);
+void PortA11y_SetVoiceRate(int percent);
+int PortA11y_VoiceVolume(void);
+void PortA11y_SetVoiceVolume(int percent);
 int PortA11y_Voices(int fight); // a11y_game.c
 void PortA11y_SetVoices(int fight, int percent);
 int PortA11y_FightMusic(void);
@@ -1972,6 +1977,21 @@ void A11yUi_Tab(void) {
             "themselves as they change: nothing needs Select, and the fight is full of sounds and words. Each one can be\n"
             "changed below afterwards.");
     ImGui::Spacing();
+    // The Mac's own voice (a11y.c: AVSpeech through Prism) takes a speed and a volume; NVDA, JAWS and VoiceOver keep theirs
+    if (PortA11y_VoiceOwn()) {
+        v = PortA11y_VoiceRate();
+        // (Just the number: a format chosen by the value is drawn once with the old one's words and the new number)
+        if (tab_slider("Speed of the Mac's voice", &v, 10, 100, "%d")) {
+            PortA11y_SetVoiceRate(v);
+        }
+        tab_tip("How fast the game's words are said. 50 is the Mac's usual speed; more is faster.");
+        v = PortA11y_VoiceVolume();
+        if (tab_slider("Volume of the Mac's voice", &v, 10, 100, "%d%%")) {
+            PortA11y_SetVoiceVolume(v);
+        }
+        tab_tip("How loud the game's words are said, in percent of the Mac's own volume. It goes no lower than 10, so that\n"
+                "the voice is always heard.");
+    }
     v = PortA11y_CueVolume();
     if (tab_slider("Cue sounds", &v, 0, 100, "%d%%")) {
         PortA11y_SetCueVolume(v);
@@ -2085,8 +2105,10 @@ void A11yUi_Tab(void) {
     // (A button, not a line of text: a line after the last item would be said with the next one, Exit game)
 #ifdef __APPLE__
     // (a11y.c: on macOS the game speaks with AVSpeech before VoiceOver, so the reader's own volume is not the one)
-    static const char kReader[] = "On a Mac the game speaks with the system's own voice, not through VoiceOver: its volume "
-                                  "follows the Mac's volume.";
+    const char *const kReader = PortA11y_VoiceOwn()
+                                    ? "On a Mac the game speaks with the system's own voice, not through VoiceOver: its speed "
+                                      "and its volume are the first two sliders of this tab, under the Mac's own volume."
+                                    : "VoiceOver's volume is set in VoiceOver itself.";
 #else
     static const char kReader[] = "The screen reader's volume is set in the screen reader itself. With NVDA: NVDA+Control+left "
                                   "or right arrow until Volume, then NVDA+Control+up or down arrow.";

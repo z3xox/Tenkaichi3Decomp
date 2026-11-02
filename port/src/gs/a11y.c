@@ -22,6 +22,9 @@
  *                     a11y_log=1        the log below, into a11y_log.txt in the program's folder (for a report)
  *                     a11y_cue_volume   the accessibility's sounds in a fight (a11y_tones.c), in percent of a loudness
  *                                       scale (3 dB each tenth): default 60, 0 turns them off
+ *                     a11y_voice_rate   on a Mac, the speed of the system's voice the game speaks with: 10 to 100,
+ *                                       default 50, the Mac's usual one
+ *                     a11y_voice_volume and its volume, in percent of the Mac's: 10 to 100, default 100
  *                     a11y_lang="pt"    the language to speak, a code of two or three letters (default: the
  *                                       system's preferred language)
  *                     a11y_missing=1    out of English, adds each line said without a translation, once, to
@@ -32,6 +35,7 @@
  *   $BT3_A11Y_ASK=<n>                   asks every n blanks, in turn, where the rival is, player 1's gauges, where,
  *                                       player 2's, as their keys would (tests: without a window no key can be
  *                                       pressed)
+ *   $BT3_A11Y_VOICE=1                   the settings window shows the two above without that voice (tests)
  *   $BT3_A11Y_LANG=<code>               the language, over a11y_lang
  *   a11y_<code>.txt                     the lines to say instead of the English ones (see "translations" below);
  *                                       a11y_es.txt comes with the program
@@ -44,18 +48,18 @@
  * On macOS the system's own voice (AVSpeechSynthesizer) is tried first instead, as the owner chose (2026-11-02): it
  * queues and can be cut, which VoiceOver's announcements cannot (Prism has no stop for them and joins what comes
  * within 15 ms into one); then the others in Prism's order, VoiceOver among them. That voice has no braille, and it
- * is set to full volume (Prism starts it at half). Whether VoiceOver is running is asked apart, for the blind player
+ * takes the player's speed and volume (a11y_voice_rate, a11y_voice_volume; Prism starts the volume at half). Whether VoiceOver is running is asked apart, for the blind player
  * profile (READER_VOICEOVER). Prism hands that voice's calls to the main thread, which on macOS is the game's
  * (port/src/plat_mem.c) and runs them as it reads its events, once per frame: a frame that takes long delays what
  * is said, it never holds up the game.
  *
  * Prism's version: written against release 0.18.3, the one to put beside the program. Its header is not in the
- * repository; the twelve functions used are declared below by hand and found by name, and a library without one of
+ * repository; the thirteen functions used are declared below by hand and found by name, and a library without one of
  * them is not used. What a later release could change, and what is done about it:
  *   - PrismConfig growing (it is returned by value, into memory of the caller's): the memory given is
  *     PRISM_CONFIG_ROOM bytes, several times the struct of 0.18.3, and none of its fields is read or written here
  *     but the first byte, its `version`, which goes to the log. It is handed back to prism_init as it came.
- *   - not guarded: a change in the parameters of one of the twelve functions, in the feature bits or in the ids of
+ *   - not guarded: a change in the parameters of one of the thirteen functions, in the feature bits or in the ids of
  *     NVDA, JAWS, AVSpeech and VoiceOver; a PrismConfig beyond PRISM_CONFIG_ROOM; prism_config_init no longer
  *     returning the struct by value. None of the functions declared here tells the library's version, so there is no
  *     check of it at load time: with another release than 0.18.3 the line "a11y: prism config version" in the output
@@ -132,6 +136,8 @@ typedef union {
 #define PRISM_SUPPORTED_AT_RUNTIME (1ULL << 0)
 #define PRISM_SUPPORTS_SPEAK (1ULL << 2)
 #define PRISM_SUPPORTS_OUTPUT (1ULL << 5)
+#define PRISM_SUPPORTS_SET_VOLUME (1ULL << 10)
+#define PRISM_SUPPORTS_SET_RATE (1ULL << 12)
 #define PRISM_NVDA 0x89CC19C5C4AC1A56ULL
 #define PRISM_JAWS 0xAC3D60E9BD84B53EULL
 #define PRISM_AV_SPEECH 0x28E3429577805C24ULL
@@ -150,6 +156,7 @@ static struct {
     int(PRISM_CALL *output)(PrismBackend *backend, const char *text, bool interrupt);
     int(PRISM_CALL *speak)(PrismBackend *backend, const char *text, bool interrupt);
     int(PRISM_CALL *set_volume)(PrismBackend *backend, float volume);
+    int(PRISM_CALL *set_rate)(PrismBackend *backend, float rate);
 } P;
 
 static SDL_SharedObject *sLib;
@@ -159,7 +166,7 @@ static int load_prism(void) {
                                         "prism_registry_id_at", "prism_registry_name", "prism_registry_create",
                                         "prism_backend_free", "prism_backend_get_features",
                                         "prism_backend_initialize", "prism_backend_output", "prism_backend_speak",
-                                        "prism_backend_set_volume"};
+                                        "prism_backend_set_volume", "prism_backend_set_rate"};
     SDL_FunctionPointer *slot = (SDL_FunctionPointer *)&P;
     char path[1024];
     const char *base = SDL_GetBasePath(); /* (the program's folder only: not the current one, not the search path) */
@@ -206,6 +213,8 @@ static PrismBackend *try_backend(PrismContext *ctx, uint64_t id) {
 #define READER_OTHER 3     /* another one, or a voice of the system's (SAPI and the like) */
 #define READER_VOICEOVER 4 /* macOS: VoiceOver is running, whatever speaks the game's words */
 static SDL_AtomicInt sReaderKind = {-1};
+static SDL_AtomicInt sVoiceRate, sVoiceVolume; /* a11y_voice_rate and a11y_voice_volume, 10 to 100 */
+static SDL_AtomicInt sVoiceOwn; /* 1 while the voice speaking takes those two (the Mac's own) */
 
 /* The READER_ of the backend `id` that speaks. On macOS VoiceOver counts when it is running, the system's voice
    speaking or not: a VoiceOver backend made and not started says so in its features. */
@@ -232,6 +241,7 @@ static PrismBackend *choose_backend(PrismContext *ctx) {
     static const uint64_t first[] = {PRISM_NVDA, PRISM_JAWS};
 #endif
     const size_t m = sizeof(first) / sizeof(first[0]);
+    const uint64_t adjust = PRISM_SUPPORTS_SET_RATE | PRISM_SUPPORTS_SET_VOLUME;
     PrismBackend *b = NULL;
     uint64_t id = 0;
     size_t i, n = P.count(ctx);
@@ -250,8 +260,9 @@ static PrismBackend *choose_backend(PrismContext *ctx) {
         SDL_SetAtomicInt(&sReaderKind, READER_NONE);
         return NULL;
     }
-    if (id == PRISM_AV_SPEECH) {
-        (void)P.set_volume(b, 1.0f); /* (Prism starts it at 0.5; an utterance's own default is 1) */
+    if (id == PRISM_AV_SPEECH && (P.features(b) & adjust) == adjust) {
+        SDL_SetAtomicInt(&sVoiceOwn, 1); /* (the speaker gives it the player's speed and volume before it says
+                                            anything: Prism starts the volume at 0.5, an utterance's own default is 1) */
     }
     fprintf(stderr, "a11y: speaking through %s\n", P.name(ctx, id));
     SDL_SetAtomicInt(&sReaderKind, reader_kind(ctx, id));
@@ -320,12 +331,33 @@ static void push(const char *text, int interrupt) {
     SDL_SignalCondition(sWake);
 }
 
+/* The Mac's voice's speed or volume as kept: 10 to 100, never lower, so that the voice that reads the slider is still
+   heard. */
+static int voice_percent(int v) {
+    return v < 10 ? 10 : v > 100 ? 100 : v;
+}
+
+/* Gives the voice the player's speed and volume when they changed since it was last given them (`rate`, `volume`):
+   Prism keeps them for the next thing said. */
+static void give_voice(PrismBackend *b, int *rate, int *volume) {
+    int r = SDL_GetAtomicInt(&sVoiceRate), v = SDL_GetAtomicInt(&sVoiceVolume);
+
+    if (r != *rate) {
+        (void)P.set_rate(b, (float)r / 100.0f); /* (Prism's 0.5, the Mac's usual speed, is 50) */
+        *rate = r;
+    }
+    if (v != *volume) {
+        (void)P.set_volume(b, (float)v / 100.0f);
+        *volume = v;
+    }
+}
+
 static int SDLCALL speaker(void *unused) {
     PrismContext *ctx = NULL;
     PrismBackend *b = NULL;
     PrismConfig cfg;
     char text[A11Y_TEXT];
-    int interrupt, frame;
+    int interrupt, frame, rate = -1, volume = -1;
 
     (void)unused;
     if (sLib != NULL) {
@@ -348,6 +380,9 @@ static int SDLCALL speaker(void *unused) {
         sHead = (sHead + 1) % A11Y_QUEUE;
         sCount--;
         SDL_UnlockMutex(sLock);
+        if (b != NULL && SDL_GetAtomicInt(&sVoiceOwn)) {
+            give_voice(b, &rate, &volume);
+        }
         if (b != NULL && P.output(b, text, interrupt != 0) != PRISM_OK) {
             (void)P.speak(b, text, interrupt != 0); /* (a voice without braille) */
         }
@@ -723,6 +758,8 @@ static void start(void) {
     sWhereKey = Port_Setting("a11y_key_where", SDL_SCANCODE_F5);
     sCueVolume = Port_Setting("a11y_cue_volume", 60);
     sCueVolume = sCueVolume < 0 ? 0 : sCueVolume > 100 ? 100 : sCueVolume;
+    SDL_SetAtomicInt(&sVoiceRate, voice_percent(Port_Setting("a11y_voice_rate", 50)));
+    SDL_SetAtomicInt(&sVoiceVolume, voice_percent(Port_Setting("a11y_voice_volume", 100)));
     sLock = SDL_CreateMutex();
     sWake = SDL_CreateCondition();
     if (sLock == NULL || sWake == NULL || SDL_CreateThread(speaker, "a11y", NULL) == NULL) {
@@ -757,6 +794,40 @@ int PortA11y_CueVolume(void) {
 void PortA11y_SetCueVolume(int percent) {
     sCueVolume = percent < 0 ? 0 : percent > 100 ? 100 : percent;
     Port_SettingSave("a11y_cue_volume", sCueVolume);
+}
+
+/* For the settings window: 1 while the voice speaking takes the player's speed and volume (on a Mac, the system's
+   own), when their two sliders are shown; $BT3_A11Y_VOICE shows them without it (tests). */
+int PortA11y_VoiceOwn(void) {
+    static int test = -1;
+
+    if (test < 0) {
+        test = getenv("BT3_A11Y_VOICE") != NULL;
+    }
+    return test || SDL_GetAtomicInt(&sVoiceOwn);
+}
+
+/* The Mac's voice's speed (a11y_voice_rate: 50 the Mac's usual one) and volume (a11y_voice_volume, in percent of the
+   Mac's), 10 to 100; setting one stores it, the speaker gives it to the voice before the next thing said (the
+   slider's new value), and Port_SettingsWrite saves it. */
+int PortA11y_VoiceRate(void) {
+    return SDL_GetAtomicInt(&sVoiceRate);
+}
+
+void PortA11y_SetVoiceRate(int percent) {
+    percent = voice_percent(percent);
+    SDL_SetAtomicInt(&sVoiceRate, percent);
+    Port_SettingSave("a11y_voice_rate", percent);
+}
+
+int PortA11y_VoiceVolume(void) {
+    return SDL_GetAtomicInt(&sVoiceVolume);
+}
+
+void PortA11y_SetVoiceVolume(int percent) {
+    percent = voice_percent(percent);
+    SDL_SetAtomicInt(&sVoiceVolume, percent);
+    Port_SettingSave("a11y_voice_volume", percent);
 }
 /* Says a message (UTF-8). flags: A11Y_INTERRUPT, or 0 to queue it after the one before. */
 void PortA11y_Say(const char *text, int flags) {
