@@ -18,6 +18,11 @@ extern int Port_MenuClipMoving(const char *name, int x, int top);
 extern int Port_MenuFree(int on);
 static int gPortFlashMeasure;  /* FlashDraw_Quad only measures (gPortFlashBox: the leftmost and rightmost x) */
 static float gPortFlashBox[2];
+static int gPortFeather;       /* the clip being drawn fades out at an edge (Port_MenuFeather): 1 left, 2 right */
+static float gPortFeatherW;    /* the band's width */
+static int gPortFeatherBusy;   /* (drawing its slices) */
+static int gPortSpriteExact;   /* FlashDraw_PutSprite takes the u of its quad as it is (the slices of a fading quad) */
+extern int Port_MenuFeather(const char *name, int top, int *width);
 extern int Port_MenuPart(int part);
 #endif
 #include "sys/gfxm_b_b.h"
@@ -676,6 +681,7 @@ void FlashSlot_Draw(FlashSlot *slot, FlashProp *parent, Flash *flash) {
             int part = Port_MenuClipPart(clip->name, (int)(prop.mtx.m[2] + (f32)flash->ofs[0]), parent == NULL);
             int moving = Port_MenuClipMoving(clip->name, (int)(prop.mtx.m[2] + (f32)flash->ofs[0]), parent == NULL);
             int freePrev = moving ? Port_MenuFree(1) : -1;
+            int featherPrev = -1;
             int prev;
             if (part == -2) {
                 gPortFlashMeasure = 1;
@@ -686,6 +692,15 @@ void FlashSlot_Draw(FlashSlot *slot, FlashProp *parent, Flash *flash) {
                 part = Port_MenuClipPlace((int)gPortFlashBox[0], (int)gPortFlashBox[1]);
             }
             prev = part >= 0 ? Port_MenuPart(part) : 0;
+            {
+                int fw;
+                int fside = Port_MenuFeather(clip->name, parent == NULL, &fw);
+                if (fside != 0) {
+                    featherPrev = gPortFeather;
+                    gPortFeather = fside;
+                    gPortFeatherW = (f32)fw;
+                }
+            }
             {
                 int cap = Port_MenuCapMirror(clip->name, parent == NULL);
                 if (cap != 0) { /* (the clip mirrored under itself, its rounded end past its cut one, and both not cut
@@ -718,6 +733,9 @@ void FlashSlot_Draw(FlashSlot *slot, FlashProp *parent, Flash *flash) {
 #ifdef PORT
             if (part >= 0) {
                 Port_MenuPart(prev);
+            }
+            if (featherPrev >= 0) {
+                gPortFeather = featherPrev;
             }
             if (freePrev >= 0) {
                 Port_MenuFree(freePrev);
@@ -784,6 +802,12 @@ u64 *FlashDraw_PutSprite(u64 *p, FlashQuad *q, u64 tex0) {
     p += 2;
     uv[0] = q->uv.u0 + 1;
     uv[2] = q->uv.u1 - 1;
+#ifdef PORT
+    if (gPortSpriteExact) { /* (a fading quad's slice: its u as computed) */
+        uv[0] = q->uv.u0;
+        uv[2] = q->uv.u1;
+    }
+#endif
     uv[1] = q->uv.v0 + 1;
     uv[3] = q->uv.v1 - 1;
     if (q->flags & FLASH_QUAD_FLIPX) {
@@ -909,6 +933,70 @@ void FlashDraw_MaskQuad(FlashQuad *q, u64 tex0, s32 set) {
     Dma_EndDirect(FlashDraw_PutSprite(p, q, tex0));
 }
 
+#ifdef PORT
+void FlashDraw_Quad(FlashTex *tex, FlashQuad *q);
+
+/* widescreen menus: a quad of a clip that fades out at an edge (gPortFeather), drawn as columns of 2 texels across
+   the band, each with its share of the alpha: none at the edge, all of it the band's width in (the rest of the quad
+   in one piece). Returns 0 for a quad not in the band (drawn as it is). */
+static int Port_FeatherQuad(FlashTex *tex, FlashQuad *q) {
+    f32 x0 = q->pt[0][0], x1 = q->pt[1][0];
+    f32 edge = gPortFeather == 1 ? 0.0f : 512.0f, w = gPortFeatherW;
+    s32 u0 = q->uv.u0, u1 = q->uv.u1, flip = (q->flags & FLASH_QUAD_FLIPX) != 0;
+    s32 ua, ub, run;
+    FlashQuad s;
+
+    if (x1 <= x0 || u1 <= u0 || q->pt[2][0] != x0 || q->pt[3][0] != x1) {
+        return 0; /* (only upright quads, not turned) */
+    }
+    if (gPortFeather == 1 ? x0 >= edge + w : x1 <= edge - w) {
+        return 0;
+    }
+#define FEATHER_X(u) (x0 + (x1 - x0) * (f32)(flip ? u1 - (u) : (u) - u0) / (f32)(u1 - u0))
+#define FEATHER_A(x) (gPortFeather == 1 ? ((x) - edge) / w : (edge - (x)) / w)
+    gPortFeatherBusy = 1;
+    gPortSpriteExact = 1;
+    run = u0;
+    for (ua = u0; ua < u1; ua = ub) {
+        f32 xa, xb, a;
+        ub = ua + 2 > u1 ? u1 : ua + 2;
+        xa = FEATHER_X(ua);
+        xb = FEATHER_X(ub);
+        a = FEATHER_A((xa + xb) * 0.5f);
+        a = a < 0.0f ? 0.0f : a > 1.0f ? 1.0f : a;
+        if (a >= 1.0f && ub < u1) {
+            s32 un = ub + 2 > u1 ? u1 : ub + 2;
+            if (FEATHER_A((FEATHER_X(ub) + FEATHER_X(un)) * 0.5f) >= 1.0f) {
+                continue; /* (columns kept whole go in one piece with the next ones) */
+            }
+        }
+        if (a > 0.0f) {
+            f32 ra = FEATHER_X(run);
+            s = *q;
+            s.pt[0][0] = s.pt[2][0] = ra < xb ? ra : xb;
+            s.pt[1][0] = s.pt[3][0] = ra < xb ? xb : ra;
+            s.uv.u0 = run == u0 ? run + 1 : run;
+            s.uv.u1 = ub == u1 ? ub - 1 : ub;
+            if (flip) { /* (PutSprite swaps them back) */
+                s32 t = s.uv.u0;
+                s.uv.u0 = s.uv.u1;
+                s.uv.u1 = t;
+            }
+            s.rgba[3] = (s32)((f32)q->rgba[3] * a + 0.5f);
+            if (s.rgba[3] > 0) {
+                FlashDraw_Quad(tex, &s);
+            }
+        }
+        run = ub;
+    }
+#undef FEATHER_X
+#undef FEATHER_A
+    gPortSpriteExact = 0;
+    gPortFeatherBusy = 0;
+    return 1;
+}
+#endif
+
 /* Draws one quad: nothing when its alpha is 0, flat without a texture, else uploads the texture to block 0x3000
    and draws it normally or through the alpha-plane mask. */
 void FlashDraw_Quad(FlashTex *tex, FlashQuad *q) {
@@ -925,6 +1013,10 @@ void FlashDraw_Quad(FlashTex *tex, FlashQuad *q) {
             gPortFlashBox[0] = q->pt[i][0] < gPortFlashBox[0] ? q->pt[i][0] : gPortFlashBox[0];
             gPortFlashBox[1] = q->pt[i][0] > gPortFlashBox[1] ? q->pt[i][0] : gPortFlashBox[1];
         }
+        return;
+    }
+    if (gPortFeather != 0 && !gPortFeatherBusy && tex != NULL && !(q->flags & (FLASH_QUAD_MASK | FLASH_QUAD_MASK_SET)) &&
+        Port_FeatherQuad(tex, q)) {
         return;
     }
 #endif

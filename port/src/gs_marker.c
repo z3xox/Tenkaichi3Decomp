@@ -55,6 +55,7 @@ enum { PORT_MENU_NONE = -1, PORT_MENU_CENTER, PORT_MENU_FILL, PORT_MENU_LEFT, PO
        PORT_MENU_RIGHT_ALL, PORT_MENU_PAGE, PORT_MENU_PAGE_TOP, PORT_MENU_PAGE_EDGE, PORT_MENU_CENTER_FREE, PORT_MENU_SPLIT,
        PORT_MENU_PAGE_EDGE_TOP, PORT_MENU_PAGE_LIST, PORT_MENU_CENTER_NUDGE, PORT_MENU_LEFT_UP };
 extern int Port_MenusWide(void); /* port/src/plat_stub.c */
+extern int Port_IsWide(void);
 static int sMenuPart = PORT_MENU_NONE;
 static int sItemPanel; /* a character select's item window is being drawn (Port_MenuItemPanel): 1 the first side's, 2 the other's */
 static int sDuelSettings; /* the versus menu's battle settings are open (or the last of its windows): in the middle */
@@ -105,6 +106,27 @@ int Port_MenuCapMirror(const char *name, int top) {
    the middle: half the mirrored end's way, the other way; 0 for any other movie */
 int Port_MenuReelShift(void) {
     return Port_MenuCapMirror("mc_plate", 1) / 2;
+}
+
+/* The big pictures of the characters chosen (mc_single_chara_l / _r, the masks over them): on a wide screen their
+   art ends at the 4:3 screen's edge, cut there. Until there is art for the whole width, their outer band fades out
+   (src/sys/gfxm_c.c FlashDraw_Quad): 1 the left picture (from the 4:3 screen's left edge), 2 the right one (to its
+   right edge), 0 any other clip. `width`: the band's, in 4:3 units (BT3_FEATHER over 40). */
+int Port_MenuFeather(const char *name, int top, int *width) {
+    static int w = -1;
+    int left, right;
+    if (w < 0) {
+        const char *e = getenv("BT3_FEATHER");
+        w = e != NULL ? atoi(e) : 40;
+    }
+    *width = w;
+    if (!top || w <= 0 || !Port_MenusWide() || !Port_IsWide() ||
+        !(sMenuScreen == 3 || sMenuScreen == 15 || sMenuScreen == 19 || (sMenuScreen >= 23 && sMenuScreen <= 25))) {
+        return 0;
+    }
+    left = strcmp(name, "mc_single_chara_l") == 0 || strcmp(name, "mc_face_mask_l") == 0;
+    right = strcmp(name, "mc_single_chara_r") == 0 || strcmp(name, "mc_face_mask_r") == 0;
+    return left ? 1 : right ? 2 : 0;
 }
 
 /* A character select's item window (Custom 1.. and Right / Left: src/menu/menu_g.c ItemPanel_Draw) is drawn from
