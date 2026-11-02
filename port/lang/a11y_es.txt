@@ -2617,32 +2617,36 @@ fc4b4bc144b50aa1	%s, %d puntos Z
 e352eb3b019579a7	¿Comprar %s por %d puntos Z? Tienes %d. 
 # Bought %s. %d Z points left. X to go on
 c5088a2a0d5f2033	Compraste %s. Te quedan %d puntos Z. X para seguir
-# New character
-e466d19bf5cd35a2	Nuevo personaje
-# New stage
-d8417b41ca27bc8f	Nuevo escenario
-# Item
-52cfa1d198476806	Objeto
-# New saga
-8dfbbaf37631e897	Nueva saga
-# New episode
-f30193d4f3ccebcc	Nuevo episodio
-# Dragon Ball
-ffbecc439c925feb	Esfera del Dragón
-# %d Z points
-7a90fa32e19ee7a9	%d puntos Z
+# Character unlocked!
+b61c14e6184a15d4	¡Personaje desbloqueado!
+# Battle stage unlocked!
+97e6e95b8ff9a02d	¡Escenario de batalla desbloqueado!
+# Item unlocked!
+012b18ea439f9d1a	¡Objeto desbloqueado!
+# Scenario unlocked!
+bd366c7c4aa8170f	¡Escenario desbloqueado!
+# Battle unlocked!
+9e061ed4d2f9a0b7	¡Batalla desbloqueada!
+# You got a Dragon Ball
+0dfb740f22b74b9d	Tienes una Bola Dragón
+# Z points obtained!
+3d545a5a708a1657	¡Puntos Z conseguidos!
 # Z points earned: %d
-5d47887b9b057a64	Puntos Z ganados: %d
-# You have %d Z points
-00d49b84466b670c	Tienes %d puntos Z
-# Health left: %d percent, %d points
-f3cf9ecc409e7c9a	Vida restante: %d por ciento, %d puntos
-# Longest combo: %d hits, %d points
-f6fe202e7efe3e12	Combo máximo: %d golpes, %d puntos
-# Biggest damage: %d, %d points
-1dec4ba772f83394	Daño máximo: %d, %d puntos
-# Foes beaten: %d, %d points
-268770c250779262	Derrotados: %d, %d puntos
+5d47887b9b057a64	Puntos Z adquiridos: %d
+# Z points: %d
+dfe3d04aa4ef81df	Puntos Z: %d
+# Total Z points: %d
+58ad1605c301ca0d	Puntos Z totales: %d
+# Failed...
+02e0b55fb63f8b4a	Fallido...
+# Health: %d percent, %d points
+94f941ad3490d5f7	Vida: %d por ciento, %d puntos
+# Max combo: %d hits, %d points
+8ed80fe2d2cf4176	Combo máx: %d golpes, %d puntos
+# Max damage: %d, %d points
+ed3ce1a3b523cf7b	Daño máx: %d, %d puntos
+# Defeated: %d, %d points
+09f3483dce16b930	Derrotado: %d, %d puntos
 # Time: %d hours, %d minutes, %d seconds
 294cfe74bb9b52fc	Tiempo: %d horas, %d minutos, %d segundos
 # Time: %d minutes, %d seconds
@@ -2651,9 +2655,11 @@ f6fe202e7efe3e12	Combo máximo: %d golpes, %d puntos
 28886474a32badee	Página de bonos %d de %d
 # %s, %d points
 b0d78b96e3419953	%s, %d puntos
-# Score: %d. Rank %d of 4
-85b63e3641b27bd0	Puntaje: %d. Rango %d de 4
+# Score: %d. Rank %c
+399807b682d1d642	Puntuación: %d. Rango %c
 # Score: %d
-b01ec5df1afd4766	Puntaje: %d
+b01ec5df1afd4766	Puntuación: %d
+# Cleared!
+36c37fcd46c76f36	¡Superado!
 # . New record
 4fa36bed3b858f78	. Nuevo récord

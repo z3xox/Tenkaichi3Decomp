@@ -3352,8 +3352,9 @@ static void screen_change(void) {
 }
 
 /* The reward window (include/battle/view_a.h, GetWin): a prize per Setup, in the story's result, the tournament's
-   prizes and the dragon's wishes. Its title strip is a picture of the kind; its lines are lines of the screen's text
-   files (box1 / box2 name the file of each), but the Z points' amount is a number drawn as an image. */
+   prizes and the dragon's wishes. Its title strip is a picture of the kind (src/battle/view_a.c GetWin_Draw); its
+   lines are lines of the screen's text files (box1 / box2 name the file of each), but the Z points' amount is a
+   number drawn as an image. */
 typedef struct {
     uint32_t GAME_PTR text[5];    /* 0x000: the screen pack's sections 8, 7, 9, 11, 11 */
     char unk14[0x334 - 0x14];
@@ -3403,7 +3404,7 @@ static void get_win(void) {
     static int kind, line1, line2, said;
     A11yGetWin GAME_PTR g = gGetWin;
     char text[A11Y_TEXT], first[256], second[256];
-    const char *label;
+    const char *label, *sep;
 
     if (g == NULL || g->se == 0) {
         win = 0;
@@ -3417,19 +3418,23 @@ static void get_win(void) {
     kind = g->kind;
     line1 = g->line1;
     line2 = g->line2;
+    /* The title strips' words (the Spanish disc's; the two the strip cuts short, "desbloq." and "desbloque.", are
+       written out). */
     switch (kind) {
-    case GETWIN_CHARA: label = tr("New character"); break;
-    case GETWIN_STAGE: label = tr("New stage"); break;
+    case GETWIN_CHARA: label = tr("Character unlocked!"); break;
+    case GETWIN_STAGE: label = tr("Battle stage unlocked!"); break;
     case GETWIN_ITEM:
     case GETWIN_ITEM + 1:
-    case GETWIN_ITEM + 2: label = tr("Item"); break;
-    case GETWIN_SAGA: label = tr("New saga"); break;
-    case GETWIN_EPISODE: label = tr("New episode"); break;
-    case GETWIN_BALL: label = tr("Dragon Ball"); break;
+    case GETWIN_ITEM + 2: label = tr("Item unlocked!"); break;
+    case GETWIN_MONEY: label = tr("Z points obtained!"); break;
+    case GETWIN_SAGA: label = tr("Scenario unlocked!"); break;
+    case GETWIN_EPISODE: label = tr("Battle unlocked!"); break;
+    case GETWIN_BALL: label = tr("You got a Dragon Ball"); break;
     default: label = NULL; break;
     }
+    sep = label != NULL && label[0] != '\0' && label[strlen(label) - 1] == '!' ? " " : ": ";
     if (kind == GETWIN_MONEY) {
-        snprintf(text, sizeof(text), tr("%d Z points"), line2);
+        snprintf(text, sizeof(text), "%s %d", label, line2);
     } else if (label == NULL) {
         PortA11y_Note("reward window: a kind this reader does not know");
         return;
@@ -3437,9 +3442,9 @@ static void get_win(void) {
         text_line(first, sizeof(first), g->box1 >= 0 && g->box1 < 5 ? g->text[g->box1] : NULL, line1);
         text_line(second, sizeof(second), g->box2 >= 0 && g->box2 < 5 ? g->text[g->box2] : NULL, line2);
         if (first[0] != '\0' && second[0] != '\0') {
-            snprintf(text, sizeof(text), "%s: %s, %s", label, first, second);
+            snprintf(text, sizeof(text), "%s%s%s, %s", label, sep, first, second);
         } else if (first[0] != '\0' || second[0] != '\0') {
-            snprintf(text, sizeof(text), "%s: %s", label, first[0] != '\0' ? first : second);
+            snprintf(text, sizeof(text), "%s%s%s", label, sep, first[0] != '\0' ? first : second);
         } else {
             snprintf(text, sizeof(text), "%s", label);
         }
@@ -3468,10 +3473,12 @@ typedef struct {
     int bonusCount;               /* 0x290 */
     unsigned ticks;               /* 0x294: the fight's clock */
     short hours, minutes, seconds, ms, timeLeft, unk2A2;
-    int rank;                     /* 0x2A4: 0 none, 1 (the lowest, drawn as "C") .. 4 */
+    int rank;                     /* 0x2A4: 0 none, 1 (the lowest) .. 4: a column of the mc_rankmoji_anime strip */
 } A11yScore;
 LAYOUT_ASSERT(sizeof(A11yScore) == 0x2A8 && offsetof(A11yScore, bonus) == 0x40 && offsetof(A11yScore, lineCount) == 0x28C &&
               offsetof(A11yScore, hours) == 0x298 && offsetof(A11yScore, rank) == 0x2A4, "UbScore");
+/* The rank's letter as the strip draws it (menu_p_b.c; column 0 is a dash). */
+static const char kRankLetter[5] = {'-', 'C', 'B', 'A', 'Z'};
 extern uint8_t GAME_PTR gMisResult;  /* src/menu/menu_p_b.c; each NULL outside its screen */
 extern uint8_t GAME_PTR gSurvResult; /* menu_s_c.c */
 extern uint8_t GAME_PTR gSimResult;  /* menu_r_c.c */
@@ -3536,8 +3543,9 @@ static int result_line(uint32_t str) {
     return 0;
 }
 
-/* "Z points earned: 1500" into text and "You have 5300 Z points" after it, when have >= 0. */
-static void say_points(int earned, int have, int flags) {
+/* "Z points earned: 15" when earned >= 0, then the player's Z points under the screen's own label (have_label, with
+   its %d) when it is not NULL. */
+static void say_points(int earned, const char *have_label, int have, int flags) {
     char text[256];
     size_t len;
 
@@ -3545,11 +3553,11 @@ static void say_points(int earned, int have, int flags) {
     if (earned >= 0) {
         snprintf(text, sizeof(text), tr("Z points earned: %d"), earned);
     }
-    if (have >= 0) {
+    if (have_label != NULL) {
         len = strlen(text);
         snprintf(text + len, sizeof(text) - len, "%s", len > 0 ? ". " : "");
         len = strlen(text);
-        snprintf(text + len, sizeof(text) - len, tr("You have %d Z points"), have);
+        snprintf(text + len, sizeof(text) - len, have_label, have);
     }
     PortA11y_Say(text, flags);
 }
@@ -3564,10 +3572,10 @@ static void say_sheet_page(A11yScore GAME_PTR sc, uint32_t GAME_PTR text, int pa
     if (page == 0) {
         for (i = 0; i < sc->lineCount && i < 4; i++) {
             switch (i) {
-            case 0: snprintf(line, sizeof(line), tr("Health left: %d percent, %d points"), sc->line[i].value, sc->line[i].points * 100); break;
-            case 1: snprintf(line, sizeof(line), tr("Longest combo: %d hits, %d points"), sc->line[i].value, sc->line[i].points * 100); break;
-            case 2: snprintf(line, sizeof(line), tr("Biggest damage: %d, %d points"), sc->line[i].value, sc->line[i].points * 100); break;
-            default: snprintf(line, sizeof(line), tr("Foes beaten: %d, %d points"), sc->line[i].value, sc->line[i].points * 100); break;
+            case 0: snprintf(line, sizeof(line), tr("Health: %d percent, %d points"), sc->line[i].value, sc->line[i].points * 100); break;
+            case 1: snprintf(line, sizeof(line), tr("Max combo: %d hits, %d points"), sc->line[i].value, sc->line[i].points * 100); break;
+            case 2: snprintf(line, sizeof(line), tr("Max damage: %d, %d points"), sc->line[i].value, sc->line[i].points * 100); break;
+            default: snprintf(line, sizeof(line), tr("Defeated: %d, %d points"), sc->line[i].value, sc->line[i].points * 100); break;
             }
             len = strlen(out);
             snprintf(out + len, sizeof(out) - len, "%s%s", len > 0 ? ". " : "", line);
@@ -3634,7 +3642,7 @@ static void result_sheet(void) {
     }
     if (s == RESULT_PAGES && state != RESULT_PAGES) {
         if (sc->rank >= 1 && sc->rank <= 4) {
-            snprintf(text, sizeof(text), tr("Score: %d. Rank %d of 4"), sc->total * 100, sc->rank);
+            snprintf(text, sizeof(text), tr("Score: %d. Rank %c"), sc->total * 100, kRankLetter[sc->rank]);
         } else {
             snprintf(text, sizeof(text), tr("Score: %d"), sc->total * 100);
         }
@@ -3647,13 +3655,14 @@ static void result_sheet(void) {
     }
     if (s == at->money && RESULT_INT(w, at->step) == RESULT_PAID && !paid && gSaveData != NULL) {
         paid = 1;
-        say_points(sc->saved, gSaveData->money, 0);
+        say_points(sc->saved, tr("Z points: %d"), gSaveData->money, 0);
     }
     state = s;
 }
 
 /* The story's result (include/menu/menu_c.h, HistResult): after a won fight the points count up (state 2) and wait
-   for the confirm button (3), which pays them out (4); a lost fight shows no points. The numbers are images. */
+   for the confirm button (3), which pays them out (4); a lost fight stays in state 0 with 0 points and the total. The
+   caption, the labels and the numbers are images; so is the fight's title, which is not said. */
 typedef struct {
     char unk0[0x80];
     int flags;                    /* 0x080: HISTRESULT_ */
@@ -3665,12 +3674,14 @@ typedef struct {
 } A11yHistResult;
 LAYOUT_ASSERT(sizeof(A11yHistResult) == 0x140 && offsetof(A11yHistResult, state) == 0x90, "HistResult");
 extern A11yHistResult GAME_PTR gHistResult; /* NULL outside the screen */
+#define HISTRESULT_FADED_IN 8 /* the screen is up; its jingle plays before it takes the buttons */
 #define HISTRESULT_LOST 0x20
 
-/* The Z points the story's fight made when the count stops, and what the player has once they are paid. */
+/* The story's fight as its result shows it: the caption once the screen is up; after a win the Z points it made when
+   the count stops and what the player has once they are paid, after a loss the 0 points and the total at once. */
 static void hist_result(void) {
     static uint32_t seen;
-    static int said; /* 1: the points, 2: the new total */
+    static int said; /* 1: the caption, 2: the points, 3: the total */
     A11yHistResult GAME_PTR h = gHistResult;
 
     if (h == NULL) {
@@ -3681,15 +3692,22 @@ static void hist_result(void) {
         seen = (uint32_t)(uintptr_t)h;
         said = 0;
     }
-    if ((h->flags & HISTRESULT_LOST) || gSaveData == NULL) {
+    if (!(h->flags & HISTRESULT_FADED_IN) || gSaveData == NULL) {
         return;
     }
-    if (said == 0 && h->state == 3) {
-        say_points(h->pointsTotal, -1, 0);
+    if (said == 0 && (h->flags & HISTRESULT_LOST)) {
+        PortA11y_Say(tr("Failed..."), 0);
+        say_points(0, tr("Total Z points: %d"), gSaveData->money, 0);
+        said = 3;
+    } else if (said == 0) {
+        PortA11y_Say(tr("Cleared!"), 0);
         said = 1;
-    } else if (said == 1 && (h->state == 5 || h->state == 0 || h->state > 50)) {
-        say_points(-1, gSaveData->money, A11Y_INTERRUPT);
+    } else if (said == 1 && h->state == 3) {
+        say_points(h->pointsTotal, NULL, 0, 0);
         said = 2;
+    } else if (said == 2 && (h->state == 5 || h->state == 0 || h->state > 50)) {
+        say_points(-1, tr("Total Z points: %d"), gSaveData->money, A11Y_INTERRUPT);
+        said = 3;
     }
 }
 
