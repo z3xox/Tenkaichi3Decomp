@@ -363,6 +363,9 @@ static int clip_part(const char *name, int x, int top) {
         return sDuelSettings ? PORT_MENU_CENTER_ALL : PORT_MENU_LEFT_ALL; /* (the battle settings' names and values, with
                                                                             their window: Port_MenuDuelSettings) */
     }
+    if (sMenuScreen == 16 && top && starts(name, "mc_dp_")) {
+        return PORT_MENU_LEFT; /* (DP Battle's points, 10 / 15 / 20, in their window beside the modes') */
+    }
     if (sMenuScreen == 16 && top && starts(name, "mc_mode_")) {
         return PORT_MENU_LEFT; /* (and the window of its modes, Single, Team, DP, under the chosen plate) */
     }
