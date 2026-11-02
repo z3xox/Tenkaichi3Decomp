@@ -1157,6 +1157,57 @@ bool trails(int i) {
     return false;
 }
 
+// An open header with nothing under it that can be reached (a mod that is off, in the Mods tab): where the lines under
+// it end (at the next header, tab or the window's last item), or -1. They are its, said with it (with the items on its
+// line, as a mod's "On" check box), not with the item after them.
+int header_end(ImGuiWindow *R, int hp, int last) {
+    const ImGuiItemStatusFlags open = ImGuiItemStatusFlags_Openable | ImGuiItemStatusFlags_Opened;
+    if ((sItem[sPiece[hp].item].status & open) != open) {
+        return -1;
+    }
+    bool line = true; // (still on its line)
+    for (int i = hp + 1; i < sPieces; i++) {
+        const Piece &p = sPiece[i];
+        if (p.root != R) {
+            continue;
+        }
+        line = line && !p.nl;
+        if (!line && p.item >= 0 && navigable(p.item)) {
+            const Item &n = sItem[p.item];
+            return (n.status & ImGuiItemStatusFlags_Openable) || n.tabBar || i == last ? i : -1;
+        }
+    }
+    return -1;
+}
+
+// Whether the lines before piece e are an open header's (header_end), not e's.
+bool header_lines_before(ImGuiWindow *R, int e, int last) {
+    for (int i = e - 1; i >= 0; i--) {
+        const Piece &p = sPiece[i];
+        if (p.root == R && p.item >= 0 && navigable(p.item) && (sItem[p.item].status & ImGuiItemStatusFlags_Openable)) {
+            return header_end(R, i, last) == e;
+        }
+    }
+    return false;
+}
+
+// The header whose line piece fp's item is on, after it (a mod's "On" check box: its mod), or -1.
+int line_header(ImGuiWindow *R, int fp) {
+    for (int i = fp; i >= 0 && !(i == fp && sPiece[i].nl); i--) {
+        const Piece &p = sPiece[i];
+        if (p.root != R) {
+            continue;
+        }
+        if (i != fp && p.item >= 0 && (sItem[p.item].status & ImGuiItemStatusFlags_Openable)) {
+            return p.item;
+        }
+        if (p.nl) {
+            break;
+        }
+    }
+    return -1;
+}
+
 bool in_list(const ImGuiID *list, int count, ImGuiID id) {
     for (int i = 0; i < count; i++) {
         if (list[i] == id) {
@@ -1450,6 +1501,16 @@ void speak(ImGuiContext &g) {
                     add_tr(sp, it.columnName, ". ");
                 }
             }
+            // An item on a header's line: the header's name, unless the focus comes from it (with upstream's reader,
+            // after that reader says the item)
+            int lh = fp >= 0 && !it.table ? line_header(R, fp) : -1;
+            if (lh >= 0 && sItem[lh].id != sFocusId) {
+                Desc hd;
+                char name[sizeof(hd.label)];
+                describe(g, lh, hd);
+                clean(hd.label, (int)strlen(hd.label), name, sizeof(name)); // ("name  1.0": one space)
+                add_tr(sp, name, ". ");
+            }
             if (!up) {
                 add_item(g, sp, f, d, true);
             }
@@ -1489,7 +1550,7 @@ void speak(ImGuiContext &g) {
                 }
             }
             // Its description: the lines since the item before it that can be reached (a region: before what is in it)
-            if (!it.table && !(introduced && fp == first)) {
+            if (!it.table && !(introduced && fp == first) && !header_lines_before(R, fp, last)) {
                 int end = fp;
                 for (int i = 0; i < fp && region && end == fp; i++) {
                     end = sPiece[i].item >= 0 && inside(sItem[sPiece[i].item].window, region) ? i : end;
@@ -1519,6 +1580,32 @@ void speak(ImGuiContext &g) {
                         break;
                     }
                     add_piece_speech(g, sp, i);
+                }
+            }
+            // an open header with nothing under it to reach: the lines under it
+            for (int i = fp + 1, e = fp >= 0 ? header_end(R, fp, last) : -1; i < e; i++) {
+                const Piece &p = sPiece[i];
+                if (p.root == R && p.item >= 0 && navigable(p.item)) { // (an item on its line)
+                    Desc o;
+                    describe(g, p.item, o);
+                    add_item(g, sp, p.item, o, true);
+                } else if (p.root == R && !trails(i)) {
+                    add_piece_speech(g, sp, i);
+                }
+            }
+            // and, the last item of a tab's page, the lines after it up to the next tab: no item after them says them
+            // ("No mods found." under the Mods tab's button; neither reader said them)
+            if (fp >= 0 && !it.table && !it.tabBar) {
+                int next = -1;
+                for (int i = fp + 1; i < sPieces && next < 0; i++) {
+                    if (sPiece[i].root == R && sPiece[i].item >= 0 && navigable(sPiece[i].item)) {
+                        next = i;
+                    }
+                }
+                for (int i = fp + 1; next >= 0 && sItem[sPiece[next].item].tabBar != NULL && i < next; i++) {
+                    if (sPiece[i].root == R && !trails(i)) {
+                        add_piece_speech(g, sp, i);
+                    }
                 }
             }
             if (intro) {

@@ -2690,6 +2690,6 @@ a84ae7f1cd7cd90c	Mods con scripts: scripts de Lua en la carpeta "%s" junto al ju
 # Stopped: %s
 9aade808f42f35d0	Detenido: %s
 # by %s
-08632c48ec96c7f8	de %s
+08632c48ec96c7f8	Autor: %s
 # Folder: %s/%s Uses:%s%s%s
 84a20807c097273a	Carpeta: %s/%s. Usa:%s%s%s
