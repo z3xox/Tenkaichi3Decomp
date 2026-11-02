@@ -2609,14 +2609,14 @@ c4946ad068dd0394	Hay una actualización: %s. F1 para actualizar.
 ee1ca1ab61ec70d5	Descargando la actualización %s: %d%%
 # Update %s is ready. F1 > Restart now.
 be803c275f5b19cd	La actualización %s está lista. F1, Reiniciar ahora.
-# . Z points: %d. Collection: %d of %d, %d percent
-ee5f3743676efb36	. Puntos Z: %d. Colección: %d de %d, %d por ciento
-# %s, %d Z points
-fc4b4bc144b50aa1	%s, %d puntos Z
-# Buy %s for %d Z points? You have %d. 
-e352eb3b019579a7	¿Comprar %s por %d puntos Z? Tienes %d. 
-# Bought %s. %d Z points left. X to go on
-c5088a2a0d5f2033	Compraste %s. Te quedan %d puntos Z. X para seguir
+# . Z Points: %d. Collection: %d of %d, %d percent
+d57f735755608896	. Puntos Z: %d. Colección: %d de %d, %d por ciento
+# %s, %d Z Points
+ea08167ee933df81	%s, %d puntos Z
+# Buy %s for %d Z Points? You have %d. 
+3c6241c946f890c7	¿Comprar %s por %d puntos Z? Tienes %d. 
+# Bought %s. %d Z Points left. X to go on
+79d15ed377ccf813	Compraste %s. Te quedan %d puntos Z. X para seguir
 # Character unlocked!
 b61c14e6184a15d4	¡Personaje desbloqueado!
 # Battle stage unlocked!
@@ -2625,18 +2625,18 @@ b61c14e6184a15d4	¡Personaje desbloqueado!
 012b18ea439f9d1a	¡Objeto desbloqueado!
 # Scenario unlocked!
 bd366c7c4aa8170f	¡Escenario desbloqueado!
-# Battle unlocked!
-9e061ed4d2f9a0b7	¡Batalla desbloqueada!
+# Battle Unlocked!
+4f45a861b7f71f57	¡Batalla desbloqueada!
 # You got a Dragon Ball
-0dfb740f22b74b9d	Tienes una Bola Dragón
-# Z points obtained!
-3d545a5a708a1657	¡Puntos Z conseguidos!
-# Z points earned: %d
-5d47887b9b057a64	Puntos Z adquiridos: %d
-# Z points: %d
-dfe3d04aa4ef81df	Puntos Z: %d
-# Total Z points: %d
-58ad1605c301ca0d	Puntos Z totales: %d
+0dfb740f22b74b9d	Tienes una Esfera del Dragón
+# Z Points obtained!
+ac2e8e0186dabb37	¡Puntos Z conseguidos!
+# Z Points earned: %d
+ada97c9aa0da8444	Puntos Z adquiridos: %d
+# Z Points: %d
+584f9be93a116ebf	Puntos Z: %d
+# Total Z Points: %d
+7ffc0c21a78e19ed	Puntos Z totales: %d
 # Failed...
 02e0b55fb63f8b4a	Fallido...
 # Health: %d percent, %d points

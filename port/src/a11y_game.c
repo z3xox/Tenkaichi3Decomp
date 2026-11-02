@@ -2455,7 +2455,7 @@ static void shop(void) {
         if (level != SHOP_LV_MENU) {
             len = (int)strlen(text);
             snprintf(text + len, sizeof(text) - len,
-                     tr(". Z points: %d. Collection: %d of %d, %d percent"),
+                     tr(". Z Points: %d. Collection: %d of %d, %d percent"),
                      gSaveData->money, s->owned, s->total, s->percent);
         }
         PortA11y_Say(text, follow());
@@ -2494,7 +2494,7 @@ static void shop(void) {
             } else if (owned) {
                 snprintf(text + len, sizeof(text) - len, tr("%s, owned"), name);
             } else if (!(it->flags & WITEM_HIDDEN) && (it->flags & WITEM_SOLD)) {
-                snprintf(text + len, sizeof(text) - len, tr("%s, %d Z points"), name, it->price);
+                snprintf(text + len, sizeof(text) - len, tr("%s, %d Z Points"), name, it->price);
             } else {
                 snprintf(text + len, sizeof(text) - len, "%s", name);
             }
@@ -2515,7 +2515,7 @@ static void shop(void) {
                        ? l->ids[l->tab][l->cur[l->tab]]
                        : -1;
             if (item >= 0 && item < SAVE_ITEMS && text_line(name, sizeof(name), s->itemText, item) > 0) {
-                snprintf(text, sizeof(text), tr("Buy %s for %d Z points? You have %d. "),
+                snprintf(text, sizeof(text), tr("Buy %s for %d Z Points? You have %d. "),
                          name, s->items[item].price, gSaveData->money);
             }
         }
@@ -2530,7 +2530,7 @@ static void shop(void) {
             if (text_line(name, sizeof(name), s->itemText, s->item) == 0) {
                 snprintf(name, sizeof(name), tr("Item %d"), s->item + 1);
             }
-            snprintf(text, sizeof(text), tr("Bought %s. %d Z points left. X to go on"),
+            snprintf(text, sizeof(text), tr("Bought %s. %d Z Points left. X to go on"),
                      name, gSaveData->money);
             PortA11y_Say(text, follow());
         }
@@ -3419,16 +3419,18 @@ static void get_win(void) {
     line1 = g->line1;
     line2 = g->line2;
     /* The title strips' words (the Spanish disc's; the two the strip cuts short, "desbloq." and "desbloque.", are
-       written out). */
+       written out, and its "Bola Dragón" is said "Esfera del Dragón", the name Latin America knows, by the owner's
+       choice). Of the English, only "Battle Unlocked!" (a recording of the game, docs/port/README.md) and the
+       term Z Points are the game's; the rest is our wording, as the US disc was not at hand. */
     switch (kind) {
     case GETWIN_CHARA: label = tr("Character unlocked!"); break;
     case GETWIN_STAGE: label = tr("Battle stage unlocked!"); break;
     case GETWIN_ITEM:
     case GETWIN_ITEM + 1:
     case GETWIN_ITEM + 2: label = tr("Item unlocked!"); break;
-    case GETWIN_MONEY: label = tr("Z points obtained!"); break;
+    case GETWIN_MONEY: label = tr("Z Points obtained!"); break;
     case GETWIN_SAGA: label = tr("Scenario unlocked!"); break;
-    case GETWIN_EPISODE: label = tr("Battle unlocked!"); break;
+    case GETWIN_EPISODE: label = tr("Battle Unlocked!"); break;
     case GETWIN_BALL: label = tr("You got a Dragon Ball"); break;
     default: label = NULL; break;
     }
@@ -3551,7 +3553,7 @@ static void say_points(int earned, const char *have_label, int have, int flags) 
 
     text[0] = '\0';
     if (earned >= 0) {
-        snprintf(text, sizeof(text), tr("Z points earned: %d"), earned);
+        snprintf(text, sizeof(text), tr("Z Points earned: %d"), earned);
     }
     if (have_label != NULL) {
         len = strlen(text);
@@ -3655,7 +3657,7 @@ static void result_sheet(void) {
     }
     if (s == at->money && RESULT_INT(w, at->step) == RESULT_PAID && !paid && gSaveData != NULL) {
         paid = 1;
-        say_points(sc->saved, tr("Z points: %d"), gSaveData->money, 0);
+        say_points(sc->saved, tr("Z Points: %d"), gSaveData->money, 0);
     }
     state = s;
 }
@@ -3697,7 +3699,7 @@ static void hist_result(void) {
     }
     if (said == 0 && (h->flags & HISTRESULT_LOST)) {
         PortA11y_Say(tr("Failed..."), 0);
-        say_points(0, tr("Total Z points: %d"), gSaveData->money, 0);
+        say_points(0, tr("Total Z Points: %d"), gSaveData->money, 0);
         said = 3;
     } else if (said == 0) {
         PortA11y_Say(tr("Cleared!"), 0);
@@ -3706,7 +3708,7 @@ static void hist_result(void) {
         say_points(h->pointsTotal, NULL, 0, 0);
         said = 2;
     } else if (said == 2 && (h->state == 5 || h->state == 0 || h->state > 50)) {
-        say_points(-1, tr("Total Z points: %d"), gSaveData->money, A11Y_INTERRUPT);
+        say_points(-1, tr("Total Z Points: %d"), gSaveData->money, A11Y_INTERRUPT);
         said = 3;
     }
 }
