@@ -1068,7 +1068,8 @@ void FlashDraw_Quad(FlashTex *tex, FlashQuad *q) {
         }
         return;
     }
-    if (!gPortFeatherBusy && tex != NULL && q->pt[0][1] < 1.0f && q->pt[2][0] == q->pt[0][0] && q->pt[3][0] == q->pt[1][0] &&
+    if (!gPortFeatherBusy && tex != NULL && q->pt[0][1] < 1.0f && fabsf(q->pt[2][0] - q->pt[0][0]) < 1.5f &&
+        fabsf(q->pt[3][0] - q->pt[1][0]) < 1.5f &&
         ((fabsf(q->pt[0][0]) < 1.5f && fabsf(q->pt[1][0] - 255.5f) < 1.5f) ||
          (fabsf(q->pt[0][0] - 255.5f) < 1.5f && fabsf(q->pt[1][0] - 511.5f) < 1.5f)) &&
         Port_MenuVsHalf(1)) {
