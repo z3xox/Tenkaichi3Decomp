@@ -501,6 +501,11 @@ static int clip_part(const char *name, int x, int top) {
         return PORT_MENU_CENTER_FREE; /* (the big picture: at its true shape where it is, sliding in too, not taken
                                          for a moving piece of the page and drawn elsewhere for its first frames) */
     }
+    if (sMenuScreen == 21 && top && (starts(name, "mc_name_plate_") || starts(name, "mc_form_plate_") ||
+                                     starts(name, "mc_name_text_") || starts(name, "mc_form_text_"))) {
+        size_t n = strlen(name); /* (the VS's names: each fighter's against its edge) */
+        return name[n - 1] == 'l' ? PORT_MENU_LEFT : PORT_MENU_RIGHT;
+    }
     if ((sMenuScreen == 21 || sMenuScreen == 22) && top && strcmp(name, "mc_noise") == 0) {
         return PORT_MENU_CENTER_ALL; /* (the burst of lines behind the emblem: across the whole width, the clip drawn wider
                                         and not cut: Port_MenuClipWiden; its pieces as wide as the 4:3 screen too) */
