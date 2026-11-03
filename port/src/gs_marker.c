@@ -523,6 +523,9 @@ static int clip_part(const char *name, int x, int top) {
     if (sMenuScreen == 13 && top && (starts(name, "mc_menu_plate_") || starts(name, "mc_level_plate_") || starts(name, "mc_scenario"))) {
         return PORT_MENU_CENTER; /* (Dragon History: its plates at their true shape, over the scenery that fills) */
     }
+    if (sMenuScreen == 19 && top && (starts(name, "mc_entry_text_") || starts(name, "mc_chara_entry_"))) {
+        return PORT_MENU_CENTER_ALL; /* (the tournament's entry slots and their frame: one block, sliding in together) */
+    }
     if ((sMenuScreen == 15 || sMenuScreen == 19 || (sMenuScreen >= 23 && sMenuScreen <= 25)) && top &&
         (strcmp(name, "mc_single_chara_l") == 0 || strcmp(name, "mc_face_mask_l") == 0)) {
         return PORT_MENU_CENTER_FREE; /* (the big picture: at its true shape where it is, sliding in too, not taken
