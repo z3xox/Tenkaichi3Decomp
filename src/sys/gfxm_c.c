@@ -698,8 +698,11 @@ void FlashSlot_Draw(FlashSlot *slot, FlashProp *parent, Flash *flash) {
                 gPortFlashBox[1] = -1e9f;
                 FlashTl_Draw(&clip->tl, &prop);
                 gPortFlashMeasure = 0;
-                if (frame) {
-                    parked = gPortFlashBox[0] < gPortFlashBox[1] && gPortFlashBox[0] >= 504.0f;
+                if (frame) { /* (parked: past that edge and still, as it was the last time; sliding in, it is drawn) */
+                    static float last = -1e9f;
+                    int past = gPortFlashBox[0] < gPortFlashBox[1] && gPortFlashBox[0] >= 504.0f;
+                    parked = past && fabsf(gPortFlashBox[0] - last) < 0.5f;
+                    last = gPortFlashBox[0];
                 }
                 if (parked && gPortFlashBox[0] < gPortFlashBox[1] && gPortFlashBox[0] >= 504.0f) {
                     return;

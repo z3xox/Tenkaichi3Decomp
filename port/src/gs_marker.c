@@ -473,17 +473,18 @@ static int clip_part(const char *name, int x, int top) {
         return PORT_MENU_FILL; /* (the burst of lines behind the emblem: across the whole width) */
     }
     if ((sMenuScreen == 21 || sMenuScreen == 22) && top &&
-        (starts(name, "mc_taikaimoji") || strcmp(name, "mc_flash_ef") == 0)) {
-        /* (the World Tournament's opening, its emblem and the ring round it: at their true shape over the whole wide
-           picture, not stretched or cut at the 4:3 screen's edges) */
+        (starts(name, "mc_taikaimoji") || strcmp(name, "mc_flash_ef") == 0 || starts(name, "mc_taikai_text0") ||
+         starts(name, "mc_single_chara_") || starts(name, "mc_face_mask_") || starts(name, "mc_victory_or_defeat_"))) {
+        /* (the World Tournament's opening, its emblem and the ring round it, its titles and the rays behind them, and
+           the VS's pictures with their masks: at their true shape over the whole wide picture, not stretched or cut at
+           the 4:3 screen's edges) */
         return PORT_MENU_CENTER_FREE;
     }
     if ((sMenuScreen == 21 || sMenuScreen == 22) && top &&
-        (starts(name, "mc_tournament") || strcmp(name, "mc_victory_text") == 0 || starts(name, "mc_taikai_text0") ||
-         strcmp(name, "mc_menu_title_plate") == 0)) {
-        /* (its bracket, a strip that scrolls across: at its true shape, whole while it moves (Port_MenuClipMoving),
-           cut at the 4:3 screen's edges once it stops: parked past the right one behind the VS, it is gone) */
-        return PORT_MENU_CENTER_ALL;
+        (starts(name, "mc_tournament") || strcmp(name, "mc_victory_text") == 0 || strcmp(name, "mc_menu_title_plate") == 0)) {
+        /* (its bracket, a strip that scrolls across: at its true shape over the whole wide picture; parked past the
+           4:3 screen's right edge behind the VS, it is not drawn: Port_MenuParkedClip) */
+        return PORT_MENU_CENTER_FREE;
     }
     if ((sMenuScreen == 15 || sMenuScreen == 19 || (sMenuScreen >= 23 && sMenuScreen <= 25)) && top) {
         /* (the character selects of Ultimate Battle and the World Tournament: the player's name plate, picture side
