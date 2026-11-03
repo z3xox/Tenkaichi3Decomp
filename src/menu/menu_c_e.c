@@ -1201,7 +1201,8 @@ void CharSel_Draw(void) {
 
 #ifdef PORT
     for (i = 0; i < CHARSEL_FLASH_NUM; i++) {
-        Port_MenuMovie(i); /* widescreen menus: which of the screen's movies (port/src/gs_marker.c) */
+        Port_MenuMovie(i == 1 || i == 2 ? i | 0x100 : i); /* widescreen menus: which of the screen's movies, the two
+                                                             rosters marked (port/src/gs_marker.c) */
         Flash_Draw(&gCharSel->flash[i]);
     }
     Port_MenuMovie(0);

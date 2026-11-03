@@ -28,6 +28,7 @@ static s32 sPortStageRows = TS_STAGE_COLS; /* rows of the stage reel: the game's
 #endif
 #ifdef PORT
 extern void Port_MenuPage(int screen); /* port/src/gs_marker.c: widescreen menus */
+extern void Port_MenuMovie(int index);
 extern void Port_MenuFill(int on);
 #endif
 
@@ -944,7 +945,8 @@ void TeamSel_Draw(void) {
             }
         }
 #ifdef PORT
-        Port_MenuPage(15); /* widescreen menus: this screen's page, its backdrop filling the width */
+        Port_MenuPage(3); /* widescreen menus: the versus character select's page (port/src/gs_marker.c), as the one-on-one
+                             one: its backdrop and the stage pictures filling the width, each player's side at its edge */
         Port_MenuFill(1);
         Sprite_DrawPicture(gTeamSel->bg[i], 0, 0, gTeamSel->bgAlpha[i]);
         Port_MenuFill(0);
@@ -1344,9 +1346,19 @@ void TeamSel_Draw(void) {
             }
         }
     }
+#ifdef PORT
+    Port_MenuPage(3); /* (also when no backdrop was drawn above) */
+    for (i = 0; i < TEAMSEL_FLASH_NUM; i++) {
+        Port_MenuMovie(i == 3 || i == 4 ? i | 0x100 : i); /* (its movies as the one-on-one select's: 1, 3 and 5 the first
+                                                             player's, 2, 4, 6 the other's; 3 and 4 the rosters) */
+        Flash_Draw(&gTeamSel->flash[i]);
+    }
+    Port_MenuMovie(0);
+#else
     for (i = 0; i < TEAMSEL_FLASH_NUM; i++) {
         Flash_Draw(&gTeamSel->flash[i]);
     }
+#endif
     Font_FlushAll();
     IconWin_Draw();
     ItemPanel_Draw(0);
