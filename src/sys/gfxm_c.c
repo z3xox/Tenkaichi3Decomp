@@ -13,6 +13,7 @@
 extern int Port_MenuClipPart(const char *name, int x, int top); /* port/src/gs_marker.c: widescreen menus */
 extern int Port_MenuCapMirror(const char *name, int top);
 extern int Port_MenuParkedClip(const char *name, int top);
+extern int Port_MenuVsHalf(int on);
 extern int Port_MenuReelShift(void);
 extern int Port_MenuClipPlace(int x0, int x1);
 extern int Port_MenuClipMoving(const char *name, int x, int top);
@@ -21,7 +22,8 @@ static int gPortFlashMeasure;  /* FlashDraw_Quad only measures (gPortFlashBox: t
 static float gPortFlashBox[2];
 static int gPortFeather;       /* the clip being drawn fades out at an edge (Port_MenuFeather): 1 left, 2 right */
 static float gPortFeatherW;    /* the band's width */
-static float gPortFeatherEdge; /* where the picture's art is cut: its quad's outer edge, wherever it slides */
+static float gPortFeatherEdge; /* where the picture's art is cut: its clip's outer edge, wherever it slides */
+static int gPortMeasureArt;    /* measuring leaves out the masks' quads (they are wider than the picture) */
 static FlashQuad gPortMaskQuad; /* the last mask drawn (see-through pictures are drawn through it) */
 static FlashTex *gPortMaskTex;
 static int gPortMaskHave;
@@ -720,10 +722,20 @@ void FlashSlot_Draw(FlashSlot *slot, FlashProp *parent, Flash *flash) {
             {
                 int fw;
                 int fside = Port_MenuFeather(clip->name, parent == NULL, &fw);
-                if (fside != 0) {
-                    featherPrev = gPortFeather;
-                    gPortFeather = fside;
-                    gPortFeatherW = (f32)fw;
+                if (fside != 0) { /* (the edge of all of its art: a picture of several quads fades at its own edge only) */
+                    gPortFlashMeasure = 1;
+                    gPortMeasureArt = 1;
+                    gPortFlashBox[0] = 1e9f;
+                    gPortFlashBox[1] = -1e9f;
+                    FlashTl_Draw(&clip->tl, &prop);
+                    gPortMeasureArt = 0;
+                    gPortFlashMeasure = 0;
+                    if (gPortFlashBox[0] < gPortFlashBox[1]) {
+                        featherPrev = gPortFeather;
+                        gPortFeather = fside;
+                        gPortFeatherW = (f32)fw;
+                        gPortFeatherEdge = fside == 1 ? gPortFlashBox[0] : gPortFlashBox[1];
+                    }
                 }
             }
             {
@@ -1047,10 +1059,30 @@ void FlashDraw_Quad(FlashTex *tex, FlashQuad *q) {
 #ifdef PORT
     if (gPortFlashMeasure) { /* widescreen menus: where the clip being measured lies (FlashSlot_Draw) */
         s32 i;
+        if (gPortMeasureArt && (q->flags & FLASH_QUAD_MASK_SET)) {
+            return;
+        }
         for (i = 0; i < 4; i++) {
             gPortFlashBox[0] = q->pt[i][0] < gPortFlashBox[0] ? q->pt[i][0] : gPortFlashBox[0];
             gPortFlashBox[1] = q->pt[i][0] > gPortFlashBox[1] ? q->pt[i][0] : gPortFlashBox[1];
         }
+        return;
+    }
+    if (!gPortFeatherBusy && tex != NULL && q->pt[0][1] < 1.0f && q->pt[2][0] == q->pt[0][0] && q->pt[3][0] == q->pt[1][0] &&
+        ((fabsf(q->pt[0][0]) < 1.5f && fabsf(q->pt[1][0] - 255.5f) < 1.5f) ||
+         (fabsf(q->pt[0][0] - 255.5f) < 1.5f && fabsf(q->pt[1][0] - 511.5f) < 1.5f)) &&
+        Port_MenuVsHalf(1)) {
+        /* (a half of the 4:3 screen from its top: the VS's grey behind a fighter, out to that edge of the wide one) */
+        FlashQuad w = *q;
+        if (q->pt[0][0] < 128.0f) {
+            w.pt[0][0] = w.pt[2][0] = -400.0f;
+        } else {
+            w.pt[1][0] = w.pt[3][0] = 912.0f;
+        }
+        gPortFeatherBusy = 1;
+        FlashDraw_Quad(tex, &w);
+        gPortFeatherBusy = 0;
+        Port_MenuVsHalf(0);
         return;
     }
     if (!gPortFeatherBusy) {
@@ -1061,15 +1093,11 @@ void FlashDraw_Quad(FlashTex *tex, FlashQuad *q) {
             gPortMaskTex = tex;
             gPortMaskHave = 1;
         } else if ((q->flags & FLASH_QUAD_MASK) && gPortFeather != 0 && gPortMaskHave) {
-            f32 a = q->pt[0][0] < q->pt[1][0] ? q->pt[0][0] : q->pt[1][0], b = q->pt[0][0] < q->pt[1][0] ? q->pt[1][0] : q->pt[0][0];
-            gPortFeatherEdge = gPortFeather == 1 ? a : b; /* (the picture's edge, not the mask's: it is wider) */
             Port_FeatherQuad(gPortMaskTex, &gPortMaskQuad);
         }
     }
     if (gPortFeather != 0 && !gPortFeatherBusy && tex != NULL && !(q->flags & FLASH_QUAD_MASK) && !(q->flags & FLASH_QUAD_MASK_SET) &&
-        (gPortFeatherEdge = gPortFeather == 1 ? (q->pt[0][0] < q->pt[1][0] ? q->pt[0][0] : q->pt[1][0])
-                                              : (q->pt[0][0] < q->pt[1][0] ? q->pt[1][0] : q->pt[0][0]),
-         Port_FeatherQuad(tex, q))) {
+        Port_FeatherQuad(tex, q)) {
         /* (the picture, or the mask that map select's see-through pictures are drawn through; not those pictures
            themselves: what shows of them is the mask's alpha, theirs does nothing) */
         return;
@@ -1324,6 +1352,7 @@ void Flash_Draw(Flash *flash) {
         /* widescreen menus: a versus select's roster, all of it (its cells' mask too), moved to have its bar in the
            middle (port/src/gs_marker.c Port_MenuReelShift) */
         s32 shift = Port_MenuReelShift();
+        gPortMaskHave = 0; /* (a mask is redrawn faded only for the pictures of its own movie) */
         flash->ofs[0] += shift;
         FlashTl_Draw(flash->root, NULL);
         flash->ofs[0] -= shift;

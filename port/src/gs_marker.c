@@ -138,6 +138,26 @@ int Port_MenuParkedClip(const char *name, int top) {
            (starts(name, "mc_tournament") || strcmp(name, "mc_victory_text") == 0);
 }
 
+/* The VS's grey behind each fighter (World Tournament): two shapes of the page, each one half of the 4:3 screen.
+   On a wide screen each reaches its edge of the picture: drawn wider (src/sys/gfxm_c.c FlashDraw_Quad) and not cut
+   at the 4:3 screen's edges. `on`: such a quad is drawn (1) / done (0); returns 0 where there is nothing to do. */
+int Port_MenuVsHalf(int on) {
+    static int prev, active;
+    if (on) {
+        if (sMenuScreen != 21 || sMenuPart != PORT_MENU_PAGE || !Port_MenusWide() || !Port_IsWide()) {
+            return 0; /* (the page's own shapes: not the fighters' pictures, which are halves too) */
+        }
+        active = 1;
+        prev = Port_MenuPart(PORT_MENU_CENTER_FREE);
+        return 1;
+    }
+    if (active) {
+        active = 0;
+        Port_MenuPart(prev);
+    }
+    return 0;
+}
+
 /* A character select's item window (Custom 1.. and Right / Left: src/menu/menu_g.c ItemPanel_Draw) is drawn from
    `on` (1 the first side's, 2 the other's) to its end (0), in any of the screens that have one: its name and form
    plates against the edge of that side, the rest of it (the set's name, the ability limit, the list) against the
@@ -474,7 +494,7 @@ static int clip_part(const char *name, int x, int top) {
     }
     if ((sMenuScreen == 21 || sMenuScreen == 22) && top &&
         (starts(name, "mc_taikaimoji") || strcmp(name, "mc_flash_ef") == 0 || starts(name, "mc_taikai_text0") ||
-         starts(name, "mc_single_chara_") || starts(name, "mc_face_mask_") || starts(name, "mc_victory_or_defeat_"))) {
+         starts(name, "mc_single_chara_") || starts(name, "mc_face_mask_"))) {
         /* (the World Tournament's opening, its emblem and the ring round it, its titles and the rays behind them, and
            the VS's pictures with their masks: at their true shape over the whole wide picture, not stretched or cut at
            the 4:3 screen's edges) */
