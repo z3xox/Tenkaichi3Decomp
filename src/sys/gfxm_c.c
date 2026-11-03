@@ -14,6 +14,7 @@ extern int Port_MenuClipPart(const char *name, int x, int top); /* port/src/gs_m
 extern int Port_MenuCapMirror(const char *name, int top);
 extern int Port_MenuParkedClip(const char *name, int top);
 extern int Port_MenuVsHalf(int on);
+extern int Port_MenuPageFree(int on);
 extern float Port_MenuClipWiden(const char *name, int top);
 extern int Port_MenuReelShift(void);
 extern int Port_MenuClipPlace(int x0, int x1);
@@ -710,6 +711,16 @@ void FlashSlot_Draw(FlashSlot *slot, FlashProp *parent, Flash *flash) {
                 if (parked && gPortFlashBox[0] < gPortFlashBox[1] && gPortFlashBox[0] >= 504.0f) {
                     return;
                 }
+                if (strcmp(clip->name, "mc_menu_title_plate") == 0 || strcmp(clip->name, "mc_victory_plate") == 0) {
+                    /* (the title and the champion's plate: parked at 491 and 520, still there) */
+                    static float tlast[2] = {-1e9f, -1e9f};
+                    int t = clip->name[3] == 'v';
+                    int still = fabsf(gPortFlashBox[0] - tlast[t]) < 0.5f;
+                    tlast[t] = gPortFlashBox[0];
+                    if (still && gPortFlashBox[0] < gPortFlashBox[1] && gPortFlashBox[0] >= 480.0f) {
+                        return;
+                    }
+                }
             }
             if (part == -2) {
                 gPortFlashMeasure = 1;
@@ -1079,6 +1090,13 @@ void FlashDraw_Quad(FlashTex *tex, FlashQuad *q) {
             gPortFlashBox[0] = q->pt[i][0] < gPortFlashBox[0] ? q->pt[i][0] : gPortFlashBox[0];
             gPortFlashBox[1] = q->pt[i][0] > gPortFlashBox[1] ? q->pt[i][0] : gPortFlashBox[1];
         }
+        return;
+    }
+    if (!gPortFeatherBusy && q->pt[0][1] < -20.0f && fabsf(q->pt[1][0] - q->pt[0][0]) > 200.0f && Port_MenuPageFree(1)) {
+        gPortFeatherBusy = 1; /* (a large shape of the page from above its top: Port_MenuPageFree) */
+        FlashDraw_Quad(tex, q);
+        gPortFeatherBusy = 0;
+        Port_MenuPageFree(0);
         return;
     }
     if (!gPortFeatherBusy && tex != NULL && q->pt[0][1] < 1.0f && fabsf(q->pt[2][0] - q->pt[0][0]) < 1.5f &&

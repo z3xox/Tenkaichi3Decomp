@@ -135,7 +135,8 @@ int Port_MenuFeather(const char *name, int top, int *width) {
    drawn while all of it is past that edge (src/sys/gfxm_c.c FlashSlot_Draw measures it). */
 int Port_MenuParkedClip(const char *name, int top) {
     return (sMenuScreen == 21 || sMenuScreen == 22) && top && Port_MenusWide() &&
-           (starts(name, "mc_tournament") || strcmp(name, "mc_victory_text") == 0);
+           (starts(name, "mc_tournament") || strcmp(name, "mc_victory_text") == 0 || strcmp(name, "mc_menu_title_plate") == 0 ||
+            strcmp(name, "mc_victory_plate") == 0);
 }
 
 /* The VS's grey behind each fighter (World Tournament): two shapes of the page, each one half of the 4:3 screen.
@@ -159,15 +160,36 @@ int Port_MenuVsHalf(int on) {
 }
 
 /* How much wider a clip is drawn about the 4:3 screen's middle (src/sys/gfxm_c.c FlashSlot_Draw), 1 for most: World
-   Tournament's burst of lines behind its emblem (mc_flash_ef, settling at the 4:3 screen's size) and its noise,
-   filling the wide one */
+   Tournament's burst of lines behind its emblem (mc_flash_ef, settling at the 4:3 screen's size), its noise and the
+   champion's glow (mc_yusyo_flash_ef, two halves of the 4:3 screen), filling the wide one */
 extern int Port_AspectMilli(void);
 float Port_MenuClipWiden(const char *name, int top) {
-    if (!top || !(sMenuScreen == 21 || sMenuScreen == 22) || !(strcmp(name, "mc_noise") == 0 || strcmp(name, "mc_flash_ef") == 0) ||
+    if (!top || !(sMenuScreen == 21 || sMenuScreen == 22) || !(strcmp(name, "mc_noise") == 0 || strcmp(name, "mc_flash_ef") == 0 || strcmp(name, "mc_yusyo_flash_ef") == 0) ||
         !Port_MenusWide() || !Port_IsWide()) {
         return 1.0f;
     }
     return (float)Port_AspectMilli() / 1333.333f;
+}
+
+/* World Tournament's page (21): its own large shapes that start above the screen (the champion's rings, growing
+   from the middle) are drawn at their true shape where they are (src/sys/gfxm_c.c FlashDraw_Quad), not set against
+   a 4:3 edge as the page's pieces from its top edge are. `on`: such a quad is drawn (1) / done (0); returns 0 where
+   there is nothing to do. */
+int Port_MenuPageFree(int on) {
+    static int prev, active;
+    if (on) {
+        if (sMenuScreen != 21 || sMenuPart != PORT_MENU_PAGE || !Port_MenusWide() || !Port_IsWide()) {
+            return 0;
+        }
+        active = 1;
+        prev = Port_MenuPart(PORT_MENU_CENTER_FREE);
+        return 1;
+    }
+    if (active) {
+        active = 0;
+        Port_MenuPart(prev);
+    }
+    return 0;
 }
 
 /* A character select's item window (Custom 1.. and Right / Left: src/menu/menu_g.c ItemPanel_Draw) is drawn from
@@ -506,20 +528,25 @@ static int clip_part(const char *name, int x, int top) {
         size_t n = strlen(name); /* (the VS's names: each fighter's against its edge) */
         return name[n - 1] == 'l' ? PORT_MENU_LEFT : PORT_MENU_RIGHT;
     }
-    if ((sMenuScreen == 21 || sMenuScreen == 22) && top && strcmp(name, "mc_noise") == 0) {
+    if ((sMenuScreen == 21 || sMenuScreen == 22) && top && (strcmp(name, "mc_noise") == 0 || strcmp(name, "mc_yusyo_flash_ef") == 0)) {
         return PORT_MENU_CENTER_ALL; /* (the burst of lines behind the emblem: across the whole width, the clip drawn wider
                                         and not cut: Port_MenuClipWiden; its pieces as wide as the 4:3 screen too) */
     }
     if ((sMenuScreen == 21 || sMenuScreen == 22) && top &&
         (starts(name, "mc_taikaimoji") || strcmp(name, "mc_flash_ef") == 0 || starts(name, "mc_taikai_text0") ||
-         starts(name, "mc_single_chara_") || starts(name, "mc_face_mask_"))) {
-        /* (the World Tournament's opening, its emblem and the ring round it, its titles and the rays behind them, and
-           the VS's pictures with their masks: at their true shape over the whole wide picture, not stretched or cut at
-           the 4:3 screen's edges) */
+         starts(name, "mc_single_chara_") || starts(name, "mc_face_mask_") || starts(name, "mc_yusyomoji") ||
+         starts(name, "mc_item_plate") || starts(name, "mc_item_get_text") || starts(name, "mc_victory_lose_result_text") ||
+         starts(name, "mc_text_base_") || starts(name, "mc_dammy_text_") || starts(name, "mc_icon_get_") ||
+         strcmp(name, "mc_title_get_loop") == 0)) {
+        /* (the World Tournament's opening, its emblem and the ring round it, its titles and the rays behind them, the
+           VS's pictures with their masks, and the champion's Victory, its rings and the windows of what is won: at
+           their true shape over the whole wide picture, not stretched or cut at the 4:3 screen's edges, nor set
+           against them as pieces from the top edge) */
         return PORT_MENU_CENTER_FREE;
     }
     if ((sMenuScreen == 21 || sMenuScreen == 22) && top &&
-        (starts(name, "mc_tournament") || strcmp(name, "mc_victory_text") == 0 || strcmp(name, "mc_menu_title_plate") == 0)) {
+        (starts(name, "mc_tournament") || strcmp(name, "mc_victory_text") == 0 || strcmp(name, "mc_menu_title_plate") == 0 ||
+         strcmp(name, "mc_victory_plate") == 0)) {
         /* (its bracket, a strip that scrolls across: at its true shape over the whole wide picture; parked past the
            4:3 screen's right edge behind the VS, it is not drawn: Port_MenuParkedClip) */
         return PORT_MENU_CENTER_FREE;
