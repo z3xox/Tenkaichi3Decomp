@@ -136,6 +136,18 @@ brew install llvm sdl3 shaderc spirv-cross
 python3 install.py --iso <your disc image>   # then ./play.sh
 ```
 
+To start it from Finder, Launchpad or the Dock instead of a Terminal:
+
+```
+port/macos/make_apps.sh --iso <your disc image>   # optional: --icon <picture>, --to /Applications
+```
+
+makes `Tenkaichi3Decomp.app` and `Tenkaichi3Decomp Setup.app` in `~/Applications`. Each time one is opened it asks
+GitHub for a newer version of this checkout; when there is one, a dialog lists the changes and **Update now** pulls
+them and builds the game again in the setup window (saves, settings and mods are kept), then Play. The Setup app
+opens the setup window with the disc image filled in. On a Mac keyboard F1 and F11 are the brightness keys: hold
+`fn` for the game's settings (F1) and full screen (F11).
+
 `python3 install.py --check` lists what is missing. How the build works and what is left:
 [docs/port/macos_plan.md](docs/port/macos_plan.md).
 
