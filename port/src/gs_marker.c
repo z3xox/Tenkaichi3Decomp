@@ -158,6 +158,18 @@ int Port_MenuVsHalf(int on) {
     return 0;
 }
 
+/* How much wider a clip is drawn about the 4:3 screen's middle (src/sys/gfxm_c.c FlashSlot_Draw), 1 for most: World
+   Tournament's burst of lines behind its emblem (mc_flash_ef, settling at the 4:3 screen's size) and its noise,
+   filling the wide one */
+extern int Port_AspectMilli(void);
+float Port_MenuClipWiden(const char *name, int top) {
+    if (!top || !(sMenuScreen == 21 || sMenuScreen == 22) || !(strcmp(name, "mc_noise") == 0 || strcmp(name, "mc_flash_ef") == 0) ||
+        !Port_MenusWide() || !Port_IsWide()) {
+        return 1.0f;
+    }
+    return (float)Port_AspectMilli() / 1333.333f;
+}
+
 /* A character select's item window (Custom 1.. and Right / Left: src/menu/menu_g.c ItemPanel_Draw) is drawn from
    `on` (1 the first side's, 2 the other's) to its end (0), in any of the screens that have one: its name and form
    plates against the edge of that side, the rest of it (the set's name, the ability limit, the list) against the
@@ -490,7 +502,8 @@ static int clip_part(const char *name, int x, int top) {
                                          for a moving piece of the page and drawn elsewhere for its first frames) */
     }
     if ((sMenuScreen == 21 || sMenuScreen == 22) && top && strcmp(name, "mc_noise") == 0) {
-        return PORT_MENU_FILL; /* (the burst of lines behind the emblem: across the whole width) */
+        return PORT_MENU_CENTER_ALL; /* (the burst of lines behind the emblem: across the whole width, the clip drawn wider
+                                        and not cut: Port_MenuClipWiden; its pieces as wide as the 4:3 screen too) */
     }
     if ((sMenuScreen == 21 || sMenuScreen == 22) && top &&
         (starts(name, "mc_taikaimoji") || strcmp(name, "mc_flash_ef") == 0 || starts(name, "mc_taikai_text0") ||

@@ -14,6 +14,7 @@ extern int Port_MenuClipPart(const char *name, int x, int top); /* port/src/gs_m
 extern int Port_MenuCapMirror(const char *name, int top);
 extern int Port_MenuParkedClip(const char *name, int top);
 extern int Port_MenuVsHalf(int on);
+extern float Port_MenuClipWiden(const char *name, int top);
 extern int Port_MenuReelShift(void);
 extern int Port_MenuClipPlace(int x0, int x1);
 extern int Port_MenuClipMoving(const char *name, int x, int top);
@@ -719,6 +720,18 @@ void FlashSlot_Draw(FlashSlot *slot, FlashProp *parent, Flash *flash) {
                 part = Port_MenuClipPlace((int)gPortFlashBox[0], (int)gPortFlashBox[1]);
             }
             prev = part >= 0 ? Port_MenuPart(part) : 0;
+            {
+                f32 k = Port_MenuClipWiden(clip->name, parent == NULL);
+                if (k != 1.0f) { /* (x about the 4:3 screen's middle, 256; not cut at its edges) */
+                    f32 ox = (f32)flash->ofs[0];
+                    if (freePrev < 0) {
+                        freePrev = Port_MenuFree(1);
+                    }
+                    prop.mtx.m[0] *= k;
+                    prop.mtx.m[1] *= k;
+                    prop.mtx.m[2] = 256.0f - ox + (prop.mtx.m[2] + ox - 256.0f) * k;
+                }
+            }
             {
                 int fw;
                 int fside = Port_MenuFeather(clip->name, parent == NULL, &fw);
