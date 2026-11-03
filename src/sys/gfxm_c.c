@@ -1092,7 +1092,9 @@ void FlashDraw_Quad(FlashTex *tex, FlashQuad *q) {
         }
         return;
     }
-    if (!gPortFeatherBusy && q->pt[0][1] < -20.0f && fabsf(q->pt[1][0] - q->pt[0][0]) > 200.0f && Port_MenuPageFree(1)) {
+    if (!gPortFeatherBusy && fabsf(q->pt[1][0] - q->pt[0][0]) > 200.0f &&
+        (q->pt[0][1] < -20.0f || (fabsf(q->pt[1][0] - q->pt[0][0]) > 280.0f && (q->pt[0][0] < -1.0f || q->pt[1][0] > 513.0f))) &&
+        Port_MenuPageFree(1)) {
         gPortFeatherBusy = 1; /* (a large shape of the page from above its top: Port_MenuPageFree) */
         FlashDraw_Quad(tex, q);
         gPortFeatherBusy = 0;

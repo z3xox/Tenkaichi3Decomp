@@ -57,6 +57,7 @@ enum { PORT_MENU_NONE = -1, PORT_MENU_CENTER, PORT_MENU_FILL, PORT_MENU_LEFT, PO
 extern int Port_MenusWide(void); /* port/src/plat_stub.c */
 extern int Port_IsWide(void);
 static int starts(const char *name, const char *prefix);
+int Port_MenuFree(int on);
 static int sMenuPart = PORT_MENU_NONE;
 static int sItemPanel; /* a character select's item window is being drawn (Port_MenuItemPanel): 1 the first side's, 2 the other's */
 static int sDuelSettings; /* the versus menu's battle settings are open (or the last of its windows): in the middle */
@@ -171,16 +172,19 @@ float Port_MenuClipWiden(const char *name, int top) {
     return (float)Port_AspectMilli() / 1333.333f;
 }
 
-/* World Tournament's page (21): its own large shapes that start above the screen (the champion's rings, growing
-   from the middle) are drawn at their true shape where they are (src/sys/gfxm_c.c FlashDraw_Quad), not set against
-   a 4:3 edge as the page's pieces from its top edge are. `on`: such a quad is drawn (1) / done (0); returns 0 where
-   there is nothing to do. */
+/* World Tournament's page (21) and World Tour's (20): their own large shapes that start above the screen (the
+   champion's rings, growing from the middle) or reach past the 4:3 screen's edges (the Welcome's streaks of light)
+   are drawn at their true shape where they are, not cut (src/sys/gfxm_c.c FlashDraw_Quad), not set against a 4:3
+   edge as the page's pieces from its top edge are. `on`: such a quad is drawn (1) / done (0); returns 0 where there
+   is nothing to do. */
 int Port_MenuPageFree(int on) {
-    static int prev, active;
+    static int prev, active, freePrev;
     if (on) {
-        if (sMenuScreen != 21 || sMenuPart != PORT_MENU_PAGE || !Port_MenusWide() || !Port_IsWide()) {
+        if (!((sMenuScreen == 21 && sMenuPart == PORT_MENU_PAGE) || (sMenuScreen == 20 && sMenuPart == PORT_MENU_PAGE_EDGE)) ||
+            !Port_MenusWide() || !Port_IsWide()) {
             return 0;
         }
+        freePrev = Port_MenuFree(1);
         active = 1;
         prev = Port_MenuPart(PORT_MENU_CENTER_FREE);
         return 1;
@@ -188,6 +192,7 @@ int Port_MenuPageFree(int on) {
     if (active) {
         active = 0;
         Port_MenuPart(prev);
+        Port_MenuFree(freePrev);
     }
     return 0;
 }
