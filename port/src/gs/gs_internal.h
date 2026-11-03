@@ -87,7 +87,8 @@ extern int gsSkipFrame;
 void Gs_RenderIdle(void);
 int Gs_RenderThreaded(void);  /* the render thread is on */
 int Gs_OnRenderThread(void);  /* and this is it */
-int GsGpu_BackendIsGl(void);  /* gs_draw.c: the OpenGL back end is the one running */
+int GsGpu_BackendIsGl(void);  /* gs_draw.c: the OpenGL or Direct3D 11 back end is the one running (its device is one thread's) */
+const char *GsGpu_BackendName(void); /* gs_draw.c: "vulkan", "opengl" or "d3d11" */
 
 /* Settings are read from the environment all over the renderer, some of them for every batch a model sends
    (tens of thousands of times per frame). The C library's getenv is cheap on Linux and slow on Windows (a lock
