@@ -1348,6 +1348,12 @@ int main(int argc, char **argv) {
     }
     while (!sQuit) {
         SDL_Event ev;
+        // A rest until the next event, at most a frame (a tenth of a second while another window has the keys, such
+        // as the file window, or this one is hidden): without it the loop drew without pause, and on some drivers
+        // (AMD's Vulkan) waiting for the display spins a whole core even for a still window, which made the file
+        // window lag. An event (a key, the mouse, the file window's answer) ends the rest at once.
+        Uint64 wf = SDL_GetWindowFlags(sWindow);
+        SDL_WaitEventTimeout(NULL, (wf & SDL_WINDOW_INPUT_FOCUS) && !(wf & (SDL_WINDOW_MINIMIZED | SDL_WINDOW_OCCLUDED | SDL_WINDOW_HIDDEN)) ? 16 : 100);
         PortA11y_Begin(); // (the first call starts the speaker, when prism.dll is there)
         while (SDL_PollEvent(&ev)) {
             if (page_key(ev)) {

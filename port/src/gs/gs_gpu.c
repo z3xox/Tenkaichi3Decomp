@@ -692,7 +692,11 @@ static int vk_init(void) {
     if (sDev != NULL && !sShadowStencil) {
         fprintf(stderr, "bt3: shadow stencil unavailable; flat shadows may show overlapping model parts\n");
     }
-    sWindow = GsDraw_WindowCreate(0); /* the shared window: shape, display and full screen decided there */    if (sWindow == NULL || !SDL_ClaimWindowForGPUDevice(sDev, sWindow)) {
+    sWindow = GsDraw_WindowCreate(0); /* the shared window: shape, display and full screen decided there */
+    /* A minimized window has no size: SDL 3.4.12 claims it without making its swapchain and then reports an INVALID
+       swapchain format, on which the settings window's ImGui asserts. Shown first. */
+    if (sWindow != NULL && (SDL_GetWindowFlags(sWindow) & SDL_WINDOW_MINIMIZED)) { SDL_RestoreWindow(sWindow); SDL_SyncWindow(sWindow); }
+    if (sWindow == NULL || !SDL_ClaimWindowForGPUDevice(sDev, sWindow)) {
         fprintf(stderr, "bt3: no GPU window: %s\n", SDL_GetError());
         return 0;
     }
