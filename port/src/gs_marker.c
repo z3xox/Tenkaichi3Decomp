@@ -54,7 +54,12 @@ void Port_GsMarker(int effect) {
 enum { PORT_MENU_NONE = -1, PORT_MENU_CENTER, PORT_MENU_FILL, PORT_MENU_LEFT, PORT_MENU_RIGHT, PORT_MENU_CENTER_ALL, PORT_MENU_LEFT_ALL,
        PORT_MENU_RIGHT_ALL, PORT_MENU_PAGE, PORT_MENU_PAGE_TOP, PORT_MENU_PAGE_EDGE, PORT_MENU_CENTER_FREE, PORT_MENU_SPLIT,
        PORT_MENU_PAGE_EDGE_TOP, PORT_MENU_PAGE_LIST, PORT_MENU_CENTER_NUDGE, PORT_MENU_LEFT_UP };
+extern int Port_MenusWide(void); /* port/src/plat_stub.c */
+extern int Port_IsWide(void);
+static int starts(const char *name, const char *prefix);
+int Port_MenuFree(int on);
 static int sMenuPart = PORT_MENU_NONE;
+static int sItemPanel; /* a character select's item window is being drawn (Port_MenuItemPanel): 1 the first side's, 2 the other's */
 static int sDuelSettings; /* the versus menu's battle settings are open (or the last of its windows): in the middle */
 
 void Port_MenuDuelSettings(int on) {
@@ -65,12 +70,148 @@ static int sMenuScreen;              /* PORT_MENU_SCREEN_* of the page being dra
 
 int Port_MenuPart(int part);
 
-/* The screen's movie `index` is drawn next. Character select: movie 1 is the first player's roster and 3 that
-   player's window of customisations, 2 and 4 the other player's: each against that player's edge. */
+/* The screen's movie `index` is drawn next (| PORT_MENU_MOVIE_REEL: a player's roster). Character select: movie 1
+   is the first player's roster and 3 that player's window of customisations, 2 and 4 the other player's: each
+   against that player's edge, the rosters in the middle (the widescreen layout: each bar with both its ends rounded,
+   Port_MenuCapMirror, the whole movie moved by Port_MenuReelShift: its cells' mask too). */
+static int sMenuReel;
 void Port_MenuMovie(int index) {
+    sMenuReel = (index & 0x100) != 0;
+    index &= 0xFF;
     sMenuMovie = index;
     if (sMenuScreen == 3) {
-        Port_MenuPart(index == 0 ? PORT_MENU_CENTER_ALL : index & 1 ? PORT_MENU_LEFT_ALL : PORT_MENU_RIGHT_ALL);
+        Port_MenuPart(index == 0 || (sMenuReel && Port_MenusWide()) ? PORT_MENU_CENTER_ALL
+                      : index & 1                                  ? PORT_MENU_LEFT_ALL
+                                                                   : PORT_MENU_RIGHT_ALL);
+    }
+}
+
+int Port_MenuPart(int part);
+
+/* The versus selects' roster bars (mc_plate), in the middle of a wide screen: the bar's art is as wide as the 4:3
+   screen, rounded at one end and cut at the other, the one at that screen's edge (the label's: 1P, 2P, COM). The bar
+   is drawn once more first, mirrored and moved out by the returned amount, so that its rounded end shows past the
+   cut one: > 0 to the left (the first player's bar, the odd movies), < 0 to the right; 0 for any other clip. */
+int Port_MenuCapMirror(const char *name, int top) {
+    static int cap = -1;
+    if (cap < 0) {
+        const char *e = getenv("BT3_CAP");
+        cap = e != NULL ? atoi(e) : 20;
+    }
+    if (sMenuScreen != 3 || !top || !sMenuReel || strcmp(name, "mc_plate") != 0 || !Port_MenusWide()) {
+        return 0;
+    }
+    return sMenuMovie & 1 ? cap : -cap;
+}
+
+/* How far the roster movie being drawn (Port_MenuMovie) is moved, so that its bar with both its rounded ends is in
+   the middle: half the mirrored end's way, the other way; 0 for any other movie */
+int Port_MenuReelShift(void) {
+    return Port_MenuCapMirror("mc_plate", 1) / 2;
+}
+
+/* The big pictures of the characters chosen (mc_single_chara_l / _r, the masks over them): on a wide screen their
+   art is cut at its outer edge (at the 4:3 screen's edge, or past it in map select). Until there is art for the
+   whole width, their outer band fades out (src/sys/gfxm_c.c FlashDraw_Quad): 1 the left picture, 2 the right one,
+   0 any other clip. `width`: the band's, in 4:3 units (BT3_FEATHER over 40). */
+int Port_MenuFeather(const char *name, int top, int *width) {
+    static int w = -1;
+    int left, right;
+    if (w < 0) {
+        const char *e = getenv("BT3_FEATHER");
+        w = e != NULL ? atoi(e) : 40;
+    }
+    *width = w;
+    if (!top || w <= 0 || sMenuScreen < 3 || sMenuScreen == 17 || sMenuScreen == 53 || !Port_MenusWide() || !Port_IsWide()) {
+        /* (any screen that has them but Character Reference: its picture is whole, in a frame) */
+        return 0;
+    }
+    left = strcmp(name, "mc_single_chara_l") == 0 || strcmp(name, "mc_face_mask_l") == 0;
+    right = strcmp(name, "mc_single_chara_r") == 0 || strcmp(name, "mc_face_mask_r") == 0;
+    return left ? 1 : right ? 2 : 0;
+}
+
+/* A clip that the 4:3 screen hides by keeping it parked past its right edge, and that a wide screen would show in
+   its margin: World Tournament's bracket, out of the way behind the VS. Such a clip, when it does not move, is not
+   drawn while all of it is past that edge (src/sys/gfxm_c.c FlashSlot_Draw measures it). */
+int Port_MenuParkedClip(const char *name, int top) {
+    return (sMenuScreen == 21 || sMenuScreen == 22) && top && Port_MenusWide() &&
+           (starts(name, "mc_tournament") || strcmp(name, "mc_victory_text") == 0 || strcmp(name, "mc_menu_title_plate") == 0 ||
+            strcmp(name, "mc_victory_plate") == 0);
+}
+
+/* The VS's grey behind each fighter (World Tournament): two shapes of the page, each one half of the 4:3 screen.
+   On a wide screen each reaches its edge of the picture: drawn wider (src/sys/gfxm_c.c FlashDraw_Quad) and not cut
+   at the 4:3 screen's edges. `on`: such a quad is drawn (1) / done (0); returns 0 where there is nothing to do. */
+int Port_MenuVsHalf(int on) {
+    static int prev, active;
+    if (on) {
+        if (sMenuScreen != 21 || sMenuPart != PORT_MENU_PAGE || !Port_MenusWide() || !Port_IsWide()) {
+            return 0; /* (the page's own shapes: not the fighters' pictures, which are halves too) */
+        }
+        active = 1;
+        prev = Port_MenuPart(PORT_MENU_CENTER_FREE);
+        return 1;
+    }
+    if (active) {
+        active = 0;
+        Port_MenuPart(prev);
+    }
+    return 0;
+}
+
+/* How much wider a clip is drawn about the 4:3 screen's middle (src/sys/gfxm_c.c FlashSlot_Draw), 1 for most: World
+   Tournament's burst of lines behind its emblem (mc_flash_ef, settling at the 4:3 screen's size), its noise and the
+   champion's glow (mc_yusyo_flash_ef, two halves of the 4:3 screen), filling the wide one */
+extern int Port_AspectMilli(void);
+float Port_MenuClipWiden(const char *name, int top) {
+    if (!top || !(sMenuScreen == 21 || sMenuScreen == 22) || !(strcmp(name, "mc_noise") == 0 || strcmp(name, "mc_flash_ef") == 0 || strcmp(name, "mc_yusyo_flash_ef") == 0) ||
+        !Port_MenusWide() || !Port_IsWide()) {
+        return 1.0f;
+    }
+    return (float)Port_AspectMilli() / 1333.333f;
+}
+
+/* World Tournament's page (21) and World Tour's (20): their own large shapes that start above the screen (the
+   champion's rings, growing from the middle) or reach past the 4:3 screen's edges (the Welcome's streaks of light)
+   are drawn at their true shape where they are, not cut (src/sys/gfxm_c.c FlashDraw_Quad), not set against a 4:3
+   edge as the page's pieces from its top edge are. `on`: such a quad is drawn (1) / done (0); returns 0 where there
+   is nothing to do. */
+int Port_MenuPageFree(int on) {
+    static int prev, active, freePrev;
+    if (on) {
+        if (!((sMenuScreen == 21 && sMenuPart == PORT_MENU_PAGE) || (sMenuScreen == 20 && sMenuPart == PORT_MENU_PAGE_EDGE)) ||
+            !Port_MenusWide() || !Port_IsWide()) {
+            return 0;
+        }
+        freePrev = Port_MenuFree(1);
+        active = 1;
+        prev = Port_MenuPart(PORT_MENU_CENTER_FREE);
+        return 1;
+    }
+    if (active) {
+        active = 0;
+        Port_MenuPart(prev);
+        Port_MenuFree(freePrev);
+    }
+    return 0;
+}
+
+/* A character select's item window (Custom 1.. and Right / Left: src/menu/menu_g.c ItemPanel_Draw) is drawn from
+   `on` (1 the first side's, 2 the other's) to its end (0), in any of the screens that have one: its name and form
+   plates against the edge of that side, the rest of it (the set's name, the ability limit, the list) against the
+   other, as they are at the 4:3 screen's edges (the other side's window is the first's mirrored). */
+void Port_MenuItemPanel(int on) {
+    static int prev;
+    if (sMenuScreen == 0) {
+        return;
+    }
+    if (on) {
+        sItemPanel = on;
+        prev = Port_MenuPart(on == 1 ? PORT_MENU_RIGHT_ALL : PORT_MENU_LEFT_ALL);
+    } else if (sItemPanel) {
+        sItemPanel = 0;
+        Port_MenuPart(prev);
     }
 }
 
@@ -223,6 +364,13 @@ static int clip_part(const char *name, int x, int top) {
             fprintf(stderr, "bt3: menu clip %s%s x %d\n", key, top ? " (top)" : "", x);
         }
     }
+    if (sItemPanel) { /* (Port_MenuItemPanel) */
+        if (top && (strcmp(name, "mc_name_plate") == 0 || strcmp(name, "mc_form_plate") == 0 || strcmp(name, "mc_name_text") == 0 ||
+                    strcmp(name, "mc_form_text") == 0)) {
+            return sItemPanel == 1 ? PORT_MENU_LEFT_ALL : PORT_MENU_RIGHT_ALL;
+        }
+        return !top ? PORT_MENU_NONE : sItemPanel == 1 ? PORT_MENU_RIGHT_ALL : PORT_MENU_LEFT_ALL;
+    }
     if (starts(name, "mc_bg_") || starts(name, "mc_kumo_")) { /* (not "mc_bgm_now": the music's plate) */
         return PORT_MENU_FILL;
     }
@@ -238,6 +386,10 @@ static int clip_part(const char *name, int x, int top) {
         if (starts(name, "mc_guide_") || starts(name, "mc_uide_")) { /* ("mc_uide_ghn_bdl_hair": so named in the movie) */
             return PORT_MENU_RIGHT;
         }
+    }
+    if (sMenuScreen == 3 && top && (starts(name, "mc_dp_total_l_") || starts(name, "mc_dp_total_r_"))) {
+        return name[12] == 'l' ? PORT_MENU_LEFT : PORT_MENU_RIGHT; /* (DP Battle: a team's points, the digits before its
+                                                                      plate's "/ 10", with that plate) */
     }
     if (sMenuScreen == 3) {
         /* character select: each player's name plates, windows and their text against that player's edge (the
@@ -335,6 +487,9 @@ static int clip_part(const char *name, int x, int top) {
         return sDuelSettings ? PORT_MENU_CENTER_ALL : PORT_MENU_LEFT_ALL; /* (the battle settings' names and values, with
                                                                             their window: Port_MenuDuelSettings) */
     }
+    if (sMenuScreen == 16 && top && starts(name, "mc_dp_")) {
+        return PORT_MENU_LEFT; /* (DP Battle's points, 10 / 15 / 20, in their window beside the modes') */
+    }
     if (sMenuScreen == 16 && top && starts(name, "mc_mode_")) {
         return PORT_MENU_LEFT; /* (and the window of its modes, Single, Team, DP, under the chosen plate) */
     }
@@ -368,6 +523,42 @@ static int clip_part(const char *name, int x, int top) {
     if (sMenuScreen == 13 && top && (starts(name, "mc_menu_plate_") || starts(name, "mc_level_plate_") || starts(name, "mc_scenario"))) {
         return PORT_MENU_CENTER; /* (Dragon History: its plates at their true shape, over the scenery that fills) */
     }
+    if (sMenuScreen == 19 && top && (starts(name, "mc_entry_text_") || starts(name, "mc_chara_entry_"))) {
+        return PORT_MENU_CENTER_ALL; /* (the tournament's entry slots and their frame: one block, sliding in together) */
+    }
+    if ((sMenuScreen == 15 || sMenuScreen == 19 || (sMenuScreen >= 23 && sMenuScreen <= 25)) && top &&
+        (strcmp(name, "mc_single_chara_l") == 0 || strcmp(name, "mc_face_mask_l") == 0)) {
+        return PORT_MENU_CENTER_FREE; /* (the big picture: at its true shape where it is, sliding in too, not taken
+                                         for a moving piece of the page and drawn elsewhere for its first frames) */
+    }
+    if (sMenuScreen == 21 && top && (starts(name, "mc_name_plate_") || starts(name, "mc_form_plate_") ||
+                                     starts(name, "mc_name_text_") || starts(name, "mc_form_text_"))) {
+        size_t n = strlen(name); /* (the VS's names: each fighter's against its edge) */
+        return name[n - 1] == 'l' ? PORT_MENU_LEFT : PORT_MENU_RIGHT;
+    }
+    if ((sMenuScreen == 21 || sMenuScreen == 22) && top && (strcmp(name, "mc_noise") == 0 || strcmp(name, "mc_yusyo_flash_ef") == 0)) {
+        return PORT_MENU_CENTER_ALL; /* (the burst of lines behind the emblem: across the whole width, the clip drawn wider
+                                        and not cut: Port_MenuClipWiden; its pieces as wide as the 4:3 screen too) */
+    }
+    if ((sMenuScreen == 21 || sMenuScreen == 22) && top &&
+        (starts(name, "mc_taikaimoji") || strcmp(name, "mc_flash_ef") == 0 || starts(name, "mc_taikai_text0") ||
+         starts(name, "mc_single_chara_") || starts(name, "mc_face_mask_") || starts(name, "mc_yusyomoji") ||
+         starts(name, "mc_item_plate") || starts(name, "mc_item_get_text") || starts(name, "mc_victory_lose_result_text") ||
+         starts(name, "mc_text_base_") || starts(name, "mc_dammy_text_") || starts(name, "mc_icon_get_") ||
+         strcmp(name, "mc_title_get_loop") == 0)) {
+        /* (the World Tournament's opening, its emblem and the ring round it, its titles and the rays behind them, the
+           VS's pictures with their masks, and the champion's Victory, its rings and the windows of what is won: at
+           their true shape over the whole wide picture, not stretched or cut at the 4:3 screen's edges, nor set
+           against them as pieces from the top edge) */
+        return PORT_MENU_CENTER_FREE;
+    }
+    if ((sMenuScreen == 21 || sMenuScreen == 22) && top &&
+        (starts(name, "mc_tournament") || strcmp(name, "mc_victory_text") == 0 || strcmp(name, "mc_menu_title_plate") == 0 ||
+         strcmp(name, "mc_victory_plate") == 0)) {
+        /* (its bracket, a strip that scrolls across: at its true shape over the whole wide picture; parked past the
+           4:3 screen's right edge behind the VS, it is not drawn: Port_MenuParkedClip) */
+        return PORT_MENU_CENTER_FREE;
+    }
     if ((sMenuScreen == 15 || sMenuScreen == 19 || (sMenuScreen >= 23 && sMenuScreen <= 25)) && top) {
         /* (the character selects of Ultimate Battle and the World Tournament: the player's name plate, picture side
            and their text against the left edge as in the versus one; the roster with its cells in the middle) */
@@ -379,7 +570,10 @@ static int clip_part(const char *name, int x, int top) {
             /* (with its mask: the cells outside the bar are hidden by it, so it has to be where they are) */
             return PORT_MENU_LEFT_ALL; /* (the player's roster against the left edge, as the versus one's: the user's choice) */
         }
-        if (starts(name, "mc_custom_") || starts(name, "mc_item_") || starts(name, "mc_icon_item_")) {
+        if (starts(name, "mc_custom_") || starts(name, "mc_color_")) {
+            return PORT_MENU_LEFT_ALL; /* (Custom Select and Select Color: against the left edge as the versus one's) */
+        }
+        if (starts(name, "mc_item_") || starts(name, "mc_icon_item_")) {
             return PORT_MENU_CENTER_ALL;
         }
     }

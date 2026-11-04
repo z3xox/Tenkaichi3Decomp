@@ -5,6 +5,9 @@
 #include "sys/common.h"
 
 ItemPanel *gItemPanel[2] = {NULL, NULL}; /* 0x3B38E0, one per side */
+#ifdef PORT
+extern void Port_MenuItemPanel(int on); /* port/src/gs_marker.c: widescreen menus */
+#endif
 
 /*
  * ItemPanel, 0x351C38..0x352CB8: the panel that lists the items equipped by the character under the cursor
@@ -206,8 +209,15 @@ void ItemPanel_Draw(s32 side) {
             TextBox_AttachLine(flash, &ref, 0, 0, p->item.id[i] - 1, &p->line[i]);
         }
     }
+#ifdef PORT
+    Port_MenuItemPanel(side + 1);
     Flash_Draw(flash);
     Font_FlushAll();
+    Port_MenuItemPanel(0);
+#else
+    Flash_Draw(flash);
+    Font_FlushAll();
+#endif
 }
 
 /* Steps the movie; lights the cursor plates on the first frame; ends the closing animation. */
