@@ -322,19 +322,21 @@ static void muffle_rival(int kind, int pitch, float *w, int len) {
     }
 }
 
-/* The left and right gains of a direction (hundredths of a degree, 0 ahead, + right, +-18000 behind): a power-keeping
-   pan, the back mirrored onto the front (behind is told by the muffle), the far ear never under a tenth; the middle
-   is 1 and 1, as an unplaced sound. In Mono, the middle. */
+/* The left and right gains of a direction (hundredths of a degree, 0 ahead, + right, +-18000 behind): the game's own
+   pan law (src/battle/btl_char_flag_snd.c, BtlCharSnd_CalcVolPan: the pan is the sine of the angle; snd_se.c turns
+   it into a constant-power pair), the back mirrored onto the front by the sine (behind is told by the muffle), then
+   the near ear at the full volume and the far one never under a tenth: 20 degrees off the middle is the far ear
+   5 dB down, 30 is 8, 45 is 13. The middle is 1 and 1, as an unplaced sound. In Mono, the middle. */
 static void pan_of(int az, float *l, float *r) {
-    float a = (float)(az % 36000) / 100.0f, p, th;
+    float th = (sinf((float)(az % 36000) * 0.000174532925f) + 1.0f) * 0.785398163f, near;
 
-    a = a > 180.0f ? a - 360.0f : a < -180.0f ? a + 360.0f : a;
-    p = fabsf(a) <= 90.0f ? a / 90.0f : (a > 0.0f ? 180.0f - a : -180.0f - a) / 90.0f;
-    th = (p + 1.0f) * 0.785398163f;
-    *l = 1.41421356f * cosf(th);
-    *r = 1.41421356f * sinf(th);
-    *l = *l > 1.0f ? 1.0f : *l < 0.1f ? 0.1f : *l;
-    *r = *r > 1.0f ? 1.0f : *r < 0.1f ? 0.1f : *r;
+    *l = cosf(th);
+    *r = sinf(th);
+    near = *l > *r ? *l : *r;
+    *l = *l / near;
+    *r = *r / near;
+    *l = *l < 0.1f ? 0.1f : *l;
+    *r = *r < 0.1f ? 0.1f : *r;
     if (Port_AudioMono()) {
         *l = *r = 1.0f;
     }

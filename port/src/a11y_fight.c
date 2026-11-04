@@ -6,10 +6,11 @@
  * before; the gauges asked for with the touchpad (or F3 / F4) are two beeps by default, and can be the spoken
  * gauges again.
  *
- *   where     asked for (Select once in a fight, F5): a sonar ping from the rival's direction, as the stick goes
- *             (the fighter's camera yaw, + 0x4A0: "on the right" is "push right"), muffled behind, higher above,
- *             and the words, "Rival ahead, to the right, above, close". Nothing while the rival is hidden or the
- *             player blinded. The log has the angles and, at each fight's end, the sign test of that reading.
+ *   where     asked for (Select once in a fight, F5): a sonar ping from the side of the player's fighter the rival
+ *             is drawn on (the drawn battle camera: rel), muffled behind, higher above, and the words, "Rival
+ *             ahead, to the right, above, close". Nothing while the rival is hidden or the player blinded. The log
+ *             has the angles and, at each fight's end, the sign test of the stick's reading and the screen test of
+ *             the drawn one.
  *             And told by itself, with nothing to press (ALERT_WHERE, on by default: a player who cannot press
  *             Select in the middle of a fight still knows): the ping every second or two, sooner when nearer, and the
  *             words whenever the rival's place changes and stays so half a second.
@@ -107,6 +108,32 @@ typedef struct {
 } A11yBound;
 _Static_assert(offsetof(A11yBound, param) == 0x218, "EftBound");
 extern A11yBound GAME_PTR gEftBound;
+/* include/battle/btl_cam.h: View and BtlCam, the battle camera. A matrix is m[row][col] with the translation in row
+   3: a point p goes to p * M. */
+typedef struct {
+    float world2view[4][4];   /* 0x000 */
+    float world2view2[4][4];  /* 0x040: the same, the one the game reads again */
+    char unk80[0x140 - 0x80];
+    float world2screen[4][4]; /* 0x140: to the GS screen's coordinates, what is drawn */
+    char unk180[0x240 - 0x180];
+    float centerX;            /* 0x240: the screen's middle, 2048 (1920 and 2176 for the two halves) */
+    char unk244[0x260 - 0x244];
+} A11yView;
+_Static_assert(offsetof(A11yView, world2screen) == 0x140 && offsetof(A11yView, centerX) == 0x240 && sizeof(A11yView) == 0x260, "View");
+typedef struct {
+    A11yView view;
+    char unk260[0x290 - 0x260];
+} A11yBtlCamView;
+typedef struct {
+    char layouts[0x720];
+    A11yBtlCamView views[2]; /* 0x720: one per side */
+} A11yBtlCam;
+_Static_assert(offsetof(A11yBtlCam, views) == 0x720 && sizeof(A11yBtlCamView) == 0x290, "BtlCam");
+extern A11yBtlCam GAME_PTR gBtlCam;
+/* The view drawn last: in a fight with one screen, the one on it (battle.c: after BtlCam_UpdateOverride, or the
+   scripted camera's), the one the game pans the fighters' own sounds by (btl_char_flag_snd.c, BtlCharSnd_CalcVolPan) */
+extern A11yView GAME_PTR gBtlCamView;
+extern int Battle_IsSplitScreen(void);
 
 #define CHR_AT_TOP 0x15   /* held under the stage's ceiling (BtlMove_ClampToStage) */
 #define CHR_BLINDED 0x93  /* blinded (a Solar Flare): the lock-on is gone while it lasts (btl_char_action.c) */
@@ -287,7 +314,7 @@ static int who_of(int side) {
 static int rel(int me, int *az, int *el, int *d);
 
 /* The direction the rival's sounds come from for `me`, read once as a sound starts: 1 and az in whole degrees as rel()
-   gives it to the "where" ping (from ahead as the stick goes, + to the right, +-180 behind), or 0, in the middle: no
+   gives it to the "where" ping (as drawn, + to the right of the fighter, +-180 behind), or 0, in the middle: no
    such fight, or the rival not seen (a vanish, or you blinded: a player who sees does not see where the rival is
    then either, and the ping is not played). */
 static int rival_dir(int me, int *az) {
@@ -394,11 +421,68 @@ void PortA11y_PowerCue(int side, int kind, int count) {
 #define SIDE_FREE 15 /* within this of ahead (or of behind), neither left nor right is said */
 #define LEVEL 20     /* degrees of elevation: above or below beyond this */
 
-/* Where the rival is from `me`, in whole degrees and units: az from ahead (the stick's up: the camera's yaw), + to
-   the right, +-180 behind; el + above; d the distance. 0 when there is no such fight. The game's +Y is down. */
+/* Radians to whole degrees within +-180 (rounded here: the C library's lrintf is the host's). */
+static int whole_deg(float ang) {
+    ang *= RAD_DEG;
+    while (ang > 180.0f) {
+        ang -= 360.0f;
+    }
+    while (ang < -180.0f) {
+        ang += 360.0f;
+    }
+    return (int)(ang < 0.0f ? ang - 0.5f : ang + 0.5f);
+}
+
+/* The view `me` sees the fight in: the one drawn, or in split screen `me`'s own half. NULL without one. */
+static const A11yView *seen_view(int me) {
+    if (gBtlCam == NULL) {
+        return NULL;
+    }
+    if (Battle_IsSplitScreen()) {
+        return &gBtlCam->views[me & 1].view;
+    }
+    return gBtlCamView;
+}
+
+/* The angle of the point p from the middle of view v, in radians, + to the right, as BtlCharSnd_CalcVolPan takes it:
+   from the camera to p against the way the camera looks, both on the ground. The camera is found as Mtx_InverseRT
+   finds it, which is not called here (it runs on the VU0 the game uses): the world-to-view matrix is a rotation R
+   and the translation t in row 3, so the camera is at -t R^T and looks along R's third column. */
+static float screen_ang(const A11yView *v, const A11yVec *p) {
+    const float(*m)[4] = v->world2view2;
+    float cx = -(m[3][0] * m[0][0] + m[3][1] * m[0][1] + m[3][2] * m[0][2]);
+    float cz = -(m[3][0] * m[2][0] + m[3][1] * m[2][1] + m[3][2] * m[2][2]);
+    float dx = p->x - cx, dz = p->z - cz, fx = m[0][2], fz = m[2][2];
+
+    if ((fabsf(dx) < 0.001f && fabsf(dz) < 0.001f) || (fabsf(fx) < 0.001f && fabsf(fz) < 0.001f)) {
+        return 0.0f;
+    }
+    return atan2f(dx, dz) - atan2f(fx, fz);
+}
+
+/* The angle to the rival from the stick's up (the fighter's camera yaw, fighter + 0x4A0), as the game's own angle to
+   the rival (btl_char_flag_opp.c, BtlOpp_GetYawToTarget) less that reference: whole degrees, + to the right. */
+static int stick_az(int me, const A11yVec *a, const A11yVec *b) {
+    return whole_deg(atan2f(b->x - a->x, b->z - a->z) - BtlCharApi_GetCamUnk4A0(me));
+}
+
+/* The rival at b from the fighter at a as view v draws them: the angle from the camera to the rival less the one to
+   the fighter, whole degrees, 0 in line, + the rival drawn to the right of the fighter, +-180 behind. */
+static int seen_az(const A11yView *v, const A11yVec *a, const A11yVec *b) {
+    return whole_deg(screen_ang(v, b) - screen_ang(v, a));
+}
+
+/* Where the rival is from `me`, in whole degrees and units: az the side of the fighter the rival is drawn on
+   (seen_az), what someone who sees takes for "to my right"; without a view, from the stick's up (stick_az). The
+   stick's up is no use for the side while locked on: the fighter's camera turns to the rival a quarter of the way
+   each frame (btl_char_cam_modes.c, ChrCam_UpdateLockOnYaw), so the rival stays straight ahead of it, while the drawn
+   camera sits behind and to one side of the fighter, turned by up to about half the field of view
+   (ChrCam_CalcLockOn: cam->side, yawOfs), and draws the fighter on one side and the rival on the other. el + above
+   and d the distance, from the fighter. 0 when there is no such fight. The game's +Y is down. */
 static int rel(int me, int *az, int *el, int *d) {
     void GAME_PTR chr = BtlChar_FindBySide(me);
     void GAME_PTR foe = BtlChar_FindBySide(me ^ 1);
+    const A11yView *v = seen_view(me);
     A11yVec a, b;
     float dx, dy, dz, h, ang;
 
@@ -411,15 +495,7 @@ static int rel(int me, int *az, int *el, int *d) {
     dz = b.z - a.z;
     dy = a.y - b.y;
     h = sqrtf(dx * dx + dz * dz);
-    /* the game's own angle to the rival (btl_char_flag_opp.c, BtlOpp_GetYawToTarget) less the stick's reference */
-    ang = (atan2f(dx, dz) - BtlCharApi_GetCamUnk4A0(me)) * RAD_DEG;
-    while (ang > 180.0f) {
-        ang -= 360.0f;
-    }
-    while (ang < -180.0f) {
-        ang += 360.0f;
-    }
-    *az = (int)(ang < 0.0f ? ang - 0.5f : ang + 0.5f); /* (rounded here: the C library's lrintf is the host's) */
+    *az = v != NULL ? seen_az(v, &a, &b) : stick_az(me, &a, &b);
     ang = atan2f(dy, h) * RAD_DEG;
     *el = (int)(ang < 0.0f ? ang - 0.5f : ang + 0.5f);
     *d = (int)sqrtf(h * h + dy * dy);
@@ -451,8 +527,8 @@ static void where_words(int az, int el, int d, int close, char *en, char *said, 
     }
 }
 
-/* The sonar ping from the rival's direction (from the left or the right as the stick goes: "it sounds on the right"
-   is "push right"; muffled behind): the pitch by the elevation, an octave at 60 degrees and nothing within 8; the
+/* The sonar ping from the rival's direction (from the side of the fighter the rival is drawn on; muffled behind): the
+   pitch by the elevation, an octave at 60 degrees and nothing within 8; the
    loudness by the distance, all at 150 units and nearer, a little over half at 1500 and beyond. */
 static void where_ping(int az, int el, int d) {
     int pitch, loud;
@@ -571,38 +647,98 @@ static void where_auto(int me, void GAME_PTR chr) {
     PortA11y_Note(note);
 }
 
-/* The sign test of the direction (the audit's, 2026-10-17): while locked on, the fighter's camera turns towards the
-   rival a quarter of the way each frame (btl_char_cam_modes.c, ChrCam_UpdateLockOnYaw), so the angle from the
-   stick's reference to the rival stays small. With the yaw or the sign read wrong it would not. Once per fight frame
-   while locked on, |az| goes into a count; at the end of a fight its median goes to the log. */
-static int sSignCount[181], sSignTotal;
+/* Where p is drawn on view v, from the middle of the screen in the GS's units (+ to the right), as the game projects
+   it (btl_cam.c, View_SetProjection: X / W, W the depth, the middle at centerX). 0 when p is at the camera's plane. */
+static int screen_x(const A11yView *v, const A11yVec *p, float *x) {
+    const float(*m)[4] = v->world2screen;
+    float X = p->x * m[0][0] + p->y * m[1][0] + p->z * m[2][0] + m[3][0];
+    float W = p->x * m[0][3] + p->y * m[1][3] + p->z * m[2][3] + m[3][3];
+
+    if (fabsf(W) < 0.001f) {
+        return 0;
+    }
+    *x = X / W - v->centerX;
+    return 1;
+}
+
+/* The two tests of the direction, once per fight frame while locked on, reported at the end of the fight:
+   - The sign test (the audit's, 2026-10-17): the fighter's camera turns towards the rival a quarter of the way each
+     frame (btl_char_cam_modes.c, ChrCam_UpdateLockOnYaw), so the angle from the stick's reference to the rival
+     (stick_az) stays small. With the yaw or the sign read wrong it would not.
+   - The screen test (2026-11-03): rel's side against where the game draws the two. Of the frames both are in front
+     of the camera and the rival is drawn more than 8 units to one side of the fighter, the count where rel's az has
+     the same side; with the camera or the sign read wrong it would not be all of them. Its |az| median is how far
+     apart the two tend to be drawn, which is what the stereo has to work with, and the rival's alone from the
+     middle of the screen is told beside it. */
+static int sSignCount[181], sSignTotal, sScreenCount[181], sMiddleCount[181], sScreenTotal, sScreenLeft, sScreenRight,
+    sScreenSame;
+
+static int median(const int *count, int total) {
+    int i, sum = 0;
+
+    for (i = 0; i <= 180 && sum * 2 < total; i++) {
+        sum += count[i];
+    }
+    return i - 1;
+}
 
 static void sign_sample(int me) {
     static int frame = -1;
-    int az, el, d, f = BtlChar_GetFrame();
+    void GAME_PTR chr = BtlChar_FindBySide(me);
+    void GAME_PTR foe = BtlChar_FindBySide(me ^ 1);
+    const A11yView *v = seen_view(me);
+    A11yVec a, b;
+    int az, ra, fa, f = BtlChar_GetFrame();
+    float xa, xb;
 
-    if (f == frame || !BtlCharApi_IsLockedOn(me) || BtlCharApi_IsHidden(me ^ 1) || !rel(me, &az, &el, &d)) {
+    if (f == frame || chr == NULL || foe == NULL || !BtlCharApi_IsLockedOn(me) || BtlCharApi_IsHidden(me ^ 1)) {
         return;
     }
     frame = f;
+    a = *BtlChar_GetPos(chr);
+    b = *BtlChar_GetPos(foe);
+    az = stick_az(me, &a, &b);
     sSignCount[az < 0 ? -az : az]++;
     sSignTotal++;
+    if (v == NULL) {
+        return;
+    }
+    az = seen_az(v, &a, &b);
+    ra = whole_deg(screen_ang(v, &b));
+    fa = whole_deg(screen_ang(v, &a));
+    sScreenCount[az < 0 ? -az : az]++;
+    sMiddleCount[ra < 0 ? -ra : ra]++;
+    sScreenTotal++;
+    if (ra > -90 && ra < 90 && fa > -90 && fa < 90 && screen_x(v, &a, &xa) && screen_x(v, &b, &xb) &&
+        (xb - xa > 8.0f || xb - xa < -8.0f)) {
+        if (xb < xa) {
+            sScreenLeft++;
+        } else {
+            sScreenRight++;
+        }
+        sScreenSame += (az < 0 && xb < xa) || (az > 0 && xb > xa);
+    }
 }
 
 static void sign_report(void) {
-    char note[128];
-    int i, sum = 0;
+    char note[256];
 
-    if (sSignTotal < 30) {
-        return;
+    if (sSignTotal >= 30) {
+        snprintf(note, sizeof(note), "where: sign test: median |az| %d over %d frames locked on (camera yaw, fighter + 0x4A0)",
+                 median(sSignCount, sSignTotal), sSignTotal);
+        PortA11y_Note(note);
     }
-    for (i = 0; i <= 180 && sum * 2 < sSignTotal; i++) {
-        sum += sSignCount[i];
+    if (sScreenTotal >= 30) {
+        snprintf(note, sizeof(note), "where: screen test: median |az| %d over %d frames locked on (the rival from the middle %d); "
+                 "apart %d to the left and %d to the right, the side as drawn in %d of them (world2screen)",
+                 median(sScreenCount, sScreenTotal), sScreenTotal, median(sMiddleCount, sScreenTotal), sScreenLeft, sScreenRight,
+                 sScreenSame);
+        PortA11y_Note(note);
     }
-    snprintf(note, sizeof(note), "where: sign test: median |az| %d over %d frames locked on (camera yaw, fighter + 0x4A0)", i - 1, sSignTotal);
-    PortA11y_Note(note);
     memset(sSignCount, 0, sizeof(sSignCount));
-    sSignTotal = 0;
+    memset(sScreenCount, 0, sizeof(sScreenCount));
+    memset(sMiddleCount, 0, sizeof(sMiddleCount));
+    sSignTotal = sScreenTotal = sScreenLeft = sScreenRight = sScreenSame = 0;
 }
 
 /* ---- distance and height ---- */

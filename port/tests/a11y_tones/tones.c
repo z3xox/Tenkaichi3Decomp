@@ -274,6 +274,7 @@ int main(int argc, char **argv) {
     place(9000, 0);
     place(-9000, 0);
     place(4500, 0);
+    place(2000, 0);
     place(18000, 0);
     place(13500, 0);
     place(9000, 1);

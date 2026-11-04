@@ -125,6 +125,9 @@ def tones(path):
         check(abs(lr(0)) < 0.5, "delante suena igual en los dos oídos (%s dB de diferencia)" % num(abs(lr(0))), "menos de 0,5 dB")
     if (4500, 0) in by:
         check(0 < lr(4500) < lr(9000), "a 45 grados suena entre el centro y la derecha (%s dB)" % num(lr(4500)), "entre 0 y el de 90 grados")
+    if (2000, 0) in by:
+        # the game's own pan law (BtlCharSnd_CalcVolPan); the one before it gave 1.8 dB here, too little to tell
+        check(lr(2000) >= 4, "a 20 grados ya se oye el lado: %s dB más fuerte en el oído derecho" % num(lr(2000)), "4 dB o más")
     if (18000, 0) in by and (0, 0) in by:
         front, back = float(by[(0, 0)]["centroid"]), float(by[(18000, 0)]["centroid"])
         check(back < front * 0.95, "detrás suena apagado: brillo %d Hz contra %d Hz delante" % (back, front), "detrás al menos un 5 % menos brillante")
@@ -212,6 +215,19 @@ def log_where(log):
             " y ".join(sorted(set(str(med) for med, n in tests))), len(tests), sum(n for med, n in tests)), "menos de 15 en todas")
     else:
         fail("el registro no tiene la prueba de signo", "una por pelea con la fijación puesta")
+    # the side placed (rel, as the battle camera draws the two) against the side the game draws the rival on
+    screen = [re.search(r"median \|az\| (\d+) over (\d+) frames locked on \(the rival from the middle (\d+)\); apart (\d+) to the left "
+                        r"and (\d+) to the right, the side as drawn in (\d+)", t) for b, k, t in log if k == "#" and t.startswith("where: screen test")]
+    screen = [tuple(int(x) for x in m.groups()) for m in screen if m]
+    if screen:
+        for med, n, mid, left, right, same in screen:
+            print("dato: prueba de pantalla: %d cuadros, el rival a %d grados del luchador y a %d del medio (medianas); "
+                  "dibujado a la izquierda del luchador en %d y a la derecha en %d" % (n, med, mid, left, right))
+        check(all(same == left + right for med, n, mid, left, right, same in screen),
+              "prueba de pantalla: el lado del sonido es el lado donde se dibuja al rival en los %d cuadros apartados" % sum(
+                  s[3] + s[4] for s in screen), "todos, y fallan %d" % sum(s[3] + s[4] - s[5] for s in screen))
+    else:
+        fail("el registro no tiene la prueba de pantalla", "una por pelea con la fijación puesta")
 
 
 def log_winner(log):
