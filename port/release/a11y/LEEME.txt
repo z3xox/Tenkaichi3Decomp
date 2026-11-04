@@ -1,0 +1,59 @@
+Dragon Ball Z Budokai Tenkaichi 3 con lector de pantalla
+
+Para instalar el juego:
+1. Pon este zip y tu imagen de disco del juego (el archivo que termina en .iso) en la misma carpeta.
+2. Extrae el zip: clic derecho sobre el zip, "Extraer todo" y después "Extraer".
+3. Entra en la carpeta Tenkaichi3Decomp y abre Tenkaichi3Decomp-setup.
+
+El instalador encuentra la imagen solo, instala el juego en uno o dos minutos, te dice con tu lector de pantalla cómo va y al final abre el juego. Si dice que no encontró la imagen, copia el archivo .iso dentro de la carpeta Tenkaichi3Decomp, con el instalador abierto: lo encuentra solo cuando termina de copiarse.
+
+Para jugar después, abre Tenkaichi3Decomp. Si abres el juego antes de instalarlo, se abre el instalador.
+
+Si Windows dice "Windows protegió su PC", elige "Más información" y después "Ejecutar de todas formas". Lo dice porque el programa no tiene firma digital.
+
+En una Mac (versión experimental, todavía sin probar en una Mac): anda solo en las Mac con chip de Apple (M1 o posterior) y macOS 11 o posterior; en las Mac con Intel no abre.
+1. Extrae el zip con doble clic, al lado de tu imagen de disco.
+2. macOS no abre programas que Apple no firmó, y este no lo está. Para permitirlo, una sola vez: en el Finder, selecciona la carpeta Tenkaichi3Decomp y aprieta Comando+Opción+C, que copia su ruta.
+3. Abre la Terminal (Comando+Espacio, escribe Terminal y aprieta Intro). Escribe xattr -dr com.apple.quarantine, un espacio y una comilla doble; pega con Comando+V; escribe otra comilla doble y aprieta Intro.
+4. Abre Tenkaichi3Decomp-setup, dentro de la carpeta. Con él se abre una ventana de la Terminal: no la cierres mientras juegas.
+En la Mac el juego habla con la voz propia del sistema, aparte de VoiceOver, en el idioma del sistema, y no manda braille. Su velocidad y su volumen se cambian en la pestaña Accesibilidad de los ajustes (F1, o Select y Start a la vez), con los dos primeros deslizadores; el volumen de la Mac sigue mandando por encima. Si macOS pregunta si puede usar tu Voz personal, cualquier respuesta sirve; hasta que respondas, el juego no habla. Con VoiceOver encendido, la primera vez se activa solo el perfil para jugar sin ver. La versión de Mac no se actualiza sola: cada versión nueva se descarga a mano.
+
+Hace falta tu propia imagen de disco de la versión de Estados Unidos (SLUS-21678), con los programas del juego sin modificar. No compartas ni pidas imágenes de disco.
+
+En el juego:
+- No hace falta apretar nada para saber dónde está el rival: en la pelea, el juego lo dice solo, con un sonido de sonar que llega desde donde está (más seguido cuanto más cerca) y con el lector cada vez que cambia ("Rival atrás, a la izquierda, lejos"). En la pestaña Accesibilidad, "Dónde está el rival" elige cómo: solo con Select, o automático con sonido, con lector o con los dos.
+- Select del control (Create en un DualSense, Vista en un control de Xbox), en una pelea: una vez, dónde está el rival; dos veces rápido, tu estado (vida, ki y blast); tres veces, el del rival. Si juegan dos personas, cada una oye primero lo suyo con su propio control. Fuera de una pelea repite el último mensaje. Un control de GameCube no tiene Select: ahí sirven F2, F3, F4 y F5. Con el lector activo, Select ya no mueve la cámara en la pelea.
+- Al principio el estado se oye como dos pitidos, más fuertes cuanta menos vida queda. Para que el lector diga la vida, el ki y el blast: ventana de ajustes, pestaña Accesibilidad, "Estado: vida, ki y blast". Las opciones "también automático" lo dicen además solo, cada vez que se gana o se pierde una barra entera o un blast, sin apretar Select.
+- Lo que avisa del rival suena desde donde está, igual que el sonar: el tic de la distancia y, contra la computadora o en línea, la vida, el ki, la transformación y el ataque definitivo del rival. Si está atrás, se oye apagado. Lo tuyo suena en el medio. Los sonidos del rival tienen un zumbido encima, para saber de quién son. Mientras no se ve al rival (se desvaneció o te cegaron), todo suena en el medio, y también con el sonido del juego en mono. Si juegan dos personas en la misma computadora, la vida, el ki y los avisos de cada una suenan en el medio.
+- Si prefieres no apretar Select nunca, el botón "Todo automático" de la pestaña Accesibilidad pone cada aviso con sonido y con lector, y el estado y dónde está el rival dichos solos. Después puedes cambiar cada uno.
+- En el teclado: F2 repite el último mensaje. F3 y F4 dan el estado del jugador 1 y del jugador 2. F5 dice dónde está el rival.
+- La ventana de ajustes se abre con F1, o con los dos botones del medio del control a la vez (Create y Options en un DualSense, Vista y Menú en un control de Xbox). En un deslizador, la palanca derecha baja o sube el valor.
+- Su pestaña Accesibilidad tiene los avisos de la pelea: dónde está el rival, distancia al rival, borde del escenario, vida, transformación y ataque definitivo, estado y momentos importantes, con sus volúmenes. Con NVDA o JAWS, la primera vez se activa solo el perfil para jugar sin ver; sin ellos, los de distancia, borde y vida vienen apagados y se encienden ahí.
+- En una partida en línea, el lector lee lo que escribe el rival en el chat, con su nombre. Se apaga en la pestaña Accesibilidad, "Leer el chat en línea".
+- En la pelea, el lector avisa solo los momentos importantes de los dos jugadores: cuando a uno le quedan 2 barras de vida y después 1, cuando el ki se llena y cuando entra en máximo poder. También dice los nombres de las técnicas que muestra el juego. Los dos se cambian en la pestaña Accesibilidad ("Momentos importantes" y "Nombres de las técnicas").
+- Para saber qué significa cada sonido: en la pestaña Accesibilidad, el botón "Glosario de sonidos" abre la lista; cada botón toca su sonido y dice qué significa. En la pausa de la pelea, Select hace lo mismo de a un sonido; dos veces rápido, el anterior.
+- Mientras se ve la entrada de una pelea, el lector dice quién pelea contra quién y en qué escenario ("Describir la pelea", en la pestaña Accesibilidad).
+- En el menú de pausa, la lista de técnicas se lee de a una técnica, con los botones de tu control.
+
+Jugar con el teclado (jugador 1; el teclado y el control funcionan a la vez):
+- Flechas: la cruceta. W, A, S y D: la palanca izquierda.
+- K: Cruz. L: Círculo. J: Cuadrado. I: Triángulo.
+- U: L1. O: R1. 7 (el de la fila de números): L2. 9: R2.
+- Intro: Start. Shift derecho: Select.
+- F1: ventana de ajustes. F2: repetir el último mensaje. F3 y F4: estado del jugador 1 y del jugador 2. Escape: pregunta si cerrar el juego.
+- L3, R3 y la palanca derecha no tienen tecla. Para transformarte (R3) y cambiar de luchador (L3 y R3 juntos), asígnales teclas antes: F1, pestaña Controles, la fila de R3 (o de L3), columna Teclado, Intro y después la tecla (por ejemplo P para R3 e Y para L3).
+- En la pelea, con el lector activo, Shift derecho no hace nada: ahí sirven F3 y F4.
+
+Controles:
+- Al conectar un control, el juego dice su nombre y a qué jugador va, y ese control vibra una vez (el del jugador 2, dos veces). Al desconectarlo, lo dice también. Unos segundos después de abrir el juego dice qué controles hay, o que no hay ninguno y se juega con el teclado.
+- El juego trae la base de controles de la comunidad (gamecontrollerdb.txt), que reconoce muchos controles USB genéricos.
+- Si dice que un control "no es un control conocido" y que se le dio la distribución más común, prueba los botones. Un control estilo PlayStation con la luz ANALOG apagada también se reconoce: su cruceta mueve la palanca izquierda.
+- Si algún botón no coincide, o el juego dice que un control no se reconoce, configúralo por voz: F1, pestaña Controles, botón "Configurar un control". Aprieta cualquier botón del control que quieres configurar, y después cada botón y palanca a medida que el lector los pide ("Aprieta Cruz: de los cuatro botones de la derecha, el más cercano a ti"). Si el control no tiene una parte, espera diez segundos y se salta. Escape cancela. Al terminar el control queda configurado, y se guarda en gamecontrollerdb_own.txt para las próximas veces. Si quedó mal, vuelve a configurarlo; para volver a como venía, borra gamecontrollerdb_own.txt de la carpeta del juego.
+- Si aun así un control no anda, avísanos: escribe a11y_log=1 en bt3_settings.txt, abre el juego con el control conectado y mándanos el archivo a11y_log.txt. Ahí queda el nombre del control, su código (VID:PID) y lo que se configuró.
+- El jugador 1 es el control que aprietas: si el control que le tocaba al jugador 1 no se usó, el primer control que aprietes pasa a ser el suyo, y el juego lo dice. Sirve cuando Windows lista primero un control que nadie tiene en la mano: uno virtual de DS4Windows, HidHide, ViGEm o del programa de una consola portátil. Para apagarlo, escribe pad_follow=0 en bt3_settings.txt.
+- Si tu control tiene un modo XInput (muchos tienen un botón Mode o Home que se mantiene unos segundos, o un interruptor X/D), en ese modo funciona como un control de Xbox.
+- Para tus propios mapeos de SDL, ponlos en gamecontrollerdb_own.txt, en la carpeta del juego: ninguna actualización lo reemplaza y sus líneas ganan sobre las de la base.
+
+Si el control hace cosas que no apretaste (un botón pausa, o abre la pregunta para cerrar el juego): algún programa convierte los botones del control en teclas, y el juego recibe las dos cosas. Puede ser Steam (A en Enter, B en Escape, según su "disposición de escritorio"), DS4Windows, JoyToKey, reWASD, o el programa propio de una consola portátil (Armoury Crate, Legion Space). El juego ya se da cuenta solo: deja afuera esas teclas, y después de tres lo avisa y no lee el teclado mientras usas el control. Igual conviene cerrar ese programa mientras juegas, o en Steam: Parámetros, Control, Disposición de escritorio, Editar, y "Desactivar Steam Input".
+
+El lector de pantalla funciona con NVDA y con JAWS; sin ellos usa la voz de Windows. Habla gracias a Prism (licencia MPL-2.0; su código está en https://github.com/ethindp/prism; sus licencias, en licenses/prism). El idioma es el de Windows; para elegir otro, escribe a11y_lang="es" (o el código que quieras) en bt3_settings.txt.

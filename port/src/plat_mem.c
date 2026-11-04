@@ -453,6 +453,10 @@ static void Port_LoadGameData(void) {
     snprintf(path, sizeof(path), "%s/disc/SLUS_216.78", root);
     elf = read_file(path, &elfSize);
     if (elf == NULL || elfSize < 0x34 || memcmp(elf, "\177ELF", 4) != 0) {
+        extern int Port_OpenSetup(void); /* gs/setup_launch.c: a release folder without the data opens its setup */
+        if (elf == NULL && gPortDataStripped == 1 && Port_OpenSetup()) {
+            exit(0);
+        }
         data_fail("the game's program was not found", path);
     }
     {   /* the loaded sections as one image from 0x100000 */

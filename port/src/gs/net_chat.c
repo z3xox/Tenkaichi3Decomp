@@ -43,6 +43,7 @@ static unsigned sSeenAt;
 static uint64_t sSaidMs, sHeardMs;
 static int sSaid, sHeard;        /* (whether there was one: the clock may still read 0) */
 static volatile int sEnabled = -1, sMuted;
+static volatile int sRead = -1; /* the screen reader says the other player's lines (a11y_chat) */
 
 /* Copies `len` bytes of `in` into `out` (CHAT_TEXT + 1) as described above, without spaces at either end. Returns the
    length kept. */
@@ -141,6 +142,18 @@ void PortChat_EnabledSet(int on) {
     Port_SettingsWrite();
 }
 
+int PortChat_Read(void) {
+    if (sRead < 0) {
+        sRead = Port_Setting("a11y_chat", 1) != 0;
+    }
+    return sRead;
+}
+
+void PortChat_ReadSet(int on) {
+    sRead = on != 0;
+    Port_SettingSave("a11y_chat", sRead);
+}
+
 int PortChat_Muted(void) {
     return sMuted;
 }
@@ -231,7 +244,7 @@ int PortChat_Outgoing(uint32_t nowMs, uint32_t *seq, char *text) {
 void PortChat_Heard(uint32_t seq, const char *text, int len) {
     char line[CHAT_TEXT + 1];
     uint64_t now = SDL_GetTicks();
-    int k;
+    int k, kept = 0;
     const char *name;
 
     if (seq == 0 || len <= 0 || !PortChat_Enabled() || sMuted) {
@@ -250,6 +263,14 @@ void PortChat_Heard(uint32_t seq, const char *text, int len) {
         sHeard = 1;
         sHeardMs = now;
         keep(line, 0, name);
+        kept = 1;
     }
     SDL_UnlockSpinlock(&sLock);
+    if (kept && PortChat_Read()) { /* (queued: not over what the fight is saying) */
+        extern void PortA11y_Say(const char *text, int flags);                             /* a11y.c */
+        extern const char *PortA11y_Tr(const char *label) __attribute__((format_arg(1))); /* (in its language) */
+        char said[CHAT_TEXT + 64];
+        SDL_snprintf(said, sizeof(said), PortA11y_Tr("Chat, %s: %s"), name, line);
+        PortA11y_Say(said, 0);
+    }
 }

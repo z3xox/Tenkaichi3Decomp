@@ -44,7 +44,12 @@ void say(const std::string &line) {
     sLines.push_back(line);
 }
 
-struct Stop { std::string why; };
+// Why the setup stopped: `why` a fixed sentence (the window says it, in the player's language: setup_voice.cpp finds
+// it by its English), `detail` what changes from one computer to the next (a file, an error of the system), shown only.
+struct Stop {
+    std::string why, detail;
+    Stop(const std::string &w, const std::string &d = "") : why(w), detail(d) {}
+};
 
 // ------------------------------------------------------------------------------------------------------- SHA-1
 struct Sha1 {
@@ -157,7 +162,7 @@ struct Iso {
         Uint32 lba, size;
         io = SDL_IOFromFile(path.c_str(), "rb");
         if (io == NULL) {
-            throw Stop{"The disc image could not be opened: " + path};
+            throw Stop{"The disc image could not be opened.", path};
         }
         if (SDL_SeekIO(io, 16 * 2048, SDL_IO_SEEK_SET) < 0 || SDL_ReadIO(io, pvd, sizeof(pvd)) != sizeof(pvd) || pvd[0] != 1 ||
             memcmp(pvd + 1, "CD001", 5) != 0) {
@@ -206,20 +211,20 @@ void check_cancel() {
 void copy_out(Iso &iso, Uint64 offset, Uint64 size, const std::string &path, std::vector<Uint8> &buf) {
     SDL_IOStream *out = SDL_IOFromFile(path.c_str(), "wb");
     if (out == NULL) {
-        throw Stop{"Could not write " + path + ". Is the disk full or the folder read-only?"};
+        throw Stop{"Could not write the game's files. Is the disk full or the folder read-only?", path};
     }
     while (size > 0) {
         size_t n = size < buf.size() ? (size_t)size : buf.size();
         iso.read(offset, buf.data(), n);
         if (SDL_WriteIO(out, buf.data(), n) != n) {
             SDL_CloseIO(out);
-            throw Stop{"Could not write " + path + ". Is the disk full?"};
+            throw Stop{"Could not write the game's files. Is the disk full or the folder read-only?", path};
         }
         offset += n;
         size -= n;
     }
     if (!SDL_CloseIO(out)) {
-        throw Stop{"Could not write " + path + ". Is the disk full?"};
+        throw Stop{"Could not write the game's files. Is the disk full or the folder read-only?", path};
     }
 }
 
@@ -269,12 +274,12 @@ void step_disc(Iso &iso, const std::string &path) {
 
 void step_data(Iso &iso, const std::string &root) {
     std::string data = root + "gamedata/", marker = data + ".installed";
-    SDL_PathInfo info;
     step("Game data");
-    if (SDL_GetPathInfo(marker.c_str(), &info)) {
+    if (Native_Installed(root)) {
         say("@skip already unpacked");
         return;
     }
+    SDL_RemovePath(marker.c_str()); // (a marker without the game's program: the files are copied again, over what is there)
     std::vector<const IsoFile *> take;
     Uint64 total = 0, done = 0;
     for (auto &f : iso.files) {
@@ -316,7 +321,7 @@ void step_data(Iso &iso, const std::string &root) {
         iso.read(f->offset, head, 8);
         memcpy(&count, head + 4, 4);
         if (memcmp(head, "AFS\0", 4) != 0 || (Uint64)count * 8 + 8 > f->size) {
-            throw Stop{"An archive on the disc (" + f->path + ") is damaged."};
+            throw Stop{"An archive on the disc is damaged. The disc image may be incomplete.", f->path};
         }
         std::vector<Uint32> table((size_t)count * 2);
         iso.read(f->offset + 8, table.data(), table.size() * 4);
@@ -325,7 +330,7 @@ void step_data(Iso &iso, const std::string &root) {
             char name[32];
             snprintf(name, sizeof(name), "%05u.bin", i);
             if ((Uint64)table[i * 2] + table[i * 2 + 1] > f->size) {
-                throw Stop{"An archive on the disc (" + f->path + ") is damaged."};
+                throw Stop{"An archive on the disc is damaged. The disc image may be incomplete.", f->path};
             }
             copy_out(iso, f->offset + table[i * 2], table[i * 2 + 1], dir + name, buf);
             files++;
@@ -353,6 +358,7 @@ void step_test(const std::string &root) {
     SDL_SetEnvironmentVariable(env, "BT3_SETTINGS", "", true);
     SDL_SetEnvironmentVariable(env, "BT3_SAVES", saves.c_str(), true);
     SDL_SetEnvironmentVariable(env, "BT3_GS", "none", true); // no window: a release program opens one by default
+    SDL_SetEnvironmentVariable(env, "BT3_A11Y", "0", true);  // nor the screen reader: the setup is speaking (setup_voice.cpp)
     // (BT3_A11Y_LOG: the setup's own speech log, which the demo fight would start over)
     for (const char *name : {"BT3_REPLAY", "BT3_PAD_PLAY", "BT3_PAD_REC", "BT3_DATA", "BT3_A11Y_LOG"}) {
         SDL_UnsetEnvironmentVariable(env, name);
@@ -369,10 +375,9 @@ void step_test(const std::string &root) {
     SDL_DestroyEnvironment(env);
     if (proc == NULL) {
 #ifdef __APPLE__
-        throw Stop{std::string("The game could not be started: ") + SDL_GetError() +
-                   " (macOS may still be blocking it: see step 0 of README.txt)"};
+        throw Stop{"The game could not be started. macOS may still be blocking it: see step 0 of README.txt.", SDL_GetError()};
 #else
-        throw Stop{std::string("The game could not be started: ") + SDL_GetError()};
+        throw Stop{"The game could not be started. Security software may be blocking it.", SDL_GetError()};
 #endif
     }
     size_t size = 0;
@@ -412,7 +417,7 @@ void step_test(const std::string &root) {
     if (text.find("battle finished") == std::string::npos) {
         size_t end = text.find_last_not_of("\r\n"), begin = end == std::string::npos ? std::string::npos : text.rfind('\n', end);
         std::string last = end == std::string::npos ? "no output" : text.substr(begin == std::string::npos ? 0 : begin + 1, end - (begin == std::string::npos ? 0 : begin + 1) + 1);
-        throw Stop{"The game's demo fight did not finish. Its last line was:\n" + last + "\nThe full output is in install.log."};
+        throw Stop{"The game's demo fight did not finish. The full output is in install.log.", "Its last line was: " + last + why};
     }
     say("@ok the demo fight ran to its end");
 }
@@ -526,12 +531,21 @@ void work(std::string root, std::string path, std::string eu) {
         }
         say("@done " + root + kGame);
     } catch (const Stop &s) {
-        std::string why = s.why;
-        for (size_t i = 0; (i = why.find('\n', i)) != std::string::npos;) {
-            why.replace(i, 1, "\\n");
-        }
+        auto line = [](std::string text) {
+            for (size_t i = 0; (i = text.find_first_of("\r\n", i)) != std::string::npos;) {
+                text.replace(i, 1, text[i] == '\n' ? "\\n" : "");
+            }
+            return text;
+        };
         say("@fail");
-        say("@stopped " + why);
+        if (!s.detail.empty()) { // (one line, taken as it is: a Windows path's backslashes stay)
+            std::string detail = s.detail;
+            for (auto &c : detail) {
+                c = c == '\r' || c == '\n' ? ' ' : c;
+            }
+            say("@detail " + detail);
+        }
+        say("@stopped " + line(s.why));
     }
     sRunning = false;
 }
@@ -568,9 +582,12 @@ void Native_Join() {
     }
 }
 
+// The data unpacked: the marker written at the end of the copy, and the game's program, the file the game looks for
+// first (port/src/plat_mem.c; without it the game opens this setup).
 bool Native_Installed(const std::string &root) {
     SDL_PathInfo info;
-    return SDL_GetPathInfo((root + "gamedata/.installed").c_str(), &info);
+    return SDL_GetPathInfo((root + "gamedata/.installed").c_str(), &info) &&
+           SDL_GetPathInfo((root + "gamedata/disc/SLUS_216.78").c_str(), &info) && info.type == SDL_PATHTYPE_FILE;
 }
 
 bool Native_EuInstalled(const std::string &root) {

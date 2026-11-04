@@ -244,6 +244,7 @@ extern int Port_NetActive(void);                    /* gs/net.c: online play */
 extern s32 gMcCardCmd, gMcCardStep;                 /* src/battle/stgm_a_b.c: the card operation running, its step */
 #define MCCARD_CMD_INFO 10                          /* (include/battle/stgm_a_b.h) */
 extern void Port_UiSaving(int state);               /* gs/ui.cpp: the save icon (1 saving, 0 saved, -1 the window took over) */
+extern void Port_UiLoaded(void);                    /* gs/ui.cpp: the save loaded at start without a page, said */
 static s32 sMcQuick;
 static s32 sMcQuickState, sMcQuickPolled; /* the state of the frame before; its card check has answered */
 
@@ -403,6 +404,7 @@ static s32 McFlow_QuickStep(void) {
         sMcQuick = 0;
         if (boot) {
             gMcFlow->flags |= 8;
+            Port_UiLoaded(); /* (the screen reader: no page said it was loaded) */
         } else {
             Port_UiSaving(0);
         }

@@ -35,4 +35,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends glslang-tools m
     && curl -fsSL -o /tmp/sdl-mingw.tar.gz https://github.com/libsdl-org/SDL/releases/download/release-${SDL_VERSION}/SDL3-devel-${SDL_VERSION}-mingw.tar.gz \
     && mkdir -p /opt/sdl3-mingw && tar -xzf /tmp/sdl-mingw.tar.gz -C /opt/sdl3-mingw && rm /tmp/sdl-mingw.tar.gz
 ENV BT3_SDL3=/opt/sdl3-mingw/SDL3-${SDL_VERSION}/x86_64-w64-mingw32
+# The community's controller mappings (zlib licence), at a fixed commit: port/tools/package.py puts gamecontrollerdb.txt
+# beside the program, which reads it as the controllers start (port/src/gs/gs_input.c). A newer one: the commit and its
+# SHA-256 here.
+ARG GCDB_COMMIT=ff333823a85ae896e73f4c53670932cf0f728adb
+ARG GCDB_SHA256=c6587cc65789539e61ec375aad5bdbc14f974508b57e2ae87730ac75c4445dba
+RUN mkdir -p /opt/gamecontrollerdb && cd /opt/gamecontrollerdb \
+    && curl -fsSL -o gamecontrollerdb.txt https://raw.githubusercontent.com/mdqinc/SDL_GameControllerDB/${GCDB_COMMIT}/gamecontrollerdb.txt \
+    && curl -fsSL -o LICENSE https://raw.githubusercontent.com/mdqinc/SDL_GameControllerDB/${GCDB_COMMIT}/LICENSE \
+    && echo "${GCDB_SHA256}  gamecontrollerdb.txt" | sha256sum -c - \
+    && echo ${GCDB_COMMIT} > COMMIT
+ENV BT3_GAMECONTROLLERDB=/opt/gamecontrollerdb
 WORKDIR /src

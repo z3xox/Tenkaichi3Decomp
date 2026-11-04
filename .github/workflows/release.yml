@@ -8,12 +8,13 @@
 #   a tag  v*                 the same, and a draft release with the three archives attached (and their .sig, for the
 #                             game's automatic update, when the secret UPDATE_SIGNING_KEY is set)
 #   "Run workflow" button     the same as a push
+# (The accessible fork's tags, v*-a11y*, are release-a11y.yml's: one published release with the Windows archive.)
 name: release
 
 on:
   push:
     branches: [main]
-    tags: ["v*"]
+    tags: ["v*", "!v*-a11y*"]
     paths-ignore: ["docs/**", "**.md", "LICENSE", "LICENSE-MIT"]
   workflow_dispatch:
 

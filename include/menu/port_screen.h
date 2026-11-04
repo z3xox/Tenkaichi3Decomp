@@ -72,6 +72,7 @@ f32 Ps_ButtonW(s32 kind, f32 size);
 void Ps_Button(s32 kind, f32 cx, f32 cy, f32 size);
 void Ps_PromptsClear(void); /* once a frame, before the page sets its prompts */
 void Ps_Prompt(s32 kind, char *label);
+s32 Ps_PromptAt(s32 k, char **label); /* the k-th prompt's kind (its label into *label), or -1: for the screen reader */
 f32 Ps_PromptX(s32 k);
 void Ps_PromptsDraw(void);
 void Ps_Text(f32 x, f32 y, char *s, f32 scale, f32 width, s32 style);

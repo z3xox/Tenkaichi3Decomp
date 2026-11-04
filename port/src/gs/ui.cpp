@@ -101,6 +101,9 @@ int Port_NetSpecStatus(int *out);                            // ... catching up 
 int Port_NetWatchers(void);                                  // how many watch this match (the players)
 const char *Port_NetWatcher(int i);                          // ... their names
 }
+void A11yUi_Init(void); int A11yUi_Tabs(void); void A11yUi_Tab(void); // a11y_ui.cpp: the window read aloud, its own tab
+int A11yUi_InRegion(void); // a11y_ui.cpp: the focus is in a region (the bindings table): Circle leaves it, not the window
+void A11yUi_UpstreamEnd(int open); // a11y_ui.cpp: ui_a11y.cpp has read the windows built so far (open: it was on)
 static bool sReady, sOpen;
 static MenuTranslationOption sLanguages[256];
 static int sLanguageCount, sLanguageChoice;
@@ -119,6 +122,7 @@ static const char *spec_view_name(int view);
 static int sForceTab = -1;                     // BT3_UI_OPEN=<tab>: open at start on that tab (testing)
 static int sCapKind, sCapPlayer, sCapAction;   // waiting for a key (1) or a controller button (2) to bind
 static Uint64 sCapUntil;                       // ... until then: a controller has no button that is not a binding, so the wait ends by itself
+static Uint64 sCapFrom;                        // ... from then (SDL_GetTicksNS): a controller's press from before is not the binding
 static bool sQuit;                             // the question before the game closes is up
 static bool sQuitNo;                           // ... and Esc answered it: no
 static bool sPadHold;                          // the controller does not work the window: a binding is waited for, or its button is still down
@@ -544,6 +548,7 @@ int Ui_Init(SDL_Window *window, SDL_GPUDevice *device, void *gl_context, const c
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+    A11yUi_Init();
     ImGuiIO &io = ImGui::GetIO();
     io.IniFilename = NULL; // no window-layout file next to the game
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_NavEnableGamepad; // (a controller opens it too: START + SELECT)
@@ -603,6 +608,9 @@ int Ui_Init(SDL_Window *window, SDL_GPUDevice *device, void *gl_context, const c
             sQuit = true;
             PortQuit_Request();
         }
+        if (sForceTab == 12) { // testing: the Accessibility tab (its own index, 10, is the Tech tab's code)
+            sForceTab = 10;
+        }
         sOpen = !sQuit;
         gPortOverlayOpen = 1;
     }
@@ -623,6 +631,13 @@ static void set_open(bool open) {
     if (open && sChat) {
         chat_close();
     }
+    if (open && A11yUi_Tabs() && !(Port_Setting("a11y_tour", 0) & 2)) {
+        // The first time the window opens with the reader on: on the Accessibility tab, the last of eleven, where
+        // the fight's sounds and the blind player profile are (a11y_tour bit 1; the welcome is bit 0, a11y_game.c)
+        sForceTab = 10;
+        Port_SettingSave("a11y_tour", Port_Setting("a11y_tour", 0) | 2);
+        Port_SettingsWrite();
+    }
     sOpen = open;
     sNet = false;
     sCapKind = 0;
@@ -633,6 +648,7 @@ static void set_open(bool open) {
 static void capture(int kind, int player, int action) {
     sCapKind = kind; sCapPlayer = player; sCapAction = action; gPortInputCapture = 1;
     sCapUntil = SDL_GetTicks() + 5000;
+    sCapFrom = SDL_GetTicksNS();
     sPadHold = true;
 }
 
@@ -1139,6 +1155,26 @@ static void bind(int value) {
     PortInput_Save();
 }
 
+static const char *pad_source_name(int src);
+extern "C" void PortA11y_Note(const char *text);
+
+// A binding taken, in the log (and the reader's, a11y_log=1), with the controller it was pressed on (`pad`, an SDL
+// id; -1: a key): for a report of a button that does not do what it was set to (gs_input.c logs each controller's
+// mapping as it is opened).
+static void bound_note(int pad, int value) {
+    char line[256];
+    const char *what = sCapAction < PORT_ACTIONS ? PortInput_ActionLabel(sCapAction) : sCapAction == PORT_ACTIONS ? "Open this window" : "Open online chat";
+    const char *name = pad < 0 ? NULL : SDL_GetGamepadNameForID((SDL_JoystickID)pad);
+    if (pad < 0) {
+        snprintf(line, sizeof(line), "controls: player %d, %s: key %s (%d)", sCapPlayer + 1, what, SDL_GetScancodeName((SDL_Scancode)value), value);
+    } else {
+        snprintf(line, sizeof(line), "controls: player %d, %s: %s (%d), pressed on \"%s\"", sCapPlayer + 1, what, pad_source_name(value), value,
+                 name != NULL ? name : "?");
+    }
+    fprintf(stderr, "bt3: %s\n", line);
+    PortA11y_Note(line);
+}
+
 static bool chat_can_open(void) {
     return sReady && !sOpen && !sQuit && PortChat_Enabled() && Port_NetActive() && !Port_NetSpectating();
 }
@@ -1195,6 +1231,17 @@ int Ui_Event(const SDL_Event *ev) {
     if (!sOpen && !sQuit && !sChat && PortInput_TboEvent(ev)) { // typed on a keypad of Tenkaichi Budokai Online
         return 1;
     }
+    if (PortInput_Learning()) { // a controller is being set up (gs_input.c): Escape stops it; its presses are its own
+        if (ev->type == SDL_EVENT_KEY_DOWN && ev->key.scancode == SDL_SCANCODE_ESCAPE) {
+            if (!ev->key.repeat) {
+                PortInput_LearnStop();
+            }
+            return 1;
+        }
+        if (ev->type == SDL_EVENT_GAMEPAD_BUTTON_DOWN || ev->type == SDL_EVENT_GAMEPAD_BUTTON_UP || ev->type == SDL_EVENT_GAMEPAD_AXIS_MOTION) {
+            return 1;
+        }
+    }
     if (sQuit && PortQuit_Active()) { // game dialog: keyboard and controller operate its native Yes / No plates
         if (ev->type == SDL_EVENT_KEY_DOWN && !ev->key.repeat) {
             SDL_Scancode key = ev->key.scancode;
@@ -1250,20 +1297,38 @@ int Ui_Event(const SDL_Event *ev) {
     }
     if (sCapKind != 0) { // the next key or button is the binding; Esc leaves it as it was, Delete clears it
         bool done = false;
-        if (ev->type == SDL_EVENT_KEY_DOWN) {
+        // A controller's press from before the wait began is not the binding: the row was chosen with the controller
+        // from the state of its buttons, and the event of that press (Cross / A) can come in a round later, when the
+        // events were pumped in between (Low input lag: plat_stub.c, PortInput_Fresh); it was taken as the new binding.
+        bool old = (ev->type == SDL_EVENT_GAMEPAD_BUTTON_DOWN || ev->type == SDL_EVENT_GAMEPAD_AXIS_MOTION) && ev->common.timestamp < sCapFrom;
+        if (ev->type == SDL_EVENT_KEY_DOWN && (ev->key.repeat || ev->key.scancode == SDL_SCANCODE_UNKNOWN)) {
+            // (the key that chose the row, still held; a key of no code, which no row can hold: Windows gives some
+            // presses that are not a keyboard's to the window so)
+        } else if (ev->type == SDL_EVENT_KEY_DOWN) {
             if (ev->key.scancode == SDL_SCANCODE_DELETE || ev->key.scancode == SDL_SCANCODE_BACKSPACE) {
                 bind(sCapKind == 1 ? 0 : -1);
             } else if (ev->key.scancode != SDL_SCANCODE_ESCAPE && sCapKind == 1) {
                 bind((int)ev->key.scancode);
+                bound_note(-1, (int)ev->key.scancode);
             }
             done = ev->key.scancode == SDL_SCANCODE_ESCAPE || ev->key.scancode == SDL_SCANCODE_DELETE ||
                    ev->key.scancode == SDL_SCANCODE_BACKSPACE || sCapKind == 1;
+        } else if (old) {
+        } else if (sCapKind == 1 && ev->type == SDL_EVENT_GAMEPAD_BUTTON_DOWN) {
+            // A key is awaited and a controller's button is pressed: the keyboard's cell, the first of each row, was
+            // chosen with the controller. The key stays as it was (the wait had no end, and the next key touched,
+            // whichever, became the binding), and the press is not also the window's (sPadHold: it would choose the
+            // cell again).
+            sPadHold = true;
+            done = true;
         } else if (sCapKind == 2 && ev->type == SDL_EVENT_GAMEPAD_BUTTON_DOWN) {
             bind((int)ev->gbutton.button);
+            bound_note((int)ev->gbutton.which, (int)ev->gbutton.button);
             done = true;
         } else if (sCapKind == 2 && ev->type == SDL_EVENT_GAMEPAD_AXIS_MOTION && ev->gaxis.value > 20000 &&
                    (ev->gaxis.axis == SDL_GAMEPAD_AXIS_LEFT_TRIGGER || ev->gaxis.axis == SDL_GAMEPAD_AXIS_RIGHT_TRIGGER)) {
             bind(ev->gaxis.axis == SDL_GAMEPAD_AXIS_LEFT_TRIGGER ? PORT_PAD_LT : PORT_PAD_RT);
+            bound_note((int)ev->gaxis.which, ev->gaxis.axis == SDL_GAMEPAD_AXIS_LEFT_TRIGGER ? PORT_PAD_LT : PORT_PAD_RT);
             done = true;
         }
         if (done) {
@@ -1957,6 +2022,8 @@ static void ui_tab(PortVideo &v) {
 }
 
 extern "C" int gPortMusicFollows; // snd_adx.c: 1 = looping music is sped up or slowed down with the game
+extern "C" int gPortStereoStreams; // snd_adx.c: 1 = a stereo song the game pans to one place keeps its two sides
+extern "C" int Port_StereoStreams(void); // (the setting, read the first time)
 
 static void audio_tab(PortVideo &v) {
     ImGui::SliderInt("Music", &v.music, 0, 200, "%d%%", ImGuiSliderFlags_AlwaysClamp);
@@ -1977,6 +2044,16 @@ static void audio_tab(PortVideo &v) {
         ImGui::SetItemTooltip("When the game runs at another speed than 100%% (an online match, the Cheats tab):\n"
                               "off, the music plays as it is; on, it is sped up or slowed down with the game,\n"
                               "at its own pitch, as an emulator does. Spoken lines always follow the game.");
+    }
+    {
+        bool stereo = Port_StereoStreams() != 0;
+        if (ImGui::Checkbox("Stereo music", &stereo)) {
+            gPortStereoStreams = stereo;
+            Port_SettingSave("stereo_streams", stereo);
+        }
+        ImGui::SetItemTooltip("The game places its music in the middle, which taken as it is plays the two\n"
+                              "sides of a stereo song together, in mono. On, a stereo song keeps its left and\n"
+                              "right: the game's own songs and those of a modified disc. Off: as before.");
     }
 }
 
@@ -2218,6 +2295,21 @@ static void controls_tab(void) {
         PortInput_ResetDefaults(player);
         PortInput_Save();
     }
+    // A controller the game does not know, or knows wrongly: its parts asked for one by one, by voice (gs_input.c)
+    if (ImGui::Button(PortInput_Learning() ? "Stop setting up (Esc)###learn" : "Set up a controller###learn")) { // (one id: the focus stays)
+        if (PortInput_Learning()) {
+            PortInput_LearnStop();
+        } else {
+            PortInput_LearnStart();
+        }
+    }
+    ImGui::SetItemTooltip("For a controller whose buttons do not work, or do not do what they say: press any button on it,\n"
+                          "then each button and stick as the screen reader (and this line) asks for it. A part it does not\n"
+                          "have: wait ten seconds. Kept in gamecontrollerdb_own.txt for the next times.");
+    if (PortInput_LearnStatus()[0] != '\0') {
+        ImGui::SameLine();
+        ImGui::TextWrapped("%s", PortInput_LearnStatus());
+    }
     if (ImGui::CollapsingHeader("Sticks, triggers and vibration", ImGuiTreeNodeFlags_DefaultOpen)) {
         sticks_panel(player);
     }
@@ -2304,11 +2396,11 @@ static void build(void) {
         sCapKind = 0;
         gPortInputCapture = 0;
     }
-    if (pad_pressed(ImGuiKey_GamepadFaceRight)) { // Circle / B: out of the window
+    if (pad_pressed(ImGuiKey_GamepadFaceRight) && !A11yUi_InRegion()) { // Circle / B: out of the window
         open = false;
     }
     if (sForceTab < 0 && (pad_pressed(ImGuiKey_GamepadL1) || pad_pressed(ImGuiKey_GamepadR1))) {
-        sForceTab = (sTab + (ImGui::IsKeyPressed(ImGuiKey_GamepadL1, false) ? 9 : 1)) % 10;
+        sForceTab = (sTab + (ImGui::IsKeyPressed(ImGuiKey_GamepadL1, false) ? 9 + A11yUi_Tabs() : 1)) % (10 + A11yUi_Tabs());
         sPadTab = true;
     }
     ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.5f), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
@@ -2402,6 +2494,7 @@ static void build(void) {
             if (tab("Online", 7)) { online_tab(); ImGui::EndTabItem(); }
             if (tab("Mods", 8)) { ModsUi_Tab(); ImGui::EndTabItem(); }
             if (tab("Tech", 9)) { tech_tab(); ImGui::EndTabItem(); }
+            if (A11yUi_Tabs() && tab("Accessibility", 10)) { A11yUi_Tab(); ImGui::EndTabItem(); }
             { // the window as wide as its row of tabs needs, at the menu's size (all in sight, none squeezed)
                 ImGuiTabBar *bar = ImGui::GetCurrentContext()->CurrentTabBar;
                 ImGuiWindow *win = ImGui::FindWindowByName("Settings"); // (the tabs' content is a child: the window itself)
@@ -2462,6 +2555,7 @@ void Ui_DrawAgain(SDL_GPUCommandBuffer *cmd, SDL_GPUTexture *target) {
 static char sNotice[256];
 static Uint64 sNoticeUntil;
 static volatile int sNoticeNew;
+static volatile int sNoticeQuiet; // the screen reader does not read it (a11y_ui.cpp reads the window "##notice" only)
 
 static void set_notice(const char *text, Uint64 ms) { // (from this thread: shown at once, for `ms`)
     SDL_strlcpy(sNotice, text, sizeof(sNotice));
@@ -2470,7 +2564,15 @@ static void set_notice(const char *text, Uint64 ms) { // (from this thread: show
 
 extern "C" void Port_UiNotice(const char *text) {
     SDL_strlcpy(sNotice, text != NULL ? text : "", sizeof(sNotice));
+    sNoticeQuiet = 0;
     sNoticeNew = 1;
+}
+
+// The same for a notice whose news the screen reader gives once elsewhere (gs/net.c: the rival found while training,
+// which the match's banner says with the rival's name).
+extern "C" void Port_UiNoticeQuiet(const char *text) {
+    Port_UiNotice(text);
+    sNoticeQuiet = 1;
 }
 
 // A line in the middle of the screen, the picture behind it dimmed, while the game's thread waits inside a blank
@@ -2478,14 +2580,27 @@ extern "C" void Port_UiNotice(const char *text) {
 // wait is over; the line stays that long more, over the game's own pictures and without the dimming. NULL: gone.
 static char sBanner[256];
 static Uint64 sBannerUntil; // 0: while the game waits
-extern "C" void Port_UiBanner(const char *text, int ms) {
+static void banner(const char *text, const char *said, int ms) {
     if (text != NULL) {
+        if (strcmp(sBanner, text) != 0) { // (said once per line: the game's thread calls this again while it waits)
+            PortA11y_Say(said, 1);
+        }
         SDL_strlcpy(sBanner, text, sizeof(sBanner));
     }
     if (text == NULL && ms <= 0) {
         sBanner[0] = '\0';
     }
     sBannerUntil = ms > 0 ? SDL_GetTicks() + (Uint64)ms : 0;
+}
+
+// The line said in the screen reader's language (port/lang/a11y_<code>.txt).
+extern "C" void Port_UiBanner(const char *text, int ms) {
+    banner(text, text != NULL ? PortA11y_Label(text) : NULL, ms);
+}
+
+// A line with a name in it: what the screen reader says, made by the caller in the reader's language.
+extern "C" void Port_UiBannerSaid(const char *text, const char *said) {
+    banner(text, said, 0);
 }
 
 // The save icon (quick saving, src/sys/mcflow_a.c): a small memory card in the bottom right corner of the picture
@@ -2495,6 +2610,11 @@ static volatile int sSaving;
 static Uint64 sSaveFrom, sSaveEnd; // (0: not shown; the end, 0 while it saves)
 extern "C" void Port_UiSaving(int state) {
     sSaving = state;
+}
+
+// The save loaded at start by quick saving, which shows no page: said, as "Load successful" was read from it.
+extern "C" void Port_UiLoaded(void) {
+    PortA11y_Say(PortA11y_Label("Save loaded"), 0);
 }
 
 static bool save_icon_on(Uint64 now) {
@@ -2981,8 +3101,8 @@ static bool frame_build(void) {
         sPadHold = held;
     }
     // (the button that becomes the binding would also press the row it is bound in; while a chat line is typed the
-    // controller is the game's)
-    if (sPadHold || (sChat && !sOpen)) {
+    // controller is the game's; while a controller is set up, its presses are the setup's)
+    if (sPadHold || (sChat && !sOpen) || PortInput_Learning()) {
         ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_NavEnableGamepad;
     } else {
         ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
@@ -3015,6 +3135,7 @@ static bool frame_build(void) {
         }
     }
     UiA11y_End(); // (what the window's focus is on, said; the windows after this one are not read)
+    A11yUi_UpstreamEnd(sReady && sOpen && !sQuit); // BT3 a11y: the notice after it is read by a11y_ui.cpp
     if (sQuit && PortQuit_Failed()) {
         build_quit();
     }
@@ -3096,7 +3217,7 @@ static bool frame_build(void) {
         ImGuiIO &io = ImGui::GetIO();
         ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.12f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
         ImGui::SetNextWindowBgAlpha(0.85f);
-        if (ImGui::Begin("##notice", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoInputs |
+        if (ImGui::Begin(sNoticeQuiet ? "##notice-said" : "##notice", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoInputs |
                                                ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoSavedSettings)) {
             ImGui::TextUnformatted(sNotice);
         }

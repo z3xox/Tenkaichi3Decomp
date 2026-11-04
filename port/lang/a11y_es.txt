@@ -78,7 +78,7 @@ e001d184ecd2118f	Desierto, mediodía
 # Muscle Tower
 cb4c2d8c53dd93e3	Torre Músculo
 # Mount Paozu
-d88567c52795b11f	Monte Paozu
+d88567c52795b11f	Montaña Paoz
 # Wasteland - Evening
 4c476b1a3472d743	Yermos, tarde
 # Wasteland - Night
@@ -164,11 +164,11 @@ a458c5015ed94d30	Transformación
 # Very Strong
 3942ee29c6331e2c	Muy fuerte
 # Ox-King
-f10bf0d8985a32ee	Rey Ox
+f10bf0d8985a32ee	Ox Satán
 # Videl
 85186d61e0d560c5	Videl
 # Supreme Kai
-5e7de8d5b0fcffa7	Kaiyoshin
+5e7de8d5b0fcffa7	Supremo Kaiosama
 # Announcer 1
 890339300643b24b	Locutor 1
 # Announcer 2
@@ -463,8 +463,6 @@ efc01e70f86cac66	%sX reproduce una frase, triángulo vuelve
 80d94efed1c0d360	Modelo en pantalla. Triángulo vuelve
 # Item shop
 b3712dcd4b15c8ee	Tienda de objetos
-# . Money: %d zeni. Collection: %d of %d, %d percent
-c6a2e70147f00399	. Dinero: %d zeni. Colección: %d de %d, %d por ciento
 # Tab %d of %d%s. 
 07002e4e059937d9	Pestaña %d de %d%s. 
 # , all
@@ -475,12 +473,6 @@ c6a2e70147f00399	. Dinero: %d zeni. Colección: %d de %d, %d por ciento
 de5e2e2723bc7063	Objeto %d
 # %s, owned
 84ab42d5e3d52796	%s, ya lo tienes
-# %s, %d zeni
-c82d80095f275878	%s, %d zeni
-# Buy %s for %d zeni? You have %d. 
-5d4e05ec12b977f0	¿Comprar %s por %d zeni? Tienes %d. 
-# Bought %s. %d zeni left. X to go on
-5acf97467b7dd114	Compraste %s. Te quedan %d zeni. X para seguir
 # : 1P %s, 2P %s
 e5bdf85006acf000	: jugador 1 %s, jugador 2 %s
 # Duel|screen
@@ -521,3 +513,2195 @@ dfd76cb726caaa09	, %d luchadores en pie
 22301f9513285cb5	Izquierda y derecha eligen, Intro confirma, Escape vuelve al juego
 # Back to the game
 6376cd42a8789562	De vuelta al juego
+# The settings window (F1, or Select and Start together: port/src/gs/a11y_ui.cpp): what it draws, and the words the
+# reader adds to it (button, checked, 3 of 5). "\n" in a note is where a tooltip breaks its line. A key "text|settings"
+# is for a text the game's own screens say otherwise.
+# Start|settings
+4bdfaf746f5ecd64	Menú u Options
+# Settings
+9d8b8aa2b404c2c8	Ajustes
+# Video
+85186a61e0d55bac	Video
+# Audio
+08e6bd98452e6bb9	Audio
+# UI
+09313307b5c39f7b	Interfaz
+# Controls
+83cd32b685ccc9b7	Controles
+# Cheats
+ab03f0f3851e7fad	Trucos
+# Misc
+04e610aea9079cc9	Varios
+# Accessibility
+11fdceabe7befeff	Accesibilidad
+# D-pad: move Cross / A: choose Circle / B: back L1 / R1: tab
+a764d4402a75797f	Cruceta: moverse. Cruz o A: elegir. Círculo o B: volver. L1 y R1: cambiar de pestaña.
+# Exit game
+52d5a94f25cf83b5	Salir del juego
+# Sound effects
+c9c3d8874b465902	Efectos de sonido
+# Stage sounds
+a8a3b519a8e304e7	Sonidos del escenario
+# Hits, blasts, menu sounds. Takes effect with the next sound that starts.
+944909d302eb79af	Golpes, ráfagas, sonidos del menú. Se aplica con el próximo sonido que empiece.
+# The fighters' voices in a fight and the spoken lines outside one.
+9e68408ccd5b84ca	Las voces de los luchadores en la pelea y las frases habladas fuera de ella.
+# A stage's background sound (wind, water) and its own effects.
+494d87ec8501ce08	El sonido de fondo de un escenario (viento, agua) y sus propios efectos.
+# Music follows game speed
+f0573481466cc183	La música sigue la velocidad del juego
+# When the game runs at another speed than 100%% (an online match, the Cheats tab):\noff, the music plays as it is; on, it is sped up or slowed down with the game,\nat its own pitch, as an emulator does. Spoken lines always follow the game.
+e5872e443f03541a	Cuando el juego corre a otra velocidad que 100%% (una partida en línea, la pestaña Trucos): apagado, la música suena como es; encendido, se acelera o se frena con el juego, con su propio tono, como hace un emulador. Las frases habladas siempre siguen al juego.
+# Modified game data: this build supports the original USA disc. Glitches are expected.
+d4b98c65b2db76c7	Datos del juego modificados: esta versión es para el disco original de Estados Unidos. Puede haber fallas.
+# Files of two different releases are mixed: copy all the files of the release, not only the program.
+1c93bce31132d5dc	Hay archivos de dos versiones mezclados: hay que copiar todos los archivos de la versión, no solo el programa.
+# The other player's game is a different version.
+c1428eb2d0b3d0e1	El juego del otro jugador es de otra versión.
+# The connection to the other player was lost.
+f578cf55429a0a3c	Se perdió la conexión con el otro jugador.
+# The other player left the match.
+104062d261c2c758	El otro jugador dejó la partida.
+# Update available: 0.%d.%d. F1 for the download page.
+f5ca37c8339f251d	Hay una actualización: 0.%d.%d. F1 para la página de descarga.
+# Internal resolution
+90ba62dd9afac382	Resolución interna
+# %dx (%d x %d)
+1ce7a771ffc187d5	%dx (%d por %d)
+# How finely the game is drawn. 1x is the PlayStation 2's own resolution.\nHigher is sharper and uses more video memory.
+46d59c082e8486d7	Qué tan fino se dibuja el juego. 1x es la resolución propia de la PlayStation 2. Más alto se ve más nítido y usa más memoria de video.
+# Aspect ratio
+2d9478bfee840fe6	Relación de aspecto
+# Wider than 4:3 shows more of the fight to the sides. Menus are stretched.
+012a0090b82cab3f	Más ancho que 4:3 muestra más de la pelea hacia los costados. Los menús se estiran.
+# 2D filtering
+e7ed429ead2e598d	Filtrado 2D
+# Smooth
+579c69f419b6caef	Suave
+# Sharp (console)
+437637775c5733bf	Nítido (consola)
+# How the display of a fight, the menus and text are drawn above 1x internal resolution.\nSharp: each of the PlayStation 2's pixels is a block. Smooth: as an emulator shows them.\nNo difference at 1x.
+96ef9de6023d398c	Cómo se dibujan la imagen de la pelea, los menús y el texto por encima de 1x de resolución interna. Nítido: cada píxel de la PlayStation 2 es un bloque. Suave: como los muestra un emulador. En 1x no hay diferencia.
+# Full screen
+a3d326f1be347f60	Pantalla completa
+# V-sync
+3cefd718cbcf632f	Sincronización vertical
+# Each picture waits for the display's refresh. Turn it on if the picture tears.\nOff is the default: it adds a little delay.
+3748dbe6be4f283b	Cada imagen espera el refresco de la pantalla. Conviene encenderla si la imagen se corta. Viene apagada: agrega un poco de retraso.
+# Skip pictures instead of slowing down
+b59ca2a5722bcaa1	Saltar imágenes en vez de ir más lento
+# When this machine cannot show a picture in time, the game normally runs slower.\nWith this on it stays at full speed and leaves pictures out instead (choppier,\nnot slower). It helps where the graphics chip is the slow part. On by default.
+07f81e083afde4d9	Cuando esta máquina no llega a mostrar una imagen a tiempo, el juego normalmente va más lento. Con esto encendido sigue a velocidad completa y deja imágenes afuera (se ve a saltos, pero no más lento). Ayuda cuando lo lento es el chip gráfico. Viene encendido.
+# Display
+1125d159f7e64df5	Pantalla
+# Chosen by the desktop
+4a3cf07e3c7caa7f	La que elige el escritorio
+# Takes effect the next time the game starts.
+11734bb1c3e8e609	Se aplica la próxima vez que arranque el juego.
+# Renderer
+ff70f823592e1d9e	Motor gráfico
+# Takes effect the next time the game starts. Both draw the same picture; Vulkan is faster.\nIf the chosen one cannot start, the game tries the other.
+414b19847f82f5c2	Se aplica la próxima vez que arranque el juego. Los dos dibujan la misma imagen; Vulkan es más rápido. Si el elegido no puede arrancar, el juego prueba con el otro.
+# Running now: %s. %s from the next start.
+8bae188eb41efa96	Ahora se usa %s. %s desde el próximo arranque.
+# Smooth motion
+65162b19ddeba80f	Movimiento suave
+# Off (30, as the console)
+05050bfa76ebeeaa	Apagado (30, como la consola)
+# %d pictures a second
+4668c75bd4588fd8	%d imágenes por segundo
+# Experimental. The game computes a fight 30 times a second. With this, more pictures are\ndrawn between each two. The fight itself does not change, and neither does online play.\nThe newest picture reaches the screen later: 17 ms at 60, 25 ms at 120, 29 ms at 240.\nChoose what your screen can show. F9 switches it off and on.
+645459d844a73e59	Experimental. El juego calcula la pelea 30 veces por segundo. Con esto se dibujan más imágenes entre cada dos. La pelea en sí no cambia, y el juego en línea tampoco. La imagen más nueva llega más tarde a la pantalla: 17 ms a 60, 25 ms a 120, 29 ms a 240. Conviene elegir lo que la pantalla puede mostrar. F9 lo apaga y lo prende.
+# Show frame rate, and the connection in an online match
+02752815b5601365	Mostrar las imágenes por segundo, y la conexión en una partida en línea
+# Texture pack (%d textures)
+4c3182317ab42a5f	Paquete de texturas (%d texturas)
+# Replacement textures from the folder "textures" next to the game.
+9578219bbb18b095	Texturas de reemplazo de la carpeta "textures" junto al juego.
+# Texture pack (none found)
+1f2f3919a4ba647e	Paquete de texturas (no se encontró ninguno)
+# Put a pack's files (PCSX2 naming, .dds or .png) into a folder "textures" next to the game.
+e30851cf50542963	Los archivos de un paquete (con los nombres de PCSX2, .dds o .png) van en una carpeta "textures" junto al juego.
+# Outline
+19daf2f26c19543d	Contorno
+# The black line around the fighters.
+b741d6ff07f9cfe7	La línea negra alrededor de los luchadores.
+# See-through tint
+d1332a30ccd5b0a1	Tinte de transparencia
+# The tint that shows a fighter behind scenery.
+77a7dcb8529e37b7	El tinte que muestra a un luchador detrás del escenario.
+# Depth tint
+6870cf107b1ba8ef	Tinte de profundidad
+# The haze that colours distant things.
+18d4f3d9194af786	La bruma que colorea lo lejano.
+# Glare and glow
+da33a328fe1dd5ee	Destellos y brillo
+# The bloom around bright things and the sky's glare.
+d3a771af5b71458b	El resplandor alrededor de lo brillante y el destello del cielo.
+# Distance blur
+8569af9564aa3c07	Desenfoque de distancia
+# The soft focus on distant scenery.
+83097961823bfb09	El foco suave sobre el escenario lejano.
+# Movement blur
+8f6b372ed9d1aa51	Desenfoque de movimiento
+# The blur of the scenery while the view turns or moves fast.
+eeb2436172a2c442	El desenfoque del escenario mientras la vista gira o se mueve rápido.
+# Glow strength
+a02daa7aa0019b9d	Intensidad del brillo
+# 100%% is what the PlayStation 2 draws; the default here is 60%%.
+c64a62af1478794f	100%% es lo que dibuja la PlayStation 2; acá viene en 60%%.
+# Check for updates
+e6a8976fdb8243a6	Buscar actualizaciones
+# an update is available
+a5b5f58184d58d6a	hay una actualización
+# Once per start, ask GitHub for the number of the newest release and say so if it is newer\nthan this one. Nothing is downloaded: the settings window then has a button to the page.
+8c445b0c902b86f0	Una vez por arranque, le pregunta a GitHub el número de la versión más nueva y avisa si es más nueva que esta. No se descarga nada: la ventana de ajustes muestra entonces un botón a la página.
+# Skip logos
+5b9f5adb5325cfbe	Saltar los logos
+# Start without the publisher and developer logos. From the next start of the game.
+0dd6acc983b7a6df	Arrancar sin los logos de la distribuidora y la desarrolladora. Desde el próximo arranque del juego.
+# Skip intro video
+96d525169882ba23	Saltar el video de introducción
+# Start without the opening movie. From the next start of the game.
+7a2cf2db388a97cc	Arrancar sin el video de apertura. Desde el próximo arranque del juego.
+# Skip copyright page
+c89bf436b1d7bc8e	Saltar la página de derechos de autor
+# The page of legal text shown for five seconds before the title screen, every time.
+c2959de21d9aca49	La página de texto legal que aparece cinco segundos antes de la pantalla de título, cada vez.
+# HUD Style
+c26c6e7c38e9d177	Estilo de los indicadores
+# At the screen's edges
+d55e1d083d6fabcd	En los bordes de la pantalla
+# At the edges, long health bars
+1954c21b29bc73df	En los bordes, barras de vida largas
+# In the middle, as in 4:3
+c6068d95af29987e	En el medio, como en 4:3
+# Where a fight's health bars and gauges sit in a picture wider than 4:3.\nLong health bars: the bars reach from the edges to the timer.\nIn the middle: the original 4:3 arrangement, next to the timer.
+c3438d592c6281b3	Dónde van las barras de vida y los medidores de la pelea en una imagen más ancha que 4:3. Barras de vida largas: las barras van desde los bordes hasta el reloj. En el medio: la disposición original de 4:3, junto al reloj.
+# Menus in 4:3
+00d949248c869da5	Menús en 4:3
+# In a picture wider than 4:3, show the menus at their own shape with black at the sides\ninstead of stretched to the width. Fights keep the wide picture.
+06f92807a3794fcc	En una imagen más ancha que 4:3, muestra los menús con su forma propia y negro a los costados, en vez de estirados a lo ancho. Las peleas mantienen la imagen ancha.
+# Side bars
+89d5caba21740738	Barras laterales
+# Black
+5e3cb80d43a34044	Negro
+# Border
+9370dc6afa716b57	Borde
+# What fills the sides where the picture is narrower than the window:\na 4:3 picture, or the menus with "Menus in 4:3", in a wide window.\nYour own: a folder "bars" next to the game with trim.png (the strip along the\npicture, kept in proportion) and fill.png (stretched over the rest). Read at start.
+877db6d8491b1788	Qué llena los costados donde la imagen es más angosta que la ventana: una imagen 4:3, o los menús con "Menús en 4:3", en una ventana ancha. Las propias: una carpeta "bars" junto al juego con trim.png (la franja a lo largo de la imagen, en proporción) y fill.png (estirada sobre el resto). Se leen al arrancar.
+# Player 1
+3817fd31d1f7a5c3	Jugador 1
+# Player 2
+3817fe31d1f7a776	Jugador 2
+# None
+669b18c6d2d9c95b	Ninguno
+# Controller %d (not connected)
+a9bf71fb7098addb	Control %d (no conectado)
+# Reset to defaults
+07733503b383d73d	Volver a los valores predeterminados
+# Choose a binding, then press the new key or button. Esc keeps it, Delete clears it;
+0a666fee1ea295ba	Elegir una asignación y después apretar la tecla o el botón nuevo. Escape la deja como estaba, Suprimir la borra;
+# with a controller, press nothing for five seconds to keep it.
+61162b15a6e7ace3	con un control, no apretar nada durante cinco segundos la deja como estaba.
+# Action
+a442044b586ec8bf	Acción
+# Keyboard
+868a566fb9603774	Teclado
+# press a key...
+5e2bf38e0838c0a2	apretar una tecla...
+# press a button...
+ce2c623925f30d15	apretar un botón...
+# Return
+b3848440dbfb823f	Intro
+# Escape
+1b61db587d3e3f26	Escape
+# Backspace
+d64445ead33533cc	Retroceso
+# Tab
+6ce0ce19e201b66c	Tabulador
+# Space
+032cd9f1245d3645	Espacio
+# Up
+09313a07b5c3ab60	Flecha arriba
+# Down
+032c13736048bf35	Flecha abajo
+# Left
+a5c371b4bb75e590	Flecha izquierda
+# Right
+366991b9c9287765	Flecha derecha
+# Insert
+5ada999b33ccc808	Insertar
+# Delete
+dc673e73b5c13aea	Suprimir
+# Home
+6abb1cd87fe0114e	Inicio
+# End
+d8f923198e0c5c6a	Fin
+# PageUp
+c205408d70cf40cb	Re Pág
+# PageDown
+952c26cac2583cfe	Av Pág
+# CapsLock
+9609363a16cbc30f	Bloq Mayús
+# Left Shift
+9da4c3651aedc0d4	Shift izquierdo
+# Right Shift
+00b40dcd4f741955	Shift derecho
+# Left Ctrl
+d1eb221ce945d159	Control izquierdo
+# Right Ctrl
+2680b02bd0d887ae	Control derecho
+# Left Alt
+9017c81baf4b218b	Alt izquierdo
+# Right Alt
+de90ae8fbced4e02	Alt derecho
+# Keypad Enter
+400011ab2e9ea7b7	Intro del teclado numérico
+# Keypad %s
+93c21747658a9bf3	%s del teclado numérico
+# Unbound
+e7a38a6492965c7a	Sin asignar
+# Open this window
+e6d32a9d7ed5e589	Abrir esta ventana
+# START + SELECT
+41051aa04f79ff2e	Start y Select
+# Left stick
+b25219a8f9810d90	Palanca izquierda
+# Right stick
+6b51ef85c1861879	Palanca derecha
+# A / Cross
+c0667f99734eb971	A o Cruz
+# B / Circle
+cabcf2d14c40ef14	B o Círculo
+# X / Square
+2e35f67018106c49	X o Cuadrado
+# Y / Triangle
+3aaa109bb5e9a537	Y o Triángulo
+# Back / Select
+fcccea84b34adf09	Vista o Create
+# Guide
+7bf3b283b3f22c4b	Botón central
+# Left stick click
+0fc6e24df57b6008	Palanca izquierda presionada
+# Right stick click
+f3d2ac6c5153794d	Palanca derecha presionada
+# Left shoulder
+f5ca0828d577d5d8	LB o L1
+# Right shoulder
+126966c01b6315bb	RB o R1
+# Left trigger
+fccc7f9c106bcfcc	LT o L2
+# Right trigger
+bb73052d8a394a61	RT o R2
+# D-pad up
+397e326391128634	Cruceta arriba
+# D-pad down
+8a580d442a3221a1	Cruceta abajo
+# D-pad left
+5f85fb8aba9b553c	Cruceta izquierda
+# D-pad right
+956ec51e27d1cc69	Cruceta derecha
+# Cross
+1f152e00912ee85b	Cruz
+# Circle
+14c54ca33d0f3ea9	Círculo
+# Square
+6641c258b0b51b26	Cuadrado
+# Triangle
+debf6287e31d18e5	Triángulo
+# START
+9a047e085465f87f	Start
+# SELECT
+7da73cc0f538da0d	Select
+# Left stick up
+e990b116cf8eb91d	Palanca izquierda arriba
+# Left stick down
+bbcced4d6cdf257c	Palanca izquierda abajo
+# Left stick left
+c6af4f8f0338d171	Palanca izquierda a la izquierda
+# Left stick right
+07bc962c78512bd2	Palanca izquierda a la derecha
+# Right stick up
+7cce31bcad412bce	Palanca derecha arriba
+# Right stick down
+e6ffb2e467085897	Palanca derecha abajo
+# Right stick left
+47fe40a30ee75d02	Palanca derecha a la izquierda
+# Right stick right
+a71ba1c903464f0f	Palanca derecha a la derecha
+# Misc 1
+ca40a2ea0c2c9f6e	Botón extra 1
+# Right paddle 1
+6b6d50ef4e468384	Paleta derecha 1
+# Left paddle 1
+62364958b9da4f6b	Paleta izquierda 1
+# Right paddle 2
+6b6d53ef4e46889d	Paleta derecha 2
+# Left paddle 2
+62364a58b9da511e	Paleta izquierda 2
+# Touchpad
+afc1860858a391ad	Panel táctil
+# Button %d
+6259403452f49502	Botón %d
+# Clashes: Square counts as a direction
+34c8f02e1cc90a09	Choques: Cuadrado cuenta como dirección
+# In a clash of two beams or two rushes the game counts newly pressed directions:\nturning the stick, or tapping the d-pad. With this on, each press of Square\ncounts as one of them while the clash lasts, as a tap of the d-pad does.\nIt only changes your own pad, so it can be used in online play.
+26be0927a8370ed3	En un choque de dos rayos o de dos ráfagas de golpes, el juego cuenta las direcciones recién apretadas: girar la palanca o tocar la cruceta. Con esto encendido, cada vez que se aprieta Cuadrado cuenta como una de ellas mientras dura el choque, igual que un toque de la cruceta. Solo cambia el propio control, así que se puede usar en línea.
+# per press
+98744a69a7a13513	por pulsación
+# What one press of Square is worth. The d-pad has four buttons to tap in turn and the\nstick four directions a turn; Square is one button. 1 is a single d-pad tap.\nNever more than one a frame, which is the most the game counts from any pad.
+a92b3c36ee753c20	Cuánto vale una pulsación de Cuadrado. La cruceta tiene cuatro botones para tocar por turno y la palanca cuatro direcciones por vuelta; Cuadrado es un solo botón. 1 es un solo toque de la cruceta. Nunca más de uno por fotograma, que es lo máximo que el juego cuenta de cualquier control.
+# Game speed
+1f5244ede517c9e0	Velocidad del juego
+# How fast the game runs outside online play (the sound keeps its pitch). 100%% is the game's own;\n114%% is what competitive play uses. An online match never uses this value:\nits speed is the host's or the queue's.
+7879abccb5079624	Qué tan rápido corre el juego fuera del juego en línea (el sonido mantiene su tono). 100%% es la velocidad propia del juego; 114%% es la que usa el juego competitivo. Una partida en línea nunca usa este valor: su velocidad es la del anfitrión o la de la cola.
+# Reset
+255857544a9d5ec0	Restablecer
+# Unlock everything
+cd8e020e14d739b2	Desbloquear todo
+# Unlock everything...
+9818ad30e31e19e0	Desbloquear todo...
+# Unlock everything?
+1f870aed69b6ca97	¿Desbloquear todo?
+# Unlock everything: all characters, stages, music and items, and the largest amount of Zenni. This is a debug function the game's developers left in.
+7db90e8a507455c9	Desbloquear todo: todos los personajes, escenarios, música y objetos, y la mayor cantidad de Zenni. Es una función de depuración que dejaron los desarrolladores del juego.
+# It also empties your records list, and it becomes permanent the next time the game saves. Use it after your save has been loaded (from the main menu on).
+2c8c44bb284fb44b	También vacía la lista de récords, y queda permanente la próxima vez que el juego guarde. Conviene usarlo después de cargar la partida guardada (desde el menú principal en adelante).
+# Your records list will be emptied. This cannot be undone once the game saves.
+b427e2633bae2b32	Se va a vaciar la lista de récords. No se puede deshacer una vez que el juego guarde.
+# Unlock
+5d303fbc88281c15	Desbloquear
+# Done.
+7301570d0bb8fc6d	Listo.
+# Update available: 0.%d.%d (this is 0.%d.%d).
+ab28896fc936f256	Hay una actualización: 0.%d.%d (esta es la 0.%d.%d).
+# Download page
+a9d3dadcf3070dd0	Página de descarga
+# Opens the release page in your browser. To update, copy the new files over the old ones.
+a70d995b0ce96b01	Abre la página de la versión en el navegador. Para actualizar, se copian los archivos nuevos encima de los viejos.
+# Update available. Online servers are unreachable until you update.
+a5c07fe62f84a4c4	Hay una actualización. Los servidores en línea no se pueden usar hasta actualizar.
+# You have 0.%d.%d; 0.%d.%d or newer is needed. github.com/z3xox/Tenkaichi3Decomp/releases
+5773c3a4e9e1a430	Esta es la 0.%d.%d; hace falta la 0.%d.%d o una más nueva. github.com/z3xox/Tenkaichi3Decomp/releases
+# Update available: release 0.%d.%d.
+bd284e615714cc36	Hay una actualización: la versión 0.%d.%d.
+# Fight a player on another computer. One of you hosts, the other joins with the host's address.
+609666a2583e6ba2	Pelear con un jugador en otra computadora. Uno es el anfitrión y el otro se une con la dirección del anfitrión.
+# Player name
+ef41eca34f0a8cc3	Nombre del jugador
+# Quick match
+accaa2f371f3dc2d	Partida rápida
+# Be matched with whoever is searching the same queue. All quick matches have no time limit and run at %d%% speed.
+5a106f44b6c4f1db	Empareja con quien esté buscando en la misma cola. Todas las partidas rápidas son sin límite de tiempo y corren al %d%% de velocidad.
+# %s (%d searching)
+b6d45c2ca02b555f	%s (%d buscando)
+# Search for a match
+440cf4fe026813b4	Buscar partida
+# Search again
+db01b5a0631865f1	Buscar de nuevo
+# Found a player. Connecting...
+b8ac719ecc24cf41	Se encontró a un jugador. Conectando...
+# Searching for a player in this queue...
+4d5cc51eea09d66c	Buscando a un jugador en esta cola...
+# Searching for %d:%02d more. Leave the window open.
+4c63cd91dd67d287	Se sigue buscando %d:%02d más. La ventana tiene que quedar abierta.
+# The two games could not reach each other, directly or through the relay. Search again for another player.
+ffd34303df8ce528	Los dos juegos no pudieron conectarse, ni directo ni por el relé. Hay que buscar de nuevo a otro jugador.
+# The other player's game is a different version. Search again.
+7cea69b8ddbae1e7	El juego del otro jugador es de otra versión. Hay que buscar de nuevo.
+# Nobody was searching this queue in the last three minutes. Search again, or try another queue.
+b65fe9d67a7723a5	Nadie buscó en esta cola en los últimos tres minutos. Se puede buscar de nuevo o probar otra cola.
+# Host
+6b05f9d8801fc14f	Anfitrión
+# Join
+6c6bf3ea2ad3d219	Unirse
+# Use a room code (no port forwarding needed)
+3e45b7ff3f428342	Usar un código de sala (no hace falta abrir puertos)
+# You get a short code to tell the other player, and the two games find each other through a\nsmall matchmaking service. Works with most home routers. Without it you host on a port,\nwhich must be reachable from the other player (port forwarding or a virtual network).
+a2aaef1e2a01084e	Se recibe un código corto para pasarle al otro jugador, y los dos juegos se encuentran a través de un pequeño servicio de emparejamiento. Funciona con la mayoría de los routers de casa. Sin código, se hospeda en un puerto, al que el otro jugador tiene que poder llegar (redirección de puertos o una red virtual).
+# Port
+b354dc19a7208a86	Puerto
+# Rollback
+85866424ecc3b35d	Rollback
+# With rollback your own moves come out at once and the game corrects itself when the\nother player's buttons arrive. More frames cope with a slower connection and cost\nmore processor time. Off: both games wait for each other every frame.
+759a679c1a327b7f	Con rollback, los movimientos propios salen al instante y el juego se corrige cuando llegan los botones del otro jugador. Más fotogramas aguantan una conexión más lenta y gastan más procesador. Apagado: los dos juegos se esperan en cada fotograma.
+# Off (wait for each other)
+ad4019c12653a4fa	Apagado (se esperan uno al otro)
+# Up to %d frames
+19e5070c24e050d4	Hasta %d fotogramas
+# Input delay
+73cca9856d8295d4	Retraso de entrada
+# Automatic (from the connection)
+d29f3610b5cfbb08	Automático (según la conexión)
+# 1 frame
+cfa7c22be79f5df1	1 fotograma
+# %d frames
+227046a11f759bb6	%d fotogramas
+# How long after a press your own move comes out. A slow connection needs more, or the game\nhas to guess too far ahead and stutters. Automatic measures the connection when the match\nstarts: 1 frame on a good one, more on a slow one.
+17d424261eec7ba2	Cuánto tarda en salir el movimiento propio después de apretar. Una conexión lenta necesita más; si no, el juego tiene que adivinar demasiado hacia adelante y se traba. Automático mide la conexión al empezar la partida: 1 fotograma si es buena, más si es lenta.
+# Battle
+842625237cdf6677	Batalla
+# Single battle
+53940627d93b5089	Batalla individual
+# Team battle
+a5a7a972a614856e	Batalla por equipos
+# DP battle (%d DP)
+8858eb97529326a7	Batalla DP (%d DP)
+# Time limit
+ee9a7629bb40808f	Límite de tiempo
+# %d seconds
+72dd561eaad8cd39	%d segundos
+# No limit
+fd0dcab6acf65c1d	Sin límite
+# How fast the match runs, for both players; the sound keeps its pitch.\n100%% is the game's own speed. %d%% is the competitive standard, and what\nquick matches run at.\nWith a player on 0.1.29 only 100%% and 120%% are possible, with an older\nrelease only 100%%.
+fae2b395844e6454	Qué tan rápido corre la partida, para los dos jugadores; el sonido mantiene su tono. 100%% es la velocidad propia del juego. %d%% es el estándar competitivo, y la de las partidas rápidas. Con un jugador en la 0.1.29 solo se puede 100%% o 120%%; con una versión más vieja, solo 100%%.
+# The host's choices apply to both players.
+99f48ba3c5881140	Lo que elige el anfitrión vale para los dos jugadores.
+# The two games connect to each other directly when they can, as in most online fighting
+ebd59fa27a6f2632	Los dos juegos se conectan directo entre sí cuando pueden, como en la mayoría de los juegos de pelea
+# games: a player who inspects their own network traffic can see the other's address.
+209d4327f6b71c7c	en línea: quien mire su propio tráfico de red puede ver la dirección del otro.
+# Room code
+5ee9d8dda2190c73	Código de sala
+# Room code:
+6067c99a708fe00b	Código de sala:
+# Paste
+d374c80e17e18808	Pegar
+# or, without a code, the host's address and port:
+9478f4e5de28fe8b	o, sin código, la dirección y el puerto del anfitrión:
+# Host's address
+61f70825c2b1c791	Dirección del anfitrión
+# Copy
+3687049d1af562c4	Copiar
+# Copied
+f4de3bfbfaca12e5	Copiado
+# Copy the code, to paste it to the other player.
+8141dbe7a9a932f0	Copiar el código, para pegárselo al otro jugador.
+# Tell the other player this code. Waiting for them to join...
+150590fd57a0a1fc	Este código es para el otro jugador. Esperando a que se una...
+# The other player has joined. Connecting...
+f23aa902c77a3b82	El otro jugador se unió. Conectando...
+# Found the room. Connecting to the host...
+00845cec6544f717	Se encontró la sala. Conectando con el anfitrión...
+# Getting a room code...
+033d88f5a68d9282	Pidiendo un código de sala...
+# Looking for the room...
+9b5749e6b774a919	Buscando la sala...
+# Looking for %s...
+9d08c57d98096ae3	Buscando %s...
+# Waiting for the other player on port %s...
+e65d35ff15110a65	Esperando al otro jugador en el puerto %s...
+# A player with a different version of the game is trying to join. Both need the same release.
+71bc3b81fcdec700	Un jugador con otra versión del juego intenta unirse. Los dos necesitan la misma versión.
+# The two games could not reach each other, directly or through the relay. Hosting on a port (with port forwarding or a virtual network such as Tailscale) still works.
+4c4281b3bccf5687	Los dos juegos no pudieron conectarse, ni directo ni por el relé. Hospedar en un puerto (con redirección de puertos o una red virtual como Tailscale) sigue funcionando.
+# Host a match
+3a614116986a0b45	Crear una partida
+# Join the match
+37e0c8f5c568846b	Unirse a la partida
+# Back
+c16e00a7a8b2fde2	Volver
+# The host's game is a different version. Both players need the same release.
+9a6bbb60511c43a5	El juego del anfitrión es de otra versión. Los dos jugadores necesitan la misma versión.
+# That port cannot be used (another program has it?).
+ce3b22cd9afd4cb6	Ese puerto no se puede usar (¿lo tiene otro programa?).
+# That address is not known.
+33ea33084cc79e98	Esa dirección no se conoce.
+# When you are connected the game switches to the match: both players get the same roster,
+e0704d9e0c35bdf4	Al conectarse, el juego pasa a la partida: los dos jugadores tienen los mismos personajes,
+# with everything unlocked, and your own save is left alone. Leaving the match brings you
+1673d9538b64e454	con todo desbloqueado, y la partida guardada propia no se toca. Al salir de la partida se vuelve
+# back to where you were. The host's controls also work the menus.
+bdae693f8670e0ae	a donde se estaba. Los controles del anfitrión también manejan los menús.
+# Sounds and voices of the accessibility. The screen reader keeps its own volume: see the last button.
+814673eebd1d3b2b	Sonidos y voces de la accesibilidad. El lector de pantalla tiene su propio volumen: lo explica el último botón.
+# Screen reader volume
+74d8db8d07159c36	Volumen del lector
+# Speed of the Mac's voice
+5330a1718ac56851	Velocidad de la voz de la Mac
+# How fast the game's words are said. 50 is the Mac's usual speed; more is faster.
+751756e03bbc8c17	Qué tan rápido se dicen las palabras del juego. 50 es la velocidad habitual de la Mac; más es más rápido.
+# Volume of the Mac's voice
+bf2e4358a2815ebc	Volumen de la voz de la Mac
+# How loud the game's words are said, in percent of the Mac's own volume. It goes no lower than 10, so that\nthe voice is always heard.
+4e6b14544c74fc0f	Qué tan fuerte se dicen las palabras del juego, en porcentaje del volumen de la Mac. No baja de 10, para que la voz siempre se escuche.
+# Cue sounds
+17a1621c0e524514	Sonidos de aviso
+# The short sounds of a fight: a transformation or the Ultimate Blast within reach. 0 turns them off.
+7f34a60bebd78eca	Los sonidos cortos de la pelea: una transformación o el Ultimate Blast al alcance. En 0 se apagan.
+# Game voices in menus
+d5360e2a1f46eb59	Voces del juego en los menús
+# The game's spoken lines outside a fight, under the screen reader.
+9f0a269ea772471f	Las frases habladas del juego fuera de la pelea, por debajo del lector de pantalla.
+# Game voices in fights
+4af8f945ffef08c4	Voces del juego en la pelea
+# The fighters' voices during a fight, under the screen reader.
+d0e741cae2d37bfe	Las voces de los luchadores durante la pelea, por debajo del lector de pantalla.
+# The screen reader's volume is set in the screen reader itself. With NVDA: NVDA+Control+left or right arrow until Volume, then NVDA+Control+up or down arrow.
+94b70106439a5d5d	El volumen del lector de pantalla se cambia en el propio lector. Con NVDA: NVDA+Control+flecha izquierda o derecha hasta Volumen, y después NVDA+Control+flecha arriba o abajo.
+# On a Mac the game speaks with the system's own voice, not through VoiceOver: its speed and its volume are the first two sliders of this tab, under the Mac's own volume.
+a7213a7d29b623f5	En la Mac el juego habla con la voz del sistema, no a través de VoiceOver: su velocidad y su volumen son los dos primeros deslizadores de esta pestaña, por debajo del volumen de la Mac.
+# VoiceOver's volume is set in VoiceOver itself.
+1c8e45e970c75ea1	El volumen de VoiceOver se cambia en el propio VoiceOver.
+# button
+1aa9c45c0f9ef371	botón
+# check box
+0115e901ce05ab72	casilla de verificación
+# radio button
+4c076840ae3e1598	botón de opción
+# slider
+15ee00ede8e0841c	deslizador
+# edit
+3a6129602c615ff1	edición
+# combo box
+3cf89d0892dc5594	cuadro combinado
+# tab
+56d7ae194448aa0c	pestaña
+# column header
+486f936d668b9f00	encabezado de columna
+# table
+77203729b376a83f	tabla
+# group
+dc57e42946f6e08c	grupo
+# checked
+a01d5521a3fab666	marcado
+# not checked
+878eb0536a44064f	no marcado
+# half checked
+1fb86b827a104655	parcialmente marcado
+# selected
+03c44f5a1b0581d4	seleccionado
+# collapsed
+df0ed011e7a2c72e	contraído
+# expanded
+cbcd2d25940f8ef8	expandido
+# blank
+4b31e8abbc4aafc1	en blanco
+# %d of %d
+76040e19318c910e	%d de %d
+# unavailable
+833996a486514c49	no disponible
+# With the right stick: left lowers, right raises
+3d0d9d9feb4be5ac	Con la palanca derecha: a la izquierda baja, a la derecha sube
+# Cross or A to enter, Circle or B to leave
+bd617780668f7a69	Cruz o A para entrar, Círculo o B para salir
+# not selected
+84a89aa5da625be7	no seleccionado
+# Low input lag (experimental)
+adb4b23a080e7b66	Poco retraso de entrada (experimental)
+# The game reads the controller, computes, and then waits before the picture is shown:\nabout 33 ms in a fight. With this on the wait comes first, so the picture follows\nyour press by the few milliseconds the machine needs. The game itself is unchanged.\nNot used online or with in-between pictures. Off by default: on a machine that\ncannot keep up it may stutter where the original order would not.
+59bd57732ced67a0	El juego lee el control, calcula y después espera antes de mostrar la imagen: unos 33 ms en la pelea. Con esto encendido la espera va primero, así que la imagen llega apenas los pocos milisegundos que necesita la máquina después de apretar. El juego en sí no cambia. No se usa en línea ni con Movimiento suave. Viene apagado: en una máquina que no da abasto puede trabarse donde el orden original no se trabaría.
+# Online chat
+1e2f4778f30ec060	Chat en línea
+# Text with the other player of an online match. Tab opens a line (setting key_chat), Enter sends it,\nEsc puts it away; while it is typed the keyboard does not play, a controller does. Off: no lines\nare shown or sent. A player without it sees nothing.
+3a16473c41bc7ce8	Mensajes de texto con el otro jugador de una partida en línea. Tab abre una línea (ajuste key_chat), Intro la envía y Escape la guarda; mientras se escribe, el teclado no juega, pero el control sí. Apagado: no se muestra ni se envía nada. Quien no lo tenga encendido no ve nada.
+# Open online chat
+ef517faf1a0d1e22	Abrir el chat en línea
+# Menu font
+0917d2082e4183ef	Letra de los menús
+# Original uses the game's sprites. Other fonts replace matching menu labels immediately.\nDecorative lettering keeps its original artwork.
+943de4c11cdab671	Original usa los dibujos del propio juego. Las otras letras reemplazan al instante las etiquetas de menú que coinciden. Las letras decorativas mantienen su dibujo original.
+# Dialogue / UI font
+dd68f6004779d7bd	Letra de los diálogos y la interfaz
+# Replace the shared font used by dialogue, subtitles and ordinary UI text.\nOriginal keeps the game's glyphs. Text placement, colors, shadows and icons are preserved.
+1f4635055fd501dc	Reemplaza la letra común de los diálogos, los subtítulos y el texto normal de la interfaz. Original mantiene los caracteres del juego. Se conservan la posición del texto, los colores, las sombras y los íconos.
+# 4:3 (original)
+ebf5afcacc338b92	4:3 (original)
+# Sticks, triggers and vibration
+cb8942f1f0ac8caa	Palancas, gatillos y vibración
+# no controller
+bd5510baa31799ae	sin control
+# Deadzone
+29c155e2ddcb9745	Zona muerta
+# Original
+06f6c6f99db6b552	Original
+# How far the stick has to be moved before the game is told anything (the shaded middle).\nOriginal: the game's own, 39%% for left / right and for up / down separately, a square.\n0%% to 90%%: a round one of that size instead; from its edge the value grows evenly\nto full at full tilt, and the stick counts as a direction half way between the two.\nThe white dot is the stick, the ring what the game is given; after the stick's name,\nthe direction the game takes it for. Choose a size that covers where the dot rests\nwhen the stick is let go.
+4253e86a893fea2c	Cuánto hay que mover la palanca antes de que el juego reciba algo (el centro sombreado). Original: la del propio juego, 39%% para izquierda y derecha y para arriba y abajo por separado, un cuadrado. De 0%% a 90%%: en cambio, una redonda de ese tamaño; desde su borde el valor crece parejo hasta el máximo con la palanca a fondo, y la palanca cuenta como una dirección a mitad de camino entre las dos. El punto blanco es la palanca y el anillo, lo que recibe el juego; después del nombre de la palanca, la dirección que entiende el juego. Conviene elegir un tamaño que cubra dónde queda el punto al soltar la palanca.
+# Left stick: up
+e4b0d58fa6495f37	Palanca izquierda: arriba
+# Left stick: down
+310f1c84b277ccf2	Palanca izquierda: abajo
+# Left stick: left
+89661e42332b9bd7	Palanca izquierda: a la izquierda
+# Left stick: right
+64aa37af564a1b48	Palanca izquierda: a la derecha
+# Right stick: up
+0437e9e33c92e5ae	Palanca derecha: arriba
+# Right stick: down
+2d8980cf2f689f77	Palanca derecha: abajo
+# Right stick: left
+8b210e8dd462c7e2	Palanca derecha: a la izquierda
+# Right stick: right
+3f649f606123ee6f	Palanca derecha: a la derecha
+# stick %s %s
+ff837395f60b7b3b	palanca %s %s
+# game %s %s
+054c1df92e5b647b	juego %s %s
+# %d%% pressed
+abc7552c52441634	%d%% apretado
+# A trigger counts as pressed from %d%% on. The game is told pressed or not, nothing between.
+8ffad3f6293a5a99	Un gatillo cuenta como apretado desde el %d%%. El juego recibe apretado o no apretado, nada en el medio.
+# Strength
+82c21acdbcd6e830	Intensidad
+# Test
+2474e7fb1aec9f05	Probar
+# Half a second of both motors at this strength.
+f936bac16267e05f	Medio segundo de los dos motores con esta intensidad.
+# (this controller has none)
+620d7dc99fdce2bc	(este control no tiene)
+# Stereo music
+28c37cb72539ee8a	Música en estéreo
+# The game places its music in the middle, which taken as it is plays the two\nsides of a stereo song together, in mono. On, a stereo song keeps its left and\nright: the game's own songs and those of a modified disc. Off: as before.
+91e86e581721cea6	El juego pone su música en el medio, y tomado así los dos lados de una canción en estéreo suenan juntos, en mono. Encendido, una canción en estéreo mantiene su izquierda y su derecha: las del juego y las de un disco modificado. Apagado: como antes.
+
+# Button names by the controller in use (port/src/gs/a11y_pad.c, sense "button") and the skill list of the pause menu
+# (port/src/a11y_skills.c).
+# Start|button
+615fbd2e2fe9c12d	Start
+# Options|button
+ad9cc392d2709c63	Options
+# Back|button
+7cb119e0bcb74002	Back
+# Select|button
+ee5f81708598bc2b	Select
+# Menu|button
+8936f32b05b5677a	Menú
+# View|button
+aa8b917c6bcaaba8	Vista
+# Share|button
+2ac7c0c93f3e6228	Share
+# Create|button
+e2295a8b70106e3b	Create
+# Minus|button
+b16316a5fb28fc9d	Menos
+# Plus|button
+9cadea88d32f2cb3	Más
+# PS button
+bcaf1e2a2e1f6898	Botón PS
+# Home button
+aae2d29915082192	Botón Home
+# Xbox button
+f463d33c43da00fc	Botón Xbox
+# Mute button
+4d48164a15a15918	Botón de silencio
+# Capture button
+6fde4f52cad755fb	Botón de captura
+# Share button
+098388d68016a15c	Botón Compartir
+# D-pad
+731465368866efab	Cruceta
+# page %d of %d
+f3f27d0d6d4df545	página %d de %d
+# locked
+aa616bdfe454ecb3	bloqueada
+# Costume %d. %s shows the model
+115c05d7484c8540	Traje %d. %s muestra el modelo
+# Model shown. %s goes back
+3af2ca26536b7e3c	Modelo en pantalla. %s vuelve
+# D-pad: move. %s: choose. %s: back. %s and %s: tab.
+31fa549485b45a6e	Cruceta: moverse. %s: elegir. %s: volver. %s y %s: cambiar de pestaña.
+# %s to enter, %s to leave
+27ad3f4bdbd7ba42	%s para entrar, %s para salir
+
+# The fight's alerts (port/src/a11y_fight.c) and their settings in the Accessibility tab.
+# Screen reader
+c313cdd7bb03cf4c	Lector de pantalla
+# Sound and screen reader
+7ac93c2b7103798a	Sonido y lector de pantalla
+# Distance to the rival
+0e9e46ad57ffa284	Distancia al rival
+# A tick that repeats faster as the rival comes nearer, higher when the rival is above\nyou and lower when below; two ticks within close range. By the screen reader: near,\nmiddle distance or far, and above or below, when it changes.
+48641fcbe1733771	Un tic que se repite más rápido cuanto más cerca está el rival, más agudo si el rival está más arriba y más grave si está más abajo; dos tics en el rango de cuerpo a cuerpo. Con el lector de pantalla: cerca, a media distancia o lejos, y arriba o abajo, cuando cambia.
+# Edge of the stage
+7f592895fb267078	Borde del escenario
+# A hum while you are near the stage's wall (where the game shows it), faster the nearer;\nanother under the stage's ceiling, and two knocks out of the World Tournament ring.
+367e127605328713	Un zumbido mientras estás cerca de la pared del escenario (donde el juego la muestra), más rápido cuanto más cerca; otro bajo el techo del escenario, y dos golpes fuera del ring del Torneo mundial.
+# Health
+baf0a7c417e388af	Vida
+# Two beeps when a player's health falls under three quarters, a half and a quarter, louder the\nless is left; under a quarter, yours again every three seconds. Player 1 left, player 2 right.
+150d1e8c8ab862f3	Dos pitidos cuando la vida de un jugador baja de tres cuartos, de la mitad y de un cuarto, más fuertes cuanta menos queda; bajo un cuarto, la tuya otra vez cada tres segundos. Jugador 1 a la izquierda, jugador 2 a la derecha.
+# Transformation and Ultimate Blast
+3fbcd38e0e468fe6	Transformación y ataque definitivo
+# When one more transformation or the Ultimate Blast comes within reach.
+155a8ca3a5af7b73	Cuando queda al alcance una transformación más o el ataque definitivo.
+# Gauges: health, ki and blast
+d61d8fc1ecf3140a	Estado: vida, ki y blast
+# Select alone in a fight (Create on a DualSense, View on an Xbox controller): your gauges;\nSelect twice quickly: the rival's. F3 and F4 on the keyboard: player 1's and player 2's.\nTwo beeps, louder the less health is left, or health, ki and blast said by the screen\nreader, or both. Outside a fight, Select says the last message again.
+64e241d5b84dadde	Select solo en una pelea (Create en un DualSense, Vista en un control de Xbox): tu estado; Select dos veces rápido: el del rival. F3 y F4 en el teclado: el del jugador 1 y el del jugador 2. Dos pitidos, más fuertes cuanta menos vida queda, o la vida, el ki y el blast dichos por el lector de pantalla, o las dos cosas. Fuera de una pelea, Select repite el último mensaje.
+# The accessibility's sounds in a fight: the alerts below that are told by a sound. 0 turns them off.
+541e45ef6c70280f	Los sonidos de la accesibilidad en una pelea: los avisos de abajo que se dan con un sonido. 0 los apaga.
+# Player %d can take %d transformations
+f2f6b68162023e95	Jugador %d puede tomar %d transformaciones
+# Player %d can transform
+48ea991247aa596b	Jugador %d puede transformarse
+# Player %d can fire the Ultimate Blast
+8d8e6da21e16cc03	Jugador %d puede lanzar el ataque definitivo
+# Rival close
+63801193e9b558ff	Rival cerca
+# Rival at middle distance
+3c125ef58661d9ac	Rival a media distancia
+# Rival far
+7c377db5dbaa192a	Rival lejos
+# , above
+4025880906d625f6	, arriba
+# , below
+0f7db67b4bdf3666	, abajo
+# Out of the ring
+3cdb99bb986f9397	Fuera del ring
+# Ceiling of the stage
+9ae710c1318c9d0c	Techo del escenario
+# Player %d: health in danger, %d percent
+38ba09476d9c1647	Jugador %d: vida en peligro, %d por ciento
+# Player %d: health %d percent
+5f9405b67a6c158b	Jugador %d: vida al %d por ciento
+# Off|settings
+84945b537ccbbda7	Apagado
+
+# The settings window's texts added by 0.1.35.1 to 555adc0 (online chat size, vibration, the GPU in use).
+# Compact
+7c87dc5c593f3de6	Compacto
+# Large
+c8736ef79380e634	Grande
+# Chat size
+c6b0e1bcc71c7380	Tamaño del chat
+# How wide the online chat is and how many lines it shows (while typing / otherwise).\nCompact: 4 / 2, narrower.\nNormal: 6 / 4.\nLarge: 8 / 6, wider, for large screens.
+1eed15a2c89d78ca	Qué tan ancho es el chat en línea y cuántas líneas muestra (mientras escribes / el resto del tiempo). Compacto: 4 / 2, más angosto. Normal: 6 / 4. Grande: 8 / 6, más ancho, para pantallas grandes.
+# The game's own vibration (hits, clashes, charging), on this player's controller.\nThe game's Options > Controller > Vibration has to be on as well: it is, unless you turned it off.\nThe game gives none in a replay or for a side the computer plays.
+a8a825d9de0ed964	La vibración del propio juego (golpes, choques, carga de ki), en el control de este jugador. También tiene que estar encendida la vibración en Opciones, Control, del juego: lo está, salvo que la hayas apagado. El juego no vibra en una repetición ni para un lado que juega la computadora.
+# Active GPU: %s
+b4b1eb1a2a3f5047	Placa de video en uso: %s
+
+# The setup speaking for itself (port/setup/setup.cpp, setup_voice.cpp).
+# Reading your disc.
+007440cfe6a37743	Leyendo tu disco.
+# Copying the game's files. This is the long part.
+e9d2ba88828dcb2e	Copiando los archivos del juego. Esta es la parte larga.
+# Testing the game.
+70d0541e1adc9764	Probando el juego.
+# %d percent
+9e12afc6039b692d	%d por ciento
+# Found your disc image, %s. Installing the game: it takes a minute or two.
+ed4851122a97141f	Encontré tu imagen de disco, %s. Instalando el juego: tarda uno o dos minutos.
+# No disc image was found. Copy your disc image of Dragon Ball Z Budokai Tenkaichi 3, the file that ends in .iso, into the same folder as this program: it is found there by itself once it is copied. Escape closes.
+8a1f579a68bd3876	No encontré la imagen de disco. Copia tu imagen de disco de Dragon Ball Z Budokai Tenkaichi 3, el archivo que termina en .iso, en la misma carpeta que este programa: la encuentro sola cuando termine de copiarse. Escape cierra.
+# Ready: the game is installed. It opens now.
+334cd5c7c9dc5707	Listo: el juego está instalado. Ahora se abre.
+# The game is installed already. It opens now; Escape stays here.
+f1e2d7eb7d5edce8	El juego ya está instalado. Ahora se abre; Escape te deja aquí.
+# That disc image is not the right one; trying the next one.
+56f2759e1d3fc382	Esa imagen de disco no es la correcta; pruebo con la siguiente.
+# The setup stopped.
+08b6e60516db4cd2	La instalación se detuvo.
+# Press Enter to try again, or Escape to close.
+b5bb5463c3abf99f	Pulsa Enter para intentarlo de nuevo, o Escape para cerrar.
+# The game does not open. Enter opens it, Escape closes.
+ad55ca5c58779a4e	El juego no se abre. Enter lo abre, Escape cierra.
+# Still installing. Please wait.
+e7d4f00e4faf5663	Todavía se está instalando. Espera, por favor.
+# The game could not be opened.
+852da3882f9af8da	No se pudo abrir el juego.
+# This is not a disc image of the USA release of Budokai Tenkaichi 3 (no SLUS_216.78 on it).\nOther regions and the Wii version have different programs and are not supported.
+566cc0f10e218eee	Esta no es una imagen de disco de la versión de Estados Unidos de Budokai Tenkaichi 3. Las versiones de otras regiones y la de Wii tienen otros programas y no sirven.
+# The game's programs on this disc do not have the expected checksums.\nThe port needs the unmodified USA release (SLUS-21678); a patched or damaged image will not work.
+38a11159efaf7a89	Los programas del juego en este disco no son los esperados. Hace falta la versión de Estados Unidos sin modificar (SLUS-21678); una imagen modificada o dañada no sirve.
+# This file is not a disc image (.iso). Compressed images (.chd, .cso, .gz) have to be converted to .iso first.
+442a9809dadc8fec	Este archivo no es una imagen de disco ISO. Las imágenes comprimidas (.chd, .cso, .gz) hay que convertirlas a .iso primero.
+# The disc image could not be read to its end. It may be incomplete.
+fb5cfaab847c3aa4	No se pudo leer la imagen de disco hasta el final. Puede estar incompleta.
+# Cancelled. Install continues from where it stopped.
+d1bd084f50645a24	Cancelado. La instalación sigue desde donde quedó.
+# The setup stopped unexpectedly.
+833b847793b57406	La instalación se detuvo de forma inesperada.
+# The disc image could not be opened.
+af8e1c8e279734d8	No se pudo abrir la imagen de disco.
+# Could not write the game's files. Is the disk full or the folder read-only?
+0ec45fe9ade1a793	No se pudieron escribir los archivos del juego. ¿El disco está lleno, o la carpeta es de solo lectura?
+# An archive on the disc is damaged. The disc image may be incomplete.
+d212ed6216c48b57	Un archivo del disco está dañado. Puede que la imagen de disco esté incompleta.
+# The game could not be started. Security software may be blocking it.
+c0eae51f4e992c07	No se pudo iniciar el juego. Puede que un antivirus lo esté bloqueando.
+# The game's demo fight did not finish. The full output is in install.log.
+a9eaece1e6cb5e8b	La pelea de prueba del juego no terminó. Todo lo que escribió está en install.log.
+# Ready: the game is installed. Enter opens it, Escape closes.
+0de334611cea2f7d	Listo: el juego está instalado. Enter lo abre, Escape cierra.
+# Escape closes.
+12be4fc916ff958b	Escape cierra.
+# The setup is open already.
+b279f00490e62061	El instalador ya está abierto.
+# Cancelled. Finished steps are kept; Install continues from where it stopped.
+5ee3354d1585478a	Cancelado. Los pasos terminados se guardan; la instalación sigue desde donde se detuvo.
+# The disc images found are not the game's. Copy your disc image of Dragon Ball Z Budokai Tenkaichi 3, the file that ends in .iso, into the same folder as this program: it is found there by itself once it is copied. Escape closes.
+69e8801a5e26e7a2	Las imágenes de disco que encontré no son del juego. Copia tu imagen de disco de Dragon Ball Z Budokai Tenkaichi 3, el archivo que termina en .iso, en la misma carpeta que este programa: la encuentro sola cuando termine de copiarse. Escape cierra.
+# Your disc image is %s. Enter installs it, Escape closes.
+a8930f02463dc899	Tu imagen de disco es %s. Enter la instala, Escape cierra.
+# The fight's important moments and the techniques' names (port/src/a11y_fight.c, gs/a11y_ui.cpp).
+# Player %d: 2 bars of health left
+be4cb5166f79096f	Jugador %d: le quedan 2 barras de vida
+# Player %d: 1 bar of health left
+4e853f8a89be53f3	Jugador %d: le queda 1 barra de vida
+# Player %d: ki full
+4a420cb7791713b0	Jugador %d: ki lleno
+# Player %d: max power
+d009c984512802a2	Jugador %d: en máximo poder
+# Important moments
+607372ebc722b6e4	Momentos importantes
+# Told by themselves, for both players: health down to two bars and then to one, the ki\nfull, max power. By the screen reader, by a sound (two beeps for health, three notes\ngoing up for the ki, higher for max power), or both.
+6cabf4123a01e30a	Se avisan solos, para los dos jugadores: la vida baja a dos barras y después a una, el ki lleno, el máximo poder. Por el lector de pantalla, con un sonido (dos pitidos para la vida, tres notas que suben para el ki, más agudas para el máximo poder), o las dos cosas.
+# Technique names
+f98af8ff54495839	Nombres de las técnicas
+# In a fight, the screen reader says the text the game shows: the names of the techniques.
+1886edeb564dc78a	En una pelea, el lector de pantalla dice el texto que muestra el juego: los nombres de las técnicas.
+# Tick
+490384fb302b3764	Un tic
+# Distance to the rival: it repeats faster the nearer the rival is; higher when the rival is above you, lower when below.
+3f794d7fed8d210a	La distancia al rival: se repite más rápido cuanto más cerca está; más agudo si el rival está más arriba que tú, más grave si está más abajo.
+# Two ticks
+221d828fcc562323	Dos tics
+# The rival is within close range.
+85594236b2162760	El rival está a distancia de cuerpo a cuerpo.
+# Hum
+491d3119cd6ed171	Un zumbido
+# You are near the stage's wall; faster the nearer.
+796a13589fa7e719	Estás cerca de la pared del escenario; más rápido cuanto más cerca.
+# High hum
+1872b914ae14688f	Un zumbido agudo
+# You are under the stage's ceiling.
+0dfaa94af5b34ab2	Estás bajo el techo del escenario.
+# Two low knocks
+75e197aa2b3bd990	Dos golpes graves
+# You are out of the World Tournament ring.
+80a510ebc58240af	Estás fuera del ring del Torneo mundial.
+# Two beeps, high then low
+f445eef7c89416ed	Dos pitidos, agudo y grave
+# Health: louder the less is left. Player 1 on the left, player 2 on the right.
+5103149d076953a5	La vida: más fuertes cuanta menos queda. El jugador 1 a la izquierda, el jugador 2 a la derecha.
+# Three notes going up
+871eb3639b938365	Tres notas que suben
+# The ki is full.
+607809b5d197ba45	El ki está lleno.
+# Three higher notes going up
+20e1183f81cf551e	Tres notas más agudas que suben
+# Max power.
+f504efa4316eaa26	Máximo poder.
+# A tone that slides up
+7d24a029cca9e1ce	Un tono que sube
+# One more transformation can be taken.
+e6f7aa52140a669b	Se puede hacer una transformación más.
+# A small bell, twice
+5179508ce3b998cc	Una campanita, dos veces
+# The Ultimate Blast can be fired.
+3d3696d86e365256	Se puede tirar el ataque definitivo.
+# In the pause, Select plays the sound glossary, one sound at a time; twice quickly, the one before.
+910d7ffccdf2b0bf	En la pausa, Select reproduce el glosario de sonidos, de a un sonido; dos veces rápido, el anterior.
+#  and %d more
+9645b7c95a87678e	 y %d más
+# %s against %s. Stage: %s.
+491e575d4fc6b40e	%s contra %s. Escenario: %s.
+# Describe the fight
+fdf9652e931a068d	Describir la pelea
+# While a fight's opening plays, the screen reader says who fights whom, and where.
+46af2ed4ad2a3608	Mientras se ve la entrada de una pelea, el lector de pantalla dice quién pelea contra quién, y dónde.
+# Sound glossary
+1c14a93c48b34014	Glosario de sonidos
+# Close the sound glossary
+0a6c186cc46974b5	Cerrar el glosario de sonidos
+# Each of the accessibility's sounds, played, with what it means.
+f9a56caa6ccffd54	Cada sonido de la accesibilidad, con lo que significa.
+# Stage: %s.
+f929397be703affb	Escenario: %s.
+# The accessibility's sounds in a fight: the alerts below that are told by a sound. A loudness scale: each\nstep of 10 is 3 dB, so 60 sounds half as loud as 100. 0 turns them off.
+f85576b8a84ada23	Los sonidos de la accesibilidad en una pelea: los avisos de abajo que suenan. Es una escala de sonoridad: cada 10 son 3 dB, así que 60 suena la mitad de fuerte que 100. Con 0 se apagan.
+# Music in fights
+02c64f338f6e94da	Música en la pelea
+# The music and the stage's background sound during a battle, so that the accessibility's sounds are heard\nover them; 70 is about 3 dB under. The game's own music volume (Audio tab) stays as it is everywhere else.
+51160ea59f656e8c	La música y el sonido de fondo del escenario durante una pelea, para que los sonidos de la accesibilidad se oigan por encima; 70 es unos 3 dB menos. El volumen de la música del juego (pestaña Audio) queda igual en todo lo demás.
+# Two beeps when a player's health falls under three quarters, a half and a quarter, louder the\nless is left; under a quarter, yours again every three seconds. In the middle: yours clean, the\nrival's with a buzz.
+d9b0d0a33a6afd9c	Dos pitidos cuando la vida de un jugador baja de tres cuartos, de la mitad y de un cuarto, más fuertes cuanta menos queda; por debajo de un cuarto, los tuyos otra vez cada tres segundos. Suenan al centro: los tuyos limpios, los del rival con un zumbido.
+# A gust of wind while you are near the stage's wall (where the game shows it), faster the\nnearer; a high hiss under the stage's ceiling, and two knocks out of the World Tournament ring.
+755cf89e9dd18a6e	Una ráfaga de viento cuando estás cerca de la pared del escenario (donde el juego la muestra), más rápida cuanto más cerca; un siseo agudo bajo el techo del escenario, y dos golpes fuera del ring del Torneo mundial.
+# A gust
+646ed434a1c3b033	Una ráfaga
+# A high hiss
+3751cf90d02ae2f1	Un siseo agudo
+# Your health: louder the less is left.
+aa8f727b6bd3aa58	Tu vida: más fuertes cuanta menos queda.
+# Two buzzing beeps, high then low
+3f9b60bf2e659450	Dos pitidos con zumbido, agudo y grave
+# The rival's health.
+8994250aae4b6d7e	La vida del rival.
+# Your ki is full.
+6303dd0b0ec83b9b	Tu ki está lleno.
+# Three buzzing notes going up
+21b79ff211b1482c	Tres notas con zumbido que suben
+# The rival's ki is full; higher, the rival's max power.
+9b30506381343b73	El ki del rival está lleno; más agudas, el máximo poder del rival.
+# Buzzing, a tone that slides up or a bell
+d9907a3aa70491a6	Con zumbido, un tono que sube o una campanita
+# The same for the rival.
+5cdaab2698fd7f18	Lo mismo, del rival.
+# Rival %s
+71224b286ef9947d	Rival %s
+# ahead
+121a19da0e2b9b8e	delante
+# behind
+fd7bbb6eebc12569	detrás
+# to the right
+c04cd087bbef16bd	a la derecha
+# to the left
+ef6fd525a37ffa48	a la izquierda
+# above
+3f71052d617f9b2a	arriba
+# below
+c5d4635e7efb69d2	abajo
+# close
+9ec2699513c0f9c3	cerca
+# at middle distance
+fa09fc064ff74fb0	a media distancia
+# far
+dcb98818fee0146e	lejos
+# Rival out of sight
+f66494d8a426700d	El rival no se ve
+# You are blinded: the rival is not seen
+0fa2eebd457943dd	Te cegaron: no ves al rival
+# Select in a fight (Create on a DualSense, View on an Xbox controller): once, where the rival is, a\nping from there and a few words; twice quickly, your gauges; three times, the rival's. F5 on the keyboard:\nwhere the rival is; F3 and F4: player 1's and player 2's gauges. The gauges as two beeps (yours clean, the\nrival's with a buzz), or health, ki and blast said by the screen reader, or both. "Also by itself": told\ntoo each time a whole bar of health or ki, or a blast stock, comes or goes (the rival's: health and blast),\nwithout pressing anything. Outside a fight, Select says the last message again.
+ecf91f87e5ded3fa	Select en la pelea (Create en un DualSense, Vista en un control de Xbox): una vez, dónde está el rival, un sonido de sonar desde ahí y unas palabras; dos veces rápido, tu estado; tres veces, el del rival. F5 en el teclado: dónde está el rival; F3 y F4: el estado del jugador 1 y del jugador 2. El estado como dos pitidos (el tuyo limpio, el del rival con un zumbido), o la vida, el ki y el blast dichos por el lector de pantalla, o ambos. «También automático»: se dice además cada vez que se gana o se pierde una barra entera de vida o de ki, o un blast (del rival: vida y blast), sin apretar nada. Fuera de la pelea, Select repite el último mensaje.
+# A sonar ping, here from the right
+68392ee553e2d1ac	Un ping de sonar, aquí desde la derecha
+# Where the rival is, Select once in a fight: the ping comes from the rival's side, higher when the rival is above you, lower when below.
+d34396444d52cbe2	Dónde está el rival, con un toque de Select en la pelea: el ping llega desde el lado del rival, más agudo si está más arriba que tú, más grave si está más abajo.
+# A muffled sonar ping
+fd463c6a2b602acc	Un ping de sonar apagado
+# The rival is behind you.
+d9cd608ed851aee3	El rival está detrás de ti.
+# K.O.
+a3334adf79500cb5	K.O.
+# Time up
+d0ce63b66bc501d1	Tiempo
+# a draw
+025d8c4706abcaa6	empate
+# you win
+2d6b20b5c13ecc9a	ganas tú
+# the rival wins
+53f3214e2fa90e17	gana el rival
+# you win, with %s
+5592d658cef5513e	ganas tú, con %s
+# the rival wins, %s
+f57ac7e986d10403	gana el rival, %s
+# Result: %s
+f6c804cdd6c25de6	Resultado: %s
+# Blind player profile on. It is changed in F1, Accessibility.
+a8b8bd3e8a1fee44	Perfil para jugar sin ver activado. Se cambia en F1, Accesibilidad.
+# Welcome. This game speaks through your screen reader. %s says the last message again; in a fight, once says where the rival is, twice your gauges, three times the rival's. F1, or %s and %s together, opens the settings: their Accessibility tab has the fight's sounds and their glossary.
+c6c2c5dc93725972	Hola. Este juego habla con tu lector de pantalla. %s repite lo último que se dijo; en la pelea, un toque dice dónde está el rival, dos tus barras y tres las del rival. F1, o %s y %s juntos, abren los ajustes: su pestaña Accesibilidad tiene los sonidos de la pelea y su glosario.
+# Welcome. This game speaks through your screen reader. F2 says the last message again; in a fight, F5 says where the rival is, F3 and F4 the gauges. F1 opens the settings: their Accessibility tab has the fight's sounds and their glossary.
+1b6e8f6944e833f9	Hola. Este juego habla con tu lector de pantalla. F2 repite lo último que se dijo; en la pelea, F5 dice dónde está el rival, y F3 y F4 las barras. F1 abre los ajustes: su pestaña Accesibilidad tiene los sonidos de la pelea y su glosario.
+# Blind player profile: turn on what is recommended
+45914f97abac6f5f	Perfil para jugar sin ver: activar lo recomendado
+# Blind player profile on.
+2ae6ea3bed1aaf19	Perfil para jugar sin ver activado.
+# Distance, edge and health by a sound; the important moments by the screen reader; where the rival is, a\ntransformation, the Ultimate Blast and the gauges on request by both; the cues at 85 and the music in\nfights at 70. Each one can be changed below afterwards. With NVDA, JAWS or VoiceOver this is done by itself the first time.
+4d7ca364fb5aee0c	Distancia, borde y vida con sonido; los momentos importantes con el lector de pantalla; dónde está el rival, la transformación, el ataque definitivo y el estado a pedido con los dos; los avisos al 85 y la música en la pelea al 70. Cada uno se puede cambiar después aquí abajo. Con NVDA, JAWS o VoiceOver esto se hace solo la primera vez.
+# In the game, F1 opens the settings: their Accessibility tab has the fight's sounds and the blind player profile, which is turned on by itself with NVDA or JAWS.
+932dbc406cdc5dab	En el juego, F1 abre los ajustes: su pestaña Accesibilidad tiene los sonidos de la pelea y el perfil para jugar sin ver, que se activa solo con NVDA o JAWS.
+# The settings window's texts added by upstream 0.1.36 to 0.1.37.1 (UI, Misc, the chat window), found with
+# port/tools/a11y_ui_missing.py.
+# Unavailable
+43e9aef7aa01fca9	No disponible
+# End an online match on a desync
+76ed65eb07effadf	Terminar una partida en línea si se desincroniza
+# The two games compare what they compute. Off: when they no longer agree you are told, and the match\ngoes on (the two screens may then show different fights). On: the match ends there.
+2a6f436c18a2d97f	Los dos juegos comparan lo que calculan. Apagado: cuando dejan de coincidir se te avisa y la partida sigue (las dos pantallas pueden mostrar peleas distintas). Encendido: la partida termina ahí.
+# Language|settings
+68d5faa7bc5b0768	Idioma
+# Game language based on available translations.
+bb87c144cd464438	Idioma del juego, según las traducciones disponibles.
+# Show language selector at startup
+dcea1b675a45fed1	Mostrar la elección de idioma al arrancar
+# Show the language list at every normal startup when more than one language is available.
+24eff67913436280	Muestra la lista de idiomas cada vez que el juego arranca normalmente, si hay más de un idioma disponible.
+# Language saved. It will apply on the next launch.
+d6287d2cf6e4a921	Idioma guardado. Se aplica la próxima vez que abras el juego.
+# Original uses the game's sprites. Other fonts replace matching menu labels immediately.\nBattle announcements have their own setting below.
+8b736b29e0ecd3a5	Original usa los dibujos del propio juego. Las otras letras reemplazan al instante las etiquetas de menú que coinciden. Los anuncios de la pelea tienen su propio ajuste, más abajo.
+# Battle font
+a259b981f4ca9920	Letra de la pelea
+# Choose original battle announcements and HUD text, or any battle font listed in fonts.tsv.
+d94dfdc50ecd77af	Elige los anuncios y los textos originales de la pelea, o cualquier letra de pelea de la lista fonts.tsv.
+# Fighter panels
+5cb5249be98c34a5	Paneles de luchadores
+# What fills the sides where the picture is narrower than the window:\na 4:3 picture, or the menus with "Menus in 4:3", in a wide window.\nFighter panels: the border, and in a fight each side's fighter with its name and form.\nYour own: a folder "bars" next to the game with trim.png (the strip along the\npicture, kept in proportion) and fill.png (stretched over the rest). Read at start.
+5e6a82c458f47fd3	Qué llena los costados donde la imagen es más angosta que la ventana: una imagen 4:3, o los menús con "Menús en 4:3", en una ventana ancha. Paneles de luchadores: el borde, y en una pelea el luchador de cada lado con su nombre y su forma. Las propias: una carpeta "bars" junto al juego con trim.png (la franja a lo largo de la imagen, en proporción) y fill.png (estirada sobre el resto). Se leen al arrancar.
+# Name font
+51aea011ffb22c43	Letra del nombre
+# The fighter's name down the panel. The game's fonts, as for the Menu font\n(a font of your own: add it to fonts/fonts.tsv). Default: the first of the list.
+865a85c61bdea620	El nombre del luchador, a lo largo del panel. Las letras del juego, como en Letra de los menús (para una letra propia, agrégala a fonts/fonts.tsv). Predeterminada: la primera de la lista.
+# Form font
+5be6d8a1ce49b970	Letra de la forma
+# The form under the portrait. The game's fonts, as for the Menu font.\nDefault: the first of the list.
+d5ebbce302ea6789	La forma, debajo del retrato. Las letras del juego, como en Letra de los menús. Predeterminada: la primera de la lista.
+# up|settings
+830cdf359ec76d79	arriba
+# down|settings
+d8f94abddb4d9f96	abajo
+# left|settings
+cda2841f70bdaee9	izquierda
+# right|settings
+833ce4480cbf96c6	derecha
+# pressed|settings
+98b6287742341866	apretado
+# Chat (Tab)
+1e5bb9c1d10f54b1	Chat (Tab)
+# Drag anywhere to move the chat window. Click a line to copy it.
+e7bfcfb1465d7919	Arrastra desde cualquier parte para mover la ventana del chat. Haz clic en una línea para copiarla.
+# Mute|settings
+642f95858d49c1c5	Silenciar
+# Click to copy
+7a1d3718f1c32f69	Clic para copiar
+# 1 line/s: Enter to send
+1d601c3d0ab16709	Una línea por segundo: Intro para enviar
+# Enter: send Esc/Tab: close Ctrl+V: paste
+3f7eba61b6c45737	Intro: enviar. Escape o Tab: cerrar. Control más V: pegar.
+# The controllers (port/src/gs/gs_input.c): what is plugged in, at the start and when it changes.
+# Controllers: %s.
+a3d2389fbec77392	Controles: %s.
+# %s, player %d
+fc04c2942b3ba8d9	%s, jugador %d
+# %s, no player
+4ae81cdbf91fc76f	%s, sin jugador
+# No controller: the keyboard plays.
+2feaafaeb6092c13	Ningún control conectado: se juega con el teclado.
+# %s is not recognized: it was given the most common layout. If its buttons do not match, F1, Controls, "Set up a controller" asks for them one by one.
+19dfefda77717766	%s no es un control conocido: se le dio la distribución más común. Si sus botones no coinciden, F1, Controles, «Configurar un control» los pide uno por uno.
+# Controller disconnected: %s.
+24a25e74b07ede7c	Control desconectado: %s.
+# Controller connected: %s, player %d.
+da2d6e5596b3e64c	Control conectado: %s, jugador %d.
+# Controller connected: %s, no player (chosen in F1, Controls).
+a686a14d49e27ef3	Control conectado: %s, sin jugador (se elige en F1, Controles).
+# Player %d has no controller.
+39391c951f24a822	El jugador %d se quedó sin control.
+# The keyboard still plays.
+38adec35d4ee677a	El teclado sigue funcionando.
+# Player %d: %s.
+c2b8af32683aa7b7	Jugador %d: %s.
+# Controller not recognized: %s. F1, Controls, "Set up a controller" asks for its buttons one by one.
+267359421168f97a	Control no reconocido: %s. F1, Controles, «Configurar un control» pide sus botones uno por uno.
+# V6.2: where the rival is, told by itself
+# Where the rival is
+54416eb8b959a6c5	Dónde está el rival
+# Only with Select
+dc79be4ebd99621b	Solo con Select
+# By itself: sound
+44a85d5b7b8757f0	Automático: sonido
+# By itself: screen reader
+82e60355c26723b8	Automático: lector de pantalla
+# By itself: sound and screen reader
+c9cbb63783eef226	Automático: sonido y lector de pantalla
+# In a fight, with nothing to press: a ping from where the rival is, every second or two (sooner when\nnearer), and the screen reader says where whenever that changes: ahead or behind, to the left or the right,\nabove or below, and how far. Nothing while the rival is out of sight. Select once in a fight (F5 on the\nkeyboard) asks for it at any time, whatever is chosen here.
+8c2f5cc0d1546238	En la pelea, sin apretar nada: un sonido de sonar desde donde está el rival, cada uno o dos segundos (más seguido cuanto más cerca), y el lector de pantalla dice dónde está cada vez que cambia: adelante o atrás, a la izquierda o a la derecha, arriba o abajo, y a qué distancia. Nada mientras el rival no se ve. Select una vez en la pelea (F5 en el teclado) lo pregunta cuando quieras, elijas lo que elijas aquí.
+# V6.2: everything by itself, the gauges by themselves, setting up a controller
+# Everything by itself: every alert by sound and screen reader
+16e1f948dcbaef15	Todo automático: cada aviso con sonido y lector de pantalla
+# Everything by itself on: nothing needs Select.
+34923f38d4f269d3	Todo automático activado: nada necesita Select.
+# Every alert below told by a sound and by the screen reader, and the gauges and where the rival is told by\nthemselves as they change: nothing needs Select, and the fight is full of sounds and words. Each one can be\nchanged below afterwards.
+567157abe863eb00	Cada aviso de abajo con un sonido y con el lector de pantalla, y el estado y dónde está el rival dichos solos cada vez que cambian: nada necesita Select, y la pelea se llena de sonidos y palabras. Cada uno se puede cambiar después aquí abajo.
+# Sound, with Select
+c801198fdfddabd8	Sonido, con Select
+# Screen reader, with Select
+dab4ea0599861fc0	Lector de pantalla, con Select
+# Sound and screen reader, with Select
+633b46a3ac61344e	Sonido y lector de pantalla, con Select
+# Sound, also by itself
+18aafd686b74709b	Sonido, también automático
+# Screen reader, also by itself
+cb1950ba6693e393	Lector de pantalla, también automático
+# Sound and screen reader, also by itself
+f47a3ebf48b192fd	Sonido y lector de pantalla, también automático
+# The controller's buttons also arrive as keyboard keys: a program turns them into keys (Steam, DS4Windows, JoyToKey, or the console's own software). The game now leaves the keyboard out while the controller is used.
+038f64169e05682c	Los botones del control también llegan como teclas del teclado: un programa los convierte en teclas (Steam, DS4Windows, JoyToKey o el programa propio de la consola). Desde ahora el juego no lee el teclado mientras se usa el control.
+# Setting up a controller. Press any button on the controller to set up. Escape stops.
+0b391f74a6a30f32	Configurar un control. Aprieta cualquier botón del control que quieres configurar. Escape cancela.
+# The setup could not be used. The game's log has the reason.
+4c3f146fb0423667	La configuración no se pudo usar. El registro del juego tiene el motivo.
+# Done: %s is set up, %d parts of %d, and it is kept for the next times.
+c6c913abdecb43ca	Listo: %s quedó configurado, %d partes de %d, y se guardó para las próximas veces.
+# Done: %s works now, %d parts of %d, but it could not be kept for the next times: the game's folder cannot be written.
+f404c543bf49d632	Listo: %s ya funciona, %d partes de %d, pero no se pudo guardar para las próximas veces: no se puede escribir en la carpeta del juego.
+# %s. Now each part in turn. A part it does not have: wait ten seconds, and it is skipped.
+b23a1fc84f4427d3	%s. Ahora cada parte por turno. Si no tiene una parte, espera diez segundos y se salta.
+# That one is already %s. Press another, or wait to skip.
+ee03b074afad039a	Ese ya es %s. Aprieta otro, o espera para saltarlo.
+# Skipped.
+8ffdf6f19f8225db	Salteado.
+# No controller is plugged in: plug one in and try again.
+da2738fc4a155c08	No hay ningún control conectado: conecta uno y vuelve a intentarlo.
+# Nothing was pressed: the setup stopped, and nothing changed.
+7512807f38e53db4	No se apretó nada: la configuración terminó y no cambió nada.
+# The setup stopped. The controller is as it was.
+2b72be67c111dfa1	Configuración cancelada. El control quedó como estaba.
+# No button was pressed: the setup stopped.
+ff134fd5af2817b0	No se apretó ningún botón: la configuración terminó.
+# The controller was unplugged: the setup stopped.
+188f6755a5c63ded	Se desconectó el control: la configuración terminó.
+# Press Cross: of the four buttons on the right, the one nearest to you.
+c5f7b02622a75928	Aprieta Cruz: de los cuatro botones de la derecha, el más cercano a ti.
+# Press Circle: of the four, the one on the right.
+fe28e7bc10ff3e01	Aprieta Círculo: de los cuatro, el de la derecha.
+# Press Square: of the four, the one on the left.
+e7eb95bab281c9cf	Aprieta Cuadrado: de los cuatro, el de la izquierda.
+# Press Triangle: of the four, the one farthest from you.
+4a3ec1c687c651c9	Aprieta Triángulo: de los cuatro, el más lejano.
+# Press up on the d-pad, the cross on the left.
+5bfb2f3cd1673553	Aprieta arriba en la cruceta, la cruz de la izquierda.
+# Press down on the d-pad.
+853c36d82ce4a944	Aprieta abajo en la cruceta.
+# Press left on the d-pad.
+c5e23731ea29effd	Aprieta izquierda en la cruceta.
+# Press right on the d-pad.
+48d081caa8db1e6e	Aprieta derecha en la cruceta.
+# Press L1: the upper button on the left edge, under your index finger.
+b60f6b5fc99954c8	Aprieta L1: el botón de arriba en el borde izquierdo, bajo tu dedo índice.
+# Press R1: the upper button on the right edge.
+aee1cba0eab7d0df	Aprieta R1: el botón de arriba en el borde derecho.
+# Press L2: the lower button on the left edge.
+6428e71d443b46c0	Aprieta L2: el botón de abajo en el borde izquierdo.
+# Press R2: the lower button on the right edge.
+70b72f6acda2e86d	Aprieta R2: el botón de abajo en el borde derecho.
+# Press Select: of the small buttons in the middle, the one on the left.
+f68a88abbc3bcde1	Aprieta Select: de los botones chicos del medio, el de la izquierda.
+# Press Start: of the small buttons in the middle, the one on the right.
+e43395f60c99d3cc	Aprieta Start: de los botones chicos del medio, el de la derecha.
+# Press the left stick down into the controller, until it clicks.
+5ae0842a345caca3	Hunde la palanca izquierda hacia adentro del control, hasta que haga clic.
+# Press the right stick down into the controller, until it clicks.
+8b2fd9ef30d640d4	Hunde la palanca derecha hacia adentro del control, hasta que haga clic.
+# Left stick, left and right
+293f35eafdf20182	Palanca izquierda, izquierda y derecha
+# Push the left stick all the way to the right, and let it go.
+2dcb2efcb56528b1	Empuja la palanca izquierda hasta el fondo a la derecha, y suéltala.
+# Left stick, up and down
+a27c7751956c8b98	Palanca izquierda, arriba y abajo
+# Push the left stick all the way down, towards you, and let it go.
+55ca8f00ae2c896a	Empuja la palanca izquierda hasta el fondo hacia abajo, hacia ti, y suéltala.
+# Right stick, left and right
+eebba8351e7675b7	Palanca derecha, izquierda y derecha
+# Push the right stick all the way to the right, and let it go.
+77810f9d9e84897c	Empuja la palanca derecha hasta el fondo a la derecha, y suéltala.
+# Right stick, up and down
+f3a47f057ad8280f	Palanca derecha, arriba y abajo
+# Push the right stick all the way down, towards you, and let it go.
+3ae21c66361c93f5	Empuja la palanca derecha hasta el fondo hacia abajo, hacia ti, y suéltala.
+# Set up a controller
+b6de8730f4066309	Configurar un control
+# Stop setting up (Esc)
+f66224133713d41e	Cancelar la configuración (Esc)
+# For a controller whose buttons do not work, or do not do what they say: press any button on it,\nthen each button and stick as the screen reader (and this line) asks for it. A part it does not\nhave: wait ten seconds. Kept in gamecontrollerdb_own.txt for the next times.
+3be18a92527c0fe9	Para un control cuyos botones no funcionan, o no hacen lo que dicen: aprieta cualquier botón de él, y después cada botón y palanca a medida que el lector de pantalla (y esta línea) los pide. Si no tiene una parte, espera diez segundos. Se guarda en gamecontrollerdb_own.txt para las próximas veces.
+# Upstream 0.1.38: the settings window's new options
+# The game reads the controller, computes, and then waits before the picture is shown:\nabout 33 ms in a fight. With this on the wait comes first, so the picture follows\nyour press by the few milliseconds the machine needs. The game itself is unchanged.\nWith Smooth motion as well: its in-between picture then follows your press at once and\nthe full one a refresh later. Not used online. Off by default: on a machine that\ncannot keep up it may stutter where the original order would not.
+be3ab7a330260f36	El juego lee el control, calcula, y después espera antes de mostrar la imagen: unos 33 ms en una pelea. Con esto activado la espera va primero, así la imagen sigue a lo que aprietas en los pocos milisegundos que la máquina necesita. El juego en sí no cambia. Con Movimiento suave también: su imagen intermedia sigue a lo que aprietas al instante y la completa un refresco después. No se usa en línea. Apagado de fábrica: en una máquina que no da abasto puede trabarse donde el orden original no lo haría.
+# Render on a second processor core (experimental, after a restart)
+2f218d78b9c243f5	Dibujar en un segundo núcleo del procesador (experimental, después de reiniciar)
+# The picture is prepared and shown on a core of its own while the game computes the next\nmoment: faster where the processor is the slow part (older or low-power machines).\nThe same picture and the same game. Takes effect when the game is started again.\nNot with the OpenGL renderer, and not on machines with two cores or fewer.
+ea2ee996f284f538	La imagen se prepara y se muestra en un núcleo propio mientras el juego calcula el momento siguiente: más rápido donde el procesador es la parte lenta (máquinas viejas o de bajo consumo). La misma imagen y el mismo juego. Se aplica cuando el juego se vuelve a abrir. No con el dibujo OpenGL, ni en máquinas de dos núcleos o menos.
+# Menu size
+1935b7b4f3e9a8af	Tamaño del menú
+# The size of this window, the online windows, the chat and the notices. They already grow\nwith a picture taller than 1080 pixels; this makes them larger or smaller than that.
+30d9e816e7bdcee6	El tamaño de esta ventana, las ventanas en línea, el chat y los avisos. Ya crecen con una imagen de más de 1080 píxeles de alto; esto los hace más grandes o más chicos que eso.
+# Full
+b0e97584dc715a5c	Completo
+# Light
+3b0ab4b52326316f	Ligero
+# Weather amount
+1f43717bbbe175c5	Cantidad de clima
+# Light: half of the haze's sprites, a thinner haze; about half of what switching it off gains.
+546bc43fa49a110d	Ligero: la mitad de las partículas de la bruma, una bruma más fina; cerca de la mitad de lo que se gana apagándola.
+# The glow around characters and things (a Super Saiyan's hair, auras).\n100% is what the PlayStation 2 draws; the default here is 60%.
+c712a473afe0eee0	El brillo alrededor de personajes y cosas (el pelo de un Super Saiyajin, las auras). 100 % es lo que dibuja la PlayStation 2; aquí viene en 60 %.
+# Glare strength
+6d06aafee1c82729	Intensidad del resplandor
+# The glare of the sky and the stage's light.\n100% is what the PlayStation 2 draws; the default here is 60%.
+04e99103f12e641e	El resplandor del cielo y de la luz del escenario. 100 % es lo que dibuja la PlayStation 2; aquí viene en 60 %.
+# Sharp stage blur
+c754bb9959aa2c42	Desenfoque nítido del escenario
+# On: the stage's blur keeps the detail of the internal resolution (crisper, as other\nemulators show it upscaled). Off: as soft as the PlayStation 2 draws it. No difference at 1x.
+273aceb278d3ce5f	Activado: el desenfoque del escenario conserva el detalle de la resolución interna (más nítido, como lo muestran otros emuladores ampliado). Apagado: tan suave como lo dibuja la PlayStation 2. Sin diferencia en 1x.
+# Hide the mouse pointer during play
+d55f2199c34f1511	Ocultar el puntero del mouse al jugar
+# The pointer is hidden over the game and shown in this window, the online windows, the\nquestion before the game closes and while a chat line is typed.
+31dd387f0919334b	El puntero se oculta sobre el juego y se muestra en esta ventana, las ventanas en línea, la pregunta antes de cerrar el juego y mientras se escribe una línea del chat.
+# Quick saving
+f088120fade65b22	Guardado rápido
+# Save and load without the memory card pages: no question, no waiting, a small card in the\ncorner while it saves, and the save loaded at start without a page. Load in the options\nstill asks first, then loads at once. A missing card, a full card or a failed save is\nstill shown. Online the game's own pages always run. Off: the game's own pages.
+4803e75551b3507a	Guardar y cargar sin las pantallas de la memory card: sin pregunta, sin espera, una tarjetita en la esquina mientras guarda, y la partida cargada al empezar sin pantalla. Cargar en las opciones todavía pregunta primero y después carga al instante. Una tarjeta que falta, llena o un guardado que falla se siguen mostrando, y el lector los lee. En línea siempre van las pantallas del juego. Apagado: las pantallas del juego.
+# Saved
+44fa1773e1e78784	Guardado
+# Online: the chat said, the match's banner
+# Read the online chat
+25ea3ce8e3893b51	Leer el chat en línea
+# Chat, %s: %s
+e1db9bceb28d6be9	Chat, %s: %s
+# Your rival "%s" is here! The match begins.
+37797d3ae99d0801	Llegó tu rival, "%s". ¡Empieza la partida!
+# Connecting to your rival...
+cfcd9718ebbad057	Conectando con tu rival...
+# In an online match, the screen reader says each line the other player writes in the chat, with their name.
+edb5e2b91543d8f7	En una partida en línea, el lector de pantalla dice cada línea que el otro jugador escribe en el chat, con su nombre.
+# Online: the pages' buttons; the save loaded at start
+# Back|tbo
+7b81d10983156e15	Volver
+# Change|tbo
+7ac53b46c7edcf1e	Cambiar
+# Enter|tbo
+9ae569215bcc2c0e	Elegir
+# Delete|tbo
+c3a05f61e88c831d	Borrar
+# Cancel|tbo
+94eac53956db7b74	Cancelar
+# Train While Waiting|tbo
+5ee6089f50d47cf4	Entrenar mientras esperas
+# Start Training|tbo
+a5df69d75d55fa80	Empezar el entrenamiento
+# Next|tbo
+c4afbcaf313922b3	Siguiente
+# Search|tbo
+2c23bbd6b49fa9a2	Buscar
+# Open Room|tbo
+bbcff77a1d47181f	Abrir la sala
+# Type Name|tbo
+e48ea88bfc44b287	Escribir el nombre
+# Copy Code|tbo
+71705499e2d467c2	Copiar el código
+# Left and right
+6abfc6f4089c281f	Izquierda y derecha
+# %s: %s.
+f70fa25b39f1a74f	%s: %s.
+# Type with the keyboard: Backspace deletes, Enter finishes, Escape goes back.
+ea3ccf82b4e57ae5	Escribe con el teclado: Retroceso borra, Intro termina, Escape vuelve.
+# Save loaded
+0a2ed49533198d05	Partida cargada
+# Your rival "%s" from %s is here! The match begins.
+70caaf1619ddb345	Llegó tu rival, "%s", desde %s. ¡Empieza la partida!
+# Round trip: about %d ms.
+7618f637c8f4dae0	Latencia de ida y vuelta: unos %d milisegundos.
+# North America
+9b2646330f37beb8	América del Norte
+# South America
+3068deb5848e4e9e	América del Sur
+# Europe
+0275e1d6bb363367	Europa
+# the Middle East
+1ae1da83b4ff664e	Medio Oriente
+# Africa
+17f7b586b1fe2567	África
+# Asia
+112a588b5b82efb7	Asia
+# Oceania
+187fcb65e9f393eb	Oceanía
+# Checking your game data... The search begins when it is done.
+2701546d701d8bae	Revisando los datos de tu juego... La búsqueda empieza cuando termine.
+# Checking your game data...
+bc9735b2ba762584	Revisando los datos de tu juego...
+# F1 to update, or github.com/z3xox/Tenkaichi3Decomp/releases
+3f79b7e089bc4f63	F1 para actualizar, o github.com/z3xox/Tenkaichi3Decomp/releases
+# Fight players on other computers. One of you opens a lobby, the others join it with its code or the owner's address; its page (Tenkaichi Budokai Online) has the places, the rules and the matches.
+bd3f0f859e1582a6	Pelea contra jugadores de otras computadoras. Uno abre una sala y los demás entran con su código o con la dirección de quien la abrió; su página (Tenkaichi Budokai Online) tiene los lugares, las reglas y las partidas.
+# Use a code (no port forwarding needed)
+7ec5091e7765abf9	Usar un código (sin abrir puertos)
+# Your lobby gets a short code to tell the others, and the games find each other through a\nsmall matchmaking service. Works with most home routers. Without it the lobby is on a port,\nwhich must be reachable from the others (port forwarding or a virtual network).
+51035f7ed4012f5b	Tu sala recibe un código corto para pasarles a los demás, y los juegos se encuentran a través de un\npequeño servicio de emparejamiento. Funciona con la mayoría de los routers de casa. Sin él, la sala queda en un puerto,\nal que los demás tienen que poder llegar (abriendo el puerto o con una red virtual).
+# The lobby's first rules; its owner changes them on its page. Everyone needs the same game data.
+9ff732c066458c9f	Las primeras reglas de la sala; quien la abrió las cambia en su página. Todos necesitan los mismos datos del juego.
+# Checking your game data... Connecting begins when it is done.
+4a09e8917d6f3145	Revisando los datos de tu juego... La conexión empieza cuando termine.
+# Found the lobby. Connecting to its owner...
+b3d29839530cca2a	Se encontró la sala. Conectando con quien la abrió...
+# Open a lobby
+82133203e697e08a	Abrir una sala
+# Join the lobby
+449c8f453794ccaa	Entrar a la sala
+# The other game is a different version. Everyone needs the same release.
+0081c3e76b34e7dc	El otro juego es de otra versión. Todos necesitan la misma versión.
+# The search could not be started.
+ee8e42e2f663c99a	No se pudo empezar la búsqueda.
+# In a match both players get the same roster, with everything unlocked, and your own save is
+7ec38c0fa5bc756e	En una partida los dos jugadores tienen la misma lista de luchadores, con todo desbloqueado, y tu partida guardada
+# left alone. When the match ends everyone is back on the lobby's page.
+12704266a3259532	no se toca. Cuando termina la partida, todos vuelven a la página de la sala.
+# Update now
+5671fb95bc3d5b04	Actualizar ahora
+# Downloads the new version in the background and checks its signature; you go on playing\nmeanwhile (online play waits until it is installed). Then Restart now installs it.\nYour saves, settings, game data, mods and texture packs are not touched.
+eaf25dc1b7e8ef2a	Descarga la versión nueva en segundo plano y comprueba su firma; mientras tanto sigues\njugando (el juego en línea espera a que esté instalada). Después, Reiniciar ahora la instala.\nNo se tocan tus partidas guardadas, ajustes, datos del juego, mods ni paquetes de texturas.
+# Later
+b718fbf789a9f5c9	Más tarde
+# No reminder over the menus until the next start.
+422f82e6fa626b57	Sin recordatorio sobre los menús hasta el próximo inicio.
+# Restart now
+0586c6db55ce141c	Reiniciar ahora
+# Not during an online session: finish it first.
+9a8bc61fccfd1f3f	No durante una sesión en línea: termínala primero.
+# Installs the update over the game's folder and starts the new version (if anything\ngoes wrong, every file is put back). Your saves and settings are not touched.
+d94ca76767a60223	Instala la actualización sobre la carpeta del juego y abre la versión nueva (si algo\nsale mal, cada archivo vuelve a su lugar). No se tocan tus partidas guardadas ni tus ajustes.
+# Try again
+cd1dd6ff53d0d01a	Intentar de nuevo
+# Hide what's new
+d27cb8aadaafcd31	Ocultar las novedades
+# What's new
+58f6d68cf300bed3	Novedades
+# Release page
+8710fd1f348160c1	Página de la versión
+# Opens the release page in your browser. To update by hand, copy the new files over the old ones.
+c9a325ad2d46b04b	Abre la página de la versión en tu navegador. Para actualizar a mano, copia los archivos nuevos sobre los viejos.
+# (The release has no notes.)
+befd8f11ea314676	(La versión no tiene notas.)
+# Once per start, ask GitHub for the newest release and say so if it is newer than this one.\nNothing is downloaded until you press Update now (at the top of this window).
+67891bd688999bc4	Una vez por inicio, pregunta a GitHub por la última versión y avisa si es más nueva que esta.\nNo se descarga nada hasta que aprietes Actualizar ahora (arriba de esta ventana).
+# The version of Tenkaichi3Decomp currently running ("dev": built locally, never offered updates).
+86b8d6f924fdc136	La versión de Tenkaichi3Decomp que está corriendo ("dev": compilada en esta computadora, nunca se le ofrecen actualizaciones).
+# Dragon Net Battle is the first online window of this port. Tenkaichi Budokai Online (the main menu) does everything it does: lobbies by code or by address, and quick matches.
+700e4ab8c5bcbc6a	Dragon Net Battle es la primera ventana en línea de este port. Tenkaichi Budokai Online (el menú principal) hace todo lo que ella hace: salas por código o por dirección, y partidas rápidas.
+# Open Dragon Net Battle
+ff653cb0760f36b7	Abrir Dragon Net Battle
+# List Dragon Net Battle in the main menu
+d94bdd6e0e0b67f9	Mostrar Dragon Net Battle en el menú principal
+# Shows the entry beside Tenkaichi Budokai Online the next time the main menu is opened.
+e0a1130dd65624bd	Muestra la opción junto a Tenkaichi Budokai Online la próxima vez que se abra el menú principal.
+# Back to the lobby
+55aaaa5ce2e5ab58	Volver a la sala
+# Ends the match for everyone: all go back to the lobby window, where the rules can be changed.
+4e95eb1869e7dda9	Termina la partida para todos: todos vuelven a la ventana de la sala, donde se pueden cambiar las reglas.
+# Close the lobby
+94db1fcb802b5260	Cerrar la sala
+# Leave the lobby
+3134c8ec8ec7b317	Salir de la sala
+# Ends the match and the lobby for everyone.
+5988bd9528bfcd79	Termina la partida y la sala para todos.
+# Back to the main menu. A player leaving ends the match; a spectator leaving changes nothing for the others.
+d0adba2a39d96d2a	Vuelve al menú principal. Si sale un jugador, termina la partida; si sale un espectador, no cambia nada para los demás.
+# Change view
+86e168fdea38f4e2	Cambiar la vista
+# Player 1's view, player 2's, or both (split screen). Also V or R1 while watching.
+569726ca47a1d0ad	La vista del jugador 1, la del jugador 2 o las dos (pantalla dividida). También V o R1 mientras miras.
+# Stop watching
+9241f1191921699a	Dejar de mirar
+# Online
+eadeb3a807d7478a	En línea
+# player 1
+210212f859dd4b63	jugador 1
+# player 2
+210213f859dd4d16	jugador 2
+# both (split screen)
+af1cbab3ab081531	los dos (pantalla dividida)
+# Be matched with whoever is searching the same queue. All quick matches have no time limit and run at %d%% speed, between games with the original disc's data.
+72bf9d8817a8926d	Empareja con quien esté buscando en la misma cola. Todas las partidas rápidas son sin límite de tiempo y corren al %d%% de velocidad, entre juegos con los datos del disco original.
+# Updated to %s.
+6f2a4c14a01e509f	Actualizado a la %s.
+# Update %s available (this is %s).
+3c777dd2b88cd470	Hay una actualización: %s (esta es la %s).
+# Downloading %s: %d%% (%.1f of %.1f MB). You can go on playing.
+1779dfcd21d08d75	Descargando la %s: %d%% (%.1f de %.1f MB). Puedes seguir jugando.
+# Checking the download of %s (its signature)...
+fdae7abc0956e9f4	Comprobando la descarga de la %s (su firma)...
+# Update %s is downloaded and verified.
+117500193e278c22	La actualización %s está descargada y comprobada.
+# Installing %s...
+02be4708d8516c72	Instalando la %s...
+# The update to %s was not installed: %s
+d2ccf69a78be91b2	La actualización a la %s no se instaló: %s
+# (installed: %s)
+bb7d72fd1aa92f18	(instalada: %s)
+# Lobby%s%s
+e43aab370d3af713	Sala%s%s
+# Spectating %s vs %s
+a1de614b0dd56e12	Mirando %s contra %s
+# View: %s
+fb24a5aabc85fd92	Vista: %s
+# Distance to the rival, from the rival's side: it repeats faster the nearer the rival is; higher when the rival is above you, lower when below.
+ec297da8cb881cae	La distancia al rival, desde el lado del rival: se repite más rápido cuanto más cerca está; más agudo si el rival está más arriba que tú, más grave si está más abajo.
+# The rival's health, from the rival's side.
+0d616bd7e049e8ca	La vida del rival, desde el lado del rival.
+# The rival's ki is full, from the rival's side; higher, the rival's max power.
+75efe0e451728185	El ki del rival está lleno, desde el lado del rival; más agudas, el máximo poder del rival.
+# The same for the rival, from the rival's side.
+8dc0976bf41ecbb0	Lo mismo, del rival, desde su lado.
+# A tick from the rival's side that repeats faster as the rival comes nearer, higher when the rival is\nabove you and lower when below; two ticks within close range. By the screen reader: near,\nmiddle distance or far, and above or below, when it changes.
+7307d54760b75d49	Un tic desde el lado del rival, que se repite más rápido cuanto más cerca está, más agudo si el rival está más arriba y más grave si está más abajo; dos tics en el rango de cuerpo a cuerpo. Con el lector de pantalla: cerca, a media distancia o lejos, y arriba o abajo, cuando cambia.
+# Two beeps when a player's health falls under three quarters, a half and a quarter, louder the\nless is left; under a quarter, yours again every three seconds. Yours clean, in the middle; the\nrival's with a buzz, from the rival's side (in the middle with two players at one computer).
+df41d41601c9bf4d	Dos pitidos cuando la vida de un jugador baja de tres cuartos, de la mitad y de un cuarto, más fuertes cuanta menos queda; por debajo de un cuarto, los tuyos otra vez cada tres segundos. Los tuyos, limpios y al centro; los del rival, con un zumbido y desde su lado (al centro si juegan dos en la misma computadora).
+# Menus
+a597982e46a96c4b	Menús
+# Stretched
+95479016b39faf7b	Estirados
+# Widescreen (beta)
+13e72033d548bdef	Pantalla ancha (beta)
+# How the menus fill a picture wider than 4:3 (fights keep the wide picture):\nStretched: the 4:3 menus stretched to the width.\n4:3: at their own shape, with the side bars at the sides.\nWidescreen (beta): at their own shape across the whole width, the backdrops filling it,\neach menu's parts against the side they belong to.
+16a4032b4ee18db9	Cómo llenan los menús una imagen más ancha que 4:3 (las peleas mantienen la imagen ancha). Estirados: los menús 4:3 estirados a lo ancho. 4:3: con su forma propia y las barras a los costados. Pantalla ancha (beta): con su forma propia a todo lo ancho, los fondos llenándolo y cada parte del menú contra el lado al que pertenece.
+# What fills the sides where the picture is narrower than the window:\na 4:3 picture, or the menus with "Menus: 4:3", in a wide window.\nFighter panels: the border, and in a fight each side's fighter with its name and form.\nYour own: a folder "bars" next to the game with trim.png (the strip along the\npicture, kept in proportion) and fill.png (stretched over the rest). Read at start.
+7e1b861049afb278	Qué llena los costados donde la imagen es más angosta que la ventana: una imagen 4:3, o los menús con "Menús: 4:3", en una ventana ancha. Paneles de luchadores: el borde, y en una pelea el luchador de cada lado con su nombre y su forma. Las propias: una carpeta "bars" junto al juego con trim.png (la franja a lo largo de la imagen, en proporción) y fill.png (estirada sobre el resto). Se leen al arrancar.
+# text field
+75c027602b1a366e	campo de texto
+# editing
+e0407fa1e3aa274f	editando
+# %s tab
+95be84ab8260ed92	pestaña %s
+# Tenkaichi3Decomp.
+ee9e545123128b46	Tenkaichi3Decomp.
+# This sets the game up on your computer from your own PlayStation 2 disc.
+dd5caee66ef0286d	Esto instala el juego en tu computadora a partir de tu propio disco de PlayStation 2.
+# Choose your disc image of Dragon Ball Z: Budokai Tenkaichi 3, USA release (SLUS-21678), as an .iso file. The game's data is taken from it and stays on this computer. Nothing is downloaded.
+1c3763049ca1063b	Elige tu imagen de disco de Dragon Ball Z: Budokai Tenkaichi 3, versión de Estados Unidos (SLUS-21678), en un archivo .iso. Los datos del juego se sacan de ahí y quedan en esta computadora. No se descarga nada.
+# Choose your disc image of Dragon Ball Z: Budokai Tenkaichi 3, USA release (SLUS-21678), as an .iso file. The game's data is taken from it and stays on this computer. Nothing is downloaded except one small tool.
+58832c3e2d45580f	Elige tu imagen de disco de Dragon Ball Z: Budokai Tenkaichi 3, versión de Estados Unidos (SLUS-21678), en un archivo .iso. Los datos del juego se sacan de ahí y quedan en esta computadora. No se descarga nada salvo una herramienta pequeña.
+# Or put it next to the zip you unpacked, or in this program's folder: it is found there by itself.
+8ccadff6aa2f1d7f	O ponla junto al zip que descomprimiste, o en la carpeta de este programa: ahí la encuentro sola.
+# No disc image was found.
+605678cac4329967	No encontré ninguna imagen de disco.
+# Enter looks for it again, Escape closes.
+e87b1a2dcb2b2f79	Enter la busca de nuevo, Escape cierra.
+# Enter installs it, Escape closes.
+428509f077cf47d2	Enter la instala, Escape cierra.
+# The game opens by itself in a few seconds: Enter opens it now, Escape stays here.
+f750f047d4f4b4f9	El juego se abre solo en unos segundos: Enter lo abre ya, Escape se queda aquí.
+# Enter opens the game, Escape closes.
+8a9e7abc1488eb89	Enter abre el juego, Escape cierra.
+# Needs about 4 GB of free space and takes a minute or two.
+c38b843eb7afa3dc	Necesita unos 4 GB libres y tarda uno o dos minutos.
+# Needs about 4 GB of free space and takes 5 to 10 minutes.
+e430989f38e0d040	Necesita unos 4 GB libres y tarda de 5 a 10 minutos.
+# Disc image
+589332d6976292f1	Imagen de disco
+# European disc image (optional)
+caeae161c1a30cc7	Imagen de disco europea (opcional)
+# Disc image: that file does not exist.
+cea6ee4a1377e487	Imagen de disco: ese archivo no existe.
+# European disc image: that file does not exist.
+c7f7f4e192e13eac	Imagen de disco europea: ese archivo no existe.
+# That file does not exist.
+ea30589c7df7d5c9	Ese archivo no existe.
+# Neither the game (Tenkaichi3Decomp, Tenkaichi3Decomp.dat) nor install.py was found next to this program.
+513590683e14abb1	No encontré ni el juego (Tenkaichi3Decomp, Tenkaichi3Decomp.dat) ni install.py junto a este programa.
+# drop the file on this window, or browse
+8c7d95c8e39a7875	suelta el archivo en esta ventana, o búscalo
+# the European release (SLES-54945)
+a76e05033cc23f5c	la versión europea (SLES-54945)
+# Adds Spanish, German, French and Italian: menus, battle screen and text, as the European release has them. F1 > UI > Language picks one.
+331cc37bf7275c54	Agrega español, alemán, francés e italiano: menús, pantalla de pelea y textos, como los trae la versión europea. Se elige uno en F1, pestaña Interfaz, Idioma.
+# Setting up.
+a1921148f0a74eee	Instalando.
+# You can leave this running. Finished steps are kept if it is interrupted.
+b48b9c11ebc47dc3	Puedes dejarlo trabajando. Si se interrumpe, los pasos terminados se guardan.
+# Ready to play.
+da8cdf9b4cfa1ac9	Listo para jugar.
+# The game is installed.
+af74a720981faa2a	El juego está instalado.
+# The game is installed and its demo fight ran correctly.  (%d min %d s)
+3e0fa375cb443088	El juego está instalado y su pelea de demostración salió bien. (%d min %d s)
+# In the game, F1 opens the settings: resolution, widescreen, controls and sound.
+7623b4c546296e9a	En el juego, F1 abre los ajustes: resolución, pantalla ancha, controles y sonido.
+# Their Accessibility tab has the fight's sounds and the blind player profile, which turns on by itself with NVDA, JAWS or VoiceOver.
+e45773c91ee7e6d3	Su pestaña Accesibilidad tiene los sonidos de la pelea y el perfil para jugar sin ver, que se activa solo con NVDA, JAWS o VoiceOver.
+# Spanish, German, French and Italian, plus the opening soundtrack: add a European disc image (SLES-54945).
+6c1de9436e462a2a	Español, alemán, francés e italiano, más la música de la introducción: agrega una imagen de disco europea (SLES-54945).
+# Add languages and music...
+890962dc99b5a2dd	Agregar idiomas y música...
+# Setup stopped.
+2fd29cbf38616c83	La instalación se detuvo.
+# Nothing is broken: finished steps are kept, and Install continues from where it stopped.
+bdd84c44c6fd939b	No se rompió nada: los pasos terminados se guardan, e Instalar sigue desde donde se detuvo.
+# The setup script stopped unexpectedly. The details are in install.log.
+8ca3ea39b0d73106	El script de instalación se detuvo de forma inesperada. Los detalles están en install.log.
+# Open the log
+4981afe753b13040	Abrir el registro
+# Browse...
+61e993a94b0b3983	Buscar...
+# Close
+5e8250fb85d64c23	Cerrar
+# Install
+6196153c4b0c1ea0	Instalar
+# Play
+cd105819b5a10243	Jugar
+# Missing
+b52f6b2e5a4bc127	Falta
+# Used for
+96cf0056d8986a7f	Sirve para
+# Package to install
+60262e2bea923883	Paquete a instalar
+# Requirements
+38c6db7c7aaa7dc1	Requisitos
+# Game data
+41ac47f3179d3b25	Datos del juego
+# Executable data
+76ee03efa7f228bf	Datos del ejecutable
+# Build
+3fe3ff490adaaa63	Compilación
+# Self-test
+e42b060ee7b1b836	Prueba
+# European languages
+2221ee99619277cf	Idiomas europeos
+# Compilers and tools on this computer
+dba351c9254312a9	Compiladores y herramientas de esta computadora
+# Your disc image is read and checked
+883d1d36b1bd642e	Se lee y se comprueba tu imagen de disco
+# Models, sounds and text are unpacked
+7aea7405eb904d8e	Se descomprimen modelos, sonidos y textos
+# The data tables of the game's programs
+7f5e3113183a61e4	Las tablas de datos de los programas del juego
+# The port is compiled (a few minutes)
+60fbf3639720d8af	Se compila el port (unos minutos)
+# The game's demo fight, without a window
+806fe25c40cd3604	La pelea de demostración del juego, sin ventana
+# Spanish, German, French and Italian, plus the opening soundtrack
+5a624ae61605a77b	Español, alemán, francés e italiano, más la música de la introducción
+# %s, step %d of %d
+d75e308380df18be	%s, paso %d de %d
+# %s done: %s
+23807b7f9520c119	%s, listo: %s
+# %s done
+d2f6d7eb6b00beb7	%s, listo
+# %s skipped: %s
+184a825adc685f33	%s, omitido: %s
+# %s skipped
+cc1fa7de64b73631	%s, omitido
+# %d%%, %d files
+fc6de907e7301800	%d%%, %d archivos
+# %d files in gamedata/
+7f3d440166a2eb09	%d archivos en gamedata/
+# European disc image: %s
+2b44379f67bb6d4a	Imagen de disco europea: %s
+# Disc image: %s
+315ef2c81b55c173	Imagen de disco: %s
+# Found your disc image, %s
+259cd51c1d66a94a	Encontré tu imagen de disco, %s
+# Missing: %s, used for %s, package to install: %s.
+ef29c17819e22401	Falta: %s, sirve para %s, paquete a instalar: %s.
+# Could not write %s.
+5177b3eb7b7c843a	No se pudo escribir %s.
+# Could not start python3: %s\nPython 3 has to be installed to set the game up.
+9ae6a65cebece5c2	No se pudo iniciar python3: %s\nPara instalar el juego hace falta Python 3.
+# checking
+7552a529de9717f1	comprobando
+# the USA release, checksums match
+b70366ec56b8647b	la versión de Estados Unidos, las sumas de control coinciden
+# already unpacked
+6f692727d7dcabe2	ya estaba descomprimido
+# already done
+3d1bfa1a46f9b761	ya hecho
+# the game's demo fight, no window
+9cdf43573331d712	la pelea de demostración del juego, sin ventana
+# the demo fight ran to its end
+73879f70a83664fe	la pelea de demostración llegó al final
+# European languages and opening soundtrack: the game makes the languages at its next start
+80bc2190de59d11a	idiomas europeos y música de la introducción: el juego arma los idiomas la próxima vez que se abra
+# The game could not be started. macOS may still be blocking it: see step 0 of README.txt.
+78a1ea946645b025	No se pudo abrir el juego. Puede que macOS todavía lo esté bloqueando: consulta el paso 0 de README.txt.
+# This is not a disc image of the European release of Budokai Tenkaichi 3 (no SLES_549.45 on it).\nThe languages come from the European release (SLES-54945); the game itself is set up from the USA one.
+483eb64e581174d2	Esta no es una imagen de disco de la versión europea de Budokai Tenkaichi 3. Los idiomas salen de la versión europea (SLES-54945); el juego en sí se instala desde la de Estados Unidos.
+# An archive on the European disc image (DATA/PZS3EU1.AFS) is damaged.
+f4a58f06c20a47fb	Un archivo de la imagen de disco europea (DATA/PZS3EU1.AFS) está dañado.
+# An archive on the European disc image (DATA/PZS3EU1.AFS) is damaged or not the European release's.
+18a4dd78e62ee502	Un archivo de la imagen de disco europea (DATA/PZS3EU1.AFS) está dañado o no es el de la versión europea.
+# The language selector archive on the European disc image (DATA/PZS3EU0.AFS) is damaged.
+55580ba0c3abf0d7	El archivo del selector de idioma de la imagen de disco europea (DATA/PZS3EU0.AFS) está dañado.
+# The European opening soundtrack has an invalid size.
+959cd041811428c2	La música europea de la introducción tiene un tamaño no válido.
+# The European opening soundtrack has an invalid header.
+c6a62fd07602a396	La música europea de la introducción tiene una cabecera no válida.
+# Online: the online menu (Tenkaichi Budokai Online, src/menu/port_tbo.c), what its pages say and what the hosts say in the box
+# Tenkaichi Budokai Online
+2e4c90693827ba4f	Tenkaichi Budokai Online
+# New Lobby
+3eeea192f0350039	Sala nueva
+# Join|tbo
+45aa41c7c1ee8472	Entrar a una sala
+# Searching
+970de9ba0cf07677	Buscando
+# Quick Match
+ed0bbb8cffe03ccd	Partida rápida
+# Lobby|tbo
+a6d8b41405f9842c	Sala
+# Tournament|tbo
+6eb4b7f1d5067045	Torneo
+# Join by Address
+74f47e55bf2d177a	Entrar por dirección
+# Ranked Match
+4f51c6d88c1f8533	Partida clasificatoria
+# Friends|tbo
+58671922dcdf462d	Amigos
+# Replays
+2a3922b16d820a93	Repeticiones
+# Leaderboard
+84cff64095fd31ac	Clasificación
+# , soon|tbo
+b9b3d9ce15383051	, próximamente
+# Fight whoever is searching right now! No time limit, and you can train while you wait.
+079d2aee28cdaa60	¡Pelea contra quien esté buscando ahora mismo! Sin límite de tiempo, y puedes entrenar mientras esperas.
+# Fights that move your rank, season by season. That one is coming soon!
+ccf7e5bd8fc17f72	Peleas que mueven tu rango, temporada a temporada. ¡Eso llega pronto!
+# A lobby for your friends: up to eight, your rules, rematches, spectators and tournaments!
+f76a37557bfd32f6	¡Una sala para tus amigos: hasta ocho, con tus reglas, revanchas, espectadores y torneos!
+# Got a lobby's code? Type it in to join, to play or to watch! By Address joins by the owner's address.
+f04309b66016c8dd	¿Tienes el código de una sala? ¡Escríbelo para entrar, a jugar o a mirar! Por dirección entra con la dirección de quien abrió la sala.
+# Your rivals, who is online, and invites. That one is coming soon!
+9422c3dec382e093	Tus rivales, quién está conectado y las invitaciones. ¡Eso llega pronto!
+# The Tenkaichi Budokai itself: brackets of 4 to 16 players. That one is coming soon!
+e5e8361163b53872	El mismísimo Tenkaichi Budokai: cuadros de 4 a 16 jugadores. ¡Eso llega pronto!
+# Your last matches, saved to watch again. That one is coming soon!
+f30aa6dfa5490126	Tus últimas partidas, guardadas para volver a verlas. ¡Eso llega pronto!
+# The strongest in the world, among your friends, and with each fighter. Coming soon!
+837649b8226b0a4d	Los más fuertes del mundo, entre tus amigos y con cada luchador. ¡Próximamente!
+# The name your rivals see.
+e916463617dc0632	El nombre que ven tus rivales.
+# No code: the others type your address and this port on Join by Address. Left / right, L1 / R1 change it.
+f5306391170fcbee	Sin código: los demás escriben tu dirección y este puerto en Entrar por dirección. Izquierda y derecha, o L1 y R1, lo cambian.
+# Your lobby gets a code: give it to your friends, they type it on Join. Set the rules on its page!
+76024dd2395494bd	Tu sala recibe un código: dáselo a tus amigos y ellos lo escriben en Entrar a una sala. ¡Elige las reglas en su página!
+# Enter the lobby's code, or Paste the one they sent you! Then Join: to play, or to watch from the stands.
+cd2aa6fc046f4d2b	¡Escribe el código de la sala o pega el que te enviaron! Después, Entrar: para jugar o para mirar desde las gradas.
+# Type the lobby owner's address, and :port if it is not 7000. Then Join!
+f2b4bac5ac1f9883	Escribe la dirección de quien abrió la sala, y dos puntos y el puerto si no es 7000. ¡Después, Entrar!
+# Here we go! The match is starting!
+df7fd72b09da85d5	¡Allá vamos! ¡La partida está empezando!
+# Looking for a worthy challenger... Warm up in Training meanwhile!
+a605d98d30ea01b6	Buscando un rival digno... ¡Mientras tanto, calienta en el entrenamiento!
+# Sorry! Quick match is for the game straight off the disc. Modded? Play your friends in a lobby!
+43cca6bc1fab05b7	¡Lo siento! La partida rápida es para el juego tal como viene en el disco. ¿Tiene mods? ¡Juega con tus amigos en una sala!
+# Warm up at the tournament while we search! Pick yourself and a sparring partner.
+813b8abd83a6db26	¡Calienta en el torneo mientras buscamos! Elige tu luchador y un compañero de práctica.
+# Auto: rivals near you first. A region: players there first, everyone after 40 s. Anywhere: the fastest.
+520741df3bafced3	Automática: primero, rivales cerca de ti. Una región: primero, jugadores de ahí, y todos después de 40 segundos. Cualquier lugar: lo más rápido.
+# Pick a battle and we'll find you a rival! No time limit, and the game runs a little faster.
+48c0735e2555ae10	¡Elige un combate y te encontramos un rival! Sin límite de tiempo, y el juego va un poco más rápido.
+# Pick your letters, then Done! Square deletes, Start finishes.
+9de221d5f1ed3874	¡Elige tus letras y después, Listo! Cuadrado borra, Start termina.
+# Show everyone who you are! This is the name your rivals see.
+ddbbb5eaeba7339a	¡Muéstrales a todos quién eres! Este es el nombre que ven tus rivales.
+# Knocking at the lobby's door...
+fab2db4ed8225089	Tocando la puerta de la sala...
+# Opening your lobby! The others join it with your address.
+8ac82585d416077b	¡Abriendo tu sala! Los demás entran con tu dirección.
+# Opening your lobby! The others join it with its code.
+6f34c32cb5877d9f	¡Abriendo tu sala! Los demás entran con su código.
+# You are out of that lobby. OK takes you back to the online menu.
+93518c40e26cfd6c	Ya no estás en esa sala. Aceptar te lleva de vuelta al menú en línea.
+# Type a line for everyone in the lobby, then Done! Start sends it too.
+931d835cbdaf919c	¡Escribe un mensaje para todos los de la sala y después, Listo! Start también lo envía.
+# Welcome to the lobby! Its owner picks who plays and starts the match. Chat while you wait!
+e5f8d5f1d915e7f8	¡Te damos la bienvenida a la sala! Quien la abrió elige quién juega y empieza la partida. ¡Chatea mientras esperas!
+# Tournament: Entrants sets the player places. Move people into them (you too, to play), then Start Tournament!
+74975ac2fe5a32e6	Torneo: Participantes fija los lugares de jugador. Mueve a la gente a esos lugares (a ti también, si quieres jugar) y después, ¡Empezar el torneo!
+# Your lobby is open! Give the others its code: they type it on Join. Then put two of you in 1P and 2P.
+2f51b93556cc0996	¡Tu sala está abierta! Dales el código a los demás: lo escriben en Entrar a una sala. Después, pon a dos de ustedes en 1P y 2P.
+# Your lobby is open! The others join with your address and port (Join by Address). Then 1P and 2P.
+0cea3761067ef1d7	¡Tu sala está abierta! Los demás entran con tu dirección y tu puerto (Entrar por dirección). Después, 1P y 2P.
+# Open Lobby|tbo
+551922e2c2f9a4fa	Abrir una sala
+# Host by Address|tbo
+d329138d3d3a56c7	Abrir por dirección
+# WITH A CODE
+da1a7b772d24d477	con un código
+# PORT %d
+8b21d476179d4fc3	puerto %d
+# DELETE
+5cd15819e278608a	Borrar
+# PASTE
+934a87017914a348	Pegar
+# JOIN
+55f6f3e98cbfdd39	Entrar
+# BY ADDRESS
+51ce311c5288bf4c	Por dirección
+# Aa|tbo
+6cad3c79a904e558	Mayúsculas y minúsculas
+# SPACE
+c58fd8e487bbf685	Espacio
+# DONE
+f069fc72c5583a91	Listo
+# Opening the lobby
+bdba0b8ad09c4b24	Abriendo la sala
+# Joining the lobby
+c32704515b84d194	Entrando a la sala
+# The lobby is closed.
+7e12743a98f11b66	La sala está cerrada.
+# Close the lobby? 
+9dcf449495b837d7	¿Cerrar la sala? 
+# Leave the lobby? 
+ec50de0d5827f308	¿Salir de la sala? 
+# Call off the tournament? 
+72f91865a29c42a1	¿Cancelar el torneo? 
+# Move|tbo
+247032aa9a722bc7	Mover
+# Remove from the Lobby
+c076858311d9dd38	Sacar de la sala
+# Spectator %d
+dd7ca82500dc053f	Espectador %d
+# Move to 
+341debf7b4cec70f	Mover a 
+# empty|tbo
+8eb0c940858bc1d9	vacío
+# , owner
+35cf59b13f014c98	, quien abrió la sala
+# , ready
+579266a9874aa438	, listo
+# Mode|tbo
+1ee95453cab73745	Modo
+# Battle|tbo
+a21984adfe370938	Combate
+# Time Limit
+2eda8ec3492b2e2f	Límite de tiempo
+# Game Speed
+090d5d8c5b012280	Velocidad del juego
+# Input Delay
+338c90ebdf97e834	Retraso de entrada
+# Entrants
+923d8c3bfc9a8b16	Participantes
+# TOURNAMENT
+33d28c1462c67ef2	Torneo
+# VERSUS
+9ff6cfde5ec99ac3	Versus
+# %d PLAYERS
+59a2a67f418f683e	%d jugadores
+# SINGLE BATTLE
+84c12584f5f55f69	Combate individual
+# TEAM BATTLE
+6269f571a34fc90e	Combate por equipos
+# DP BATTLE: 10 DP
+a3f0eb8ad471e4ba	Combate PD: 10 PD
+# DP BATTLE: 15 DP
+ee7a57730be6998f	Combate PD: 15 PD
+# DP BATTLE: 20 DP
+99ba975591f35f9f	Combate PD: 20 PD
+# 60 SECONDS
+1e9f046c352dfe2e	60 segundos
+# 90 SECONDS
+5b22357437686859	90 segundos
+# 180 SECONDS
+265caec700349481	180 segundos
+# 240 SECONDS
+e862abe3b5d7bf70	240 segundos
+# NO LIMIT
+82572655e809231d	Sin límite
+# %d%% (STANDARD)
+2b27b7d9b48c25ae	%d %% (estándar)
+# %d%%|tbo
+18034233f4c2f7dd	%d %%
+# OFF|tbo
+84772a0b89f7eb3d	Desactivado
+# UP TO %d FRAMES
+7699c641663bb6b4	Hasta %d fotogramas
+# AUTOMATIC
+1a179b91602094e4	Automático
+# %d FRAME
+b2e90863a7dc6861	%d fotograma
+# %d FRAMES
+de6173563b850cf6	%d fotogramas
+# Match On
+28055da2020adedb	Partida en curso
+# Start Next Match
+792af679aae17591	Empezar la siguiente partida
+# New Tournament
+24e26b183b9c6b10	Torneo nuevo
+# Start Tournament
+47fbb13474a9fd5a	Empezar el torneo
+# Start Match
+1461b37685e6d1ae	Empezar la partida
+# Bracket
+7e87a6b2c1d7bc13	Cuadro del torneo
+# Not Ready
+b37aaf430e2b29dd	No estoy listo
+# Ready|tbo
+70f17c24f56f5b47	Estoy listo
+# Chat|tbo
+733cc2b4ca0b6144	Chat
+# Close Lobby
+d211d290c082bdaf	Cerrar la sala
+# Leave Lobby
+da259de0aca62c38	Salir de la sala
+# Back to the Lobby
+9950c2f673b381f8	Volver a la sala
+# Choose the winner: 
+f6a201f1a66354a8	Elige al ganador: 
+# Send|tbo
+bb9db78637c3c910	Enviar
+# OK|tbo
+205f3ad601fec170	Aceptar
+# Move Here
+cac6554173b3c72a	Mover aquí
+# Copy Address
+b89419b685e4ae1c	Copiar la dirección
+# Quick match, teams: searching
+8a3f05282178ffdd	Partida rápida, por equipos: buscando
+# Quick match, one on one: searching
+a285e79b8a97d08e	Partida rápida, uno contra uno: buscando
+# Joining lobby 
+edd33319274eb609	Entrando a la sala 
+# Battle: teams
+b1593f1f3edabc1d	Combate: por equipos
+# Battle: one on one
+150a0202f9ba621c	Combate: uno contra uno
+# Region: 
+bbcffc57ff40753f	Región: 
+# AUTO|tbo
+595515c598da3901	Automática
+# NORTH AMERICA
+9e2072916e979238	América del Norte
+# SOUTH AMERICA
+fd82cd53ee4a969e	América del Sur
+# EUROPE
+8497883090a82647	Europa
+# MIDDLE EAST
+e0dc24f8dd1d21d5	Medio Oriente
+# AFRICA
+c0389be1bdd3cfc7	África
+# ASIA
+26c6588bf8def3d7	Asia
+# OCEANIA
+d85344cf6edcea6b	Oceanía
+# ANYWHERE
+cc30391eb6cbaf40	Cualquier lugar
+# You: 
+4c67958fd6f46616	Tú: 
+# Partner: 
+01f4d4524d30a67b	Compañero: 
+# Start training
+1e0afe8020901f1f	Empezar a entrenar
+# No quick match. Quick match needs the original disc's data; with friends, both need the same data.
+15f1165c36c06bc8	Sin partida rápida. La partida rápida necesita los datos del disco original; con amigos, los dos necesitan los mismos datos.
+# Name: 
+3934f6f7d7ba151c	Nombre: 
+# Code: 
+5372a9552ba8505e	Código: 
+# Address: 
+1e04d9ddee957a31	Dirección: 
+# Chat: 
+d9a25916f37f9199	Chat: 
+# CHECKING YOUR GAME DATA AGAINST THE DISC... TRY AGAIN IN A MOMENT
+cd75769bba64925e	Comparando los datos de tu juego con el disco... Vuelve a intentarlo en un momento
+# THE NETWORK COULD NOT BE OPENED ON THIS PC
+2aac7bc43a9bdabc	No se pudo abrir la red en esta computadora
+# THE PORT AFTER THE COLON IS A NUMBER FROM 1 TO 65535
+4ac6d476df56b219	El puerto, después de los dos puntos, es un número del 1 al 65535
+# TYPE THE OWNER'S ADDRESS FIRST, AS 192.168.1.20 OR 192.168.1.20:7000
+c93f9286bcd07a3d	Primero escribe la dirección de quien abrió la sala, como 192.168.1.20 o 192.168.1.20:7000
+# THE CONNECTION WAS REFUSED
+dff0078808daa881	Se rechazó la conexión
+# THE TWO GAMES COULD NOT REACH EACH OTHER, EVEN THROUGH THE RELAY
+67a74f1ac3cd860e	Los dos juegos no pudieron conectarse entre sí, ni siquiera a través del relé
+# THE OTHER GAME IS ANOTHER VERSION: BOTH NEED THE SAME RELEASE
+a1c53b1a4eec7bc0	El otro juego es de otra versión: los dos necesitan la misma
+# THE SEARCH COULD NOT BE STARTED
+aa7a07c8aee855f0	No se pudo empezar la búsqueda
+# NOT OPEN YET: IT NEEDS MORE FROM THE MATCHMAKING SERVICE
+3a04bdba99396f89	Todavía no está abierto: necesita más del servicio de emparejamiento
+# A LOBBY'S CODE HAS SIX LETTERS AND NUMBERS
+68f83e2c8fd738c9	El código de una sala tiene seis letras y números
+# SAVED: YOUR RIVALS WILL SEE THIS NAME
+3347033d6f5ebb8e	Guardado: tus rivales verán este nombre
+# A MATCH IS ON ALREADY
+c3e0a7e76600b0b0	Ya hay una partida en curso
+# TWO PLAYERS ARE NEEDED: ONE IN 1P, ONE IN 2P
+f8cbc35a0a2a3aeb	Hacen falta dos jugadores: uno en 1P y otro en 2P
+# CHOOSE THE WINNER OF THE DISPUTED MATCH ON THE BRACKET
+8af9913a3d7a1785	Elige en el cuadro al ganador de la partida en disputa
+# WAITING FOR A PLAYER WHO LOST THE CONNECTION
+4d68b4de62a5e796	Esperando a un jugador que perdió la conexión
+# NO MATCH LEFT TO PLAY
+a1751dbd5b1cb991	No quedan partidas por jugar
+# PUT AT LEAST TWO PLAYERS IN THE PLAYER PLACES
+41ed66c92e88f519	Pon al menos dos jugadores en los lugares de jugador
+# THE ENTRANTS CANNOT CHANGE DURING A TOURNAMENT
+b6d1874dbb2662e3	Los participantes no pueden cambiar durante un torneo
+# THE RULES CANNOT CHANGE DURING A MATCH
+d130803bdcf4b4f1	Las reglas no pueden cambiar durante una partida
+# NOT DURING A MATCH: THE PLACES CHANGE BETWEEN MATCHES
+38df2bb3148b00cf	No durante una partida: los lugares cambian entre partidas
+# THE LOBBY'S OWNER CHOOSES WHO PLAYS
+4018c772c10eafb4	Quien abrió la sala elige quién juega
+# COPIED: PASTE THE CODE TO THE OTHERS
+37c87505c88af8b7	Copiado: pégales el código a los demás
+# COPIED: PASTE THE ADDRESS TO THE OTHERS
+175f7261aaa52790	Copiada: pégales la dirección a los demás
+# An update is being installed: online play is off until the game restarts (F1 > Restart now).
+7fa548047081f190	Se está instalando una actualización: el juego en línea queda desactivado hasta que el juego se reinicie (F1, Reiniciar ahora).
+# An update is ready: online play is off until it is installed (F1 > Restart now).
+fa60f796484ac6fa	Hay una actualización lista: el juego en línea queda desactivado hasta que se instale (F1, Reiniciar ahora).
+# An update is being downloaded: online play is off until it is installed.
+cdf720294947b93e	Se está descargando una actualización: el juego en línea queda desactivado hasta que se instale.
+# The owner went back to the lobby.
+7e00b2f7f76f6512	Quien abrió la sala volvió a ella.
+# The two players could not connect to each other.
+58d776875eee4b04	Los dos jugadores no pudieron conectarse entre sí.
+# The lobby was closed by its owner.
+1bc9531f346865d1	Quien abrió la sala la cerró.
+# The lobby's owner removed you from the lobby.
+21165ec63c9229e5	Quien abrió la sala te sacó de ella.
+# The connection to the lobby's owner was lost: the lobby is closed.
+411b362dd0217935	Se perdió la conexión con quien abrió la sala: la sala está cerrada.
+# This lobby is full (8 places).
+5cd51e141b20ea7b	Esta sala está llena (8 lugares).
+# The lobby owner's game is a different version: joining needs the same release.
+0eeaae93fea5df84	El juego de quien abrió la sala es de otra versión: para entrar hace falta la misma.
+# The game at that address is a different version: joining needs the same release.
+fddecc62c25cb511	El juego de esa dirección es de otra versión: para entrar hace falta la misma.
+# Someone with another version of the game tried to join.
+c727333e5a3d4b65	Alguien con otra versión del juego intentó entrar.
+# The lobby owner's game data are not the same as yours (a modified disc image or mods on one side): you cannot join.
+024cc37814d71930	Los datos del juego de quien abrió la sala no son iguales a los tuyos (una imagen de disco modificada o mods en uno de los dos lados): no puedes entrar.
+# No socket could be opened.
+f98b82fb337a27c2	No se pudo abrir ningún socket.
+# Lobbies need the game's state list (the .mem file beside the program): copy all the files of the release.
+8738610901edb560	Las salas necesitan la lista de estados del juego (el archivo .mem junto al programa): copia todos los archivos de la versión.
+# The tournament was called off.
+126ab1006a1005c8	Se canceló el torneo.
+# The match will be played again.
+ab6b5fcd44cb7e63	La partida se va a jugar de nuevo.
+# No winner: the match will be played again.
+9f96a4f6fde0ecb1	Sin ganador: la partida se va a jugar de nuevo.
+# The players' results differ: the match will be played again.
+3939d264cc78631b	Los resultados de los jugadores no coinciden: la partida se va a jugar de nuevo.
+# Only one player's result came: the match will be played again.
+06068d12c28031cf	Solo llegó el resultado de un jugador: la partida se va a jugar de nuevo.
+# The two games disagree on this match: the owner chooses the winner.
+a13a93830a57febb	Los dos juegos no coinciden en esta partida: quien abrió la sala elige al ganador.
+# The host's game data are not the same as yours (a modified disc image or mods on one side): you cannot watch this match.
+036c3eb5bc110835	Los datos del juego del anfitrión no son iguales a los tuyos (una imagen de disco modificada o mods en uno de los dos lados): no puedes mirar esta partida.
+# This match already has as many spectators as it can take (6).
+adaf42365837fa1c	Esta partida ya tiene todos los espectadores que admite (6).
+# The host does not let anyone watch its matches.
+3328324571ee3d83	El anfitrión no deja que nadie mire sus partidas.
+# This match cannot be watched (it was not started from the online menus).
+cdc70ea4e57da007	Esta partida no se puede mirar (no empezó desde los menús en línea).
+# That is the address of the player who joined, not of the host: spectators connect to the host.
+785965963ded929e	Esa es la dirección del jugador que se unió, no la del anfitrión: los espectadores se conectan al anfitrión.
+# This match is a lobby's: join the lobby (its code, or its owner's address) to watch it.
+cc3b57bdaf4f1c3f	Esta partida es de una sala: entra a la sala (con su código o con la dirección de quien la abrió) para mirarla.
+# The host's game is a different version: watching needs the same release as the host's.
+d3f549f5d32cb375	El juego del anfitrión es de otra versión: para mirar hace falta la misma versión que la del anfitrión.
+# No answer from the host. Check the address and port. Watching a match needs a release newer than 0.1.38.7 on the host as well (an older host does not answer spectators).
+1a38aacb538e571b	El anfitrión no responde. Revisa la dirección y el puerto. Para mirar una partida, el anfitrión también necesita una versión posterior a la 0.1.38.7 (uno más viejo no les responde a los espectadores).
+# Your game data and the other player's are not the same (a modified disc image or mods on one side): an online match needs the same on both.
+7790fe2804e808df	Los datos de tu juego y los del otro jugador no son iguales (una imagen de disco modificada o mods en uno de los dos lados): una partida en línea necesita los mismos en los dos.
+# Too many have asked to watch that room in the last two minutes; try again soon.
+019a00747708abae	Demasiadas personas pidieron mirar esa sala en los últimos dos minutos; vuelve a intentarlo pronto.
+# No room with that code, or the matchmaking service does not take spectators yet. (Codes last ten minutes; a host on 0.1.38.7 or older gives its room up when the match begins.)
+2c3db256ba521e93	No hay ninguna sala con ese código, o el servicio de emparejamiento todavía no acepta espectadores. (Los códigos duran diez minutos; un anfitrión con la 0.1.38.7 o anterior deja la sala cuando empieza la partida.)
+# The matchmaking service could not be reached (is the network up?).
+2a009bcfed7c221e	No se pudo llegar al servicio de emparejamiento (¿está funcionando la red?).
+# Too many wrong codes from this address; try again in an hour.
+71b43a5bbdb8c707	Demasiados códigos equivocados desde esta dirección; vuelve a intentarlo en una hora.
+# %s joined the lobby
+eb8ea8956f744c7d	%s entró a la sala
+# %s left the lobby
+2e1680126eca88a5	%s salió de la sala
+# %s was removed from the lobby
+452c5f5c39c7756f	Sacaron a %s de la sala
+# %s lost the connection to the lobby
+7695e47436ceb0ac	%s perdió la conexión con la sala
+# %s won the match
+c3f81b96db9d024f	%s ganó la partida
+# %s won by walkover
+ed847e2471e4fd25	%s ganó porque el rival no se presentó
+# %s is the champion!
+af45618062590aee	¡%s gana el torneo!
+# %s lost the connection: the place is held for 90 s
+a29f2218dd59d67c	%s perdió la conexión: su lugar se guarda durante 90 segundos
+# %s is back in the tournament
+e09d599f0067707d	%s volvió al torneo
+# %s did not come back in time
+1fc02209d8c6e862	%s no volvió a tiempo
+# %s won the match (the owner's choice)
+23299f90b4f3c029	%s ganó la partida (lo eligió quien abrió la sala)
+# Tournament: %d entrants
+aa590d172c7d489c	Torneo: %d participantes
+# Match %d: %s vs %s
+60ac455192b5c874	Partida %d: %s contra %s
+# Online: the Dragon Net Battle window (gs/ui.cpp) and what the network says in it and over the picture (gs/net.c, net_match.c)
+# You are in the lobby. Its screen opens from the main menu (Tenkaichi Budokai Online).
+8eefd1e32e7e6723	Estás en la sala. Su pantalla se abre desde el menú principal (Tenkaichi Budokai Online).
+# Looking for the lobby...
+d075b3f8c60be8f4	Buscando la sala...
+# Finish the online session first.
+027d8d25fb728c2c	Primero termina la sesión en línea.
+# The update is installed, but the new version could not be started: close the game and start it again.
+6067f3801d7baa06	La actualización está instalada, pero no se pudo iniciar la versión nueva: cierra el juego y vuelve a abrirlo.
+# Quick match needs the original disc's data, and your game data are not the disc's. With friends (a room code, a lobby or an address) you can play when both have the same data.
+9848cf428c0dab69	La partida rápida necesita los datos del disco original, y los datos de tu juego no son los del disco. Con amigos (un código de sala, una sala o una dirección) pueden jugar si los dos tienen los mismos datos.
+# The other player's game did not say which game data it has (release 0.1.37, or it was still checking its data): both need 0.1.38 or newer.
+b85b9d300ed84e5d	El juego del otro jugador no dijo qué datos del juego tiene (es la versión 0.1.37, o todavía estaba revisando sus datos): los dos necesitan la 0.1.38 o una más nueva.
+# The two games no longer agree (desync): the match has ended.
+e4356c6bf66b8112	Los dos juegos ya no coinciden (se desincronizaron): la partida terminó.
+# The two games no longer agree (desync): your screen and the other player's may now show different fights.
+6e2f9772a9d01016	Los dos juegos ya no coinciden (se desincronizaron): tu pantalla y la del otro jugador pueden estar mostrando peleas distintas.
+# Spectating: this screen no longer shows the players' fight (desync). Following the match again from the start...
+e31e33b364b06a2c	Como espectador: esta pantalla ya no muestra la pelea de los jugadores (se desincronizó). Siguiendo la partida otra vez desde el principio...
+# Spectating: this screen no longer shows the players' fight (desync). The players' match is not affected.
+13b8736b7afa91c8	Como espectador: esta pantalla ya no muestra la pelea de los jugadores (se desincronizó). A la partida de los jugadores no le pasa nada.
+# The host's match has not begun yet. Waiting for it...
+87d27bd7382f1cc6	La partida del anfitrión todavía no empezó. Esperándola...
+# The match has ended.
+41148cee5eca7139	La partida terminó.
+# The host's match did not begin in two minutes.
+f769c2c650d3d406	La partida del anfitrión no empezó en dos minutos.
+# Nobody answered in two minutes.
+a2ee7686b1bb198b	Nadie respondió en dos minutos.
+# The other player's game was closed: the match has ended.
+bccf96522ceafa2a	Se cerró el juego del otro jugador: la partida terminó.
+# The other player's game lost contact with yours (a connection problem on one side or between you): the match has ended.
+074210aed3c7c5f6	El juego del otro jugador perdió el contacto con el tuyo (un problema de conexión de un lado o entre ustedes): la partida terminó.
+# The players' match has ended.
+9e71b2786ae88638	La partida de los jugadores terminó.
+# The connection to the host was lost.
+adad9b11f2128441	Se perdió la conexión con el anfitrión.
+# Joining the match as a spectator...
+0d4b38707d7a7529	Entrando a la partida como espectador...
+# Waiting for the match...
+86a75979644cf381	Esperando la partida...
+# Tenkaichi Budokai Online: the room was closed.
+fad9f86db84a22e4	Tenkaichi Budokai Online: se cerró la sala.
+# This computer's clock is wrong: set its date and time, then try again.
+f91c29135b5603b1	El reloj de esta computadora está mal: corrige la fecha y la hora, y vuelve a intentarlo.
+# This computer's address could not be found (no network?).
+1ed2f6c7555e25ee	No se pudo averiguar la dirección de esta computadora (¿no hay red?).
+# Quick match needs an official release of the game.
+46bf49d47c7980c9	La partida rápida necesita una versión oficial del juego.
+# Too many searches from this address; try again in a few minutes.
+01322162a1584637	Demasiadas búsquedas desde esta dirección; vuelve a intentarlo en unos minutos.
+# The matchmaking service does not know quick match yet.
+f2a3fd395170cb1e	El servicio de emparejamiento todavía no tiene partida rápida.
+# The matchmaking service gave no answer.
+008b5f9230cca31b	El servicio de emparejamiento no respondió.
+# The matchmaking service does not take lobbies yet. A lobby by address (a port) still works.
+3576ae0fff52fe5d	El servicio de emparejamiento todavía no acepta salas. Una sala por dirección (un puerto) sigue funcionando.
+# Room codes need an official release of the game. Playing by address still works.
+f0bf53f293d4d1e2	Los códigos de sala necesitan una versión oficial del juego. Jugar por dirección sigue funcionando.
+# Too many rooms from this address; try again in a few minutes.
+c3ae6cdc706f3b8f	Demasiadas salas desde esta dirección; vuelve a intentarlo en unos minutos.
+# The matchmaking service gave no room.
+5daa70f3a1cb0ab4	El servicio de emparejamiento no dio ninguna sala.
+# Nobody joined: the room code has run out. Host again for a new one.
+b500296792c0d4bb	No entró nadie: el código de sala venció. Abre la sala otra vez para tener uno nuevo.
+# Room codes need an official release of the game. Watching by address still works.
+571783951970aa3f	Los códigos de sala necesitan una versión oficial del juego. Mirar por dirección sigue funcionando.
+# The matchmaking service does not take spectators yet. Watching by address still works.
+e7348845edba2f22	El servicio de emparejamiento todavía no acepta espectadores. Mirar por dirección sigue funcionando.
+# The host's game is a different version: both players need the same release.
+a67be55364add559	El juego del anfitrión es de otra versión: los dos jugadores necesitan la misma.
+# Someone has already joined that room.
+bcb075d3580ea196	Alguien ya entró a esa sala.
+# No room with that code (codes last ten minutes).
+cd5811984321db2a	No hay ninguna sala con ese código (los códigos duran diez minutos).
+# Too many wrong codes from this address, or too many joining that lobby at once; try again soon.
+4ce00c246646d421	Demasiados códigos equivocados desde esta dirección, o demasiados entrando a esa sala a la vez; vuelve a intentarlo pronto.
+# The lobby's room code has run out (the matchmaking service no longer knows it). Members by address can still come.
+bfddd1ea80f1c925	El código de la sala venció (el servicio de emparejamiento ya no lo conoce). Los que entran por dirección todavía pueden venir.
+# The matchmaking could not be started.
+a152325e0c78cb82	No se pudo iniciar el emparejamiento.
+# tables
+e26607dbf29ff924	tablas
+# characters
+c147738d5cee9199	personajes
+# animations
+2b3c702a4973956a	animaciones
+# stages
+5949326dc12e3b9a	escenarios
+# effects
+fd8b23cc3ea96185	efectos
+# scripts
+f5746510fb7499db	scripts
+# menus
+e93eb0c7d778f5eb	menús
+# Quick match needs the original disc's data, and your game data are not the disc's (%s differ). With friends (a room code, a lobby or an address) you can play when both have the same data.
+f1997f825cedde6a	La partida rápida necesita los datos del disco original, y los datos de tu juego no son los del disco (cambiaron: %s). Con amigos (un código de sala, una sala o una dirección) pueden jugar si los dos tienen los mismos datos.
+# Quick match needs the original disc's data, and your game data are not the disc's (%s differs). With friends (a room code, a lobby or an address) you can play when both have the same data.
+6ec881e33ff214b9	La partida rápida necesita los datos del disco original, y los datos de tu juego no son los del disco (cambiaron: %s). Con amigos (un código de sala, una sala o una dirección) pueden jugar si los dos tienen los mismos datos.
+# The update's line over the main menu and the online screens (gs/ui.cpp, update_line)
+# Update %s available. F1 to update.
+c4946ad068dd0394	Hay una actualización: %s. F1 para actualizar.
+# Downloading update %s: %d%%
+ee1ca1ab61ec70d5	Descargando la actualización %s: %d%%
+# Update %s is ready. F1 > Restart now.
+be803c275f5b19cd	La actualización %s está lista. F1, Reiniciar ahora.
+# . Z Points: %d. Collection: %d of %d, %d percent
+d57f735755608896	. Puntos Z: %d. Colección: %d de %d, %d por ciento
+# %s, %d Z Points
+ea08167ee933df81	%s, %d puntos Z
+# Buy %s for %d Z Points? You have %d. 
+3c6241c946f890c7	¿Comprar %s por %d puntos Z? Tienes %d. 
+# Bought %s. %d Z Points left. X to go on
+79d15ed377ccf813	Compraste %s. Te quedan %d puntos Z. X para seguir
+# Character unlocked!
+b61c14e6184a15d4	¡Personaje desbloqueado!
+# Battle stage unlocked!
+97e6e95b8ff9a02d	¡Escenario de batalla desbloqueado!
+# Item unlocked!
+012b18ea439f9d1a	¡Objeto desbloqueado!
+# Scenario unlocked!
+bd366c7c4aa8170f	¡Escenario desbloqueado!
+# Battle Unlocked!
+4f45a861b7f71f57	¡Batalla desbloqueada!
+# You got a Dragon Ball
+0dfb740f22b74b9d	Tienes una Esfera del Dragón
+# Z Points obtained!
+ac2e8e0186dabb37	¡Puntos Z conseguidos!
+# Z Points earned: %d
+ada97c9aa0da8444	Puntos Z adquiridos: %d
+# Z Points: %d
+584f9be93a116ebf	Puntos Z: %d
+# Total Z Points: %d
+7ffc0c21a78e19ed	Puntos Z totales: %d
+# Failed...
+02e0b55fb63f8b4a	Fallido...
+# Health: %d percent, %d points
+94f941ad3490d5f7	Vida: %d por ciento, %d puntos
+# Max combo: %d hits, %d points
+8ed80fe2d2cf4176	Combo máx: %d golpes, %d puntos
+# Max damage: %d, %d points
+ed3ce1a3b523cf7b	Daño máx: %d, %d puntos
+# Defeated: %d, %d points
+09f3483dce16b930	Derrotado: %d, %d puntos
+# Time: %d hours, %d minutes, %d seconds
+294cfe74bb9b52fc	Tiempo: %d horas, %d minutos, %d segundos
+# Time: %d minutes, %d seconds
+78601d065af4a37e	Tiempo: %d minutos, %d segundos
+# Bonus page %d of %d
+28886474a32badee	Página de bonos %d de %d
+# %s, %d points
+b0d78b96e3419953	%s, %d puntos
+# Score: %d. Rank %c
+399807b682d1d642	Puntuación: %d. Rango %c
+# Score: %d
+b01ec5df1afd4766	Puntuación: %d
+# Cleared!
+36c37fcd46c76f36	¡Superado!
+# . New record
+4fa36bed3b858f78	. Nuevo récord
+# Tech
+24aadbfb1b1a1a11	Técnica
+# Z Counter fix
+5669007533513116	Arreglo del Z Counter
+# Bombardment fix
+475d09bc9f4721b5	Arreglo del Bombardment
+# Fixes for the original game's fighting mechanics, made by the community. Each one changes how fights play, so they are off by default. They apply from the next fight, offline only: online matches and replays always use the game's original rules.
+92b8f31aa6e934ed	Arreglos de la comunidad a las mecánicas de pelea del juego original. Cada uno cambia cómo se juegan las peleas, por eso vienen apagados. Se aplican desde la próxima pelea y solo fuera de línea: las partidas en línea y las repeticiones siempre usan las reglas originales del juego.
+# From the community's "BT3 PS2 Port Gameplay Source" v0.3.1 (Z Counter 2 v0.9.0, Bombardment v2.2).
+8ee8fc5312be5444	Del "BT3 PS2 Port Gameplay Source" v0.3.1 de la comunidad (Z Counter 2 v0.9.0, Bombardment v2.2).
+# In a chain of smash Ki blasts with dashes between them, body contact with the opponent could\nstop the dash one frame before the next smash blast is ready, breaking the chain. With this,\nthat one stop waits one frame, only when the next smash blast is exactly one frame away.\nKi costs, timing (six frames) and priorities stay the original ones.
+4f875d590d538c1d	En una cadena de ráfagas de ki fuertes con impulsos entre ellas, el contacto con el rival podía frenar el impulso un cuadro antes de que la siguiente ráfaga estuviera lista, y la cadena se cortaba. Con esto, ese freno espera un cuadro, solo cuando a la siguiente ráfaga le falta exactamente un cuadro. El costo de ki, los tiempos (seis cuadros) y las prioridades siguen siendo los originales.
+# Keeps a valid Z Counter (Up + attack, timed) that the original game loses when your movement\nchanges your hitbox in the same frame the attack arrives. The input timing, cooldown and\nrequirements stay the original ones; it only checks the counter against your pose at the\nmoment you pressed it.
+49dde00a66628a6f	Mantiene un Z Counter válido (arriba más ataque, a tiempo) que el juego original pierde cuando tu movimiento cambia tu zona de impacto en el mismo cuadro en que llega el ataque. El tiempo para apretar, la espera y los requisitos siguen siendo los originales; solo comprueba el contraataque contra tu postura en el momento en que lo apretaste.
+# Reload the scripts
+96f9865c414e3a6b	Volver a cargar los scripts
+# Loads every mod again from its folder (after adding one, or after changing a script).
+7d8066b541f72ecf	Vuelve a cargar cada mod desde su carpeta (después de agregar uno o de cambiar un script).
+# No mods found.
+73916c06b1b46957	No se encontró ningún mod.
+# Defaults
+48022f6d5501d677	Predeterminados
+# Script mods: Lua scripts in the folder "%s" next to the game, one folder per mod with a mod.lua in it. They can draw over the picture and change how the fight camera is shown; they cannot change a fight, so they can be used online. See docs/port/mods.md.
+a84ae7f1cd7cd90c	Mods con scripts: scripts de Lua en la carpeta "%s" junto al juego, una carpeta por mod con un mod.lua adentro. Pueden dibujar sobre la imagen y cambiar cómo se muestra la cámara de la pelea; no pueden cambiar una pelea, así que se pueden usar en línea. Más información en docs/port/mods.md.
+# Stopped: %s
+9aade808f42f35d0	Detenido: %s
+# by %s
+08632c48ec96c7f8	Autor: %s
+# Folder: %s/%s Uses:%s%s%s
+84a20807c097273a	Carpeta: %s/%s. Usa:%s%s%s

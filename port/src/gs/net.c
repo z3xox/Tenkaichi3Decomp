@@ -97,6 +97,9 @@ static int sGone; /* the other player said goodbye (2: because its check found t
 static char sGoneNote[160];
 extern void Port_UiNotice(const char *text); /* ui.cpp: a line over the picture for a few seconds */
 extern void Port_UiBanner(const char *text, int ms); /* ui.cpp: a line in the middle while the game waits */
+extern void Port_UiBannerSaid(const char *text, const char *said); /* ... with what the screen reader says instead */
+extern void Port_UiNoticeQuiet(const char *text);  /* ... a notice the screen reader does not read (said elsewhere) */
+extern const char *PortA11y_Tr(const char *label) __attribute__((format_arg(1))); /* a11y.c: the reader's language */
 extern void Gs_HoldFrame(void);                      /* gs_draw.c: the last picture again, with that line on it */
 extern const char *MenuTranslation_PortText(const char *id);
 static void session_hold(void);
@@ -2585,7 +2588,22 @@ static void session_banner(void) {
         k = strlen(text);
         snprintf(text + k, sizeof(text) - k, "\n%s", more);
     }
-    Port_UiBanner(text, 0);
+    { /* (the screen reader says it in its own language, with the name: the one line that tells the rival is there) */
+        char spoken[300];
+        if (region[0] != '\0') {
+            snprintf(spoken, sizeof(spoken), PortA11y_Tr("Your rival \"%s\" from %s is here! The match begins."), name,
+                     PortA11y_Tr(region));
+        } else {
+            snprintf(spoken, sizeof(spoken), PortA11y_Tr("Your rival \"%s\" is here! The match begins."), name);
+        }
+        if (ms >= 0) {
+            k = strlen(spoken);
+            snprintf(spoken + k, sizeof(spoken) - k, " ");
+            k = strlen(spoken);
+            snprintf(spoken + k, sizeof(spoken) - k, PortA11y_Tr("Round trip: about %d ms."), ms);
+        }
+        Port_UiBannerSaid(text, spoken);
+    }
 }
 
 /* While the game's thread waits for the other side during a session's start: the line, and the picture. */
@@ -4071,7 +4089,7 @@ static void lobby_background(void) {
         sLobbyBg = 0;
     } else if (now == 2) {
         sLobbyBg = 0;
-        Port_UiNotice("Tenkaichi Budokai Online: your opponent is here! The match begins.");
+        Port_UiNoticeQuiet("Tenkaichi Budokai Online: your opponent is here! The match begins."); /* (the banner says it) */
         Port_LobbyLaunch();
     } else if (now <= 0) {
         sLobbyBg = 0;
