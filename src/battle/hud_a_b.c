@@ -352,8 +352,16 @@ void HudTeam_SetTargetHpMax(s32 side, s32 hpMax) {
     gHudTeam->hp.max[side] = hpMax;
 }
 
+#ifdef PORT
+/* PC only: what the HUD is given, for HUDs drawn by the port (port/src/fight_panels.c Port_HudFeed: the script mods).
+   Presentation: nothing returns. */
+extern void Port_HudFeed(s32 kind, s32 side, s32 a, s32 b);
+#endif
 /* Switch gauge; on the frame it becomes full the marker's blink starts (1 -> 0 over a second). */
 void HudTeam_SetSwitchGauge(s32 side, s32 gauge) {
+#ifdef PORT
+    Port_HudFeed(6, side, gauge, 0);
+#endif
     if (gHudTeam->sw.gauge[side] != HUD_TEAM_GAUGE_FULL && gauge == HUD_TEAM_GAUGE_FULL) {
         Ramp_Start(&gHudTeam->flash[side], 1.0f, 1.0f, 0.0f);
     }
@@ -383,6 +391,9 @@ void HudTeam_SlideIn(f32 seconds) {
 
 /* While a side is switching its panel slides away, and back afterwards, over 0.3 s. */
 void HudTeam_SetSwitching(s32 side, s32 on) {
+#ifdef PORT
+    Port_HudFeed(7, side, on, 0);
+#endif
     if (gHudTeam->switching[side] != on) {
         if (on) {
             Ramp_Start(&gHudTeam->slide[side], 0.3f, 0.0f, 1.0f);

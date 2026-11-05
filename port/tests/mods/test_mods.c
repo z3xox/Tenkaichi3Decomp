@@ -120,7 +120,9 @@ int main(void) {
         "  local f = game.fighters[1]\n"
         "  assert(f.status.attack == 1 and f.status.speed == -1 and f.status.ki == 0, 'status')\n"
         "  assert(f.hud_hits == 7 and f.message == 2, 'combo feed')\n"
-        "  hud.hide_game('gauges', 'combo')\n"
+        "  assert(f.switch_gauge == 100000 and f.switching == true, 'team feed')\n"
+        "  assert(game.fighters[2].switch_gauge == 0 and game.fighters[2].switching == false, 'team feed, side 2')\n"
+        "  hud.hide_game('gauges', 'combo', 'team')\n"
         "  hud.poly({ 0, 0, 10, 0, 10, 10 }, 0x11223344)\n"
         "  hud.path({ { 0, 0 }, { 5, 5 }, { 9, 1 } }, 0xFFFFFFFF, 2, true)\n"
         "  hud.gradient(0, 0, 10, 10, 1, 2, 3, 4)\n"
@@ -161,6 +163,8 @@ int main(void) {
     sFp.side[0].statUp = 1;
     sFp.side[0].hudHits = 7;
     sFp.side[0].msg = 2;
+    sFp.side[0].switchGauge = 100000;
+    sFp.side[0].switching = 1;
 
     Mods_Tick();
     CHECK(Mods_Count() == 12); /* (every folder with a mod.lua; not not_a_mod) */
@@ -171,7 +175,7 @@ int main(void) {
               lk->energy_light == 0 && lk->rim_color == 0x11223344u);
     }
     CHECK(mod("shapes") != NULL && mod("shapes")->error[0] == '\0');
-    CHECK(Mods_HudHidden() == (1 | 4));
+    CHECK(Mods_HudHidden() == (1 | 4 | 8));
     {
         char path[400];
         CHECK(Mods_ImagePath(1, path, sizeof(path)) != NULL && strstr(path, "shapes/art/frame.png") != NULL);

@@ -105,7 +105,7 @@ typedef struct ModsHud {
 int Mods_HudRead(ModsHud *out);               /* any thread: a consistent copy; 0 = nothing to draw */
 int Mods_HudActive(void);                     /* any thread: the scripts drew something at the last blank */
 int Mods_HudHidden(void);                     /* any thread: the game's HUD pieces they stand in for (bits: 1 gauges,
-                                                 2 timer, 4 combo) */
+                                                 2 timer, 4 combo, 8 team) */
 /* The look of the fight's picture the scripts asked for at the last blank (bt3.look), 0..100 each, 0 = as the game
    draws it; read by the renderer (gs_draw.c) on the game's thread. Several mods asking: the strongest of each.
    shading:      the fighters' two-tone shading ramp redrawn: cool coloured shadows, a soft short edge

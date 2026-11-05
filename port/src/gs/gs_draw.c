@@ -1649,8 +1649,8 @@ void GsGpu_PagesMoved(uint32_t delta) {
     }
 }
 
-/* The game's HUD pieces being drawn (markers 0x72 .. 0x77, src/battle/hud_a.c): bit 0 the gauges with the faces,
-   1 the timer, 2 the combo counter. The ones a script mod stands in for (hud.hide_game, gs/mods.c Mods_HudHidden) are
+/* The game's HUD pieces being drawn (markers 0x72 .. 0x79, src/battle/hud_a.c): bit 0 the gauges with the faces,
+   1 the timer, 2 the combo counter, 3 the team panel. The ones a script mod stands in for (hud.hide_game, gs/mods.c Mods_HudHidden) are
    left out of the picture; the game builds and runs its HUD as ever. */
 static int sHudScope;
 extern int Mods_HudHidden(void);
@@ -2370,7 +2370,7 @@ void GsGpu_Native(int effect) {
         grade_add();
         return;
     }
-    if (effect >= 0x72 && effect <= 0x77) {
+    if (effect >= 0x72 && effect <= 0x79) {
         int bit = 1 << ((effect - 0x72) >> 1);
         sHudScope = (effect & 1) == 0 ? sHudScope | bit : sHudScope & ~bit;
         return;

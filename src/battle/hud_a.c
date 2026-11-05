@@ -178,15 +178,18 @@ void HudNode_Update(HudNode *node) {
 #define PORT_2D_END 0x13
 #define PORT_2D_BY_POS 0x14
 #define PORT_2D_NOTICE 0x18
-/* the gauges with the faces, the timer, the combo counter with its messages: begin / end, so that a HUD drawn by the
-   port (the script mods' hud.hide_game, port/src/gs/mods.c) can stand in for them; the renderer then leaves them out
-   of the picture (port/src/gs/gs_draw.c). The game builds and runs its HUD as ever. */
+/* the gauges with the faces, the timer, the combo counter with its messages, the team panel (the face of the member a
+   switch would bring in, its health and the switch gauge): begin / end, so that a HUD drawn by the port (the script
+   mods' hud.hide_game, port/src/gs/mods.c) can stand in for them; the renderer then leaves them out of the picture
+   (port/src/gs/gs_draw.c). The game builds and runs its HUD as ever. */
 #define PORT_HUD_GAUGE_BEGIN 0x72
 #define PORT_HUD_GAUGE_END 0x73
 #define PORT_HUD_TIMER_BEGIN 0x74
 #define PORT_HUD_TIMER_END 0x75
 #define PORT_HUD_COMBO_BEGIN 0x76
 #define PORT_HUD_COMBO_END 0x77
+#define PORT_HUD_TEAM_BEGIN 0x78
+#define PORT_HUD_TEAM_END 0x79
 extern void Port_GsMarker(s32 effect);
 #endif
 
@@ -217,6 +220,9 @@ void HudNode_Draw(HudNode *node, s32 mirror) {
     }
     if (node == gHud->combo) {
         Port_GsMarker(PORT_HUD_COMBO_BEGIN);
+    }
+    if (node == gHud->team) {
+        Port_GsMarker(PORT_HUD_TEAM_BEGIN);
     }
 #endif
     Vu0Cur_Push();
@@ -257,6 +263,9 @@ void HudNode_Draw(HudNode *node, s32 mirror) {
     }
     if (node == gHud->combo) {
         Port_GsMarker(PORT_HUD_COMBO_END);
+    }
+    if (node == gHud->team) {
+        Port_GsMarker(PORT_HUD_TEAM_END);
     }
 #endif
 }
