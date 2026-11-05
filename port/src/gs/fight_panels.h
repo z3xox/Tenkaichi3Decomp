@@ -44,6 +44,8 @@ typedef struct FpSide {
     unsigned hitSeq;      /* counts each new hit count given */
     int msg;              /* the last event message (0..4) */
     unsigned msgSeq;      /* counts the messages given */
+    int switchGauge;      /* the switch gauge (0..100000, full: a switch can be made) */
+    int switching;        /* a switch is under way */
     FpMember m[FP_MEMBERS];
 } FpSide;
 

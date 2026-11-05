@@ -94,6 +94,7 @@ Each fighter:
 | `cpu` | the side is played by the computer |
 | `moves[1..5]` | the fighter's moves: 1, 2 skills (Blast 1), 3, 4 specials (Blast 2), 5 the ultimate. Each: `name` (as the game shows it, `""` for none), `kind` (`"skill"`, `"special"`, `"ultimate"`), `button` (`"circle"`, `"triangle"`) and `direction` (`""`, `"up"`, `"down"`) with the charge button held, `cost` (skills: blast gauge, 100000 a stock; the others: ki, 20000 a bar), `usable` (it can be paid for now) |
 | `hit_seq`, `message`, `message_seq` | a count that grows with each new hit count given; the last event message (0 Counter, 1 MAX POWER, 2 Lock on, 3 First Attack, 4 BOOST) and a count of messages |
+| `switch_gauge`, `switching` | what the game's team panel shows: the switch gauge (0..100000; full, a switch can be made) and whether a switch is under way (the panel slides away meanwhile) |
 
 
 ## `hud`
@@ -119,7 +120,7 @@ under the settings window. Only what was drawn at the last blank is shown: draw 
 | `hud.image(image, x, y, w, h [, options])` | a PNG of the mod (`bt3.image`); options `u0 v0 u1 v1` (the part, 0..1), `tint`, `flip` |
 | `hud.portrait(side, x, y, w, h [, options])` | the fighter's character-select portrait (below) |
 | `hud.clip(x, y, w, h)`, `hud.unclip()` | what is drawn between them is cut to the rectangle |
-| `hud.hide_game("gauges", "timer", "combo")` | the game's own pieces are left out of the picture this blank, for a mod that draws its own (ask every blank) |
+| `hud.hide_game("gauges", "timer", "combo", "team")` | the game's own pieces are left out of the picture this blank, for a mod that draws its own (ask every blank); `"team"` is the panel under the gauges with the face of the member a switch would bring in, its health and the switch gauge |
 
 Text options: `outline` (a colour), `outline_size`, `shadow` (a colour), `shadow_x`, `shadow_y`, `bottom` (a colour:
 the fill shaded from `colour` at the top to it), `lean` (0.16 leans the letters forward), `baseline` (y is the

@@ -220,13 +220,15 @@ static void read_side(FpState *st, int side) {
 }
 
 /* What the game's HUD is given (src/battle/hud_b.c, hud_c_b.c, hud_e_c.c), for HUDs the port draws (the script mods):
-   1 timer (value, is a clock), 2 status icons (mask, raised), 3 combo hits, 4 combo damage, 5 event message. Blanks
+   1 timer (value, is a clock), 2 status icons (mask, raised), 3 combo hits, 4 combo damage, 5 event message, 6 switch
+   gauge, 7 switching (src/battle/hud_a_b.c, the team panel). Blanks
    run again after a rollback give nothing (they were given already, or will be). */
 static struct {
     int timer, timerClock, timerSet;
     int statMask[2], statUp[2], hits[2], damage[2], msg[2];
     unsigned hitSeq[2], msgSeq[2];
-} sFeed = {0, 1, 0, {0, 0}, {0, 0}, {0, 0}, {-1, -1}, {0, 0}, {0, 0}, {0, 0}};
+    int switchGauge[2], switching[2];
+} sFeed = {0, 1, 0, {0, 0}, {0, 0}, {0, 0}, {-1, -1}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}};
 
 void Port_HudFeed(int kind, int side, int a, int b) {
     if (gPortResim || side < 0 || side > 1) {
@@ -243,6 +245,8 @@ void Port_HudFeed(int kind, int side, int a, int b) {
         break;
     case 4: sFeed.damage[side] = a; break;
     case 5: sFeed.msg[side] = a; sFeed.msgSeq[side]++; break;
+    case 6: sFeed.switchGauge[side] = a; break;
+    case 7: sFeed.switching[side] = a != 0; break;
     }
 }
 
@@ -267,6 +271,8 @@ void PortPanels_GameTick(void) {
         sFeed.statMask[0] = sFeed.statMask[1] = 0;
         sFeed.hits[0] = sFeed.hits[1] = 0;
         sFeed.damage[0] = sFeed.damage[1] = -1;
+        sFeed.switchGauge[0] = sFeed.switchGauge[1] = 0;
+        sFeed.switching[0] = sFeed.switching[1] = 0;
     } else {
         int s;
         st.timer = sFeed.timer;
@@ -280,6 +286,8 @@ void PortPanels_GameTick(void) {
             st.side[s].hitSeq = sFeed.hitSeq[s];
             st.side[s].msg = sFeed.msg[s];
             st.side[s].msgSeq = sFeed.msgSeq[s];
+            st.side[s].switchGauge = sFeed.switchGauge[s];
+            st.side[s].switching = sFeed.switching[s];
         }
     }
     __atomic_add_fetch(&sSeq, 1, __ATOMIC_ACQ_REL);

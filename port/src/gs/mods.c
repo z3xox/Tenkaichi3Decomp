@@ -761,13 +761,14 @@ static int l_hud_unclip(lua_State *L) {
     return 0;
 }
 
-/* hud.hide_game("gauges", "timer", "combo"): the game's own pieces are left out of the picture this blank (the mod
+/* hud.hide_game("gauges", "timer", "combo", "team"): the game's own pieces are left out of the picture this blank (the mod
    draws its own in their place). Asked again every blank, like the shapes. */
 static int l_hud_hide_game(lua_State *L) {
     int n = lua_gettop(L), k;
     for (k = 1; k <= n; k++) {
         const char *s = luaL_checkstring(L, k);
-        sHideBuild |= strcmp(s, "gauges") == 0 ? 1 : strcmp(s, "timer") == 0 ? 2 : strcmp(s, "combo") == 0 ? 4 : 0;
+        sHideBuild |= strcmp(s, "gauges") == 0 ? 1 : strcmp(s, "timer") == 0 ? 2 : strcmp(s, "combo") == 0 ? 4 :
+                      strcmp(s, "team") == 0 ? 8 : 0;
     }
     return 0;
 }
@@ -931,7 +932,7 @@ static void push_game(lua_State *L, const FpState *fp, const ModsGame *g) {
     for (side = 0; side < 2 && fp->battle && g->battle; side++) {
         const FpSide *s = &fp->side[side];
         const ModsFighter *f = &g->f[side];
-        lua_createtable(L, 0, 24);
+        lua_createtable(L, 0, 26);
         set_int(L, "side", side + 1);
         set_int(L, "active", s->active + 1);
         set_int(L, "count", s->count);
@@ -957,6 +958,8 @@ static void push_game(lua_State *L, const FpState *fp, const ModsGame *g) {
         set_int(L, "hit_seq", s->hitSeq);
         set_int(L, "message", s->msg);
         set_int(L, "message_seq", s->msgSeq);
+        set_int(L, "switch_gauge", s->switchGauge); /* (0..100000: full, a switch can be made) */
+        set_bool(L, "switching", s->switching);     /* (a switch is under way) */
         set_bool(L, "charging", s->action == 0x37);   /* (ki charge: action 0x37) */
         set_bool(L, "charge_held", s->chargeHeld);    /* (the charge button held) */
         set_bool(L, "cpu", s->cpu);                   /* (played by the computer) */
