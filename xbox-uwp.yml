@@ -1,0 +1,22 @@
+name: Build Xbox UWP
+
+on:
+  workflow_dispatch: # يتيح لك تشغيل البناء يدوياً بضغطة زر
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Restore NuGet Packages
+      run: nuget restore port/xbox/YourProjectName.sln # تأكد من مسار ملف الـ .sln الصحيح داخل مشروع التينكايشي
+
+    - name: Build UWP App
+      run: |
+        msbuild port/xbox/YourProjectName.sln /p:Configuration=Release /p:Platform=x64 /p:AppxBundle=Always /p:AppxBundlePlatforms="x64" /t:Publish
