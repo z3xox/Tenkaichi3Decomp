@@ -707,7 +707,7 @@ void BtlAiMove_Run(BtlAiWork *s) {
         act->phase = 3;
         m->flags &= ~1;
     }
-    if (++m->stuckTimer > 60) {
+    if (++m->stuckTimer > 5) {
         act->phase = 3;
     }
     if (m->type == 4) {

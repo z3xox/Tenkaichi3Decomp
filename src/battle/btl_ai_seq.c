@@ -340,7 +340,7 @@ void BtlAiSeq_PhaseRun(BtlAiWork *ai) {
         if (BtlCharApi_AnyHasFlag128() == 0) {
             seq->waitTimer++;
         }
-        if (timeout * 30 < seq->waitTimer) {
+        if (timeout * 5 < seq->waitTimer) {
             seq->phase = 3;
             return;
         }
@@ -548,24 +548,8 @@ s32 BtlAiPick_SkillCharge(BtlAiWork *ai, s32 n, s32 arg) {
  * highest; arg 2: 10 + (29 - level) * 20 / 29 (30 frames at level 0, 10 at level 29; 0 for the dummy). The draw
  * is made for every arg. Always alternative 0. */
 s32 BtlAiPick_LevelDelay(BtlAiWork *ai, s32 n, s32 arg) {
-    f32 tbl[5] = { 45.0f, 33.75f, 22.5f, 11.25f, 0.0f };
     BtlAiSeqA *seq = SEQA(ai);
-    f32 r = (s32)Rand_Range(100) * 0.01f;
-    s32 level = ai->level;
-    f32 base = tbl[level < 0 ? 0 : level / 6] * 0.5f;
-
-    switch (arg) {
-    case 1:
-        seq->timer = base + base * r;
-        break;
-    case 2:
-        if (level < 0) {
-            seq->timer = 0;
-        } else {
-            seq->timer = (29 - level) * (20.0f / 29.0f) + 10.0f;
-        }
-        break;
-    }
+    seq->timer = 0;
     return 0;
 }
 

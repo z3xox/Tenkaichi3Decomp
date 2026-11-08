@@ -302,6 +302,21 @@ void BtlAiAtk_Reset(s32 side, AiActAtk *atk) {
    (+20 when the opponent's oppKind is 2). On success: base * 0.1 (or, oppKind 2, a second roll between 1.0 and
    1.1). On failure: Rand_Range(range) * 0.1, 0 when range is 0. */
 f32 BtlAiAtk_RollCharge(AiActSide *s, s8 base, s8 range) {
+    s32 hp = BtlCharApi_GetHp(s->side);
+s32 hpMax = BtlCharApi_GetHpMax(s->side);
+f32 power = base * 0.1f;
+
+if (base == 0 && range == 0) {
+    return 0.0f;
+}
+
+if (hpMax > 0) {
+    s32 hpPercent = (hp * 100) / hpMax;
+    if (hpPercent < 30) {
+        power *= 2.0f; 
+    }
+}
+return power;
     s32 roll = Rand_Range(100);
     s32 chance[5] = { 10, 20, 30, 40, 50 };
     AiActSide *opp = &gBtlAi->side[s->side ^ 1];
