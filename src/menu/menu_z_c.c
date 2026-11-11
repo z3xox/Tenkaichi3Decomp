@@ -280,6 +280,10 @@ void DcMenu_Draw(DcMenu *menu) {
     MsgWin_Draw(0, 0, menu->voiceLine);
     DcSave_Update();
 #ifdef PORT
+    {
+        extern void PortA11y_Plate(s32 screen, s32 cursor, s32 busy); /* PC build: the screen reader (port/src/a11y_game.c) */
+        PortA11y_Plate(1, menu->cursor, menu->flags & (DCMENU_CHOSEN | DCMENU_LEAVING));
+    }
     Port_MenuPage(0);
 #endif
 }

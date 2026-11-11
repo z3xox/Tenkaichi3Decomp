@@ -4,6 +4,8 @@
 # Needs only docker and this repository: no disc, no game data, no build on the host.
 # BT3_BUILD_KEY in the environment (an official release's key: port/tools/buildkey.py, port/matchmaking/README.md) is
 # handed on to the build by name, so its value is on no command line; without it the programs have no key.
+# BT3_PRISM (the accessible release: Prism's prism-windows-x64.zip, a path inside this repository as the container sees
+# it, /src/...) is handed on the same way: port/tools/package.py puts prism.dll and its licences in the Windows zip.
 # BT3_VERSION=0.1.38.10 names the release's full number (the workflow takes the tag's); without it the programs are "dev"
 # and never offer to update themselves. Signing for the automatic update is a separate step: port/release/README.md.
 set -e
@@ -11,6 +13,6 @@ cd "$(dirname "$0")/../.."
 docker build -q -t bt3-port-release:jammy port/release >/dev/null
 mkdir -p port/build_release
 # the repository at /src with the release's own build folder in the place of port/build; files owned by you
-docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -e BT3_BUILD_KEY -e BT3_VERSION -v "$PWD":/src -v "$PWD/port/build_release":/src/port/build -w /src \
+docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -e BT3_BUILD_KEY -e BT3_PRISM -e BT3_VERSION -v "$PWD":/src -v "$PWD/port/build_release":/src/port/build -w /src \
     bt3-port-release:jammy sh port/release/inside.sh
 echo "releases: port/build_release/"

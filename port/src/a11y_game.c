@@ -47,6 +47,7 @@ extern void PortA11y_Note(const char *text);
 extern int PortA11y_Utf8(char *out, int cap, const uint16_t *str);
 extern int gPortResim; /* gs/state.c: blanks being run again */
 extern int Port_Setting(const char *name, int def); /* plat_settings.c */
+extern void Port_SettingSave(const char *name, int value);
 extern void Port_AudioRefresh(void);                /* gs/snd_adx.c: the streams take their volume again */
 
 /* include/menu/menu_a.h: MenuProgress; the modes are in docs/systems/menu_overlay.md */
@@ -324,8 +325,13 @@ extern A11yDuelMenu GAME_PTR gDuelMenu;
    each side (two words) and stage destruction; each is the row of its value list. */
 typedef struct {
     unsigned char cleared;        /* 0x0 */
-    char unk1[0xC - 1];
-} A11yMissionRecord;               /* include/menu/menu_p.h: PSaveMission */
+    unsigned char rank;           /* 0x1: the best rank, a column of the rank strip (kRankLetter) */
+    unsigned char hours, minutes, seconds; /* 0x2: the best time (src/menu/menu_o_d.c MisSel_Draw) */
+    char unk5[3];
+    int score;                    /* 0x8: shown * 100 */
+} A11yMissionRecord;               /* include/menu/menu_p.h: PSaveMission; include/menu/menu_o.h: UoMissionRec */
+/* A rank's letter as the strips draw it (menu_p_b.c; menu_o_d.c MisSel_SetRank; column 0 is a dash). */
+static const char kRankLetter[5] = {'-', 'C', 'B', 'A', 'Z'};
 
 typedef struct {
     int defeated;                    /* opponents beaten */
@@ -470,24 +476,27 @@ static void say_item(const char *label, int index, int count, int flags) {
    entry 0 is the number of lines) to UTF-16 strings that begin with U+FEFF (src/sys/dialog.c DIALOG_TEXT,
    src/battle/view_b.c TextBox_AttachLine). The strings come after the table, so the table ends where the first
    one starts: an entry from there on is not read. Empty when it does not look like such a line. Returns the
-   length. */
-static int text_line(char *out, int cap, uint32_t GAME_PTR file, int n) {
+   length (text_addr: the string in the game's memory, NULL then). */
+static uint16_t GAME_PTR text_addr(uint32_t GAME_PTR file, int n) {
     uint32_t ofs;
     uint16_t GAME_PTR str;
 
-    out[0] = '\0';
     if (file == NULL || n < 0 || n >= 0x1000 || (uint32_t)n + 1 >= file[1] >> 2) {
-        return 0;
+        return NULL;
     }
     ofs = file[n + 1] >> 2 << 2;
     if (ofs == 0 || ofs >= 0x200000) {
-        return 0;
+        return NULL;
     }
     str = (uint16_t GAME_PTR)((uint8_t GAME_PTR)file + ofs);
-    if (str[0] != 0xFEFF) {
-        return 0;
-    }
-    return PortA11y_Utf8(out, cap, (const uint16_t *)str);
+    return str[0] == 0xFEFF ? str : NULL;
+}
+
+static int text_line(char *out, int cap, uint32_t GAME_PTR file, int n) {
+    uint16_t GAME_PTR str = text_addr(file, n);
+
+    out[0] = '\0';
+    return str != NULL ? PortA11y_Utf8(out, cap, (const uint16_t *)str) : 0;
 }
 
 /* The memory card window: its text when it opens or changes, then the choice under the cursor. */
@@ -623,6 +632,52 @@ static void ub_menu(void) {
     }
 }
 
+/* The top menus of Evolution Z (mode 48, EvoTop: src/menu/menu_w_c.c) and of the Data Center (mode 53, DcMenu:
+   src/menu/menu_z_c.c): three plates each, drawn as pictures, with a guide who speaks. Their work structures are
+   locals of their Run functions, so nothing points at them: each one's Draw gives its cursor here every frame it
+   draws (PortA11y_Plate), and plates() says the plate when it changes. The names are descriptions of where each
+   plate leads (EvoTop_Input: the customising screen, the shop, the guide's explanation; include/menu/menu_z.h:
+   password, character list, replay), not yet checked against the plates' pictures. */
+#define PLATE_SCREENS 2
+#define PLATE_COUNT 3
+static const char *const kPlateNames[PLATE_SCREENS][PLATE_COUNT] = {
+    {"Customize characters", "Item shop", "About Evolution Z"},
+    {"Passwords", "Saved characters", "Replays"},
+};
+static struct {
+    int cursor, busy, blank; /* as last given, and the blank it was given on (0: never) */
+} sPlate[PLATE_SCREENS];
+
+static int sOn;    /* (defined with the tick, below) */
+static int sBlank;
+
+void PortA11y_Plate(int screen, int cursor, int busy) {
+    if (!sOn || gPortResim || screen < 0 || screen >= PLATE_SCREENS) {
+        return;
+    }
+    sPlate[screen].cursor = cursor;
+    sPlate[screen].busy = busy != 0;
+    sPlate[screen].blank = sBlank;
+}
+
+static void plates(void) {
+    static int item[PLATE_SCREENS] = {-1, -1};
+    int s, cur;
+
+    for (s = 0; s < PLATE_SCREENS; s++) {
+        if (sPlate[s].blank == 0 || sBlank - sPlate[s].blank > 4) { /* (not drawn lately: the screen is gone) */
+            item[s] = -1;
+            continue;
+        }
+        cur = sPlate[s].cursor;
+        if (sPlate[s].busy || cur < 0 || cur >= PLATE_COUNT || cur == item[s]) {
+            continue;
+        }
+        say_item(tr(kPlateNames[s][cur]), cur, PLATE_COUNT, follow());
+        item[s] = cur;
+    }
+}
+
 /* include/menu/menu_o.h: DiscFusion (src/menu/menu_o_b.c), the Disc Fusion screen of mode 24: two plates, one per
    earlier game's disc, with text line 0x15A + disc (0x15C + disc once that disc was read: DiscFusion_Init) of the
    screen's own text. Its disc swap asks through the Dialog, read by dialog(). */
@@ -746,7 +801,11 @@ static void mission_select(void) {
             n += snprintf(text + n, sizeof(text) - n, ", %s", line);
         }
         if (gSaveData != NULL && gSaveData->mission[cur].cleared) {
-            snprintf(text + n, sizeof(text) - n, "%s", tr(", cleared"));
+            n += snprintf(text + n, sizeof(text) - n, "%s", tr(", cleared"));
+        }
+        /* (the row's rank letter is a picture: MisSel_SetRank) */
+        if (gSaveData != NULL && gSaveData->mission[cur].rank >= 1 && gSaveData->mission[cur].rank <= 4) {
+            snprintf(text + n, sizeof(text) - n, tr(", rank %c"), kRankLetter[gSaveData->mission[cur].rank]);
         }
     } else {
         if (m->missions == NULL || m->opps == NULL) {
@@ -762,8 +821,14 @@ static void mission_select(void) {
         for (i = 0; i < 5 && (unsigned)def->opp[i] < MISSEL_OPPS_MAX && m->opps[def->opp[i]].chara != MISSEL_NONE; i++) {
             opps++;
         }
-        snprintf(text + n, sizeof(text) - n, "%d %s", opps,
-                 tr(opps == 1 ? "opponent" : "opponents"));
+        n += snprintf(text + n, sizeof(text) - n, "%d %s", opps,
+                      tr(opps == 1 ? "opponent" : "opponents"));
+        /* (the best time and score are numbers drawn as pictures: MisSel_Draw) */
+        if (gSaveData != NULL && gSaveData->mission[cur].score > 0) {
+            snprintf(text + n, sizeof(text) - n, tr(". Best: time %d:%02d:%02d, score %d"),
+                     gSaveData->mission[cur].hours, gSaveData->mission[cur].minutes,
+                     gSaveData->mission[cur].seconds, gSaveData->mission[cur].score * 100);
+        }
     }
     PortA11y_Say(text, follow());
     level = m->level;
@@ -2243,10 +2308,15 @@ static void say_long(const char *text, int flags) {
 
 /* The character reference: the character under the cursor in the list, the item of its page, the profile when it
    opens, the voice's label, the costume of the model viewer. The guide's comment is voiced: not read. */
+extern const char *PortA11y_ActionName(int player, int action); /* gs/a11y_pad.c: a game button by the controller */
+#define ACTION_CROSS 4    /* gs_input.c, kActions */
+#define ACTION_TRIANGLE 7
+
 static void char_ref(void) {
     static int open, state, cursor, item, costume;
     A11yCharRef GAME_PTR c = gCharRef;
     char text[2 * A11Y_TEXT], name[A11Y_TEXT];
+    const char *button;
     int chara, len;
 
     if (c == NULL) {
@@ -2303,14 +2373,22 @@ static void char_ref(void) {
         break;
     case CHARREF_ST_COSTUME:
         if (state != CHARREF_ST_COSTUME || costume != c->costume) {
-            snprintf(text, sizeof(text), tr("Costume %d. X shows the model"),
-                     c->costume + 1);
+            if ((button = PortA11y_ActionName(-1, ACTION_CROSS)) != NULL) { /* (the controller in use's name) */
+                snprintf(text, sizeof(text), tr("Costume %d. %s shows the model"), c->costume + 1, button);
+            } else {
+                snprintf(text, sizeof(text), tr("Costume %d. X shows the model"), c->costume + 1);
+            }
             PortA11y_Say(text, follow());
         }
         break;
     case CHARREF_ST_VIEW:
         if (state != CHARREF_ST_VIEW) {
-            PortA11y_Say(tr("Model shown. Triangle goes back"), follow());
+            if ((button = PortA11y_ActionName(-1, ACTION_TRIANGLE)) != NULL) {
+                snprintf(text, sizeof(text), tr("Model shown. %s goes back"), button);
+                PortA11y_Say(text, follow());
+            } else {
+                PortA11y_Say(tr("Model shown. Triangle goes back"), follow());
+            }
         }
         break;
     }
@@ -2438,7 +2516,7 @@ static void shop(void) {
         if (level != SHOP_LV_MENU) {
             len = (int)strlen(text);
             snprintf(text + len, sizeof(text) - len,
-                     tr(". Money: %d zeni. Collection: %d of %d, %d percent"),
+                     tr(". Z Points: %d. Collection: %d of %d, %d percent"),
                      gSaveData->money, s->owned, s->total, s->percent);
         }
         PortA11y_Say(text, follow());
@@ -2477,7 +2555,7 @@ static void shop(void) {
             } else if (owned) {
                 snprintf(text + len, sizeof(text) - len, tr("%s, owned"), name);
             } else if (!(it->flags & WITEM_HIDDEN) && (it->flags & WITEM_SOLD)) {
-                snprintf(text + len, sizeof(text) - len, tr("%s, %d zeni"), name, it->price);
+                snprintf(text + len, sizeof(text) - len, tr("%s, %d Z Points"), name, it->price);
             } else {
                 snprintf(text + len, sizeof(text) - len, "%s", name);
             }
@@ -2498,7 +2576,7 @@ static void shop(void) {
                        ? l->ids[l->tab][l->cur[l->tab]]
                        : -1;
             if (item >= 0 && item < SAVE_ITEMS && text_line(name, sizeof(name), s->itemText, item) > 0) {
-                snprintf(text, sizeof(text), tr("Buy %s for %d zeni? You have %d. "),
+                snprintf(text, sizeof(text), tr("Buy %s for %d Z Points? You have %d. "),
                          name, s->items[item].price, gSaveData->money);
             }
         }
@@ -2513,7 +2591,7 @@ static void shop(void) {
             if (text_line(name, sizeof(name), s->itemText, s->item) == 0) {
                 snprintf(name, sizeof(name), tr("Item %d"), s->item + 1);
             }
-            snprintf(text, sizeof(text), tr("Bought %s. %d zeni left. X to go on"),
+            snprintf(text, sizeof(text), tr("Bought %s. %d Z Points left. X to go on"),
                      name, gSaveData->money);
             PortA11y_Say(text, follow());
         }
@@ -2916,14 +2994,26 @@ extern int gPauseMenuWhich;              /* src/battle/hud_0.c: 0 the pause menu
 #define BTL_MENU_ITEM_SKILLS 3   /* as the first item: the page is the skill list */
 #define BTL_MENU_ITEM_CONTROLS 4 /* as the first item: the page is the controls */
 #define BTL_MENU_STATE_ACTIVE 4
+extern void PortA11y_SkillList(int shown); /* a11y_skills.c: the skill list, one move at a time */
+extern int PortA11y_SkillListShown(void);
 
 /* include/sys/common.h: CommonRes; in a battle, 0x28 is its common file, whose offset table holds the menus' text
    (src/battle/hud_0_b.c, BtlMenu_GetText). */
 extern struct { char unk0[0x28]; uint32_t GAME_PTR battle; } GAME_PTR gCommonRes;
 
-/* include/battle/battle.h: BattleWork, its flags and `running` (see battle_watch below). */
-extern struct { char unk0[0x19F0]; uint64_t flags; int running; } gBattleWork;
+/* include/battle/battle.h: BattleWork, its result block (+0x1938, Battle_GetResult: who won and why, filled by the
+   fight's sequence when it ends, src/battle/btl_seq.c), its flags and `running` (see battle_watch below). */
+extern struct {
+    char unk0[0x1938];
+    int winner; /* 0x1938: BTL_RESULT_ bits: 1 side 0 won, 2 side 1, 4 a draw, 8 left from the pause, 0x10 a replay's */
+    int reason; /* 0x193C: BTL_REASON_ bits: 1 K.O., 2 time up, 4 out of the ring (fighter flag 7) */
+    char unk1940[0x19F0 - 0x1940];
+    uint64_t flags;
+    int running;
+} gBattleWork;
+_Static_assert(offsetof(__typeof__(gBattleWork), reason) == 0x193C && offsetof(__typeof__(gBattleWork), flags) == 0x19F0, "BattleWork");
 #define BATTLE_FLAG_PAUSE_MENU 0x4000 /* the pause menu is open */
+#define BATTLE_FLAG_PAUSE 0x100 /* the fight is frozen (offline, set with the pause menu) */
 
 /* gs/net.c: 1 in an online match, and which player this copy plays there. src/battle/hud_e_d.c: the port whose
    player opened the pause menu (it only reads). */
@@ -2985,6 +3075,7 @@ static void btl_menu(void) {
     char text[256];
     int i, pos = 0, count = 0;
 
+    PortA11y_SkillList(m != NULL && m->items[0].type == BTL_MENU_ITEM_SKILLS && m->state == BTL_MENU_STATE_ACTIVE);
     if (m == NULL) {
         said = NULL;
         named = 0;
@@ -3078,6 +3169,8 @@ typedef struct {
 } A11yAdxPlayer;
 LAYOUT_ASSERT(sizeof(A11yAdxPlayer) == 0x14, "AdxPlayer");
 extern A11yAdxPlayer gAdxPlayerTbl[6];
+#define ADX_CH_MUSIC 0 /* "BGM": the music */
+#define ADX_CH_STAGE 1 /* "MAP": a stage's background sound */
 #define ADX_CH_VOICE0 4
 #define ADX_CH_VOICE1 5
 
@@ -3097,6 +3190,7 @@ static int sBlank;               /* blanks counted since then */
 static int sVoiceBlank = -1000;  /* the blank the last voice with a shown line started in */
 static int sMenuVoices = 100;    /* bt3_settings.txt a11y_menu_voices, percent */
 static int sFightVoices = 100;   /* bt3_settings.txt a11y_fight_voices, percent (default: a11y_menu_voices) */
+static int sFightMusic = 100;    /* bt3_settings.txt a11y_fight_music, percent */
 
 /* gs/snd_adx.c, ADXT_StartAfs: the game started a stream (path: its file). */
 void PortA11y_StreamStart(const char *path) {
@@ -3119,8 +3213,11 @@ void PortA11y_StreamStart(const char *path) {
 /* gs/a11y.c, PortA11y_StreamGain (for gs/snd_adx.c, apply_volume): the percent of the game's own volume one of its
    players gets, or -1 to leave it alone. The two voice channels play at a11y_menu_voices percent, so the screen
    reader can be heard over the guides, and in a battle at a11y_fight_voices (the same unless set: the fighters'
-   voices do not jump up as the battle starts). An int, not a gain: this file is built soft-float and gs/ is not, so a
-   float returned from here would not reach the caller (it would read another register). */
+   voices do not jump up as the battle starts). In a battle the music and the stage's background (the first two
+   players) play at a11y_fight_music percent, so that the accessibility's sounds are heard over them; it is the same
+   from the battle's loading to its result menu, so it does not jump while the fight is on. An int, not a gain: this
+   file is built soft-float and gs/ is not, so a float returned from here would not reach the caller (it would read
+   another register). */
 int PortA11y_VoicePercent(const void *player) {
     if (!sOn || player == NULL) {
         return -1;
@@ -3129,7 +3226,56 @@ int PortA11y_VoicePercent(const void *player) {
         player == (const void *)gAdxPlayerTbl[ADX_CH_VOICE1].adxt) {
         return in_battle() ? sFightVoices : sMenuVoices;
     }
+    if (in_battle() && sFightMusic != 100 &&
+        (player == (const void *)gAdxPlayerTbl[ADX_CH_MUSIC].adxt || player == (const void *)gAdxPlayerTbl[ADX_CH_STAGE].adxt)) {
+        return sFightMusic;
+    }
     return -1;
+}
+
+/* For the settings window: the music's percent in a battle, and setting it (stored, saved by Port_SettingsWrite). */
+int PortA11y_FightMusic(void) {
+    int v;
+
+    if (sOn) {
+        return sFightMusic;
+    }
+    v = Port_Setting("a11y_fight_music", 100);
+    return v < 0 ? 0 : v > 100 ? 100 : v;
+}
+
+void PortA11y_SetFightMusic(int percent) {
+    sFightMusic = percent < 0 ? 0 : percent > 100 ? 100 : percent;
+    Port_SettingSave("a11y_fight_music", sFightMusic);
+    Port_AudioRefresh();
+}
+
+/* For the settings window (gs/a11y_ui.cpp): the voices' percent in menus (fight 0) or in a battle (fight 1), and
+   setting it, which stores it (Port_SettingsWrite saves it) and gives the playing streams their volume again. */
+int PortA11y_Voices(int fight) {
+    int menu, v;
+
+    if (sOn) {
+        return fight ? sFightVoices : sMenuVoices;
+    }
+    v = Port_Setting("a11y_menu_voices", 50);
+    menu = v < 0 ? 0 : v > 100 ? 100 : v;
+    if (!fight) {
+        return menu;
+    }
+    v = Port_Setting("a11y_fight_voices", menu);
+    return v < 0 ? 0 : v > 100 ? 100 : v;
+}
+
+void PortA11y_SetVoices(int fight, int percent) {
+    percent = percent < 0 ? 0 : percent > 100 ? 100 : percent;
+    if (fight) {
+        sFightVoices = percent;
+    } else {
+        sMenuVoices = percent;
+    }
+    Port_SettingSave(fight ? "a11y_fight_voices" : "a11y_menu_voices", percent);
+    Port_AudioRefresh();
 }
 
 /* 1: a line first shown at blank `first` is what a voice says (it started a little before or since). */
@@ -3140,6 +3286,7 @@ static int subtitle(int first) {
 /* The message window's line, whenever it shows another one: once it has stayed TEXT_STABLE blanks, and not when a
    voice says it (the main menu's guides); queued behind the item it is about. */
 static void msg_window(void) {
+    extern int PortTbo_BoxQuiet(void); /* src/menu/port_tbo.c: the online pages' line said once elsewhere */
     static uint16_t GAME_PTR shown;
     static int first, done;
     A11yMsgWin GAME_PTR w = gMsgWin;
@@ -3161,6 +3308,8 @@ static void msg_window(void) {
     }
     if (subtitle(first)) {
         PortA11y_Note("message window: a voice says it");
+    } else if (PortTbo_BoxQuiet()) {
+        PortA11y_Note("message window: said elsewhere (online: the rival found, the match's banner)");
     } else if (PortA11y_Utf8(text, sizeof(text), (const uint16_t *)shown) > 0) {
         PortA11y_Say(text, 0);
     }
@@ -3195,7 +3344,7 @@ static const struct {
     {30, -1, "Result"},
     {33, 2, NULL},
     {35, -1, "Tournament bracket"},
-    {40, -1, "Team select, not read yet"},
+    {40, -1, "Team select"},
     {44, 6, NULL},
     {48, 5, NULL},
     {53, 7, NULL},
@@ -3263,6 +3412,368 @@ static void screen_change(void) {
     }
 }
 
+/* The reward window (include/battle/view_a.h, GetWin): a prize per Setup, in the story's result, the tournament's
+   prizes and the dragon's wishes. Its title strip is a picture of the kind (src/battle/view_a.c GetWin_Draw); its
+   lines are lines of the screen's text files (box1 / box2 name the file of each), but the Z points' amount is a
+   number drawn as an image. */
+typedef struct {
+    uint32_t GAME_PTR text[5];    /* 0x000: the screen pack's sections 8, 7, 9, 11, 11 */
+    char unk14[0x334 - 0x14];
+    int kind;                     /* 0x334: GETWIN_ */
+    int box1, box2;               /* 0x338 */
+    int line1, line2;             /* 0x340: -1 = none; GETWIN_MONEY: line2 is the amount */
+    int tall;                     /* 0x348 */
+    int se;                       /* 0x34C: 0 until the first Setup (Init clears the window) */
+} A11yGetWin;
+LAYOUT_ASSERT(sizeof(A11yGetWin) == 0x350 && offsetof(A11yGetWin, kind) == 0x334 && offsetof(A11yGetWin, se) == 0x34C,
+              "GetWin");
+extern A11yGetWin GAME_PTR gGetWin; /* NULL outside those screens */
+#define GETWIN_CHARA 0
+#define GETWIN_STAGE 1
+#define GETWIN_ITEM 3 /* 3..5, by the item's kind */
+#define GETWIN_MONEY 6
+#define GETWIN_SAGA 7
+#define GETWIN_EPISODE 8
+#define GETWIN_BALL 9
+
+/* 1: the string at `str` is a line the reward window shows now (get_win says it, not shown_text). */
+static int getwin_line(uint32_t str) {
+    A11yGetWin GAME_PTR g = gGetWin;
+    uint32_t a;
+    int k, box;
+
+    if (g == NULL || g->se == 0 || str == 0) {
+        return 0;
+    }
+    for (k = 0; k < 2; k++) {
+        box = k ? g->box2 : g->box1;
+        if (box < 0 || box >= 5 || (k && g->kind == GETWIN_MONEY)) {
+            continue;
+        }
+        a = (uint32_t)(uintptr_t)text_addr(g->text[box], k ? g->line2 : g->line1);
+        if (a != 0 && (str == a || str == a + 2)) { /* (with or without the U+FEFF) */
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/* Each prize as the window shows it: its kind and its lines. The first one is queued behind what the screen said;
+   the next ones, which the player calls with the confirm button, cut the last. */
+static void get_win(void) {
+    static uint32_t win;
+    static int kind, line1, line2, said;
+    A11yGetWin GAME_PTR g = gGetWin;
+    char text[A11Y_TEXT], first[256], second[256];
+    const char *label, *sep;
+
+    if (g == NULL || g->se == 0) {
+        win = 0;
+        said = 0;
+        return;
+    }
+    if ((uint32_t)(uintptr_t)g == win && g->kind == kind && g->line1 == line1 && g->line2 == line2) {
+        return;
+    }
+    win = (uint32_t)(uintptr_t)g;
+    kind = g->kind;
+    line1 = g->line1;
+    line2 = g->line2;
+    /* The title strips' words (the Spanish disc's; the two the strip cuts short, "desbloq." and "desbloque.", are
+       written out, and its "Bola Dragón" is said "Esfera del Dragón", the name Latin America knows, by the owner's
+       choice). Of the English, only "Battle Unlocked!" (a recording of the game, docs/port/README.md) and the
+       term Z Points are the game's; the rest is our wording, as the US disc was not at hand. Z Points is also
+       what the save's money is called by the game's own counters (mc_zpoint_suji, mc_num_use_zp) and by the US
+       players' guides, the item shop's prices included; the US manual's "Zenie" for the shop is not followed. */
+    switch (kind) {
+    case GETWIN_CHARA: label = tr("Character unlocked!"); break;
+    case GETWIN_STAGE: label = tr("Battle stage unlocked!"); break;
+    case GETWIN_ITEM:
+    case GETWIN_ITEM + 1:
+    case GETWIN_ITEM + 2: label = tr("Item unlocked!"); break;
+    case GETWIN_MONEY: label = tr("Z Points obtained!"); break;
+    case GETWIN_SAGA: label = tr("Scenario unlocked!"); break;
+    case GETWIN_EPISODE: label = tr("Battle Unlocked!"); break;
+    case GETWIN_BALL: label = tr("You got a Dragon Ball"); break;
+    default: label = NULL; break;
+    }
+    sep = label != NULL && label[0] != '\0' && label[strlen(label) - 1] == '!' ? " " : ": ";
+    if (kind == GETWIN_MONEY) {
+        snprintf(text, sizeof(text), "%s %d", label, line2);
+    } else if (label == NULL) {
+        PortA11y_Note("reward window: a kind this reader does not know");
+        return;
+    } else {
+        text_line(first, sizeof(first), g->box1 >= 0 && g->box1 < 5 ? g->text[g->box1] : NULL, line1);
+        text_line(second, sizeof(second), g->box2 >= 0 && g->box2 < 5 ? g->text[g->box2] : NULL, line2);
+        if (first[0] != '\0' && second[0] != '\0') {
+            snprintf(text, sizeof(text), "%s%s%s, %s", label, sep, first, second);
+        } else if (first[0] != '\0' || second[0] != '\0') {
+            snprintf(text, sizeof(text), "%s%s%s", label, sep, first[0] != '\0' ? first : second);
+        } else {
+            snprintf(text, sizeof(text), "%s", label);
+        }
+    }
+    PortA11y_Say(text, said ? A11Y_INTERRUPT : 0);
+    said = 1;
+}
+
+/* The score sheet of the mission, survival, Sim Dragon and ranking results (include/menu/menu_p.h UbScore; the
+   other three have its layout): lines counted into a total, pages of bonus plates, the rank, and the total paid out
+   as Z points. Every number on it is an image (Num_Draw); the bonus names are lines of the screen's text. */
+typedef struct {
+    int value;                    /* what was measured; a bonus: its line of the screen's text - 0x20 */
+    int remain;                   /* not counted into the total yet */
+    int points;                   /* shown * 100 */
+} A11yScoreLine;
+typedef struct {
+    int total;                    /* 0x000: shown * 100; paid out as that many Z points */
+    int saved;                    /* 0x004: the total, copied as the pay-out starts */
+    int convert;                  /* 0x008 */
+    int unkC;
+    A11yScoreLine line[4];        /* 0x010: health left (percent), longest combo, biggest damage, (survival) foes beaten */
+    A11yScoreLine bonus[48];      /* 0x040: three to a page */
+    int shown[3];                 /* 0x280 */
+    int lineCount;                /* 0x28C */
+    int bonusCount;               /* 0x290 */
+    unsigned ticks;               /* 0x294: the fight's clock */
+    short hours, minutes, seconds, ms, timeLeft, unk2A2;
+    int rank;                     /* 0x2A4: 0 none, 1 (the lowest) .. 4: a column of the mc_rankmoji_anime strip */
+} A11yScore;
+LAYOUT_ASSERT(sizeof(A11yScore) == 0x2A8 && offsetof(A11yScore, bonus) == 0x40 && offsetof(A11yScore, lineCount) == 0x28C &&
+              offsetof(A11yScore, hours) == 0x298 && offsetof(A11yScore, rank) == 0x2A4, "UbScore");
+extern uint8_t GAME_PTR gMisResult;  /* src/menu/menu_p_b.c; each NULL outside its screen */
+extern uint8_t GAME_PTR gSurvResult; /* menu_s_c.c */
+extern uint8_t GAME_PTR gSimResult;  /* menu_r_c.c */
+extern uint8_t GAME_PTR gUbResult;   /* menu_n_d.c */
+
+/* Where each screen keeps its sheet's state (MisResult, SurvResult, SimResult, UbResult): the lines count in state 1,
+   the pages turn in state 2, then the pay-out, whose sub step 4 waits with the money paid. */
+typedef struct {
+    uint32_t state, pages, page, record, score, step; /* offsets in the screen's work; record 0: it has none */
+    int money;                    /* the pay-out's state */
+} A11yResultAt;
+static const A11yResultAt kResultAt[4] = {
+    {0x524, 0x544, 0x548, 0x554, 0x56C, 0x818, 3}, /* include/menu/menu_p.h */
+    {0x50C, 0x52C, 0x530, 0x538, 0x544, 0x7F0, 3}, /* menu_s.h */
+    {0x544, 0x564, 0x568, 0, 0x57C, 0x828, 7},     /* menu_r.h (pages: the last page, as in the others) */
+    {0x490, 0x4B0, 0x4B4, 0x4BC, 0x4D0, 0x77C, 3}, /* menu_o.h */
+};
+#define RESULT_COUNT 1
+#define RESULT_PAGES 2
+#define RESULT_PAID 4
+#define RESULT_TEXT 0x00C /* every one's section 12: the bonus names */
+#define RESULT_INT(w, ofs) (*(int GAME_PTR)((w) + (ofs)))
+
+/* The result screen with a score sheet that is up, and which of kResultAt; NULL when none. */
+static uint8_t GAME_PTR result_work(int *which) {
+    uint8_t GAME_PTR w[4];
+    int i;
+
+    w[0] = gMisResult;
+    w[1] = gSurvResult;
+    w[2] = gSimResult;
+    w[3] = gUbResult;
+    for (i = 0; i < 4; i++) {
+        if (w[i] != NULL) {
+            *which = i;
+            return w[i];
+        }
+    }
+    return NULL;
+}
+
+/* 1: the string at `str` is the name on a bonus plate of the sheet that is up (result_sheet says it, not
+   shown_text; the rest of the screen's text, such as the outcome, is left to shown_text). */
+static int result_line(uint32_t str) {
+    int which, k;
+    uint8_t GAME_PTR w = result_work(&which);
+    A11yScore GAME_PTR sc;
+    uint32_t GAME_PTR text;
+    uint32_t a;
+
+    if (w == NULL || str == 0) {
+        return 0;
+    }
+    sc = (A11yScore GAME_PTR)(w + kResultAt[which].score);
+    text = *(uint32_t GAME_PTR GAME_PTR)(w + RESULT_TEXT);
+    for (k = 0; k < sc->bonusCount && k < 48; k++) {
+        a = (uint32_t)(uintptr_t)text_addr(text, sc->bonus[k].value + 0x20);
+        if (a != 0 && (str == a || str == a + 2)) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/* "Z points earned: 15" when earned >= 0, then the player's Z points under the screen's own label (have_label, with
+   its %d) when it is not NULL. */
+static void say_points(int earned, const char *have_label, int have, int flags) {
+    char text[256];
+    size_t len;
+
+    text[0] = '\0';
+    if (earned >= 0) {
+        snprintf(text, sizeof(text), tr("Z Points earned: %d"), earned);
+    }
+    if (have_label != NULL) {
+        len = strlen(text);
+        snprintf(text + len, sizeof(text) - len, "%s", len > 0 ? ". " : "");
+        len = strlen(text);
+        snprintf(text + len, sizeof(text) - len, have_label, have);
+    }
+    PortA11y_Say(text, flags);
+}
+
+/* Page `page` of a sheet: the lines with their points and the fight's time, or a page of bonus plates. */
+static void say_sheet_page(A11yScore GAME_PTR sc, uint32_t GAME_PTR text, int page, int pages, int flags) {
+    char out[A11Y_TEXT], line[256], name[160];
+    size_t len;
+    int i, k;
+
+    out[0] = '\0';
+    if (page == 0) {
+        for (i = 0; i < sc->lineCount && i < 4; i++) {
+            switch (i) {
+            case 0: snprintf(line, sizeof(line), tr("Health: %d percent, %d points"), sc->line[i].value, sc->line[i].points * 100); break;
+            case 1: snprintf(line, sizeof(line), tr("Max combo: %d hits, %d points"), sc->line[i].value, sc->line[i].points * 100); break;
+            case 2: snprintf(line, sizeof(line), tr("Max damage: %d, %d points"), sc->line[i].value, sc->line[i].points * 100); break;
+            default: snprintf(line, sizeof(line), tr("Defeated: %d, %d points"), sc->line[i].value, sc->line[i].points * 100); break;
+            }
+            len = strlen(out);
+            snprintf(out + len, sizeof(out) - len, "%s%s", len > 0 ? ". " : "", line);
+        }
+        if (sc->hours > 0) {
+            snprintf(line, sizeof(line), tr("Time: %d hours, %d minutes, %d seconds"), sc->hours, sc->minutes, sc->seconds);
+        } else {
+            snprintf(line, sizeof(line), tr("Time: %d minutes, %d seconds"), sc->minutes, sc->seconds);
+        }
+    } else {
+        snprintf(out, sizeof(out), tr("Bonus page %d of %d"), page, pages);
+        for (i = 0; i < 3; i++) {
+            k = (page - 1) * 3 + i; /* (UbScore_SetPage) */
+            if (k >= sc->bonusCount || k >= 48) {
+                break;
+            }
+            if (text_line(name, sizeof(name), text, sc->bonus[k].value + 0x20) == 0) {
+                continue;
+            }
+            snprintf(line, sizeof(line), tr("%s, %d points"), name, sc->bonus[k].points * 100);
+            len = strlen(out);
+            snprintf(out + len, sizeof(out) - len, ". %s", line);
+        }
+        line[0] = '\0';
+    }
+    len = strlen(out);
+    snprintf(out + len, sizeof(out) - len, "%s%s", len > 0 && line[0] != '\0' ? ". " : "", line);
+    if (out[0] != '\0') {
+        PortA11y_Say(out, flags);
+    }
+}
+
+/* The sheets after a mission, a survival, a Sim Dragon day and a ranking fight: each page as it shows, the score
+   and the rank once all is counted, then the Z points the score made. While the game counts, each is queued behind
+   the screen's name and the one before; a page the player turns cuts what was said. */
+static void result_sheet(void) {
+    static uint32_t seen;
+    static int state, page, paid;
+    int which, s, p, n, rec;
+    uint8_t GAME_PTR w = result_work(&which);
+    const A11yResultAt *at;
+    A11yScore GAME_PTR sc;
+    char text[256];
+    size_t len;
+
+    if (w == NULL) {
+        seen = 0;
+        return;
+    }
+    at = &kResultAt[which];
+    if ((uint32_t)(uintptr_t)w != seen) {
+        seen = (uint32_t)(uintptr_t)w;
+        state = page = -1;
+        paid = 0;
+    }
+    sc = (A11yScore GAME_PTR)(w + at->score);
+    s = RESULT_INT(w, at->state);
+    p = RESULT_INT(w, at->page);
+    n = RESULT_INT(w, at->pages);
+    if ((s == RESULT_COUNT || s == RESULT_PAGES) && p != page && p >= 0 && p <= n && n < 17) {
+        say_sheet_page(sc, *(uint32_t GAME_PTR GAME_PTR)(w + RESULT_TEXT), p, n,
+                       s == RESULT_PAGES && state == RESULT_PAGES ? A11Y_INTERRUPT : 0);
+        page = p;
+    }
+    if (s == RESULT_PAGES && state != RESULT_PAGES) {
+        if (sc->rank >= 1 && sc->rank <= 4) {
+            snprintf(text, sizeof(text), tr("Score: %d. Rank %c"), sc->total * 100, kRankLetter[sc->rank]);
+        } else {
+            snprintf(text, sizeof(text), tr("Score: %d"), sc->total * 100);
+        }
+        rec = at->record != 0 ? RESULT_INT(w, at->record) : 0;
+        if (rec) {
+            len = strlen(text);
+            snprintf(text + len, sizeof(text) - len, "%s", tr(". New record"));
+        }
+        PortA11y_Say(text, 0);
+    }
+    if (s == at->money && RESULT_INT(w, at->step) == RESULT_PAID && !paid && gSaveData != NULL) {
+        paid = 1;
+        say_points(sc->saved, tr("Z Points: %d"), gSaveData->money, 0);
+    }
+    state = s;
+}
+
+/* The story's result (include/menu/menu_c.h, HistResult): after a won fight the points count up (state 2) and wait
+   for the confirm button (3), which pays them out (4); a lost fight stays in state 0 with 0 points and the total. The
+   caption, the labels and the numbers are images; so is the fight's title, which is not said. */
+typedef struct {
+    char unk0[0x80];
+    int flags;                    /* 0x080: HISTRESULT_ */
+    char unk84[0x90 - 0x84];
+    int state;                    /* 0x090: 0 before the count and after the pay-out; 51.. the reward windows */
+    int points;                   /* 0x094: counted so far, then left to pay */
+    int pointsTotal;              /* 0x098: the fight's Z points */
+    char unk9C[0x140 - 0x9C];
+} A11yHistResult;
+LAYOUT_ASSERT(sizeof(A11yHistResult) == 0x140 && offsetof(A11yHistResult, state) == 0x90, "HistResult");
+extern A11yHistResult GAME_PTR gHistResult; /* NULL outside the screen */
+#define HISTRESULT_FADED_IN 8 /* the screen is up; its jingle plays before it takes the buttons */
+#define HISTRESULT_LOST 0x20
+
+/* The story's fight as its result shows it: the caption once the screen is up; after a win the Z points it made when
+   the count stops and what the player has once they are paid, after a loss the 0 points and the total at once. */
+static void hist_result(void) {
+    static uint32_t seen;
+    static int said; /* 1: the caption, 2: the points, 3: the total */
+    A11yHistResult GAME_PTR h = gHistResult;
+
+    if (h == NULL) {
+        seen = 0;
+        return;
+    }
+    if ((uint32_t)(uintptr_t)h != seen) {
+        seen = (uint32_t)(uintptr_t)h;
+        said = 0;
+    }
+    if (!(h->flags & HISTRESULT_FADED_IN) || gSaveData == NULL) {
+        return;
+    }
+    if (said == 0 && (h->flags & HISTRESULT_LOST)) {
+        PortA11y_Say(tr("Failed..."), 0);
+        say_points(0, tr("Total Z Points: %d"), gSaveData->money, 0);
+        said = 3;
+    } else if (said == 0) {
+        PortA11y_Say(tr("Cleared!"), 0);
+        said = 1;
+    } else if (said == 1 && h->state == 3) {
+        say_points(h->pointsTotal, NULL, 0, 0);
+        said = 2;
+    } else if (said == 2 && (h->state == 5 || h->state == 0 || h->state > 50)) {
+        say_points(-1, tr("Total Z Points: %d"), gSaveData->money, A11Y_INTERRUPT);
+        said = 3;
+    }
+}
+
 /* 1: one of the readers above has this screen (what it draws is not read again from the text). */
 static int own_screen(void) {
     A11yBtlMenu GAME_PTR btl = btl_menu_shown();
@@ -3272,7 +3783,7 @@ static int own_screen(void) {
         return 1;
     }
     if (btl != NULL) {
-        return !btl_menu_page(btl);
+        return !btl_menu_page(btl) || PortA11y_SkillListShown();
     }
     if (in_battle() || gProgress == NULL) {
         return 0;
@@ -3358,8 +3869,13 @@ void PortA11y_FontText(int kind, int arg, int flags) {
 
 /* The strings that showed up on a screen no reader has, in the order they were first drawn, once they have
    stayed TEXT_STABLE blanks: together as one message. Not the message window's line (msg_window) nor a line a
-   voice says. In a fight with no menu over it (the HUD's technique names), only noted in the log: the gauges
-   are said on request instead (fight_gauges). */
+   voice says. In a fight with no menu over it (the HUD's technique names), said as in the first version of this
+   reader, which the player asked for again, unless the Accessibility tab's "Technique names" is off (then only
+   noted in the log). */
+extern int PortA11y_TechniqueNames(void); /* a11y_fight.c */
+#define NAME_SHORT 48 /* bytes: a line of the fight shorter than this is a name (a technique's), not a sentence */
+#define NAME_GAP 90   /* blanks between two names said in a fight: 1.5 s */
+
 static void shown_text(void) {
     A11yMsgWin GAME_PTR w = gMsgWin;
     uint32_t skip = w != NULL ? (uint32_t)(uintptr_t)w->str : 0;
@@ -3376,7 +3892,7 @@ static void shown_text(void) {
         if (e->hash == 0 || e->done || e->last < sBlank - 2) { /* (a frame can last two blanks) */
             continue;
         }
-        if (own || e->str == skip) {
+        if (own || e->str == skip || getwin_line(e->str) || result_line(e->str)) {
             e->done = 1;
             continue;
         }
@@ -3411,11 +3927,25 @@ static void shown_text(void) {
             used += snprintf(text + used, sizeof(text) - used, "%s%s", used > 0 && strchr(".!?:", text[used - 1]) == NULL ? ". " : used > 0 ? " " : "", line);
         }
     }
-    if (text[0] != '\0' && quiet) {
+    if (text[0] != '\0' && quiet && !PortA11y_TechniqueNames()) {
         snprintf(note, sizeof(note), "in a fight, not said: %s", text);
         PortA11y_Note(note);
+    } else if (text[0] != '\0' && quiet) {
+        /* In a fight: queued, so that it does not cut what is being said nor drop the important moments queued
+           (an interrupting line empties the queue: gs/a11y.c); a short one, a technique's name, at most one every
+           1.5 s, the others noted only (they were long gone by the time a queue of them was said). */
+        static int lastName = -100000;
+        if (used < NAME_SHORT && sBlank - lastName < NAME_GAP) {
+            snprintf(note, sizeof(note), "technique name: dropped (1.5 s): %s", text);
+        } else {
+            lastName = used < NAME_SHORT ? sBlank : lastName;
+            snprintf(note, sizeof(note), used < NAME_SHORT ? "technique name: said: %s" : "fight text: said: %s", text);
+            PortA11y_Say(text, 0);
+        }
+        PortA11y_Note(note);
     } else if (text[0] != '\0') {
-        PortA11y_Say(text, follow());
+        /* (over a score sheet, the outcome is queued behind its page: result_sheet) */
+        PortA11y_Say(text, result_work(&k) != NULL ? 0 : follow());
     }
 }
 
@@ -3427,6 +3957,18 @@ extern int BtlCharApi_GetHp(int objId), BtlCharApi_GetHpMax(int objId), BtlCharA
     BtlCharApi_GetBlast(int objId), BtlCharApi_GetBlastMax(int objId);
 extern int BtlSide_IsPoweredUp(int side), BtlSide_CountAlive(int side);
 extern int PortA11y_GaugesAsked(int fight); /* gs/a11y.c */
+extern int PortA11y_GaugesQuery(int side, int byItself); /* a11y_fight.c: the beeps; 2 set when the gauges are said too */
+extern int PortA11y_GaugesByItself(void);   /* a11y_fight.c: told as they change too, not only when asked for */
+extern void PortA11y_WhereQuery(void);      /* a11y_fight.c: where the rival is, a ping from there and its words */
+#define ASK_WHERE 3                         /* PortA11y_GaugesAsked: where the rival is (1, 2: a player's gauges) */
+#define ASK_SKILLS 4                        /* a player's techniques and their costs (the side in bit 4) */
+extern void PortA11y_SkillsQuery(int side); /* a11y_fight.c */
+extern int BtlSeq_GetTimeLeft(void);        /* src/battle/btl_seq.c: seconds left, -1 no limit (only read) */
+extern void PortA11y_PowerCue(int side, int kind, int count); /* a11y_fight.c: the cue as a sound, the voice or both */
+extern void PortA11y_FightAlerts(int fight); /* a11y_fight.c: distance, the stage's edge, health */
+extern void PortA11y_FightMenu(int open);    /* gs/a11y.c: a fight's pause menu is open */
+extern int PortA11y_IntroDescription(void);  /* a11y_fight.c: the Accessibility tab's "Describe the fight" */
+extern int Battle_GetStage(void);            /* src/battle/battle_load.c (only reads) */
 
 #define GAUGE_HP_BAR 10000  /* docs/systems/hud.md: health per bar */
 #define GAUGE_KI_BAR 20000  /* ki per bar, five bars */
@@ -3447,25 +3989,13 @@ static void gauge_units(char *out, int cap, int value, int per) {
     }
 }
 
-/* The gauges of the player asked for (F3 / F4, or the touchpad click in a fight: gs/a11y.c), as the HUD shows them:
-   health and ki in bars, the blast stock, the powered-up mode and how many of a team are still up. */
-static void fight_gauges(void) {
-    static int shown;
-    int fight = fighting(), ask = PortA11y_GaugesAsked(fight && btl_menu_shown() == NULL), side = ask - 1, alive;
+/* A player's gauges as the HUD shows them: health and ki in bars, the blast stock, the powered-up mode and how many
+   of a team are still up. */
+static void gauges_say(int side, int flags) {
     char hp[16], hpMax[16], ki[16], text[256];
     size_t n;
+    int alive;
 
-    if (fight != shown) {
-        shown = fight;
-        PortA11y_Note(fight ? "gauges on screen" : "gauges gone");
-    }
-    if (ask == 0) {
-        return;
-    }
-    if (!fight) {
-        PortA11y_Note("gauges asked for outside a fight");
-        return;
-    }
     gauge_units(hp, sizeof(hp), BtlCharApi_GetHp(side), GAUGE_HP_BAR);
     gauge_units(hpMax, sizeof(hpMax), BtlCharApi_GetHpMax(side), GAUGE_HP_BAR);
     gauge_units(ki, sizeof(ki), BtlCharApi_GetKi(side), GAUGE_KI_BAR);
@@ -3477,9 +4007,89 @@ static void fight_gauges(void) {
         n += (size_t)snprintf(text + n, sizeof(text) - n, tr(", max power"));
     }
     if ((alive = BtlSide_CountAlive(side)) > 1 && n < sizeof(text)) {
-        snprintf(text + n, sizeof(text) - n, tr(", %d fighters still up"), alive);
+        n += (size_t)snprintf(text + n, sizeof(text) - n, tr(", %d fighters still up"), alive);
     }
-    PortA11y_Say(text, A11Y_INTERRUPT);
+    if (BtlSeq_GetTimeLeft() >= 0 && n < sizeof(text)) { /* (the HUD's clock, when the fight has a time limit) */
+        snprintf(text + n, sizeof(text) - n, tr(", %d seconds left"), BtlSeq_GetTimeLeft());
+    }
+    PortA11y_Say(text, flags);
+}
+
+/* The gauges told by themselves (the Accessibility tab's gauges "by itself too"): a player's, each time a whole bar
+   of health or of ki, or a blast stock, comes or goes and then holds half a second; at most every two seconds a
+   player, queued after what is being said. Yours all three; the rival's health and blast (its ki moves all the
+   time). A new fighter (a team's next, a transformation) is told as it comes. */
+static void gauges_auto(int fight) {
+    static int pend[2][3], said[2][3], held[2], next[2], blank, was;
+    int side, cur[3], any = 0, me = Port_NetActive() ? Port_NetMe() & 1 : 0;
+
+    if (!fight || !PortA11y_GaugesByItself()) {
+        was = 0;
+        return;
+    }
+    blank++;
+    for (side = 0; side < 2; side++) {
+        if (BtlCharApi_GetHpMax(side) <= 0) {
+            continue;
+        }
+        any = 1;
+        cur[0] = BtlCharApi_GetHp(side) / GAUGE_HP_BAR;
+        cur[1] = side == me ? BtlCharApi_GetKi(side) / GAUGE_KI_BAR : 0;
+        cur[2] = BtlCharApi_GetBlast(side) / GAUGE_BLAST;
+        if (!was) { /* (a fight starting: what the gauges are is not news) */
+            memcpy(pend[side], cur, sizeof(cur));
+            memcpy(said[side], cur, sizeof(cur));
+            held[side] = 0;
+            next[side] = blank + 120;
+            continue;
+        }
+        if (memcmp(cur, pend[side], sizeof(cur)) != 0) {
+            memcpy(pend[side], cur, sizeof(cur));
+            held[side] = 0;
+            continue;
+        }
+        if (++held[side] < 30 || memcmp(pend[side], said[side], sizeof(cur)) == 0 || blank < next[side]) {
+            continue;
+        }
+        memcpy(said[side], pend[side], sizeof(cur));
+        next[side] = blank + 120;
+        if (PortA11y_GaugesQuery(side, 1) & 2) {
+            gauges_say(side, 0);
+        }
+    }
+    was = was || any;
+}
+
+/* The gauges of the player asked for (F3 / F4, Select twice or three times, or the touchpad click in a fight:
+   gs/a11y.c), or by themselves as they change. */
+static void fight_gauges(void) {
+    static int shown;
+    int fight = fighting(), ask = PortA11y_GaugesAsked(fight && btl_menu_shown() == NULL), side = ask - 1;
+
+    if (fight != shown) {
+        shown = fight;
+        PortA11y_Note(fight ? "gauges on screen" : "gauges gone");
+    }
+    gauges_auto(fight && btl_menu_shown() == NULL);
+    if (ask == 0) {
+        return;
+    }
+    if (!fight) {
+        PortA11y_Note("gauges asked for outside a fight");
+        return;
+    }
+    if (ask == ASK_WHERE) {
+        PortA11y_WhereQuery();
+        return;
+    }
+    if ((ask & 15) == ASK_SKILLS) {
+        PortA11y_SkillsQuery(Port_NetActive() ? Port_NetMe() & 1 : ask >> 4);
+        return;
+    }
+    if (!(PortA11y_GaugesQuery(side, 0) & 2)) {
+        return; /* (told by the beeps alone: a11y_fight.c) */
+    }
+    gauges_say(side, A11Y_INTERRUPT);
 }
 
 /* ---- the fight's cues: a transformation or the Ultimate Blast within reach ---- */
@@ -3561,14 +4171,760 @@ static void fight_cues(void) {
                                                                        : "cue: player %d can fire the Ultimate Blast",
                              side + 1, now);
                     PortA11y_Note(note);
-                    PortA11y_Cue(side, kind);
+                    PortA11y_PowerCue(side, kind, now);
                 }
             }
         }
     }
 }
 
+/* A short description of the fight while its opening plays, before the fighting starts: who against whom (the
+   names the selects gave: sNameCache; a team's size when it has more than one) and where. Once per battle, queued
+   after what is being said. The player asked for it: the opening has no words of its own for who is on screen. */
+static void fight_intro(void) {
+    static int said;
+    char text[A11Y_TEXT], who[2][160];
+    int side, team;
+
+    if (!in_battle() || gBtlChars == NULL) {
+        said = 0;
+        return;
+    }
+    if (said || fighting() || BtlChar_FindBySide(0) == NULL || BtlChar_FindBySide(1) == NULL || !PortA11y_IntroDescription()) {
+        return;
+    }
+    said = 1;
+    for (side = 0; side < 2; side++) {
+        int chara = BtlCharApi_GetChara(side);
+        if (chara < 0 || chara >= MCHR_RANDOM || sNameCache[chara][0] == '\0') { /* (no select has named it: only where) */
+            snprintf(text, sizeof(text), tr("Stage: %s."), stage_name(Battle_GetStage()));
+            PortA11y_Say(text, 0);
+            return;
+        }
+        cached_name(who[side], sizeof(who[side]), chara);
+        if ((team = BtlSide_CountAlive(side)) > 1) {
+            size_t len = strlen(who[side]);
+            snprintf(who[side] + len, sizeof(who[side]) - len, tr(" and %d more"), team - 1);
+        }
+    }
+    snprintf(text, sizeof(text), tr("%s against %s. Stage: %s."), who[0], who[1], stage_name(Battle_GetStage()));
+    PortA11y_Say(text, 0);
+    PortA11y_Note("fight: the opening described");
+}
+
+/* Who won, said as the fight ends (when the game shows its K.O. or its time up, before the win talk and the menu
+   after the fight, which said only "Fight over"): "K.O.: you win, with Goku", "Time up: the rival wins, Vegeta",
+   "Time up: a draw". You are the side whose alerts these are (online the side this copy plays, else player 1); the
+   fighter's name when a select named it (sNameCache). The result must hold 10 blanks (online a guessed finish can
+   be taken back), and a fight left from the pause or a replay's end says nothing. */
+#define WIN_HOLD 10
+static void fight_result(void) {
+    static int armed, said, held, last;
+    int w = gBattleWork.winner, why = gBattleWork.reason, me, side, chara;
+    char text[256], body[192], name[160], note[128];
+    const char *how;
+
+    if (!in_battle()) {
+        armed = said = held = last = 0;
+        return;
+    }
+    if (fighting() && w == 0) {
+        armed = 1; /* (this fight's result: the block may still hold the last one's until the game clears it) */
+    }
+    if (!armed || said || w == 0 || (w & 0x18) || !(w & 7)) {
+        held = 0;
+        last = w;
+        return;
+    }
+    held = w == last ? held + 1 : 0;
+    last = w;
+    if (held < WIN_HOLD) {
+        return;
+    }
+    said = 1;
+    me = Port_NetActive() ? Port_NetMe() & 1 : 0;
+    how = why & 1 ? tr("K.O.") : why & 2 ? tr("Time up") : why & 4 ? tr("Out of the ring") : NULL;
+    side = w & 4 ? -1 : w & 1 ? 0 : 1;
+    if (side < 0) {
+        snprintf(body, sizeof(body), "%s", tr("a draw"));
+    } else {
+        chara = BtlCharApi_GetChara(side);
+        name[0] = '\0';
+        if (chara >= 0 && chara < MCHR_RANDOM && sNameCache[chara][0] != '\0') {
+            cached_name(name, sizeof(name), chara);
+        }
+        if (name[0] == '\0') {
+            snprintf(body, sizeof(body), "%s", side == me ? tr("you win") : tr("the rival wins"));
+        } else if (side == me) {
+            snprintf(body, sizeof(body), tr("you win, with %s"), name);
+        } else {
+            snprintf(body, sizeof(body), tr("the rival wins, %s"), name);
+        }
+    }
+    if (how != NULL) {
+        snprintf(text, sizeof(text), "%s: %s", how, body);
+    } else { /* (no reason the reader knows: the words alone) */
+        snprintf(text, sizeof(text), tr("Result: %s"), body);
+    }
+    snprintf(note, sizeof(note), "winner: %s (side %d), result %#x, reason %#x", side < 0 ? "draw" : side == me ? "you" : "the rival",
+             side, w, why);
+    PortA11y_Note(note);
+    heading(text);
+}
+
+/* The first time (setting a11y_tour, bit 0): a welcome, in the quiet before the title (after the memory card's
+   messages, or with "Press START" at the latest): what Select does, with the names of the controller in the hands
+   (or the keys), how the settings open, and that the blind player profile is on when it was applied now
+   (a11y_fight.c). A profile applied in a later run is said by itself. */
+extern int PortA11y_ProfileTick(void);   /* a11y_fight.c: -1 not decided yet, 1 applied now */
+extern int PortA11y_PadFamily(int player); /* gs/a11y_pad.c: 0 the keyboard */
+extern void Port_SettingsWrite(void);
+#define ACTION_START 14 /* gs_input.c, kActions */
+#define ACTION_SELECT 15
+#define TOUR_WELCOME 1  /* a11y_tour: the welcome was said */
+static void welcome(void) {
+    static int done, seen, quiet;
+    const char *sel, *start;
+    char text[A11Y_TEXT];
+    int profile, tour;
+
+    if (done || (profile = PortA11y_ProfileTick()) < 0) {
+        return;
+    }
+    tour = Port_Setting("a11y_tour", 0);
+    if (tour & TOUR_WELCOME) {
+        done = 1;
+        if (profile == 1) {
+            PortA11y_Say(tr("Blind player profile on. It is changed in F1, Accessibility."), 0);
+        }
+        return;
+    }
+    if (gDialog != NULL && (gDialog->flags & DIALOG_FLAG_OPEN)) {
+        seen = 1; /* (the memory card's messages first: a heading of theirs would cut the welcome) */
+        quiet = 0;
+        return;
+    }
+    quiet++;
+    if (!(seen && quiet >= 120) && !(gProgress != NULL && gProgress->mode == MODE_TITLE && gTitle != NULL && gTitle->state >= 1) &&
+        sBlank < 1800) {
+        return;
+    }
+    done = 1;
+    sel = PortA11y_ActionName(-1, ACTION_SELECT);
+    start = PortA11y_ActionName(-1, ACTION_START);
+    if (PortA11y_PadFamily(-1) != 0 && sel != NULL && start != NULL) {
+        snprintf(text, sizeof(text), tr("Welcome. This game speaks through your screen reader. %s says the last message again; in a "
+                                        "fight, once says where the rival is, twice your gauges, three times the rival's. F1, or %s "
+                                        "and %s together, opens the settings: their Accessibility tab has the fight's sounds and "
+                                        "their glossary."), sel, sel, start);
+    } else {
+        snprintf(text, sizeof(text), "%s", tr("Welcome. This game speaks through your screen reader. F2 says the last message again; "
+                                              "in a fight, F5 says where the rival is, F3 and F4 the gauges. F1 opens the settings: "
+                                              "their Accessibility tab has the fight's sounds and their glossary."));
+    }
+    PortA11y_Say(text, 0);
+    if (profile == 1) {
+        PortA11y_Say(tr("Blind player profile on. It is changed in F1, Accessibility."), 0);
+    }
+    Port_SettingSave("a11y_tour", tour | TOUR_WELCOME);
+    Port_SettingsWrite();
+    PortA11y_Note(profile == 1 ? "welcome: said, with the profile" : "welcome: said");
+}
+
 /* Once per blank (plat_stub.c: Port_VBlank). */
+/* The day of Dragon Sim (mode 22, SimDay: src/menu/menu_q_b.c, include/menu/menu_q.h). The command under the cursor
+   and the results are said through the message window; the board's numbers are pictures. They are said when the
+   board comes back with a number changed, after it has stopped rolling. */
+typedef struct {
+    char unk0[0x590];
+    int state;        /* 0x590: SIMDAY_ST_ */
+} A11ySimDay;
+LAYOUT_ASSERT(offsetof(A11ySimDay, state) == 0x590, "SimDay");
+extern A11ySimDay GAME_PTR gSimDay;
+#define SIMDAY_ST_BOARD 0
+#define SIM_STATE_WORD (0x64C / 4) /* SimState in gProgress: level, stat[4] (attack, defense, health, points) ... */
+#define SIM_TURN_WORD 10           /* SimState.turn: / 10 the round, % 10 the day */
+#define SIM_TURNS 10
+#define SIM_VALUES 6
+#define SIM_SETTLE 20
+
+static void sim_day(void) {
+    static int said[SIM_VALUES], prev[SIM_VALUES], settle, first = 1;
+    static const char *const kSimValue[SIM_VALUES] = {
+        NULL, "Health %d percent", "Attack %d", "Defense %d", "%d points", "Level %d",
+    };
+    A11ySimDay GAME_PTR d = gSimDay;
+    int GAME_PTR s;
+    char text[A11Y_TEXT];
+    int now[SIM_VALUES], i, changed = 0, moved = 0;
+    size_t len = 0;
+
+    if (d == NULL || gProgress == NULL) {
+        first = 1;
+        settle = 0;
+        return;
+    }
+    if (d->state != SIMDAY_ST_BOARD) {
+        settle = 0;
+        return;
+    }
+    s = (int GAME_PTR)gProgress + SIM_STATE_WORD;
+    now[0] = s[SIM_TURN_WORD];
+    now[1] = s[3];
+    now[2] = s[1];
+    now[3] = s[2];
+    now[4] = s[4] * 100;
+    now[5] = s[0] + 1;
+    for (i = 0; i < SIM_VALUES; i++) {
+        if (now[i] != prev[i]) {
+            moved = 1;
+        }
+        if (first || now[i] != said[i]) {
+            changed |= 1 << i;
+        }
+        prev[i] = now[i];
+    }
+    if (moved) {
+        settle = 0;
+    }
+    if (changed == 0 || now[0] < 0 || now[0] > 9999 || ++settle < SIM_SETTLE) {
+        return;
+    }
+    text[0] = '\0';
+    if (changed & 1) {
+        len = (size_t)snprintf(text, sizeof(text), tr("Day %d of %d"), now[0] % SIM_TURNS + 1, SIM_TURNS);
+        if (now[0] >= SIM_TURNS && len < sizeof(text)) {
+            len += (size_t)snprintf(text + len, sizeof(text) - len, tr(", round %d"), now[0] / SIM_TURNS + 1);
+        }
+    }
+    for (i = 1; i < SIM_VALUES; i++) {
+        if ((changed & (1 << i)) && len < sizeof(text) - 4) {
+            if (len > 0) {
+                len += (size_t)snprintf(text + len, sizeof(text) - len, ". ");
+            }
+            len += (size_t)snprintf(text + len, sizeof(text) - len, tr(kSimValue[i]), now[i]);
+        }
+    }
+    for (i = 0; i < SIM_VALUES; i++) {
+        said[i] = now[i];
+    }
+    first = 0;
+    PortA11y_Say(text, 0); /* behind the command's line */
+}
+
+/* The team of Ultimate Battle (UbTeamSel: src/menu/menu_m_b.c, include/menu/menu_m.h), shown instead of SoloSel when
+   the course asks for two fighters or more. Its state is the team select's side record. */
+typedef struct {
+    char unk0[0x14];
+    uint32_t GAME_PTR nameText;   /* 0x0014 */
+    uint32_t GAME_PTR formText;   /* 0x0018 */
+    char unk1C[0x1EC - 0x1C];
+    int flags;                    /* 0x01EC: UBSEL_ */
+    char unk1F0[0x200 - 0x1F0];
+    A11yTeamSide state;           /* 0x0200: UbTeamState */
+    char unk340[0x1AB8 - 0x340];
+    int rows;                     /* 0x1AB8 */
+    int plateCount;               /* 0x1ABC */
+    int colorCount;               /* 0x1AC0 */
+    int teamMax;                  /* 0x1AC4: fighters the team may have */
+    int dpLevel;                  /* 0x1AC8 */
+    int dpMax;                    /* 0x1ACC: 10, 15 or 20 */
+} A11yUbTeamSel;
+LAYOUT_ASSERT(offsetof(A11yUbTeamSel, flags) == 0x1EC && offsetof(A11yUbTeamSel, state) == 0x200 &&
+               offsetof(A11yUbTeamSel, rows) == 0x1AB8 && offsetof(A11yUbTeamSel, dpMax) == 0x1ACC, "UbTeamSel");
+extern A11yUbTeamSel GAME_PTR gUbTeamSel;
+extern int ChrTbl_GetCost(int chara); /* src/battle/view_b_b.c: reads the character table */
+#define UBSEL_STARTED 2
+#define UBSEL_DONE 8
+#define UBSEL_LEAVING 0x10
+#define UBSEL_DP 0x20
+
+/* Appends the character's cost when the team has a DP limit. */
+static void ub_add_cost(char *text, int cap, A11yUbTeamSel GAME_PTR t, int chara) {
+    size_t len = strlen(text);
+
+    if ((t->flags & UBSEL_DP) && chara >= 0 && chara < MCHR_RANDOM && (int)len < cap) {
+        snprintf(text + len, cap - len, tr(", %d DP"), ChrTbl_GetCost(chara));
+    }
+}
+
+static void ub_team_select(void) {
+    static int open, step, pos, row, chara, cur;
+    A11yUbTeamSel GAME_PTR t = gUbTeamSel;
+    A11yTeamSide GAME_PTR s;
+    A11yTsMember GAME_PTR mb;
+    char text[A11Y_TEXT], what[A11Y_TEXT];
+    int p = 0, count = 0, c;
+    size_t len;
+
+    if (t == NULL) {
+        open = 0;
+        return;
+    }
+    if (!(t->flags & UBSEL_STARTED) || (t->flags & (UBSEL_DONE | UBSEL_LEAVING))) {
+        return;
+    }
+    s = &t->state;
+    if (s->state < TEAMSEL_ST_GRID || s->state > TEAMSEL_ST_TEAM || s->cur < 0 || s->cur > TS_CUR_MENU) {
+        return;
+    }
+    if (!open) {
+        open = 1;
+        step = pos = row = chara = cur = -1;
+        len = (size_t)snprintf(text, sizeof(text), "%s", tr("Team select"));
+        if (t->teamMax >= 2 && t->teamMax <= TS_MEMBERS && len < sizeof(text)) {
+            len += (size_t)snprintf(text + len, sizeof(text) - len, tr(". Fighters: %d"), t->teamMax);
+        }
+        if ((t->flags & UBSEL_DP) && len < sizeof(text)) {
+            snprintf(text + len, sizeof(text) - len, tr(". DP limit: %d"), t->dpMax);
+        }
+        heading(text);
+    }
+    mb = &s->member[s->cur < TS_MEMBERS ? s->cur : 0];
+    c = s->chara;
+    what[0] = '\0';
+    switch (s->state) {
+    case TEAMSEL_ST_GRID:
+        p = mb->col;
+        chara_name(what, sizeof(what), t->nameText, t->formText, c);
+        ub_add_cost(what, sizeof(what), t, c);
+        if ((step != s->state || mb->row != row) && t->rows > 1) {
+            len = strlen(what);
+            snprintf(what + len, sizeof(what) - len, tr(", row %d of %d"), mb->row + 1, t->rows);
+        }
+        break;
+    case TEAMSEL_ST_FORM:
+        p = mb->form;
+        chara_name(what, sizeof(what), t->nameText, t->formText, c);
+        ub_add_cost(what, sizeof(what), t, c);
+        break;
+    case TEAMSEL_ST_PLATE:
+        p = mb->plate;
+        count = t->plateCount;
+        if (p == 0) {
+            snprintf(what, sizeof(what), "%s", tr("No items"));
+        } else {
+            snprintf(what, sizeof(what), tr("Item set %d"), p);
+        }
+        break;
+    case TEAMSEL_ST_PANEL:
+        snprintf(what, sizeof(what), "%s", tr("Item panel"));
+        break;
+    case TEAMSEL_ST_PANEL_HELP: /* the item's description window */
+        step = s->state;
+        return;
+    case TEAMSEL_ST_COLOR:
+        p = mb->color;
+        count = t->colorCount;
+        snprintf(what, sizeof(what), tr("Costume %d"), p + 1);
+        break;
+    case TEAMSEL_ST_TEAM:
+        c = -1;
+        if (s->cur == TS_CUR_MENU) {
+            snprintf(what, sizeof(what), "%s", tr("Confirm the team"));
+            p = -1;
+        } else {
+            p = s->cur;
+            count = t->teamMax >= 1 && t->teamMax <= TS_MEMBERS ? t->teamMax : TS_MEMBERS;
+            if (s->cur < s->memberCount && mb->chara >= 0) {
+                c = mb->chara;
+                len = (size_t)snprintf(what, sizeof(what), tr("Member %d: "), s->cur + 1);
+                chara_name(what + len, sizeof(what) - len, t->nameText, t->formText, c);
+                ub_add_cost(what, sizeof(what), t, c);
+            } else {
+                snprintf(what, sizeof(what), tr("Member %d: empty"), s->cur + 1);
+            }
+        }
+        break;
+    }
+    if (s->state == step && p == pos && mb->row == row && c == chara && s->cur == cur) {
+        return;
+    }
+    add_position(what, sizeof(what), p, count);
+    if (s->state == TEAMSEL_ST_TEAM && step != TEAMSEL_ST_TEAM && (t->flags & UBSEL_DP)) {
+        len = strlen(what);
+        snprintf(what + len, sizeof(what) - len, tr(". Team DP: %d of %d"), s->cost, t->dpMax);
+    }
+    if (s->state != TEAMSEL_ST_TEAM && s->cur != cur && s->cur < TS_MEMBERS) {
+        snprintf(text, sizeof(text), tr("Member %d: %s"), s->cur + 1, what);
+        snprintf(what, sizeof(what), "%s", text);
+    }
+    step = s->state;
+    pos = p;
+    row = mb->row;
+    chara = c;
+    cur = s->cur;
+    PortA11y_Say(what, follow());
+}
+
+/* The password entry of the Data Center (mode 54, DcPass: src/menu/menu_z_d.c, include/menu/menu_z.h). Its work
+   structure is a local of DcPass_Run, so its loop gives a copy here every frame (PortA11y_DcPass), as the plates
+   above do. The guide's lines are said through the message window. */
+typedef struct {
+    char unk0[0x85C];
+    uint32_t GAME_PTR nameText;   /* 0x85C: view.nameText */
+    uint32_t GAME_PTR formText;   /* 0x860 */
+    char unk864[4];
+    char text[35];                /* 0x868: 34 cells, ' ' = empty */
+    char pass[0x25];              /* 0x88B */
+    int cursor;                   /* 0x8B0: cell the next character goes to */
+    int len;                      /* 0x8B4 */
+    char unk8B8[0x8D0 - 0x8B8];
+    unsigned int state;           /* 0x8D0: DCPASS_ST_ */
+    int page, row, col;           /* 0x8D4: the keyboard's cursor */
+    int top, listCursor, extra;   /* 0x8E0: the slot list */
+    int chara[14];                /* 0x8EC: -1 = free */
+    char unk924[0x964 - 0x924];
+    int flags;                    /* 0x964: DCPASS_ */
+    char unk968[0x97C - 0x968];
+} A11yDcPass;
+LAYOUT_ASSERT(offsetof(A11yDcPass, text) == 0x868 && offsetof(A11yDcPass, cursor) == 0x8B0 &&
+               offsetof(A11yDcPass, state) == 0x8D0 && offsetof(A11yDcPass, chara) == 0x8EC &&
+               offsetof(A11yDcPass, flags) == 0x964 && sizeof(A11yDcPass) == 0x97C, "DcPass");
+extern char gDcPassKeys[2][5][14]; /* src/menu/menu_z_d.c: characters, or the codes below */
+#define DCPASS_CELLS 34
+#define DCPASS_SLOTS 14
+#define DCPASS_ST_TYPE 0
+#define DCPASS_ST_LIST 3
+#define DCPASS_LEAVE 1
+#define DCPASS_LEAVING 2
+#define DCPASS_STARTED 4
+#define DCKEY_CODES 7
+#define DCKEY_ZERO 4
+
+static A11yDcPass sDcPass;
+static int sDcPassBlank; /* the blank the copy was taken on (0: never) */
+
+void PortA11y_DcPass(unsigned int pass) {
+    if (!sOn || gPortResim || pass == 0) {
+        return;
+    }
+    memcpy(&sDcPass, (const void *)(uintptr_t)pass, sizeof(sDcPass));
+    sDcPassBlank = sBlank;
+}
+
+/* Descriptive: the three buttons and the wide keys are pictures. */
+static const char *const kDcKeys[DCKEY_CODES] = {
+    "Quit", "Capitals or small letters", "Confirm password", "Delete character", NULL, "Cursor left", "Cursor right",
+};
+static const char kDcSymbols[] = "#$%&@!?-+*()";
+static const char *const kDcSymbolNames[12] = {
+    "Hash", "Dollar", "Percent", "Ampersand", "At", "Exclamation mark",
+    "Question mark", "Hyphen", "Plus", "Asterisk", "Left parenthesis", "Right parenthesis",
+};
+
+/* How a password character (or a key code) is said: a screen reader may skip a bare symbol and does not tell a
+   capital from a small letter. */
+static void pass_char_name(char *out, int cap, int c) {
+    const char *sym;
+
+    if (c == DCKEY_ZERO) {
+        c = '0';
+    }
+    if (c >= 0 && c < DCKEY_CODES) {
+        snprintf(out, cap, "%s", tr(kDcKeys[c]));
+    } else if (c >= 'A' && c <= 'Z') {
+        snprintf(out, cap, tr("Capital %c"), c);
+    } else if (c == ' ') {
+        snprintf(out, cap, "%s", tr("empty"));
+    } else if (c != '\0' && (sym = strchr(kDcSymbols, c)) != NULL) {
+        snprintf(out, cap, "%s", tr(kDcSymbolNames[sym - kDcSymbols]));
+    } else {
+        snprintf(out, cap, "%c", c);
+    }
+}
+
+static void dc_pass(void) {
+    static int open, state, key, cells, cursor, slot;
+    static char shown[DCPASS_CELLS];
+    A11yDcPass *p = &sDcPass;
+    char text[A11Y_TEXT], name[256];
+    int k, n, i, idx;
+    size_t len;
+
+    if (sDcPassBlank == 0 || sBlank - sDcPassBlank > 2) { /* (not run lately: the screen is gone) */
+        open = 0;
+        return;
+    }
+    if (!(p->flags & DCPASS_STARTED) || (p->flags & (DCPASS_LEAVE | DCPASS_LEAVING))) {
+        return;
+    }
+    if (!open) {
+        open = 1;
+        state = key = cells = cursor = slot = -1;
+        memset(shown, ' ', sizeof(shown));
+        heading(tr("Password entry"));
+    }
+    switch (p->state) {
+    case DCPASS_ST_TYPE:
+        if (p->page < 0 || p->page > 1 || p->row < 0 || p->row > 4 || p->col < 0 || p->col > 13) {
+            break;
+        }
+        k = (unsigned char)gDcPassKeys[p->page][p->row][p->col];
+        for (n = 0, i = 0; i < DCPASS_CELLS; i++) {
+            n += p->text[i] != ' ' && p->text[i] != '\0';
+        }
+        if (cells >= 0 && memcmp(shown, p->text, sizeof(shown)) != 0) {
+            snprintf(text, sizeof(text), n < cells ? tr("Deleted. Characters: %d") : tr("Characters: %d"), n);
+            PortA11y_Say(text, A11Y_INTERRUPT);
+        } else if (cursor >= 0 && p->cursor != cursor && p->cursor >= 0 && p->cursor < DCPASS_CELLS) {
+            pass_char_name(name, sizeof(name), p->text[p->cursor]);
+            snprintf(text, sizeof(text), tr("Position %d: %s"), p->cursor + 1, name);
+            PortA11y_Say(text, A11Y_INTERRUPT);
+        } else if (state != DCPASS_ST_TYPE || k != key) {
+            pass_char_name(name, sizeof(name), k);
+            PortA11y_Say(name, follow());
+        }
+        key = k;
+        cells = n;
+        cursor = p->cursor;
+        memcpy(shown, p->text, sizeof(shown));
+        break;
+    case DCPASS_ST_LIST:
+        idx = p->top + p->listCursor;
+        if (idx < 0 || idx >= DCPASS_SLOTS || (state == DCPASS_ST_LIST && idx == slot)) {
+            break;
+        }
+        slot = idx;
+        if (p->chara[idx] < 0) {
+            snprintf(text, sizeof(text), tr("Slot %d: free"), idx + 1);
+        } else {
+            len = (size_t)snprintf(text, sizeof(text), tr("Slot %d: "), idx + 1);
+            chara_name(text + len, (int)(sizeof(text) - len), p->nameText, p->formText, p->chara[idx]);
+        }
+        add_position(text, sizeof(text), idx, DCPASS_SLOTS);
+        PortA11y_Say(text, follow());
+        break;
+    default:
+        break;
+    }
+    state = (int)p->state;
+}
+
+/* The customising screen of Evolution Z (mode 49, EvoZ: src/menu/menu_v_b.c, include/menu/menu_v.h) after a
+   character is chosen: the menu, the three item sets, the eight slots with their four actions, the list of owned
+   items, the password window and the page that turns Z Points into experience. The grid before it is char_ref's.
+   The menu rows and the actions are pictures: their names here are descriptions of what EvoZ_Input does. */
+typedef struct {
+    unsigned short id[3][8];      /* 0x00: the three item sets, 1-based items, 0 = empty */
+    int exp;                      /* 0x30 */
+    unsigned short level, unk36;  /* 0x34 */
+} A11yEvoCustom;                  /* include/menu/menu_v.h: VSaveCustom */
+typedef struct {
+    char unk0[0x20];
+    uint32_t GAME_PTR text[3];    /* 0x0020: [2] the item names, by 0-based item */
+    char unk2C[0x22C - 0x2C];
+    int flags;                    /* 0x022C: EVOZ_ */
+    int cur[11];                  /* 0x0230: [1] menu row, [2] item set, [3] slot row, [5] digit, [8] slot action */
+    int leaveTimer;
+    int state;                    /* 0x0260: EVOZ_ST_ */
+    int faceState;
+    int listSide;
+    int helpItem;                 /* 0x026C: 0-based item of the details page */
+    int zp;                       /* 0x0270: Z Points chosen on the points page */
+    int set;                      /* 0x0274: item set being edited */
+    int lastTab;
+    int curItem;
+    int rowsUsed;                 /* 0x0280 */
+    int dialog;                   /* 0x0284: 0 = closed */
+    char unk288[0x2A0 - 0x288];
+    int col, row;                 /* 0x02A0: the grid cursor: the save's cell is col + row * 7 */
+    char unk2A8[0x30C - 0x2A8];
+    int chara;                    /* 0x030C */
+    char unk310[0x1A60 - 0x310];
+    int capacity;                 /* 0x1A60: item slots of the character */
+    int fits;                     /* 0x1A64: item slots the set takes */
+    int kind;
+    int exp;
+    int nextExp;                  /* 0x1A70: 0 at the last level */
+    int expLeft;                  /* 0x1A74 */
+    char unk1A78[0x1A98 - 0x1A78];
+    A11yShopList list;            /* 0x1A98: the owned items that can be equipped */
+    A11yShopItem GAME_PTR items;  /* 0x30C8 */
+} A11yEvoZ;
+LAYOUT_ASSERT(sizeof(A11yEvoCustom) == 0x38 && offsetof(A11yEvoZ, flags) == 0x22C &&
+               offsetof(A11yEvoZ, state) == 0x260 && offsetof(A11yEvoZ, rowsUsed) == 0x280 &&
+               offsetof(A11yEvoZ, chara) == 0x30C && offsetof(A11yEvoZ, capacity) == 0x1A60 &&
+               offsetof(A11yEvoZ, list) == 0x1A98 && offsetof(A11yEvoZ, items) == 0x30C8, "EvoZ");
+extern A11yEvoZ GAME_PTR gEvoZ;
+extern char GAME_PTR ChrPass_GetText(void); /* src/sys/misc_a_b.c: the password the window shows */
+#define EVOZ_STARTED 4
+#define EVOZ_ST_GRID 0
+#define EVOZ_ST_MENU 1
+#define EVOZ_ST_SLOTS 3
+#define EVOZ_ST_PASSWORD 4
+#define EVOZ_ST_ZP 5
+#define EVOZ_ST_LEVEL_UP 7
+#define EVOZ_ST_HELP 9
+#define EVOZ_ST_LIST 10
+#define EVOZ_SLOTS 8
+#define EVOZ_CELLS 97
+#define SAVE_CUSTOM_OFFSET 0x1808
+
+static const char *const kEvoMenu[3] = {"Equip Z items", "Show password", "Use Z Points"};
+static const char *const kEvoActions[4] = {"Change", "Details", "Remove", "Remove all"};
+
+/* The name of 1-based item `id`, "Empty" for 0. */
+static void evo_item_name(char *out, int cap, A11yEvoZ GAME_PTR ez, int id) {
+    if (id <= 0) {
+        snprintf(out, cap, "%s", tr("Empty"));
+    } else if (id > SAVE_ITEMS || text_line(out, cap, ez->text[2], id - 1) == 0) {
+        snprintf(out, cap, tr("Item %d"), id);
+    }
+}
+
+static void evo_custom(void) {
+    static int state = -1, row, set, act, tab, idx, zp, digit, item;
+    A11yEvoZ GAME_PTR ez = gEvoZ;
+    A11yEvoCustom GAME_PTR cu;
+    A11yShopList GAME_PTR l;
+    char GAME_PTR pass;
+    char text[A11Y_TEXT], name[256];
+    int cell, id, i, n, step, entering;
+    size_t len;
+
+    if (ez == NULL || gSaveData == NULL) {
+        state = -1;
+        return;
+    }
+    cell = ez->col + ez->row * MCHR_COLS;
+    if (!(ez->flags & EVOZ_STARTED) || ez->dialog != 0 || cell < 0 || cell >= EVOZ_CELLS || ez->set < 0 || ez->set > 2) {
+        return;
+    }
+    cu = (A11yEvoCustom GAME_PTR)((char GAME_PTR)gSaveData + SAVE_CUSTOM_OFFSET) + cell;
+    entering = state != ez->state;
+    text[0] = '\0';
+    switch (ez->state) {
+    case EVOZ_ST_MENU:
+        if (ez->cur[1] < 0 || ez->cur[1] > 2 || ez->cur[2] < 0 || ez->cur[2] > 2) {
+            return;
+        }
+        if (!entering && row == ez->cur[1] && set == ez->cur[2]) {
+            break;
+        }
+        if (!entering && set != ez->cur[2]) { /* left and right change the item set */
+            snprintf(text, sizeof(text), tr("Item set %d"), ez->cur[2] + 1);
+            add_position(text, sizeof(text), ez->cur[2], 3);
+        } else {
+            snprintf(text, sizeof(text), "%s", tr(kEvoMenu[ez->cur[1]]));
+            if (ez->cur[1] == 2 && ez->nextExp == 0) {
+                len = strlen(text);
+                snprintf(text + len, sizeof(text) - len, "%s", tr(", not available"));
+            }
+            add_position(text, sizeof(text), ez->cur[1], 3);
+            if (state == EVOZ_ST_GRID || state == -1) { /* a character was just chosen */
+                len = strlen(text);
+                snprintf(text + len, sizeof(text) - len, tr(". Item set %d of 3. Item slots: %d"), ez->cur[2] + 1,
+                         ez->capacity);
+            }
+        }
+        row = ez->cur[1];
+        set = ez->cur[2];
+        PortA11y_Say(text, A11Y_INTERRUPT);
+        break;
+    case EVOZ_ST_SLOTS:
+        if (ez->cur[3] < 0 || ez->cur[3] >= EVOZ_SLOTS || ez->cur[8] < 0 || ez->cur[8] > 3) {
+            return;
+        }
+        id = cu->id[ez->set][ez->cur[3]];
+        if (entering || row != ez->cur[3] || item != id) {
+            evo_item_name(name, sizeof(name), ez, id);
+            len = 0;
+            if (entering && state != EVOZ_ST_HELP && state != EVOZ_ST_LIST) {
+                len = (size_t)snprintf(text, sizeof(text), tr("Item set %d. Slots used: %d of %d. "), ez->set + 1,
+                                       ez->fits, ez->capacity);
+            }
+            snprintf(text + len, sizeof(text) - len, tr("Slot %d: %s"), ez->cur[3] + 1, name);
+            if (entering) {
+                len = strlen(text);
+                snprintf(text + len, sizeof(text) - len, ". %s", tr(kEvoActions[ez->cur[8]]));
+            }
+            PortA11y_Say(text, A11Y_INTERRUPT);
+        } else if (act != ez->cur[8]) {
+            say_item(tr(kEvoActions[ez->cur[8]]), ez->cur[8], 4, A11Y_INTERRUPT);
+        }
+        row = ez->cur[3];
+        item = id;
+        act = ez->cur[8];
+        break;
+    case EVOZ_ST_LIST:
+        l = &ez->list;
+        if (l->tab < 0 || l->tab >= SHOP_TABS) {
+            return;
+        }
+        n = l->count[l->tab];
+        i = l->cur[l->tab];
+        if (!entering && tab == l->tab && idx == i) {
+            break;
+        }
+        len = 0;
+        if (entering || tab != l->tab) {
+            len = (size_t)snprintf(text, sizeof(text), tr("Tab %d of %d%s. "), l->tab + 1, SHOP_TABS, "");
+        }
+        if (n <= 0 || n > SAVE_ITEMS || i < 0 || i >= n) {
+            snprintf(text + len, sizeof(text) - len, "%s", tr("No items"));
+        } else {
+            id = l->ids[l->tab][i];
+            evo_item_name(text + len, (int)(sizeof(text) - len), ez, id + 1);
+            if (ez->items != NULL && id >= 0 && id < SAVE_ITEMS && ez->items[id].slots > 0) {
+                len = strlen(text);
+                snprintf(text + len, sizeof(text) - len, tr(", slots: %d"), ez->items[id].slots);
+            }
+            add_position(text, sizeof(text), i, n);
+        }
+        tab = l->tab;
+        idx = i;
+        PortA11y_Say(text, A11Y_INTERRUPT);
+        break;
+    case EVOZ_ST_HELP:
+        if (entering) {
+            item_help(ez->helpItem);
+        }
+        break;
+    case EVOZ_ST_PASSWORD:
+        if (entering) {
+            /* Character by character: it has to be copied exactly. */
+            pass = ChrPass_GetText();
+            len = (size_t)snprintf(text, sizeof(text), "%s", tr("Password: "));
+            for (i = 0; pass != NULL && i < DCPASS_CELLS && pass[i] != '\0' && len < sizeof(text) - 40; i++) {
+                pass_char_name(name, sizeof(name), (unsigned char)pass[i]);
+                len += (size_t)snprintf(text + len, sizeof(text) - len, "%s%s", i > 0 ? ", " : "", name);
+            }
+            say_long(text, A11Y_INTERRUPT);
+        }
+        break;
+    case EVOZ_ST_ZP:
+        if (ez->cur[5] < 0 || ez->cur[5] > 4) {
+            return;
+        }
+        if (entering) {
+            snprintf(text, sizeof(text), tr("Z Points to use: %d. You have %d. To the next level: %d"), ez->zp,
+                     gSaveData->money, ez->expLeft);
+        } else if (zp != ez->zp) {
+            snprintf(text, sizeof(text), "%d", ez->zp);
+        } else if (digit != ez->cur[5]) {
+            for (step = 1, i = 0; i < ez->cur[5]; i++) {
+                step *= 10;
+            }
+            snprintf(text, sizeof(text), tr("Step: %d"), step);
+        }
+        zp = ez->zp;
+        digit = ez->cur[5];
+        if (text[0] != '\0') {
+            PortA11y_Say(text, A11Y_INTERRUPT);
+        }
+        break;
+    case EVOZ_ST_LEVEL_UP:
+        if (entering) {
+            PortA11y_Say(tr("Level up!"), A11Y_INTERRUPT);
+        }
+        break;
+    default:
+        break;
+    }
+    state = ez->state;
+}
+
 void PortA11y_GameTick(void) {
     int v;
 
@@ -3581,6 +4937,8 @@ void PortA11y_GameTick(void) {
         sMenuVoices = v < 0 ? 0 : v > 100 ? 100 : v;
         v = Port_Setting("a11y_fight_voices", sMenuVoices);
         sFightVoices = v < 0 ? 0 : v > 100 ? 100 : v;
+        v = Port_Setting("a11y_fight_music", 100);
+        sFightMusic = v < 0 ? 0 : v > 100 ? 100 : v;
     }
     sBlank++;
     battle_watch();
@@ -3590,12 +4948,15 @@ void PortA11y_GameTick(void) {
         title();
         main_menu();
     }
+    welcome();
     duel_menu();
     options();
     char_select();
     solo_select();
+    ub_team_select();
     entry_select();
     ub_menu();
+    plates();
     mission_select();
     tour_menu();
     hist_select();
@@ -3603,15 +4964,26 @@ void PortA11y_GameTick(void) {
     train_menu();
     survival_select();
     sim_top();
+    sim_day();
     bracket();
     team_select();
     replay_menu();
     char_ref();
     shop();
+    evo_custom();
+    dc_pass();
     disc_fusion();
     btl_menu();
     msg_window();
+    result_sheet();
+    hist_result();
+    get_win();
     shown_text();
     fight_gauges();
     fight_cues();
+    fight_result();
+    /* (BATTLE_FLAG_PAUSE: the fight frozen; online a pause menu does not freeze it, and the rival's is not this player's) */
+    PortA11y_FightAlerts(fighting() && btl_menu_shown() == NULL && !(gBattleWork.flags & BATTLE_FLAG_PAUSE));
+    PortA11y_FightMenu(fighting() && btl_menu_shown() != NULL); /* (a11y.c: Select goes through the sound glossary) */
+    fight_intro();
 }

@@ -25,6 +25,8 @@ void PortChat_EnabledSet(int on);
 int PortChat_Muted(void);           /* the other player's lines are not kept (until the program ends) */
 void PortChat_MutedSet(int on);
 void PortChat_Reset(void);          /* clears all lines, outbox, and sequence tracking for a new session */
+int PortChat_Read(void);            /* setting "a11y_chat" (on by default): the screen reader says the other player's lines */
+void PortChat_ReadSet(int on);
 
 /* The connection (game thread, net.c). */
 int PortChat_Outgoing(uint32_t nowMs, uint32_t *seq, char *text); /* a line due to be sent now: its length, -1 = none */

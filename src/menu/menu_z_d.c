@@ -1471,6 +1471,12 @@ s32 DcPass_Run(s32 section) {
         ColorFade_Update();
         Snd_Update();
         DcPass_Update(&pass);
+#ifdef PORT
+        {
+            extern void PortA11y_DcPass(u32 pass); /* PC build: the screen reader (port/src/a11y_game.c) */
+            PortA11y_DcPass((u32)(unsigned long long)&pass);
+        }
+#endif
         DcPass_Draw(&pass);
         ColorFade_Draw();
         Gfx_EndFrame(1);

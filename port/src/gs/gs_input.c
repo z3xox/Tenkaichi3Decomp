@@ -15,6 +15,7 @@
 #include <SDL3/SDL.h>
 #include <math.h>
 #include <pthread.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -24,6 +25,7 @@
 int gPortOverlayOpen, gPortInputCapture, gPortChatTyping;
 extern int Port_Setting(const char *name, int def); /* plat_settings.c */
 extern void Port_SettingSave(const char *name, int value), Port_SettingsWrite(void);
+extern const char *PortA11y_Tr(const char *label) __attribute__((format_arg(1))); /* a11y.c: the reader's line in its language */
 
 /* bits of the two button bytes together (byte 0 low), as include/sys/pad.h has them; 1 = pressed here */
 enum { B_SELECT = 0x0001, B_L3 = 0x0002, B_R3 = 0x0004, B_START = 0x0008, B_UP = 0x0010, B_RIGHT = 0x0020, B_DOWN = 0x0040,
@@ -137,8 +139,8 @@ int PortInput_Hotkey(const SDL_Event *ev) {
         sComboLatch = 0;
         return 0;
     }
-    if (gPortInputCapture) { /* (a binding is being taken, or the online screen is up) */
-        return 0;
+    if (gPortInputCapture || (PortInput_Learning() && ev->type == SDL_EVENT_GAMEPAD_BUTTON_DOWN)) {
+        return 0; /* (a binding is being taken, or the online screen is up; a controller's presses are a setup's) */
     }
     if (ev->type == SDL_EVENT_KEY_DOWN && !ev->key.repeat) {
         return sOverlayKey > 0 && (int)ev->key.scancode == sOverlayKey;
@@ -442,22 +444,940 @@ static void test_pad(void) {
 
 /* The connected controllers, in SDL's order (the order the settings window lists them in), kept open. */
 #define MAX_PADS 8
-static struct { SDL_JoystickID id; SDL_Gamepad *pad; } sOpen[MAX_PADS];
+static struct { SDL_JoystickID id; SDL_Gamepad *pad; char name[64]; } sOpen[MAX_PADS];
 static SDL_JoystickID sIds[MAX_PADS];
 static int sIdCount, sInit;
+static Uint64 sInitAt; /* when the controllers started (SDL_GetTicks) */
+
+/* A line for the log (stderr, and the reader's, a11y_log=1). The controllers start with the game's first pad read,
+   the reader with its first blank: what comes before that is kept for the reader's log until it is on. */
+static char sPending[16][400];
+static int sPendingCount;
+
+static void pad_log(const char *line) {
+    extern void PortA11y_Note(const char *text); /* a11y.c */
+    extern int PortA11y_On(void);
+
+    fprintf(stderr, "bt3: %s\n", line);
+    if (PortA11y_On()) {
+        PortA11y_Note(line);
+    } else if (sPendingCount < (int)(sizeof(sPending) / sizeof(sPending[0]))) {
+        snprintf(sPending[sPendingCount++], sizeof(sPending[0]), "%s", line);
+    }
+}
+
+/* A controller opened: what SDL knows of it, in the log, for a report of buttons that do not do what they say: its
+   name, the type its buttons are named by, maker and model, and the mapping SDL reads its buttons through (a
+   controller of an unusual make can be mapped wrongly, every button then another one). */
+static void pad_note(SDL_Gamepad *g) {
+    char line[1024];
+    char *map = SDL_GetGamepadMapping(g);
+    const char *name = SDL_GetGamepadName(g), *type = SDL_GetGamepadStringForType(SDL_GetGamepadType(g));
+
+    snprintf(line, sizeof(line), "controller: \"%s\", type %s, %04x:%04x, mapping %s", name != NULL ? name : "?",
+             type != NULL ? type : "unknown", SDL_GetGamepadVendor(g), SDL_GetGamepadProduct(g), map != NULL ? map : "none");
+    SDL_free(map);
+    pad_log(line);
+}
+
+/* ---- Controllers SDL does not know, and saying what is plugged in (accessibility) ----
+ *
+ * SDL makes a gamepad of a joystick only through a mapping, and a USB controller that talks DirectInput (most cheap
+ * ones, and many switchable ones in their D mode) has none unless SDL carries one for its maker and model: such a
+ * controller was not opened, not said and not even in the log, and a player who cannot see could not tell it from no
+ * controller at all. So:
+ *   - The community's mappings (gamecontrollerdb.txt, github.com/mdqinc/SDL_GameControllerDB, zlib licence; the release
+ *     carries a fixed version of it: port/release/Dockerfile, port/tools/package.py) and the player's own
+ *     (gamecontrollerdb_own.txt, which no release replaces; its lines win) are read from the program's folder as the
+ *     controllers start; then SDL_GAMECONTROLLERCONFIG_FILE again when it is set, so that it still wins. SDL makes a
+ *     gamepad of a controller that is already there as soon as it has a mapping.
+ *   - A joystick still without one goes to the log with its name, maker and model (VID:PID), GUID, type and what it
+ *     has. When it has the shape of a controller (type unknown or gamepad, 10 buttons or more, 2 axes or more) it is
+ *     given the layout most of those have, the PlayStation one as the community's mappings have it for 46 of their 92
+ *     Windows controllers with the face buttons in that order (Triangle 0, Circle 1, Cross 2, Square 3; L1 4, R1 5,
+ *     L2 6, R2 7, Select 8, Start 9, L3 10, R3 11; the d-pad on the hat, or on the first two axes without one; the
+ *     right stick on axes 2 and 3, 2 and 4 on DragonRise's own, maker 0079, with 5 axes): it becomes a gamepad, and
+ *     that is said, for it is a guess. Where the guess is wrong, the player sets the controller up a button at a time,
+ *     by voice (learn_*, below: F1, Controls), and that is kept.
+ *   - What is plugged in is said: once, a few seconds after the start (each controller and its player, or that there
+ *     is none and the keyboard plays); after that every controller that comes or goes, and every player whose
+ *     controller changed. The controller a player gets vibrates once (player 2's twice), unless that player has
+ *     vibration off, and its light, if it has one, shows the player.
+ * The game sees none of this: only which controller is read can change, as plugging one in always did.
+ *
+ * Testing without a controller: BT3_PAD_UNKNOWN="<vid>:<pid>[@<seconds>]" attaches a joystick made by SDL itself, with
+ * no mapping (12 buttons, a hat, 4 axes; 5 for maker 0079), named "USB Joystick" or $BT3_PAD_UNKNOWN_NAME, at the
+ * start or that many seconds after it; BT3_PAD_UNKNOWN_OFF=<seconds> takes it away again then. BT3_PAD_UNKNOWN_SHAPE=
+ * "<buttons>,<axes>,<hats>" gives it other parts. What it is told to vibrate is printed, as with BT3_RUMBLE_LOG.
+ */
+#define PAD_SAY_AFTER 3000 /* ms after the controllers start: the first round of what is plugged in (some are found late) */
+#define MAX_JOYS 16
+
+static SDL_JoystickID sJoySeen[MAX_JOYS]; /* the joysticks without a mapping already looked at (ids are not reused) */
+static unsigned sJoySeenCount;
+static SDL_JoystickID sGuessed[MAX_JOYS]; /* the ones given the common layout here */
+static unsigned sGuessedCount;
+static char sUnusable[4][64]; /* joysticks found without a mapping and not of a controller's shape, not said yet */
+static int sUnusableCount;
+static int sSaid; /* the first round has been said */
+static SDL_JoystickID sSaidPad[2]; /* each player's controller as last said (0: none) */
+static struct { SDL_JoystickID id; int left; Uint64 next; } sPulse[2]; /* identification pulses still to come */
+
+static void mappings_load(void) {
+    static const char *const kFiles[2] = {"gamecontrollerdb.txt", "gamecontrollerdb_own.txt"};
+    const char *base = SDL_GetBasePath(), *env = SDL_GetHint(SDL_HINT_GAMECONTROLLERCONFIG_FILE), *what;
+    char path[1024], line[1200];
+    int i, n;
+
+    for (i = 0; i < 3; i++) {
+        if (i < 2 && base != NULL) {
+            snprintf(path, sizeof(path), "%s%s", base, kFiles[i]);
+            what = kFiles[i];
+        } else if (i == 2 && env != NULL && env[0] != '\0') {
+            snprintf(path, sizeof(path), "%s", env);
+            what = "SDL_GAMECONTROLLERCONFIG_FILE";
+        } else {
+            continue;
+        }
+        if (!SDL_GetPathInfo(path, NULL)) {
+            snprintf(line, sizeof(line), "controller mappings: %s: not there (%s)", what, path);
+        } else if ((n = SDL_AddGamepadMappingsFromFile(path)) < 0) {
+            snprintf(line, sizeof(line), "controller mappings: %s: not read: %s", what, SDL_GetError());
+        } else {
+            snprintf(line, sizeof(line), "controller mappings: %s: %d new for this system (%s)", what, n, path);
+        }
+        pad_log(line);
+    }
+}
+
+static int guessed(SDL_JoystickID id) {
+    unsigned i;
+    for (i = 0; i < sGuessedCount && i < MAX_JOYS; i++) {
+        if (sGuessed[i] == id) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/* A joystick SDL has no mapping for: into the log, and the common layout when it has a controller's shape. */
+static void joystick_unknown(SDL_JoystickID id) {
+    static const char *const kTypes[] = {"unknown", "gamepad", "wheel", "arcade stick", "flight stick", "dance pad",
+                                         "guitar", "drum kit", "arcade pad", "throttle"};
+    SDL_Joystick *j = SDL_OpenJoystick(id);
+    SDL_JoystickType type = SDL_GetJoystickTypeForID(id);
+    const char *name = SDL_GetJoystickNameForID(id);
+    Uint16 vid = SDL_GetJoystickVendorForID(id), pid = SDL_GetJoystickProductForID(id);
+    int buttons = j != NULL ? SDL_GetNumJoystickButtons(j) : 0, axes = j != NULL ? SDL_GetNumJoystickAxes(j) : 0;
+    int hats = j != NULL ? SDL_GetNumJoystickHats(j) : 0, n, i;
+    char guid[33], plain[64], map[512], line[1200];
+
+    if (j != NULL) {
+        SDL_CloseJoystick(j);
+    }
+    SDL_GUIDToString(SDL_GetJoystickGUIDForID(id), guid, sizeof(guid));
+    for (i = n = 0; name != NULL && name[i] != '\0' && n < (int)sizeof(plain) - 1; i++) {
+        if (name[i] != ',') { /* (a comma ends the name in a mapping) */
+            plain[n++] = name[i];
+        }
+    }
+    plain[n] = '\0';
+    if (n == 0) {
+        snprintf(plain, sizeof(plain), "Controller %04x:%04x", vid, pid);
+    }
+    n = snprintf(line, sizeof(line), "controller not recognized: \"%s\", %04x:%04x, GUID %s, type %s, %d buttons, %d axes, %d hats",
+                 plain, vid, pid, guid, (unsigned)type < sizeof(kTypes) / sizeof(kTypes[0]) ? kTypes[type] : "other", buttons, axes, hats);
+    if ((type == SDL_JOYSTICK_TYPE_UNKNOWN || type == SDL_JOYSTICK_TYPE_GAMEPAD) && buttons >= 10 && axes >= 2) {
+        /* The d-pad on the hat; without one (a PlayStation-style pad in its digital mode, the ANALOG light off) the
+           d-pad is what moves the first two axes, so they are both the d-pad and the left stick. The right stick only
+           where there are axes for it. */
+        char right[48] = "";
+        if (axes >= 4) {
+            snprintf(right, sizeof(right), "rightx:a2,righty:a%d,", vid == 0x0079 && axes >= 5 ? 4 : 3);
+        }
+        snprintf(map, sizeof(map), "%s,%s,a:b2,b:b1,x:b3,y:b0,leftshoulder:b4,rightshoulder:b5,lefttrigger:b6,righttrigger:b7,"
+                 "back:b8,start:b9,%s%sleftx:a0,lefty:a1,%s",
+                 guid, plain, buttons >= 12 ? "leftstick:b10,rightstick:b11," : "",
+                 hats >= 1 ? "dpup:h0.1,dpright:h0.2,dpdown:h0.4,dpleft:h0.8," : "dpup:-a1,dpdown:+a1,dpleft:-a0,dpright:+a0,", right);
+        if (SDL_AddGamepadMapping(map) >= 0) {
+            sGuessed[sGuessedCount++ % MAX_JOYS] = id;
+            snprintf(line + n, sizeof(line) - n, "; given the common layout: %s", map);
+        } else {
+            snprintf(line + n, sizeof(line) - n, "; the common layout was refused: %s", SDL_GetError());
+        }
+    } else {
+        snprintf(line + n, sizeof(line) - n, "; not used (not the shape of a controller)");
+        if (sUnusableCount < 4) {
+            snprintf(sUnusable[sUnusableCount++], sizeof(sUnusable[0]), "%s", plain);
+        }
+    }
+    pad_log(line);
+}
+
+/* The joysticks SDL has no mapping for that were not looked at yet. */
+static void joysticks_unknown(void) {
+    SDL_JoystickID *ids;
+    int n = 0, i;
+    unsigned k;
+
+    ids = SDL_GetJoysticks(&n);
+    for (i = 0; ids != NULL && i < n; i++) {
+        for (k = 0; k < sJoySeenCount && k < MAX_JOYS && sJoySeen[k] != ids[i]; k++) {
+        }
+        if ((k < sJoySeenCount && k < MAX_JOYS) || SDL_IsGamepad(ids[i])) {
+            continue;
+        }
+        sJoySeen[sJoySeenCount++ % MAX_JOYS] = ids[i];
+        joystick_unknown(ids[i]);
+    }
+    SDL_free(ids);
+}
+
+/* BT3_PAD_UNKNOWN (see above): attaches or takes away the test joystick at its time. */
+static void test_unknown_pad(void) {
+    static SDL_JoystickID id;
+    static int done;
+    const char *t = getenv("BT3_PAD_UNKNOWN"), *off = getenv("BT3_PAD_UNKNOWN_OFF"), *at;
+    Uint64 now = SDL_GetTicks() - sInitAt;
+
+    if (t == NULL) {
+        return;
+    }
+    if (id == 0 && !done && now >= (Uint64)((at = strchr(t, '@')) != NULL ? atof(at + 1) * 1000.0 : 0.0)) {
+        SDL_VirtualJoystickDesc desc;
+        unsigned vid = 0, pid = 0;
+        int shape[3] = {12, 0, 1};
+
+        done = 1;
+        sscanf(t, "%x:%x", &vid, &pid);
+        shape[1] = vid == 0x0079 ? 5 : 4;
+        if (getenv("BT3_PAD_UNKNOWN_SHAPE") != NULL) {
+            sscanf(getenv("BT3_PAD_UNKNOWN_SHAPE"), "%d,%d,%d", &shape[0], &shape[1], &shape[2]);
+        }
+        SDL_INIT_INTERFACE(&desc);
+        desc.type = SDL_JOYSTICK_TYPE_UNKNOWN; /* (the virtual driver maps only its "gamepad" kind by itself) */
+        desc.vendor_id = (Uint16)vid;
+        desc.product_id = (Uint16)pid;
+        desc.nbuttons = (Uint16)shape[0];
+        desc.naxes = (Uint16)shape[1];
+        desc.nhats = (Uint16)shape[2];
+        desc.name = getenv("BT3_PAD_UNKNOWN_NAME") != NULL ? getenv("BT3_PAD_UNKNOWN_NAME") : "USB Joystick";
+        desc.Rumble = test_pad_rumble;
+        id = SDL_AttachVirtualJoystick(&desc);
+        if (id == 0) {
+            fprintf(stderr, "bt3: no test joystick: %s\n", SDL_GetError());
+        }
+    } else if (id != 0 && off != NULL && now >= (Uint64)(atof(off) * 1000.0)) {
+        SDL_DetachVirtualJoystick(id);
+        id = 0;
+    }
+}
+
+/* The SDL id of a player's controller (0: none). */
+static SDL_JoystickID player_pad(int player) {
+    int slot = sPadSlot[player];
+    return slot >= 0 && slot < sIdCount ? sIds[slot] : 0;
+}
+
+static const char *open_name(SDL_JoystickID id) {
+    int k;
+    for (k = 0; k < MAX_PADS; k++) {
+        if (sOpen[k].pad != NULL && sOpen[k].id == id) {
+            return sOpen[k].name;
+        }
+    }
+    return "?";
+}
+
+/* Adds a sentence (a format of the reader's, translated) to text. */
+static void say_add(char *text, size_t size, const char *format, ...) __attribute__((format(printf, 3, 4)));
+static void say_add(char *text, size_t size, const char *format, ...) {
+    size_t len = strlen(text);
+    va_list ap;
+
+    if (len > 0 && len + 1 < size) {
+        text[len++] = ' ';
+        text[len] = '\0';
+    }
+    va_start(ap, format);
+    vsnprintf(text + len, size - len, PortA11y_Tr(format), ap);
+    va_end(ap);
+}
+
+/* Once per look at the controllers: what came and went (`added`, the ids opened now; `gone`, the names of those
+   closed), said; the first time, a few seconds in, the whole of what is there. */
+static void pads_say(const SDL_JoystickID *added, int nAdded, char (*gone)[64], int nGone) {
+    extern int PortA11y_On(void);
+    extern void PortA11y_Say(const char *text, int flags);
+    SDL_JoystickID now[2];
+    char text[1536], list[768];
+    int i, p;
+
+    if (!PortA11y_On() || (!sSaid && SDL_GetTicks() - sInitAt < PAD_SAY_AFTER)) {
+        return; /* (what came before the first round is in it) */
+    }
+    now[0] = player_pad(0);
+    now[1] = player_pad(1);
+    text[0] = '\0';
+    if (!sSaid) {
+        list[0] = '\0';
+        for (i = 0; i < sIdCount; i++) {
+            size_t len = strlen(list);
+            snprintf(list + len, sizeof(list) - len, "%s", len > 0 ? "; " : "");
+            len = strlen(list);
+            if (now[0] == sIds[i] || now[1] == sIds[i]) {
+                snprintf(list + len, sizeof(list) - len, PortA11y_Tr("%s, player %d"), open_name(sIds[i]), now[0] == sIds[i] ? 1 : 2);
+            } else {
+                snprintf(list + len, sizeof(list) - len, PortA11y_Tr("%s, no player"), open_name(sIds[i]));
+            }
+        }
+        if (sIdCount > 0) {
+            say_add(text, sizeof(text), "Controllers: %s.", list);
+        } else {
+            say_add(text, sizeof(text), "No controller: the keyboard plays.");
+        }
+        for (i = 0; i < sIdCount; i++) {
+            if (guessed(sIds[i])) {
+                say_add(text, sizeof(text), "%s is not recognized: it was given the most common layout. If its buttons do not match, F1, Controls, \"Set up a controller\" asks for them one by one.",
+                        open_name(sIds[i]));
+            }
+        }
+    } else {
+        for (i = 0; i < nGone; i++) {
+            say_add(text, sizeof(text), "Controller disconnected: %s.", gone[i]);
+        }
+        for (i = 0; i < nAdded; i++) {
+            if (now[0] == added[i] || now[1] == added[i]) {
+                say_add(text, sizeof(text), "Controller connected: %s, player %d.", open_name(added[i]), now[0] == added[i] ? 1 : 2);
+            } else {
+                say_add(text, sizeof(text), "Controller connected: %s, no player (chosen in F1, Controls).", open_name(added[i]));
+            }
+            if (guessed(added[i])) {
+                say_add(text, sizeof(text), "%s is not recognized: it was given the most common layout. If its buttons do not match, F1, Controls, \"Set up a controller\" asks for them one by one.",
+                        open_name(added[i]));
+            }
+        }
+        for (p = 0; p < 2; p++) {
+            for (i = 0; i < nAdded && added[i] != now[p]; i++) {
+            }
+            if (now[p] == sSaidPad[p] || i < nAdded) {
+                continue; /* (unchanged, or said with "connected") */
+            }
+            if (now[p] == 0) {
+                say_add(text, sizeof(text), "Player %d has no controller.", p + 1);
+                if (p == 0) {
+                    say_add(text, sizeof(text), "The keyboard still plays.");
+                }
+            } else {
+                say_add(text, sizeof(text), "Player %d: %s.", p + 1, open_name(now[p]));
+            }
+        }
+    }
+    for (i = 0; i < sUnusableCount; i++) {
+        say_add(text, sizeof(text), "Controller not recognized: %s. F1, Controls, \"Set up a controller\" asks for its buttons one by one.", sUnusable[i]);
+    }
+    sUnusableCount = 0;
+    if (text[0] != '\0') {
+        PortA11y_Say(text, sSaid); /* (the first round waits its turn: the game's start is being read) */
+    }
+    for (p = 0; p < 2; p++) {
+        if (now[p] != 0 && now[p] != sSaidPad[p] && !(p == 1 && now[1] == now[0])) {
+            SDL_Gamepad *g = SDL_GetGamepadFromID(now[p]);
+            if (g != NULL) {
+                SDL_SetGamepadPlayerIndex(g, p);
+            }
+            if (sVib[p][0]) {
+                sPulse[p].id = now[p];
+                sPulse[p].left = p + 1;
+                sPulse[p].next = SDL_GetTicks();
+            }
+        }
+        sSaidPad[p] = now[p];
+    }
+    sSaid = 1;
+}
+
+/* ---- Setting up a controller a button at a time, by voice (F1, Controls, "Set up a controller") ----
+ *
+ * For a controller whose buttons the game does not know (no mapping, or the common layout guessed wrong) or knows
+ * wrongly: the reader asks for each of the PlayStation controller's parts in turn ("Press Cross"), and the press is
+ * taken from the controller as it is, a button, a direction of its hat or an axis moved, so that any controller can
+ * be set up without seeing it. First "press any button on the controller to set up", which chooses it among those
+ * plugged in. A part the controller does not have is skipped by waiting (LEARN_SKIP); Escape stops it all (ui.cpp).
+ * At the end the mapping is SDL's at once (the controller becomes a gamepad, or takes the new buttons) and is kept in
+ * gamecontrollerdb_own.txt beside the program, read at every start after the community's (mappings_load): the
+ * controller is known from then on. Nothing of any controller reaches the game meanwhile (Port_PadRead), nor the
+ * settings window (ui.cpp). The settings window's thread asks for it to start or stop (sLearnAsk); all the rest runs
+ * on the game's, with the pad reads (learn_tick).
+ */
+#define LEARN_SKIP 10000   /* ms without a press: the part is skipped */
+#define LEARN_CHOOSE 20000 /* ms to press a button on the controller to set up; else it stops */
+#define LEARN_LET_GO 3000  /* ms at most waiting for everything to be let go after a press */
+#define LEARN_MOVED 20000  /* of 32767: an axis this far from where it rested counts as moved */
+#define LEARN_REST 8000    /* ... and back within this as let go */
+#define LEARN_JOYS 8
+#define LEARN_IN 64        /* a controller's buttons and axes looked at (more are left out) */
+
+enum { L_BUTTON, L_TRIGGER, L_AXIS };
+static const struct { const char *out, *name, *ask; int kind; } kLearn[] = {
+    {"a", "Cross", "Press Cross: of the four buttons on the right, the one nearest to you.", L_BUTTON},
+    {"b", "Circle", "Press Circle: of the four, the one on the right.", L_BUTTON},
+    {"x", "Square", "Press Square: of the four, the one on the left.", L_BUTTON},
+    {"y", "Triangle", "Press Triangle: of the four, the one farthest from you.", L_BUTTON},
+    {"dpup", "D-pad up", "Press up on the d-pad, the cross on the left.", L_BUTTON},
+    {"dpdown", "D-pad down", "Press down on the d-pad.", L_BUTTON},
+    {"dpleft", "D-pad left", "Press left on the d-pad.", L_BUTTON},
+    {"dpright", "D-pad right", "Press right on the d-pad.", L_BUTTON},
+    {"leftshoulder", "L1", "Press L1: the upper button on the left edge, under your index finger.", L_BUTTON},
+    {"rightshoulder", "R1", "Press R1: the upper button on the right edge.", L_BUTTON},
+    {"lefttrigger", "L2", "Press L2: the lower button on the left edge.", L_TRIGGER},
+    {"righttrigger", "R2", "Press R2: the lower button on the right edge.", L_TRIGGER},
+    {"back", "SELECT", "Press Select: of the small buttons in the middle, the one on the left.", L_BUTTON},
+    {"start", "START", "Press Start: of the small buttons in the middle, the one on the right.", L_BUTTON},
+    {"leftstick", "L3", "Press the left stick down into the controller, until it clicks.", L_BUTTON},
+    {"rightstick", "R3", "Press the right stick down into the controller, until it clicks.", L_BUTTON},
+    {"leftx", "Left stick, left and right", "Push the left stick all the way to the right, and let it go.", L_AXIS},
+    {"lefty", "Left stick, up and down", "Push the left stick all the way down, towards you, and let it go.", L_AXIS},
+    {"rightx", "Right stick, left and right", "Push the right stick all the way to the right, and let it go.", L_AXIS},
+    {"righty", "Right stick, up and down", "Push the right stick all the way down, towards you, and let it go.", L_AXIS},
+};
+#define LEARN_STEPS ((int)(sizeof(kLearn) / sizeof(kLearn[0])))
+
+static volatile int sLearnAsk; /* the settings window's thread: 1 start, 2 stop (taken by learn_tick) */
+static struct {
+    int stage;     /* 0 not running, 1 choosing the controller, 2 asking for its parts */
+    int step;      /* the part asked for (stage 2); LEARN_STEPS: all asked */
+    int letGo;     /* a press was taken: the next question once everything is let go */
+    int again;     /* the press was refused: the same question again, after the reason, without cutting it */
+    Uint64 since;  /* when the question was asked, or the press taken (SDL_GetTicks) */
+    SDL_Joystick *joy[LEARN_JOYS]; /* stage 1: every joystick, opened here; stage 2: [0], the one chosen */
+    int joys;
+    Sint16 rest[LEARN_JOYS][LEARN_IN]; /* each axis where it rested when the question was asked */
+    Uint8 held[LEARN_JOYS][LEARN_IN];  /* each button held then (not a press until it is let go) */
+    char bind[LEARN_STEPS][16];        /* what each part became ("b2", "h0.1", "+a3", "a2", "a1~"); "" skipped */
+    char status[256];                  /* what is asked now, in English (the settings window shows it) */
+} sLearn;
+
+/* Says a line of the reader's (a format, translated) and keeps it in English for the settings window. */
+static void learn_say(int flags, const char *format, ...) __attribute__((format(printf, 2, 3)));
+static void learn_say(int flags, const char *format, ...) {
+    extern void PortA11y_Say(const char *text, int flags);
+    char text[512];
+    va_list ap, ap2;
+
+    va_start(ap, format);
+    va_copy(ap2, ap);
+    vsnprintf(sLearn.status, sizeof(sLearn.status) - 1, format, ap);
+    vsnprintf(text, sizeof(text), PortA11y_Tr(format), ap2);
+    va_end(ap2);
+    va_end(ap);
+    PortA11y_Say(text, flags);
+}
+
+static void learn_close(void) {
+    int i;
+
+    for (i = 0; i < sLearn.joys; i++) {
+        if (sLearn.joy[i] != NULL) {
+            SDL_CloseJoystick(sLearn.joy[i]);
+        }
+        sLearn.joy[i] = NULL;
+    }
+    sLearn.joys = 0;
+    sLearn.stage = 0;
+}
+
+static void learn_stop(const char *why) {
+    char line[320];
+
+    learn_close();
+    learn_say(1, "%s", PortA11y_Tr(why));
+    snprintf(sLearn.status, sizeof(sLearn.status) - 1, "%s", why);
+    snprintf(line, sizeof(line), "controller setup: %s", why);
+    pad_log(line);
+}
+
+/* Where joystick i's axes rest and which of its buttons are held, now. */
+static void learn_rest(int i) {
+    SDL_Joystick *j = sLearn.joy[i];
+    int k, n;
+
+    n = SDL_GetNumJoystickAxes(j);
+    for (k = 0; k < n && k < LEARN_IN; k++) {
+        sLearn.rest[i][k] = SDL_GetJoystickAxis(j, k);
+    }
+    n = SDL_GetNumJoystickButtons(j);
+    for (k = 0; k < n && k < LEARN_IN; k++) {
+        sLearn.held[i][k] = SDL_GetJoystickButton(j, k) ? 1 : 0;
+    }
+}
+
+/* A press on joystick i for a part of this kind, as a mapping's input: a new button, a hat's direction, or the axis
+   that moved most. 0: none. Asked to the right and down, a stick's axis that goes the other way is turned ("~"); a
+   trigger alone on its axis rests at one end of it and takes all of it; a part on half an axis (a d-pad given as an
+   axis, two triggers on one) takes that half. */
+static int learn_press(int i, int kind, char *bind, int size) {
+    SDL_Joystick *j = sLearn.joy[i];
+    int k, n, best = -1, most = 0, dev, rest;
+
+    n = SDL_GetNumJoystickButtons(j);
+    for (k = 0; k < n && k < LEARN_IN; k++) {
+        if (!SDL_GetJoystickButton(j, k)) {
+            sLearn.held[i][k] = 0; /* (held when asked, let go since: its next press counts) */
+        } else if (!sLearn.held[i][k] && kind != L_AXIS) {
+            snprintf(bind, size, "b%d", k);
+            return 1;
+        }
+    }
+    n = SDL_GetNumJoystickHats(j);
+    for (k = 0; k < n && kind != L_AXIS; k++) {
+        Uint8 h = SDL_GetJoystickHat(j, k);
+        if (h == SDL_HAT_UP || h == SDL_HAT_RIGHT || h == SDL_HAT_DOWN || h == SDL_HAT_LEFT) {
+            snprintf(bind, size, "h%d.%d", k, (int)h);
+            return 1;
+        }
+    }
+    n = SDL_GetNumJoystickAxes(j);
+    for (k = 0; k < n && k < LEARN_IN; k++) {
+        dev = (int)SDL_GetJoystickAxis(j, k) - sLearn.rest[i][k];
+        if ((dev < 0 ? -dev : dev) > (most < 0 ? -most : most)) {
+            best = k;
+            most = dev;
+        }
+    }
+    if (best < 0 || (most < 0 ? -most : most) < LEARN_MOVED) {
+        return 0;
+    }
+    rest = sLearn.rest[i][best];
+    if (kind == L_AXIS) {
+        snprintf(bind, size, "a%d%s", best, most > 0 ? "" : "~");
+    } else if (kind == L_TRIGGER && (rest < -24000 || rest > 24000)) {
+        snprintf(bind, size, "a%d%s", best, rest > 0 ? "~" : "");
+    } else {
+        snprintf(bind, size, "%sa%d", most > 0 ? "+" : "-", best);
+    }
+    return 1;
+}
+
+/* 1 when nothing of joystick i is pressed or moved any more. */
+static int learn_let_go(int i) {
+    SDL_Joystick *j = sLearn.joy[i];
+    int k, n, d;
+
+    n = SDL_GetNumJoystickButtons(j);
+    for (k = 0; k < n && k < LEARN_IN; k++) {
+        if (SDL_GetJoystickButton(j, k)) {
+            return 0;
+        }
+    }
+    n = SDL_GetNumJoystickHats(j);
+    for (k = 0; k < n; k++) {
+        if (SDL_GetJoystickHat(j, k) != SDL_HAT_CENTERED) {
+            return 0;
+        }
+    }
+    n = SDL_GetNumJoystickAxes(j);
+    for (k = 0; k < n && k < LEARN_IN; k++) {
+        d = (int)SDL_GetJoystickAxis(j, k) - sLearn.rest[i][k];
+        if (d > LEARN_REST || d < -LEARN_REST) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+/* The part a press was already taken for (its index + 1), or 0: the same input, or a stick's axis already a stick's. */
+static int learn_used(int step, const char *bind) {
+    int s;
+
+    for (s = 0; s < step; s++) {
+        const char *b = sLearn.bind[s];
+        if (b[0] == '\0') {
+            continue;
+        }
+        if (strcmp(b, bind) == 0 ||
+            (kLearn[step].kind == L_AXIS && kLearn[s].kind == L_AXIS && atoi(b + 1) == atoi(bind + 1))) {
+            return s + 1;
+        }
+    }
+    return 0;
+}
+
+/* The game's thread: the request of the settings window's, to start. Every joystick plugged in is opened, to see
+   which one is pressed. */
+static void learn_begin(void) {
+    SDL_JoystickID *ids;
+    int n = 0, i;
+
+    learn_close();
+    memset(sLearn.bind, 0, sizeof(sLearn.bind));
+    ids = SDL_GetJoysticks(&n);
+    for (i = 0; ids != NULL && i < n && sLearn.joys < LEARN_JOYS; i++) {
+        SDL_Joystick *j = SDL_OpenJoystick(ids[i]);
+        if (j != NULL) {
+            sLearn.joy[sLearn.joys] = j;
+            learn_rest(sLearn.joys);
+            sLearn.joys++;
+        }
+    }
+    SDL_free(ids);
+    if (sLearn.joys == 0) {
+        learn_stop("No controller is plugged in: plug one in and try again.");
+        return;
+    }
+    sLearn.stage = 1;
+    sLearn.since = SDL_GetTicks();
+    learn_say(1, "Setting up a controller. Press any button on the controller to set up. Escape stops.");
+    pad_log("controller setup: started");
+}
+
+static void learn_ask(void) {
+    if (sLearn.step < LEARN_STEPS) {
+        learn_say(sLearn.again ? 0 : 1, "%s", PortA11y_Tr(kLearn[sLearn.step].ask));
+        snprintf(sLearn.status, sizeof(sLearn.status) - 1, "%s", kLearn[sLearn.step].ask);
+    }
+    sLearn.again = 0;
+    sLearn.since = SDL_GetTicks();
+}
+
+/* The parts asked for, as SDL's mapping: made SDL's at once and kept for the next starts. */
+static void learn_finish(void) {
+    SDL_Joystick *j = sLearn.joy[0];
+    const char *name = SDL_GetJoystickName(j), *base = SDL_GetBasePath();
+    char guid[33], plain[64], map[1200], path[1024], line[1400];
+    int s, n, got = 0, kept = 0;
+    SDL_IOStream *io;
+
+    SDL_GUIDToString(SDL_GetJoystickGUID(j), guid, sizeof(guid));
+    for (s = n = 0; name != NULL && name[s] != '\0' && n < (int)sizeof(plain) - 1; s++) {
+        if (name[s] != ',') {
+            plain[n++] = name[s];
+        }
+    }
+    plain[n] = '\0';
+    if (n == 0) {
+        snprintf(plain, sizeof(plain), "Controller %04x:%04x", SDL_GetJoystickVendor(j), SDL_GetJoystickProduct(j));
+    }
+    n = snprintf(map, sizeof(map), "%s,%s,", guid, plain);
+    for (s = 0; s < LEARN_STEPS; s++) {
+        if (sLearn.bind[s][0] != '\0' && n < (int)sizeof(map)) {
+            n += snprintf(map + n, sizeof(map) - n, "%s:%s,", kLearn[s].out, sLearn.bind[s]);
+            got++;
+        }
+    }
+    if (n < (int)sizeof(map)) {
+        snprintf(map + n, sizeof(map) - n, "platform:%s,", SDL_GetPlatform());
+    }
+    if (got == 0) {
+        learn_stop("Nothing was pressed: the setup stopped, and nothing changed.");
+        return;
+    }
+    if (SDL_AddGamepadMapping(map) < 0) {
+        snprintf(line, sizeof(line), "controller setup: SDL refused the mapping (%s): %s", SDL_GetError(), map);
+        pad_log(line);
+        learn_close();
+        learn_say(1, "The setup could not be used. The game's log has the reason.");
+        return;
+    }
+    if (base != NULL) {
+        snprintf(path, sizeof(path), "%sgamecontrollerdb_own.txt", base);
+        if ((io = SDL_IOFromFile(path, "ab")) != NULL) {
+            kept = SDL_WriteIO(io, map, strlen(map)) == strlen(map) && SDL_WriteIO(io, "\n", 1) == 1;
+            SDL_CloseIO(io);
+        }
+    }
+    snprintf(line, sizeof(line), "controller setup: %d of %d parts, %s: %s", got, LEARN_STEPS, kept ? "kept in gamecontrollerdb_own.txt" : "NOT kept (the file could not be written)", map);
+    pad_log(line);
+    learn_close();
+    if (kept) {
+        learn_say(1, "Done: %s is set up, %d parts of %d, and it is kept for the next times.", plain, got, LEARN_STEPS);
+    } else {
+        learn_say(1, "Done: %s works now, %d parts of %d, but it could not be kept for the next times: the game's folder cannot be written.",
+                  plain, got, LEARN_STEPS);
+    }
+}
+
+/* The game's thread, every pad read. */
+static void learn_tick(void) {
+    Uint64 now = SDL_GetTicks();
+    char bind[16], line[160];
+    int i, used, ask = sLearnAsk;
+
+    if (ask != 0) {
+        sLearnAsk = 0;
+        if (ask == 1) {
+            learn_begin();
+        } else if (sLearn.stage != 0) {
+            learn_stop("The setup stopped. The controller is as it was.");
+        }
+        return;
+    }
+    if (sLearn.stage == 1) {
+        if (now - sLearn.since < 400) { /* (a joystick just opened reads its axes as resting until they first report:
+                                           where they really rest is taken once they have) */
+            for (i = 0; i < sLearn.joys; i++) {
+                if (sLearn.joy[i] != NULL) {
+                    learn_rest(i);
+                }
+            }
+            return;
+        }
+        for (i = 0; i < sLearn.joys; i++) {
+            if (sLearn.joy[i] != NULL && learn_press(i, L_BUTTON, bind, sizeof(bind))) {
+                SDL_Joystick *chosen = sLearn.joy[i];
+                int k;
+                for (k = 0; k < sLearn.joys; k++) { /* (only the chosen one stays open) */
+                    if (k != i && sLearn.joy[k] != NULL) {
+                        SDL_CloseJoystick(sLearn.joy[k]);
+                    }
+                    sLearn.joy[k] = NULL;
+                }
+                sLearn.joy[0] = chosen;
+                sLearn.joys = 1;
+                learn_rest(0);
+                sLearn.stage = 2;
+                sLearn.step = 0;
+                sLearn.letGo = 1;
+                sLearn.again = 1; /* (the first question waits for this line) */
+                sLearn.since = now;
+                learn_say(1, "%s. Now each part in turn. A part it does not have: wait ten seconds, and it is skipped.",
+                          SDL_GetJoystickName(chosen) != NULL ? SDL_GetJoystickName(chosen) : "?");
+                return;
+            }
+        }
+        if (now - sLearn.since > LEARN_CHOOSE) {
+            learn_stop("No button was pressed: the setup stopped.");
+        }
+        return;
+    }
+    if (sLearn.stage != 2) {
+        return;
+    }
+    if (!SDL_JoystickConnected(sLearn.joy[0])) {
+        learn_stop("The controller was unplugged: the setup stopped.");
+        return;
+    }
+    if (sLearn.letGo) {
+        if (!learn_let_go(0) && now - sLearn.since < LEARN_LET_GO) {
+            return;
+        }
+        sLearn.letGo = 0;
+        learn_rest(0); /* (what is still held now is not a press: let go, it can be one again) */
+        if (sLearn.step >= LEARN_STEPS) {
+            learn_finish();
+        } else {
+            learn_ask();
+        }
+        return;
+    }
+    if (learn_press(0, kLearn[sLearn.step].kind, bind, sizeof(bind))) {
+        if ((used = learn_used(sLearn.step, bind)) > 0) {
+            learn_say(1, "That one is already %s. Press another, or wait to skip.", PortA11y_Tr(kLearn[used - 1].name));
+            sLearn.again = 1;
+        } else {
+            snprintf(sLearn.bind[sLearn.step], sizeof(sLearn.bind[0]), "%s", bind);
+            snprintf(line, sizeof(line), "controller setup: %s is %s", kLearn[sLearn.step].out, bind);
+            pad_log(line);
+            sLearn.step++;
+        }
+        sLearn.letGo = 1;
+        sLearn.since = now;
+        return;
+    }
+    if (now - sLearn.since > LEARN_SKIP) {
+        learn_say(1, "Skipped.");
+        sLearn.again = 1;
+        sLearn.step++;
+        if (sLearn.step >= LEARN_STEPS) {
+            learn_finish();
+        } else {
+            learn_rest(0);
+            learn_ask();
+        }
+    }
+}
+
+/* The settings window (ui.cpp): start, stop, and whether it runs; what it asks now. */
+void PortInput_LearnStart(void) { sLearnAsk = 1; }
+void PortInput_LearnStop(void) { sLearnAsk = 2; }
+int PortInput_Learning(void) { return sLearn.stage != 0 || sLearnAsk == 1; }
+const char *PortInput_LearnStatus(void) { return sLearn.status; }
+
+/* ---- Player 1's controller: the one that is pressed ----
+ *
+ * Windows can list first a controller nobody holds (a virtual one made by DS4Windows, HidHide, ViGEm, vJoy, Parsec or
+ * a handheld's own software; the second half of an adapter for two controllers), and player 1 then had that one: the
+ * real controller seemed not to work at all (a tester's, with Steam closed). So, while player 1's controller has not
+ * been pressed in this run and the settings window is closed, the first press of another controller makes it player
+ * 1's; when it was player 2's, the two change places. Once player 1's controller has been pressed it stays. Said, as
+ * any change of a player's controller (pads_say), and not saved: the settings keep what F1 chose. pad_follow=0 in the
+ * settings file turns it off.
+ */
+static SDL_JoystickID sPressed[MAX_PADS]; /* the controllers pressed in this run */
+static int sPressedCount;
+
+static int was_pressed(SDL_JoystickID id) {
+    int i;
+
+    for (i = 0; i < sPressedCount; i++) {
+        if (sPressed[i] == id) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int pad_pressed_now(SDL_Gamepad *g) {
+    int b;
+
+    for (b = 0; b < SDL_GAMEPAD_BUTTON_COUNT; b++) {
+        if (SDL_GetGamepadButton(g, (SDL_GamepadButton)b)) {
+            return 1;
+        }
+    }
+    return SDL_GetGamepadAxis(g, SDL_GAMEPAD_AXIS_LEFT_TRIGGER) > PORT_TRIGGER_AT ||
+           SDL_GetGamepadAxis(g, SDL_GAMEPAD_AXIS_RIGHT_TRIGGER) > PORT_TRIGGER_AT; /* (not the sticks: a cheap one drifts) */
+}
+
+static void pads_follow(void) {
+    static int on = -1;
+    SDL_JoystickID mine, theirs;
+    char line[256];
+    int k, slot;
+
+    if (on < 0) {
+        on = Port_Setting("pad_follow", 1) != 0;
+    }
+    for (k = 0; k < MAX_PADS; k++) {
+        if (sOpen[k].pad == NULL || was_pressed(sOpen[k].id) || !pad_pressed_now(sOpen[k].pad)) {
+            continue;
+        }
+        if (gPortOverlayOpen || gPortInputCapture || sLearn.stage != 0) {
+            continue; /* (a press in the settings window, or a setup's, is not the game's: not counted) */
+        }
+        if (sPressedCount < MAX_PADS) {
+            sPressed[sPressedCount++] = sOpen[k].id;
+        }
+        mine = player_pad(0);
+        theirs = player_pad(1);
+        if (!on || sPadSlot[0] < 0 || sOpen[k].id == mine || (mine != 0 && was_pressed(mine))) {
+            continue; /* (player 1 on "None" in F1 plays with the keyboard on purpose: nothing is taken from player 2) */
+        }
+        for (slot = 0; slot < sIdCount && sIds[slot] != sOpen[k].id; slot++) {
+        }
+        if (slot == sIdCount) {
+            continue;
+        }
+        if (sOpen[k].id == theirs) {
+            sPadSlot[1] = sPadSlot[0];
+        }
+        sPadSlot[0] = slot;
+        snprintf(line, sizeof(line), "controllers: player 1 takes \"%s\", the first one pressed (player 1's had not been)%s", sOpen[k].name,
+                 sOpen[k].id == theirs ? "; player 2 takes player 1's" : "");
+        pad_log(line);
+    }
+}
+
+/* ---- A controller's presses that also come as keys ----
+ *
+ * Steam's desktop layout, DS4Windows, JoyToKey, reWASD, a handheld's own software (Armoury Crate, Legion Space) and
+ * others turn a controller's buttons into keys too, and the game got both: Circle was also Escape and asked to close
+ * the game, Cross was also Enter, START. A key pressed within ECHO_NS after a controller's button is taken for one of
+ * those, and the window's events leave it out (PortInput_Echo, from gs_gpu.c and gs_gl.c). Once three have come so,
+ * that is said and logged, and the keyboard is not read for the game while a controller was used within the last
+ * second and a half (Port_PadRead): the keys held by that program are not the game's either.
+ */
+#define ECHO_NS 50000000ull       /* 50 ms */
+#define ECHO_HOLD_NS 1500000000ull
+static volatile Uint64 sPadPressNs, sPadUseNs; /* (the event watch's: the thread that takes the window's events) */
+static volatile int sEchoes;
+
+static bool SDLCALL echo_watch(void *unused, SDL_Event *ev) {
+    (void)unused;
+    if (ev->type == SDL_EVENT_GAMEPAD_BUTTON_DOWN || ev->type == SDL_EVENT_JOYSTICK_BUTTON_DOWN ||
+        (ev->type == SDL_EVENT_JOYSTICK_HAT_MOTION && ev->jhat.value != SDL_HAT_CENTERED)) {
+        sPadPressNs = sPadUseNs = ev->common.timestamp;
+    } else if (ev->type == SDL_EVENT_GAMEPAD_AXIS_MOTION && (ev->gaxis.value > 16000 || ev->gaxis.value < -16000)) {
+        sPadUseNs = ev->common.timestamp;
+    }
+    return true;
+}
+
+int PortInput_Echo(const SDL_Event *ev) {
+    extern void PortA11y_Say(const char *text, int flags);
+    Uint64 at = sPadPressNs;
+
+    if (ev->type != SDL_EVENT_KEY_DOWN || ev->key.repeat || at == 0 || ev->common.timestamp < at || ev->common.timestamp - at > ECHO_NS) {
+        return 0;
+    }
+    if (++sEchoes == 3) {
+        char line[160];
+        snprintf(line, sizeof(line), "controllers: keys come with the controller's presses (the third: %s, %u ms after): the keyboard is left out "
+                 "while a controller is used", SDL_GetScancodeName(ev->key.scancode), (unsigned)((ev->common.timestamp - at) / 1000000ull));
+        pad_log(line);
+        PortA11y_Say(PortA11y_Tr("The controller's buttons also arrive as keyboard keys: a program turns them into keys (Steam, "
+                                 "DS4Windows, JoyToKey, or the console's own software). The game now leaves the keyboard out while "
+                                 "the controller is used."), 0);
+    }
+    return 1;
+}
+
+/* Every pad read: the identification pulses that are due, the log's lines kept from before the reader started, and
+   the test joystick. */
+static void pads_tick(void) {
+    extern void PortA11y_Note(const char *text);
+    extern int PortA11y_On(void);
+    Uint64 now = SDL_GetTicks();
+    int p, i;
+
+    for (p = 0; p < 2; p++) {
+        SDL_Gamepad *g;
+        if (sPulse[p].left <= 0 || now < sPulse[p].next) {
+            continue;
+        }
+        if ((g = SDL_GetGamepadFromID(sPulse[p].id)) == NULL) {
+            sPulse[p].left = 0;
+            continue;
+        }
+        if (getenv("BT3_RUMBLE_LOG") != NULL) {
+            fprintf(stderr, "rumble: identification, player %d -> SDL_RumbleGamepad(low 40000, high 40000, 200 ms)\n", p + 1);
+        }
+        SDL_RumbleGamepad(g, 40000, 40000, 200);
+        sPulse[p].left--;
+        sPulse[p].next = now + 450;
+    }
+    learn_tick();
+    pads_follow();
+    if (sPendingCount > 0 && PortA11y_On()) {
+        for (i = 0; i < sPendingCount; i++) {
+            PortA11y_Note(sPending[i]);
+        }
+        sPendingCount = 0;
+    }
+    test_unknown_pad();
+}
 
 static void pads_refresh(void) {
     static unsigned calls;
-    SDL_JoystickID *ids;
-    int n = 0, i, k;
+    SDL_JoystickID *ids, added[MAX_PADS];
+    char gone[MAX_PADS][64];
+    int n = 0, i, k, nAdded = 0, nGone = 0;
 
     if (!sInit) {
         SDL_InitSubSystem(SDL_INIT_GAMEPAD);
         sInit = 1;
+        sInitAt = SDL_GetTicks();
+        SDL_AddEventWatch(echo_watch, NULL);
+        mappings_load();
         test_pad();
-    } else if (calls++ % 120 != 0) { /* look for plugged and unplugged controllers about once a second */
-        return;
+        test_unknown_pad();
+    } else {
+        pads_tick();
+        if (calls++ % 120 != 0) { /* look for plugged and unplugged controllers about once a second */
+            return;
+        }
     }
+    joysticks_unknown();
     ids = SDL_GetGamepads(&n);
     sIdCount = 0;
     for (i = 0; ids != NULL && i < n && sIdCount < MAX_PADS; i++) {
@@ -471,6 +1391,7 @@ static void pads_refresh(void) {
         for (i = 0; i < sIdCount && sIds[i] != sOpen[k].id; i++) {
         }
         if (sOpen[k].pad != NULL && i == sIdCount) {
+            snprintf(gone[nGone++], sizeof(gone[0]), "%s", sOpen[k].name);
             SDL_CloseGamepad(sOpen[k].pad);
             sOpen[k].pad = NULL;
         }
@@ -484,9 +1405,16 @@ static void pads_refresh(void) {
             if (k < MAX_PADS) {
                 sOpen[k].id = sIds[i];
                 sOpen[k].pad = SDL_OpenGamepad(sIds[i]);
+                if (sOpen[k].pad != NULL) {
+                    const char *name = SDL_GetGamepadName(sOpen[k].pad);
+                    snprintf(sOpen[k].name, sizeof(sOpen[k].name), "%s", name != NULL && name[0] != '\0' ? name : "?");
+                    pad_note(sOpen[k].pad);
+                    added[nAdded++] = sIds[i];
+                }
             }
         }
     }
+    pads_say(added, nAdded, gone, nGone);
     if (calls < 400) {
         test_pad_axes();
     }
@@ -1036,8 +1964,9 @@ int Port_PadRead(int socket, unsigned char *data) {
         }
         sSwallow = held;
     }
-    /* (the settings window is worked with the controller too while it is open: nothing of it for the game) */
-    g = gPortInputCapture || gPortOverlayOpen || sSwallow ? NULL : pad_of(socket);
+    /* (the settings window is worked with the controller too while it is open: nothing of it for the game; nor while
+       a controller is being set up) */
+    g = gPortInputCapture || gPortOverlayOpen || sSwallow || sLearn.stage != 0 ? NULL : pad_of(socket);
     if (g != NULL) {
         for (a = 0; a < PORT_PAD_BUTTONS; a++) {
             int src = sPadBtn[socket][a];
@@ -1061,8 +1990,10 @@ int Port_PadRead(int socket, unsigned char *data) {
         sKeySwallow = held;
     }
     /* the settings window takes the keyboard while it is open, and the online chat while a line is typed (the
-       controller still plays then) */
-    if (!gPortOverlayOpen && !gPortChatTyping && !sKeySwallow) {
+       controller still plays then); and a program that turns the controller's buttons into keys has it while the
+       controller is used (PortInput_Echo) */
+    if (!gPortOverlayOpen && !gPortChatTyping && !sKeySwallow &&
+        !(sEchoes >= 3 && SDL_GetTicksNS() - sPadUseNs < ECHO_HOLD_NS)) {
         const bool *ks = SDL_GetKeyboardState(NULL);
         const int *k = sKeys[socket];
         for (a = 0; a < PORT_PAD_BUTTONS; a++) {
@@ -1104,6 +2035,12 @@ int Port_PadRead(int socket, unsigned char *data) {
             memcpy(f, gPad + 0x130, sizeof(f));
             memcpy(&held, gPad + 0x148, sizeof(held));
             fprintf(stderr, "sticks: the game's pad 1 has left %+.4f %+.4f, right %+.4f %+.4f, held %08X\n", f[0], f[1], f[2], f[3], held);
+        }
+    }
+    {
+        extern int PortA11y_TakesSelect(void); /* a11y.c: with the screen reader on, Select in a fight is its own */
+        if (PortA11y_TakesSelect()) {
+            btn &= ~(unsigned)B_SELECT;
         }
     }
     clash_square(socket, &btn, &lx, &ly);

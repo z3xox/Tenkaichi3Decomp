@@ -570,6 +570,15 @@ f32 Ps_PromptX(s32 k) { /* where prompt k starts: laid from the right edge leftw
     return x;
 }
 
+/* The prompts of this frame, for the screen reader (port_tbo.c, Tb_Speak). */
+s32 Ps_PromptAt(s32 k, char **label) {
+    if (k < 0 || k >= sPsPromptCount) {
+        return -1;
+    }
+    *label = sPsPromptLabel[k];
+    return sPsPromptKind[k];
+}
+
 void Ps_PromptsDraw(void) {
     s32 k;
 

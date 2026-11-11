@@ -1,0 +1,32 @@
+# From the program's start to a duel, 1P (Goku) against the CPU (Kid Gohan) on the Wasteland, for padtool.py
+# ("<read index> <buttons> [reads held]"): with skip_logos=1, an empty saves folder and BT3_PACED=1 (the opening
+# movie is timed by the clock: unpaced, where it ends is not the same each run). Made against the author's disc
+# image; another may need the indexes moved (BT3_PAD_TABLE gives the read index of each blank: padtool.py at).
+# Player 1 does nothing in the fight: the CPU wins it, which ends on the menu after the fight.
+700 start      # the opening movie skipped
+2107 start     # the title: Press START
+2207 cross     # New Game
+2343 cross     # create a save file? No
+2403 left      # start without saving? Yes
+2443 cross
+2803 down      # the main menu: Duel, the fourth
+2843 down
+2883 down
+2943 cross
+3163 cross     # 1P vs CPU
+3283 cross     # Single Battle (the first press is lost in the change of screen)
+3353 cross
+3563 cross     # the character, the item set, the costume, for each side; the stage; the fight
+3643 cross
+3723 cross
+3803 cross
+3883 cross
+3963 cross
+4043 cross
+4123 cross
+4203 cross
+4283 cross
+4363 cross
+4443 cross
+4523 cross
+4603 cross

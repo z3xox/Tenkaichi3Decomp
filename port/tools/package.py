@@ -19,9 +19,10 @@ Contents:  Tenkaichi3Decomp, Tenkaichi3Decomp.dat   the game without the data ta
            translations/ui/       optional bundled game UI catalogs
            translations/port/     text added by the PC port
            tbo/ui/         the pictures of the Tenkaichi Budokai Online screens (port/tbo/ui), their credits in licenses/
+           gamecontrollerdb.txt   the community's controller mappings, a fixed version (port/release/Dockerfile)
            README.txt, licenses/
 The user needs nothing but their disc image. Nothing from the disc is in the zip."""
-import os, pathlib, re, shutil, subprocess, sys, zipfile
+import hashlib, os, pathlib, re, shutil, subprocess, sys, zipfile
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -169,6 +170,91 @@ def take_lang(out):
         if not p.name.endswith("_own.txt"):
             shutil.copy2(p, out / p.name)
 
+PRISM_VERSION = "0.18.3"
+PRISM_DLL = "dynamic/release/bin/prism.dll"  # in Prism's prism-windows-x64.zip
+PRISM_DYLIB = "dynamic/release/lib/libprism.dylib"  # in Prism's prism-macos-universal.zip (arm64 and x86_64)
+
+def take_prism(out, lic, member=PRISM_DLL, archive="prism-windows-x64.zip"):
+    """The screen reader's speech library, for the accessible release (Windows, and macOS with member=PRISM_DYLIB):
+    with BT3_PRISM naming Prism's release archive (prism-windows-x64.zip, prism-macos-universal.zip) of release
+    0.18.3 (or the library itself, with BT3_PRISM_SRC naming a checkout of that release or the unpacked archive), the
+    library (prism.dll, libprism.dylib) goes next to the program with the licences it is shipped under:
+    Prism's NOTICE and every licence of LICENSES/ (MPL-2.0 for Prism; MIT, BSD, Apache-2.0, LGPL-2.1 and others for
+    the code compiled into the library), and the instructions of port/release/a11y. A library without them is not
+    shipped: the build stops. Without BT3_PRISM nothing changes, and the reader stays off until the player puts the
+    library there; that is the ordinary release, which must not speak to a player who did not ask for it (with the
+    library there and no screen reader running, Prism speaks through the system's voice).
+    Not on Linux for now: the Linux archive does not take Prism's libprism.so (prism-linux-x64.zip has one, in
+    dynamic/release/lib), so there the player puts it next to the program."""
+    given = os.environ.get("BT3_PRISM")
+    if not given:
+        return
+    given = pathlib.Path(given)
+    if not given.is_file():
+        sys.exit(f"BT3_PRISM: {given} not found")
+    dest = lic / "prism"
+    dest.mkdir()
+    if given.suffix.lower() == ".zip":
+        with zipfile.ZipFile(given) as z:
+            names = z.namelist()
+            if member not in names:
+                sys.exit(f"BT3_PRISM: {given} has no {member}: not Prism's {archive}")
+            data = z.read(member)
+            for n in names:
+                if (n == "NOTICE" or n == "LICENSE" or n.startswith("LICENSES/")) and not n.endswith("/"):
+                    (dest / n).parent.mkdir(parents=True, exist_ok=True)
+                    (dest / n).write_bytes(z.read(n))
+        name = pathlib.PurePosixPath(member).name
+    else:
+        src = pathlib.Path(os.environ.get("BT3_PRISM_SRC") or "/nonexistent")
+        if not (src / "NOTICE").is_file() or not (src / "LICENSES").is_dir():
+            sys.exit("BT3_PRISM_SRC must name a checkout of Prism's release (or its unpacked archive): "
+                     "the library is shipped with its NOTICE and LICENSES/")
+        data = given.read_bytes()
+        name = given.name
+        for p in [src / "NOTICE", src / "LICENSE"] + sorted((src / "LICENSES").rglob("*")):
+            if p.is_file():
+                (dest / p.relative_to(src)).parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(p, dest / p.relative_to(src))
+    if not (dest / "LICENSES/prism/mpl-2.0.txt").is_file() and not (dest / "LICENSE").is_file():
+        sys.exit("BT3_PRISM: Prism's own licence (LICENSES/prism/mpl-2.0.txt) was not found")
+    others = [p for p in (dest / "LICENSES").rglob("*") if p.is_file() and p.relative_to(dest / "LICENSES").parts[0] != "prism"] \
+        if (dest / "LICENSES").is_dir() else []
+    if not (dest / "NOTICE").is_file() or not others:
+        sys.exit("BT3_PRISM: Prism's NOTICE and the licences of the code compiled into it (LICENSES/) were not found")
+    (out / name).write_bytes(data)
+    for p in list(dest.rglob("*")):  # (plain text the Notepad of any Windows opens: a .txt name, CRLF line ends)
+        if p.is_file():
+            text = p.read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
+            p.unlink()
+            p.with_name(p.name if p.suffix == ".txt" else p.name.replace(".md", "") + ".txt").write_bytes(text)
+    digest = hashlib.sha256(data).hexdigest()
+    (dest / "SOURCE.txt").write_text(f"{name} is Prism, release {PRISM_VERSION}, under the Mozilla Public License 2.0\r\n"
+                                     "(LICENSES/prism/mpl-2.0.txt). It includes code of the projects listed in NOTICE.txt,\r\n"
+                                     "under the licences in LICENSES/.\r\n"
+                                     f"Its source code: https://github.com/ethindp/prism (tag v{PRISM_VERSION}).\r\n"
+                                     f"SHA-256 of {name} in this release: {digest}\r\n")
+    for p in sorted((ROOT / "port/release/a11y").glob("*.txt")):
+        (out / p.name).write_text(p.read_text(encoding="utf-8").replace("\n", "\r\n"), encoding="utf-8")
+
+def take_gamecontrollerdb(out, lic):
+    """The community's controller mappings (github.com/mdqinc/SDL_GameControllerDB, zlib licence), which the program
+    reads from beside itself as the controllers start (port/src/gs/gs_input.c): $BT3_GAMECONTROLLERDB names a folder
+    with gamecontrollerdb.txt, LICENSE and COMMIT, as port/release/Dockerfile makes it at a fixed commit. Without it the
+    release has only SDL's own mappings, and says so here. The player's own gamecontrollerdb_own.txt is never shipped."""
+    given = os.environ.get("BT3_GAMECONTROLLERDB")
+    src = pathlib.Path(given) if given else None
+    if src is None or not (src / "gamecontrollerdb.txt").is_file() or not (src / "LICENSE").is_file():
+        print("gamecontrollerdb.txt: not packaged (BT3_GAMECONTROLLERDB names no folder with it and its LICENSE): "
+              "only SDL's own controller mappings")
+        return
+    shutil.copy2(src / "gamecontrollerdb.txt", out / "gamecontrollerdb.txt")
+    commit = (src / "COMMIT").read_text().strip() if (src / "COMMIT").is_file() else "unknown"
+    (lic / "sdl-gamecontrollerdb.txt").write_text(
+        "gamecontrollerdb.txt is the SDL_GameControllerDB of https://github.com/mdqinc/SDL_GameControllerDB, commit "
+        f"{commit}, under this licence:\n\n" + (src / "LICENSE").read_text(encoding="utf-8"))
+    print(f"gamecontrollerdb.txt: SDL_GameControllerDB {commit[:12]}")
+
 def take_translations(out):
     """Bundled label, UI, and port-text catalogs."""
     target = out / "translations"
@@ -267,6 +353,8 @@ def main_win():
 
     take_fonts(out, lic)
     take_tbo_art(out, lic)
+    take_prism(out, lic)
+    take_gamecontrollerdb(out, lic)
     (out / "textures").mkdir()
     (out / "textures/README.txt").write_text(TEXTURES_NOTE.replace("\n", "\r\n"))
     for kind, note in (("stages", STAGES_NOTE), ("songs", SONGS_NOTE), ("mods", MODS_NOTE)):
@@ -290,7 +378,8 @@ def main_win():
 def main_mac():
     """BT3_CC=mac64, on a Mac: bt3_mac (port/tools/link.py), Tenkaichi3Decomp-setup (port/setup/build.sh), and Homebrew's
     SDL3 into lib/. Both programs are made to look for SDL3 only in lib/ (not in Homebrew's folder, whose SDL3 may be
-    another version or not there), and signed again ad hoc (a changed Mach-O file has to be, on Apple Silicon)."""
+    another version or not there), and signed again ad hoc (a changed Mach-O file has to be, on Apple Silicon).
+    With BT3_PRISM (the accessible release), Prism's libprism.dylib beside them, as take_prism does on Windows."""
     out, zpath = ROOT / "port/build/release-mac", ROOT / "port/build/Tenkaichi3Decomp-macos-arm64.zip"
     exe, setup = ROOT / "port/build/bt3_mac", ROOT / "Tenkaichi3Decomp-setup"
     sdl = pathlib.Path(os.environ.get("BT3_SDL3", "/opt/homebrew/opt/sdl3")) / "lib"
@@ -353,6 +442,7 @@ def main_mac():
 
     take_fonts(out, lic)
     take_tbo_art(out, lic)
+    take_prism(out, lic, PRISM_DYLIB, "prism-macos-universal.zip")  # (shipped as Prism signed it: not changed here)
     (out / "textures").mkdir()
     (out / "textures/README.txt").write_text(TEXTURES_NOTE)
     for kind, note in (("stages", STAGES_NOTE), ("songs", SONGS_NOTE), ("mods", MODS_NOTE)):
@@ -372,7 +462,9 @@ def main_mac():
     for p in sorted(out.rglob("*")):
         if p.is_file():
             print(f"  {p.stat().st_size:>10,}  {p.relative_to(out)}")
-    for f in (NAME, "Tenkaichi3Decomp-setup", "lib/libSDL3.0.dylib"):  # the oldest macOS each one starts on
+    for f in (NAME, "Tenkaichi3Decomp-setup", "lib/libSDL3.0.dylib", "libprism.dylib"):  # the oldest macOS each one starts on
+        if not (out / f).exists():
+            continue
         minos = re.search(r"minos (\S+)", tool("otool", "-l", str(out / f)))
         print(f"  {f}: macOS {minos.group(1) if minos else '?'} or later")
 
@@ -408,6 +500,7 @@ def main():
 
     take_fonts(OUT, lic)
     take_tbo_art(OUT, lic)
+    take_gamecontrollerdb(OUT, lic)
     (OUT / "textures").mkdir()
     (OUT / "textures/README.txt").write_text(TEXTURES_NOTE)
     for kind, note in (("stages", STAGES_NOTE), ("songs", SONGS_NOTE), ("mods", MODS_NOTE)):

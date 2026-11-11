@@ -289,6 +289,10 @@ void EvoTop_Draw(EvoTop *m) {
     MsgWin_Draw(0, 0, m->voiceLine);
     DcSave_Update();
 #ifdef PORT
+    {
+        extern void PortA11y_Plate(s32 screen, s32 cursor, s32 busy); /* PC build: the screen reader (port/src/a11y_game.c) */
+        PortA11y_Plate(0, m->cursor, m->flags & (EVOTOP_CHOSEN | EVOTOP_EXPLAIN));
+    }
     Port_MenuPage(0);
 #endif
 }

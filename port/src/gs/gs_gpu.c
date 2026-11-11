@@ -692,7 +692,11 @@ static int vk_init(void) {
     if (sDev != NULL && !sShadowStencil) {
         fprintf(stderr, "bt3: shadow stencil unavailable; flat shadows may show overlapping model parts\n");
     }
-    sWindow = GsDraw_WindowCreate(0); /* the shared window: shape, display and full screen decided there */    if (sWindow == NULL || !SDL_ClaimWindowForGPUDevice(sDev, sWindow)) {
+    sWindow = GsDraw_WindowCreate(0); /* the shared window: shape, display and full screen decided there */
+    /* A minimized window has no size: SDL 3.4.12 claims it without making its swapchain and then reports an INVALID
+       swapchain format, on which the settings window's ImGui asserts. Shown first. */
+    if (sWindow != NULL && (SDL_GetWindowFlags(sWindow) & SDL_WINDOW_MINIMIZED)) { SDL_RestoreWindow(sWindow); SDL_SyncWindow(sWindow); }
+    if (sWindow == NULL || !SDL_ClaimWindowForGPUDevice(sDev, sWindow)) {
         fprintf(stderr, "bt3: no GPU window: %s\n", SDL_GetError());
         return 0;
     }
@@ -1108,6 +1112,9 @@ static void vk_frame_end(void) {
     while (SDL_PollEvent(&ev)) {
         if (ev.type == SDL_EVENT_QUIT) {
             exit(0);
+        }
+        if (PortInput_Echo(&ev)) { /* a key a program sent with a controller's press (Circle as Escape): not the game's */
+            continue;
         }
         { extern void PortA11y_Event(const SDL_Event *ev); PortA11y_Event(&ev); } /* a11y.c: the repeat key and button */
         if (PortInput_Hotkey(&ev)) { /* F1, START + SELECT, or what the settings window's list says */

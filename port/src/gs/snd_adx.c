@@ -5,7 +5,8 @@
  * The game owns a few "players" (ADXT_Create), starts a file on one (ADXT_StartAfs: a file of an archive;
  * ADXT_StartFname: a loose file next to the movies), and controls it with pause, volume and pan. Every ADX file of
  * the game is the plain kind: type 3, 4-bit ADPCM in 18-byte frames, version 4, not encrypted, mono or stereo at
- * 16 / 24 / 48 kHz (measured over all 65,201 files of the third archive and the two movie tracks).
+ * 16 / 24 / 48 kHz (measured over all 65,201 files of the third archive and the two movie tracks). A modified disc
+ * may also have version 3 files (older encoders), whose loop is read at its own place (start).
  *
  * Format (big-endian): 0x8000, u16 header size - 4, u8 type, u8 frame size, u8 bits, u8 channels, u32 sample rate,
  * u32 samples, u16 high-pass frequency, u8 version, u8 flags. Version 4 with a loop: flag at 0x24, loop start
@@ -56,7 +57,8 @@ typedef struct Player {
 } Player;
 
 static Player sPlayers[MAX_PLAYERS];
-extern int gPortMusicFollows; /* (below, with the volumes) */
+extern int gPortMusicFollows, gPortStereoStreams; /* (below, with the volumes) */
+extern int gPortMusicPercent, gPortSePercent, gPortVoicePercent, gPortStagePercent;
 
 /* plat_sndstate.c: which players exist and, counted in vertical blanks, what they report: the part of this that is
    the game's state. The second is used when the state must not depend on the sound device (sByTicks). */
@@ -102,7 +104,8 @@ static int adx_blanks(const char *path) {
     header = ((uint32_t)h[2] << 8 | h[3]) + 4;
     rate = (uint32_t)h[8] << 24 | (uint32_t)h[9] << 16 | (uint32_t)h[10] << 8 | h[11];
     total = (uint32_t)h[12] << 24 | (uint32_t)h[13] << 16 | (uint32_t)h[14] << 8 | h[15];
-    if (h[0x12] == 4 && header >= 0x38 && (h[0x24] | h[0x25] | h[0x26] | h[0x27]) != 0) {
+    if ((h[0x12] == 4 && header >= 0x38 && (h[0x24] | h[0x25] | h[0x26] | h[0x27]) != 0) ||
+        (h[0x12] == 3 && header >= 0x32 && (h[0x18] | h[0x19] | h[0x1A] | h[0x1B]) != 0)) {
         return -1;
     }
     {
@@ -195,6 +198,15 @@ static int device(void) {
                 SDL_ResumeAudioDevice(sDevice);
                 fprintf(stderr, "bt3: sound: %s\n", SDL_GetCurrentAudioDriver());
             }
+            if (!GsGpu_Enabled()) {
+                /* (with no window the renderer, which reads the four volumes with its settings, is not started: a
+                   test with sound takes them from the settings here, so that one kind can be heard alone) */
+                extern int Port_Setting(const char *name, int def); /* plat_settings.c */
+                gPortMusicPercent = Port_Setting("music", 100);
+                gPortSePercent = Port_Setting("effects", 100);
+                gPortVoicePercent = Port_Setting("voices", gPortSePercent);
+                gPortStagePercent = Port_Setting("stage_sounds", gPortSePercent);
+            }
         }
     }
     return sDevice != 0;
@@ -227,6 +239,15 @@ static int decode(Player *p, int16_t *out, int frames) {
         if (sMono) { pan = 0; }
         gl[ch] = pan <= 0 ? 1.0f : (float)(15 - pan) / 15.0f;
         gr[ch] = pan >= 0 ? 1.0f : (float)(15 + pan) / 15.0f;
+    }
+    if (p->channels == 2 && p - sPlayers <= 1 && p->pan[0] == p->pan[1] && p->pan[0] != PAN_AUTO && !sMono &&
+        gPortStereoStreams > 0) {
+        /* A stereo song the game puts at one place (the music and a stage's background, players 0 and 1: Adx_Play
+           pans both channels alike, to the centre): its two sides stay apart, left on the left and right on the
+           right, and the game's pan is their balance. Taken literally, both channels went to both speakers and the
+           music was heard in mono. (Not the voices and effects: the game places those by the fighter's position,
+           and a hard pan would leave one of the file's two sides out.) */
+        gl[1] = gr[0] = 0.0f;
     }
     for (f = 0; f < frames; f++) {
         uint32_t end = p->loop ? p->loopEnd : p->total, index = p->pos / 32;
@@ -411,8 +432,20 @@ int gPortMusicPercent = 100, gPortSePercent = 100, gPortVoicePercent = 100, gPor
    nothing has to fit, and the songs are heard untouched. What plays once (a jingle, a spoken line) is always
    fitted to the speed, because the game counts its length in vertical blanks. */
 int gPortMusicFollows = -1; /* (-1: not read from the settings yet) */
+/* "Stereo music" (Audio tab, setting stereo_streams, on by default): a stereo file the game pans to one place keeps
+   its two sides (decode). Off: both channels at the game's pan, as the PS2 library's numbers say literally. */
+int gPortStereoStreams = -1;
 
-extern float PortA11y_StreamGain(const void *player); /* a11y.c: the voices are lower in the menus */
+/* The setting, read once (for the Audio tab before any stream has started). */
+int Port_StereoStreams(void) {
+    if (gPortStereoStreams < 0) {
+        extern int Port_Setting(const char *name, int def); /* plat_settings.c */
+        gPortStereoStreams = Port_Setting("stereo_streams", 1) != 0;
+    }
+    return gPortStereoStreams;
+}
+
+extern float PortA11y_StreamGain(const void *player); /* a11y.c: the voices lower, and the music in a fight */
 extern void PortMa_SetVolume(void *handle, float gain); /* gs/snd_ma.c: the miniaudio streams' volume */
 
 /* A player's linear gain: the game's own volume and the settings overlay's four percents (and a11y). */
@@ -571,6 +604,12 @@ static void start(Player *p, const char *path) {
         p->loopStart = be32(p->file + 0x28);
         p->loopEnd = be32(p->file + 0x30);
         p->loop = p->loopEnd > p->loopStart && p->loopEnd <= p->total;
+    } else if (p->file[0x12] == 3 && header >= 0x32 && be32(p->file + 0x18) != 0) {
+        /* version 3 (older encoders): the loop block right after the 0x14 bytes of the header, without the
+           version 4 sample history before it (as vgmstream reads it) */
+        p->loopStart = be32(p->file + 0x1C);
+        p->loopEnd = be32(p->file + 0x24);
+        p->loop = p->loopEnd > p->loopStart && p->loopEnd <= p->total;
     }
     if (!p->loop && p->total >= 64) {
         /* A song added from outside the disc: the disc's music has its loop in the file and goes on for as long as
@@ -601,6 +640,7 @@ static void start(Player *p, const char *path) {
         extern int Port_Setting(const char *name, int def); /* plat_settings.c */
         gPortMusicFollows = Port_Setting("music_follows_speed", 0) != 0;
     }
+    Port_StereoStreams();
     if (getenv("BT3_SND_VERBOSE") != NULL) {
         fprintf(stderr, "adx: player %d: start %s: %u ch, %u Hz, %.1f s, loop %d, volume %d (0.1 dB), paused %d\n", (int)(p - sPlayers), path,
                 p->channels, p->rate, (double)p->total / (double)p->rate, p->loop, p->vol, p->paused);
@@ -729,6 +769,11 @@ void ADXT_SetOutPan(void *adxt, int chan, int pan) {
 void ADXT_SetOutputMono(int flag) {
     sMono = flag != 0;
     PortMa_SetMono(flag); /* taken over by a native stream the next time it starts */
+}
+
+/* 1 while the game's own Stereo / Mono option is on Mono (a11y_tones.c puts its placed sounds in the middle then). */
+int Port_AudioMono(void) {
+    return sMono;
 }
 
 int ADXT_GetStat(void *adxt) {

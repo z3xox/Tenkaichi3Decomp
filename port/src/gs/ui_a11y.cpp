@@ -29,6 +29,10 @@
 extern "C" void PortA11y_Say(const char *text, int flags); // gs/a11y.c
 extern "C" const char *PortA11y_Label(const char *label);
 #define A11Y_INTERRUPT 1 // (gs/a11y.c)
+// BT3 a11y: the same hooks for the accessibility branch's reader (gs/a11y_ui.cpp), and a text in the language spoken
+void A11yUi_ItemAdd(ImGuiContext *ctx, ImGuiID id, const ImRect &bb, const ImGuiLastItemData *data);
+void A11yUi_ItemInfo(ImGuiContext *ctx, ImGuiID id, const char *label, ImGuiItemStatusFlags flags);
+const char *A11yUi_Words(const char *en);
 
 // What was drawn of the focused item in one frame.
 struct UiA11yItem {
@@ -109,6 +113,7 @@ static bool same_line(const ImRect &a, const ImRect &b) {
 
 void ImGuiTestEngineHook_ItemAdd(ImGuiContext *ctx, ImGuiID id, const ImRect &bb, const ImGuiLastItemData *item_data) {
     (void)item_data;
+    A11yUi_ItemAdd(ctx, id, bb, item_data); // BT3 a11y
     if (!sOn) {
         return;
     }
@@ -134,6 +139,7 @@ void ImGuiTestEngineHook_ItemAdd(ImGuiContext *ctx, ImGuiID id, const ImRect &bb
 }
 
 void ImGuiTestEngineHook_ItemInfo(ImGuiContext *ctx, ImGuiID id, const char *label, ImGuiItemStatusFlags flags) {
+    A11yUi_ItemInfo(ctx, id, label, flags); // BT3 a11y
     if (!sOn || label == NULL) {
         return;
     }
@@ -304,11 +310,11 @@ static void describe(const UiA11yItem &it, char *label, size_t labelCap, char *v
     value[0] = '\0';
     for (int i = 0; i < count; i++) {
         if (i != skip) {
-            add(value, valueCap, pieces[i], NULL, " ");
+            add(value, valueCap, A11yUi_Words(pieces[i]), NULL, " "); // BT3 a11y: A11yUi_Words
         }
     }
     if (!afterUsed) {
-        add(value, valueCap, it.after, NULL, " ");
+        add(value, valueCap, A11yUi_Words(it.after), NULL, " "); // BT3 a11y: A11yUi_Words
     }
     state[0] = '\0';
     if (it.tab) {
@@ -360,7 +366,7 @@ extern "C" void UiA11y_End(void) {
         snprintf(sSaidTab, sizeof(sSaidTab), "%s", sTab);
         if (!(sNow.tab && sNow.id == sSaidId)) { // (the focused tab says "selected" itself)
             char tab[200];
-            snprintf(tab, sizeof(tab), PortA11y_Label("%s tab"), sTab);
+            snprintf(tab, sizeof(tab), PortA11y_Label("%s tab"), A11yUi_Words(sTab)); // BT3 a11y: A11yUi_Words
             add(line, sizeof(line), tab, NULL, ", ");
         }
     }
@@ -374,7 +380,7 @@ extern "C" void UiA11y_End(void) {
             if (sQueueNext) {
                 flags = 0; // (after the page that came up)
             }
-            add(item, sizeof(item), label, NULL, ", ");
+            add(item, sizeof(item), A11yUi_Words(label), NULL, ", "); // BT3 a11y: A11yUi_Words
             add(item, sizeof(item), value, NULL, ", ");
             add(item, sizeof(item), state, NULL, ", ");
             if (line[0] != '\0' && item[0] != '\0') {
@@ -406,7 +412,7 @@ extern "C" void UiA11y_End(void) {
     if (sTip[0] != '\0' && sNow.id != 0 && g.NavCursorVisible && strcmp(sTip, sSaidTip) != 0) {
         static char tip[sizeof(sTip)];
         snprintf(sSaidTip, sizeof(sSaidTip), "%s", sTip);
-        snprintf(tip, sizeof(tip), "%s", sTip);
+        snprintf(tip, sizeof(tip), "%s", A11yUi_Words(sTip)); // BT3 a11y: A11yUi_Words
         for (char *p = tip; (p = strchr(p, '\n')) != NULL;) {
             *p = ' ';
         }

@@ -3075,9 +3075,10 @@ selects, training, the replay list, the character reference, the shop, the optio
 pause menu and the menu after a fight, item by item. A screen without a reader of its own has the strings the game
 draws on it said together once they have stood still for 20 blanks; a line a voice speaks is left to the voice. In
 a fight nothing is said by itself: F3 / F4 (or a click on the left / right half of a controller's touchpad) say that
-player's health, ki, blast stock, powered-up mode and fighters left. Two short sounds, on the player's side of the
-stereo picture, tell that one more transformation or the Ultimate Blast has come within reach (the game's own
-checks, held for 15 blanks).
+player's health, ki, blast stock, powered-up mode and fighters left. Two short sounds tell that one more
+transformation or the Ultimate Blast has come within reach (the game's own checks, held for 15 blanks): the local
+player's clean, in the middle; the rival's with a buzz and, against the computer or online, from where the rival is,
+as the "where" ping and the distance tick are (`port/src/a11y_fight.c`, `rival_placed`).
 
 Settings (`bt3_settings.txt`; none of them in the settings window):
 

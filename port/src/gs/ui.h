@@ -61,6 +61,11 @@ void PortInput_Swallow(void);           /* the controller buttons held now are n
 void PortInput_SwallowKeys(void);       /* the same for the bound keys held now */
 int *PortInput_ChatKey(void);           /* the key that opens the online chat's line (scancode, 0 = none) */
 void PortInput_ResetDefaults(int player);
+void PortInput_LearnStart(void);        /* sets up a controller a part at a time, asked by voice (gs_input.c) */
+void PortInput_LearnStop(void);
+int PortInput_Learning(void);           /* 1 while that runs: no controller works the window or the game */
+const char *PortInput_LearnStatus(void); /* what it asks for now, or how it ended (English) */
+int PortInput_Echo(const SDL_Event *ev); /* 1 = a key that came with a controller's press (a program's copy): left out */
 #define PORT_DEADZONE_MAX 90   /* percent */
 #define PORT_TRIGGER_AT 12000  /* of 32767: from here a trigger counts as pressed */
 int *PortInput_Deadzone(int player);  /* [2] left, right stick: -1 = the game's own (per axis), 0..PORT_DEADZONE_MAX = a round one, percent */
