@@ -3702,8 +3702,8 @@ static char *Tb_Help(void) {
 }
 
 /* Each page's title (by TB_ mode), as its heading shows it and the screen reader says it. */
-static char *sTbTitle[13] = {"Tenkaichi Budokai Online", "New Lobby", "Join", "Searching", "Profile", "Profile", "Quick Match",
-                             "Train While Waiting", "Tenkaichi Budokai Online", "Lobby", "Tournament", "Join by Address", "LAN Match"};
+static char *sTbTitle[13] = {"Rinha Online do Approval", "New Lobby", "Join", "Searching", "Profile", "Profile", "Quick Match",
+                             "Train While Waiting", "Rinha Online do Approval", "Lobby", "Tournament", "Join by Address", "LAN Match"};
 
 /* ---- the screen reader (port/src/gs/a11y.c; silent unless the player has it on). The game's own screens are read
    from their state by port/src/a11y_game.c; these pages say what they show themselves: the page's title as it opens,
@@ -4038,6 +4038,7 @@ static void Tb_Draw(void) {
         break;
     }
     Tb_PageIn(0);
+    Ps_Icon(TBO_CREST, Tb_TitleLeft() + 22.0f, 32.0f, 36.0f, 0x80); /* the crest, left of the title (tbo/ui/crest.png) */
     Ps_Panel(TBO_KIT_WINDOW, 300.0f, 10.0f, 504.0f, 44.0f, 0x80); /* the player card: the name alone */
     {   /* the game's box with the hosts' line (the buttons under it: Tb_DrawText); in a lobby what happened last */
         u16 *box = NULL;

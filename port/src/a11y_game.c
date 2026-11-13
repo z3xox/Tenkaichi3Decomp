@@ -574,7 +574,7 @@ static void main_menu(void) {
         open = 1;
     }
     if (cur != item) {
-        say_item(cur == 11 ? "Tenkaichi Budokai Online" : tr(kMainMenuItems[cur]), index, m->itemCount, follow());
+        say_item(cur == 11 ? "Rinha Online do Approval" : tr(kMainMenuItems[cur]), index, m->itemCount, follow());
         item = cur;
     }
 }

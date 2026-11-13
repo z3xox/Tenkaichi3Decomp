@@ -5,7 +5,7 @@
 /* width, height in pixels, and for the pieces of the kit the corner that keeps its shape */
 static const u16 sTboSize[TBO_ART_COUNT][3] = {
     {1280, 720, 0}, /* bg */
-    {722, 728, 0}, /* crest */
+    {168, 168, 0}, /* crest */
     {727, 710, 0}, /* hosts_mic_wave */
     {630, 709, 0}, /* hosts_binoculars */
     {511, 655, 0}, /* hosts_arms_crossed */
