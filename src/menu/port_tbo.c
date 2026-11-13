@@ -9,7 +9,7 @@
  * runs this screen. Its own look for online play, after the mockups of online_design: every picture, piece,
  * letter and button is its own (tbo/ui/*.png, drawn by the renderer at full resolution; see "the pictures" below).
  *
- * The hub lists nine modes. What runs today is what the netcode of port/src/gs/net.c and net_lobby.c can do (the same
+ * The hub lists ten modes. What runs today is what the netcode of port/src/gs/net.c and net_lobby.c can do (the same
  * as the Dragon Net Battle window, without the window):
  *   Quick Match   a stranger from the matchmaking service's queue; the search shows a Dragon Radar; square: "Train
  *                 While Waiting" leaves for the Ultimate Training menu with the search still on (net.c polls it each
@@ -20,6 +20,8 @@
  *   Join          a pad keypad (the PC keyboard types too) for a lobby's code; its second row, By Address, joins a
  *                 lobby by its owner's address and port (Join by Address, without the matchmaking service). A
  *                 spectator is a lobby's member in a spectator's place: there is no Watch of its own;
+ *   LAN Match     the same lobby by address under its own name, for two PCs on one network (no internet, no
+ *                 matchmaking service): Host a LAN Match is Host by Address, Join a LAN Match is Join by Address;
  *   Profile       the name the others see.
  * Everything the Dragon Net Battle window does is here; the window itself is only in F1 > Online > Advanced.
  * Ranked Match, Friends, Tournament, Replays and Leaderboard need the matchmaking service to do more (player ids,
@@ -295,6 +297,7 @@ extern void Port_SettingsWrite(void);
 #define TB_LOBBY 9 /* a lobby of up to eight (port/src/gs/net_lobby.c): its places, its rules, its talk */
 #define TB_BRACKET 10 /* a lobby's tournament: its bracket */
 #define TB_ADDR 11 /* Join by Address: a lobby owner's address and port, typed on a keypad, then Join */
+#define TB_LAN 12 /* LAN Match: Host a LAN Match (Host by Address) or Join a LAN Match (Join by Address) */
 #define TB_FIGHTERS 161
 #define TB_TOURNAMENT_STAGE 4 /* the World Tournament Stage, at noon */
 
@@ -303,12 +306,13 @@ extern void Port_SettingsWrite(void);
 #define HUB_RANKED 1
 #define HUB_LOBBY 2
 #define HUB_JOIN 3
-#define HUB_FRIENDS 4
-#define HUB_TOURNAMENT 5
-#define HUB_REPLAYS 6
-#define HUB_LEADERBOARD 7
-#define HUB_PROFILE 8
-#define HUB_COUNT 9
+#define HUB_LAN 4
+#define HUB_FRIENDS 5
+#define HUB_TOURNAMENT 6
+#define HUB_REPLAYS 7
+#define HUB_LEADERBOARD 8
+#define HUB_PROFILE 9
+#define HUB_COUNT 10
 
 /* New Lobby's rows (the rules are the lobby page's: its owner sets them there) */
 #define CR_OPEN 0 /* Open Lobby: a code from the matchmaking service, for Join */
@@ -316,6 +320,11 @@ extern void Port_SettingsWrite(void);
 #define CR_COUNT 2
 #define CR_Y 110.0f  /* the first row's top */
 #define CR_STEP 34.0f /* from row to row */
+
+/* LAN Match's rows (drawn as New Lobby's) */
+#define LN_HOST 0 /* Host a LAN Match: a lobby on this PC's port (New Lobby's Host by Address) */
+#define LN_JOIN 1 /* Join a LAN Match: the host's address, typed (Join by Address) */
+#define LN_COUNT 2
 
 /* Profile's rows */
 /* (the input delay and the rollback are the lobby's: its owner sets them; a quick match has its own) */
@@ -351,6 +360,7 @@ typedef struct TboScreen {
     s32 delay;          /* -1 automatic, else frames */
     s32 roll;           /* 0 off, else frames (2..8) */
     s32 crCur;
+    s32 lanCur;
     s32 prCur;
     /* the keypad */
     char code[CODE_LEN + 1];
@@ -360,6 +370,7 @@ typedef struct TboScreen {
     /* Join by Address */
     char addr[ADDR_LEN + 1];
     s32 addrLen;
+    s32 addrBack;       /* the screen its Back goes to: Join's or LAN Match's */
     /* the search */
     s32 host;           /* this side joins a lobby's code (0), a quick match (2) */
     s32 waitFrom;       /* frames when the search began */
@@ -423,13 +434,14 @@ static char *Tb_Fmt(char *format) {
     return Port_TrLine(format, buf[k], 160) ? buf[k] : format;
 }
 
-static char *sTbHubName[HUB_COUNT] = {"Quick Match", "Ranked Match", "Lobby", "Join", "Friends", "Tournament", "Replays", "Leaderboard", "Profile"};
-static const s32 sTbHubReady[HUB_COUNT] = {1, 0, 1, 1, 0, 0, 0, 0, 1};
+static char *sTbHubName[HUB_COUNT] = {"Quick Match", "Ranked Match", "Lobby", "Join", "LAN Match", "Friends", "Tournament", "Replays", "Leaderboard", "Profile"};
+static const s32 sTbHubReady[HUB_COUNT] = {1, 0, 1, 1, 1, 0, 0, 0, 0, 1};
 static char *sTbHubSay[HUB_COUNT] = {
     "Fight whoever is searching right now! No time limit, and you can train while you wait.",
     "Fights that move your rank, season by season. That one is coming soon!",
     "A lobby for your friends: up to eight, your rules, rematches, spectators and tournaments!",
     "Got a lobby's code? Type it in to join, to play or to watch! By Address joins by the owner's address.",
+    "Friends on the same network? No internet needed: one hosts, the others type the address shown!",
     "Your rivals, who is online, and invites. That one is coming soon!",
     "The Tenkaichi Budokai itself: brackets of 4 to 16 players. That one is coming soon!",
     "Your last matches, saved to watch again. That one is coming soon!",
@@ -946,6 +958,11 @@ static void Tb_HubUpdate(s32 live) {
             sTb->keyRow = 0;
             Tb_SetMode(TB_JOIN);
             break;
+        case HUB_LAN:
+            Snd_PlaySe(1, 1);
+            sTb->lanCur = LN_HOST;
+            Tb_SetMode(TB_LAN);
+            break;
         case HUB_PROFILE:
             Snd_PlaySe(1, 1);
             sTb->prCur = 0;
@@ -1186,8 +1203,9 @@ static void Tb_JoinTry(void) {
     }
 }
 
-static void Tb_AddrOpen(void) {
+static void Tb_AddrOpen(s32 back) {
     Snd_PlaySe(1, 1);
+    sTb->addrBack = back;
     sTb->keyRow = 0;
     sTb->keyCol = 0;
     if (sTb->addrLen > 0) { /* (the address of last time is there: the cursor on JOIN) */
@@ -1195,6 +1213,45 @@ static void Tb_AddrOpen(void) {
         sTb->keyCol = sTbAddrBtn[ADDR_BTN_OK].c0;
     }
     Tb_SetMode(TB_ADDR);
+}
+
+/* ---------------------------------------------------------------------------------------------- LAN Match */
+/* Playing on one network, under its own name: Host a LAN Match opens a lobby on this PC's port (Tb_LobbyCreate, as
+   New Lobby's Host by Address: its page shows the address and the port the other types), Join a LAN Match is Join by
+   Address. Nothing of the matchmaking service is asked. */
+static void Tb_LanUpdate(s32 live) {
+    Pad *pad = &gPad[0];
+    s32 side;
+
+    if (sTb->lanCur == LN_HOST) {
+        Ps_Prompt(3, "Change");
+    }
+    Ps_Prompt(0, sTb->lanCur == LN_HOST ? "Host" : "Join");
+    Ps_Prompt(2, "Back");
+    if (!live) {
+        return;
+    }
+    Ps_Move(&sTb->lanCur, LN_COUNT);
+    side = Ps_Side();
+    if (sTb->lanCur == LN_HOST && (pad->gameRepeat & (PADG_R1 | PADG_L1))) { /* the port in hundreds */
+        side = (pad->gameRepeat & PADG_R1) ? 100 : -100;
+    }
+    if (side != 0 && sTb->lanCur == LN_HOST) {
+        sTb->port = Ps_Wrap(sTb->port + side, 1024, 65535);
+        Snd_PlaySe(1, 0);
+    }
+    if (pad->gamePressed & (PADG_CROSS | PADG_START)) {
+        if (sTb->lanCur == LN_HOST) {
+            Tb_LobbyCreate(0);
+        } else {
+            Tb_SaveChoices();
+            Tb_AddrOpen(TB_LAN);
+        }
+    } else if (pad->gamePressed & PADG_TRIANGLE) {
+        Snd_PlaySe(1, 2);
+        Tb_SaveChoices();
+        Tb_SetMode(TB_HUB);
+    }
 }
 
 static void Tb_JoinUpdate(s32 live) {
@@ -1240,7 +1297,7 @@ static void Tb_JoinUpdate(s32 live) {
     } else if (c == -TB_KEY_DELETE) {
         Tb_CodeBack();
     } else if (c == -TB_KEY_ADDR) {
-        Tb_AddrOpen();
+        Tb_AddrOpen(TB_JOIN);
     } else if (c == -TB_KEY_OK || (pad->gamePressed & PADG_START)) {
         Tb_JoinTry();
     } else if (pad->gamePressed & PADG_SQUARE) {
@@ -1288,7 +1345,7 @@ static void Tb_AddrUpdate(s32 live) {
             return;
         } else if (c == 27) {
             Snd_PlaySe(1, 2);
-            Tb_SetMode(TB_JOIN);
+            Tb_SetMode(sTb->addrBack);
             return;
         } else if (c == 8) {
             Tb_AddrBack();
@@ -1312,7 +1369,7 @@ static void Tb_AddrUpdate(s32 live) {
         Tb_AddrBack();
     } else if (pad->gamePressed & PADG_TRIANGLE) {
         Snd_PlaySe(1, 2);
-        Tb_SetMode(TB_JOIN);
+        Tb_SetMode(sTb->addrBack);
     }
 }
 
@@ -1594,6 +1651,44 @@ static void Tb_DrawCreateText(void) {
         Ps_Text(36.0f, Ps_TextTop(y + 13.0f, 0.66f), label[i], 0.66f, 130.0f, i == sTb->crCur ? 1 : 0);
         Ps_Align(2);
         Ps_Text(266.0f, Ps_TextTop(y + 13.0f, 0.54f), value[i], 0.54f, 110.0f, 3);
+        Ps_Align(0);
+    }
+}
+
+/* LAN Match: New Lobby's rows with its own two. */
+static void Tb_DrawLan(void) {
+    Tb_Hosts(TBO_HOSTS_ARMS_CROSSED, 408.0f, 350.0f, 250.0f);
+    Tb_DrawRowsAt(LN_COUNT, sTb->lanCur, CR_Y, CR_STEP);
+}
+
+static char *sTbLanLabel[LN_COUNT] = {"Host a LAN Match", "Join a LAN Match"};
+
+/* The value of LAN Match's row i. */
+static void Tb_LanValue(char *out, s32 i) {
+    if (i == LN_HOST) {
+        sprintf(out, Tb_Fmt("PORT %d"), (int)sTb->port);
+    } else {
+        Ps_Copy(out, "BY ADDRESS", 32);
+    }
+}
+
+static void Tb_DrawLanText(void) {
+    static char value[LN_COUNT][32];
+    char **label = sTbLanLabel;
+    s32 i;
+
+    for (i = 0; i < LN_COUNT; i++) {
+        Tb_LanValue(value[i], i);
+    }
+    Ps_Align(1);
+    Ps_Text(157.0f, Ps_TextTop(CR_Y - 20.0f, 0.56f), "ON YOUR NETWORK", 0.56f, 0.0f, 2);
+    Ps_Align(0);
+    for (i = 0; i < LN_COUNT; i++) {
+        f32 y = CR_Y + CR_STEP * (f32)i;
+
+        Ps_Text(36.0f, Ps_TextTop(y + 13.0f, 0.66f), label[i], 0.66f, 150.0f, i == sTb->lanCur ? 1 : 0);
+        Ps_Align(2);
+        Ps_Text(266.0f, Ps_TextTop(y + 13.0f, 0.54f), value[i], 0.54f, 90.0f, 3);
         Ps_Align(0);
     }
 }
@@ -2083,11 +2178,12 @@ static void Tb_LobbyOpen(void) {
     /* the hosts of the page it comes from go off to the right while the lobby's windows come in from the left (the
        lobby's page has no room for them) */
     s32 join = sTb->mode == TB_JOIN || sTb->mode == TB_ADDR;
+    s32 create = sTb->mode == TB_CREATE || sTb->mode == TB_LAN;
 
-    sTb->lbHostPose = sTb->mode == TB_HUB ? TBO_HOSTS_MIC_WAVE : sTb->mode == TB_CREATE ? TBO_HOSTS_ARMS_CROSSED : join ? TBO_HOSTS_PUZZLED
+    sTb->lbHostPose = sTb->mode == TB_HUB ? TBO_HOSTS_MIC_WAVE : create ? TBO_HOSTS_ARMS_CROSSED : join ? TBO_HOSTS_PUZZLED
                     : sTb->mode == TB_WAIT ? (sTb->found ? TBO_HOSTS_CHEER : TBO_HOSTS_BINOCULARS) : -1;
-    sTb->lbHostX = sTb->mode == TB_HUB ? 396.0f : sTb->mode == TB_CREATE ? 408.0f : join ? 432.0f : sTb->found ? 426.0f : 434.0f;
-    sTb->lbHostH = sTb->mode == TB_HUB ? 262.0f : sTb->mode == TB_CREATE ? 250.0f : join ? 200.0f : sTb->found ? 180.0f : 210.0f;
+    sTb->lbHostX = sTb->mode == TB_HUB ? 396.0f : create ? 408.0f : join ? 432.0f : sTb->found ? 426.0f : 434.0f;
+    sTb->lbHostH = sTb->mode == TB_HUB ? 262.0f : create ? 250.0f : join ? 200.0f : sTb->found ? 180.0f : 210.0f;
     sTb->lbPopClose = 0;
     sTb->lbHostT = 0;
     sTb->lbSeenState = sTbLv.state;
@@ -3565,6 +3661,9 @@ static char *Tb_Help(void) {
         return "Enter the lobby's code, or Paste the one they sent you! Then Join: to play, or to watch from the stands.";
     case TB_ADDR:
         return "Type the lobby owner's address, and :port if it is not 7000. Then Join!";
+    case TB_LAN:
+        return sTb->lanCur == LN_HOST ? "You host! Your lobby's page shows the address and port the others type. Left / right, L1 / R1 change it."
+                                      : "A friend hosts! Type the address and port their lobby's page shows, then Join!";
     case TB_WAIT:
         return sTb->found ? "Here we go! The match is starting!" : "Looking for a worthy challenger... Warm up in Training meanwhile!";
     case TB_BLOCK:
@@ -3603,8 +3702,8 @@ static char *Tb_Help(void) {
 }
 
 /* Each page's title (by TB_ mode), as its heading shows it and the screen reader says it. */
-static char *sTbTitle[12] = {"Tenkaichi Budokai Online", "New Lobby", "Join", "Searching", "Profile", "Profile", "Quick Match",
-                             "Train While Waiting", "Tenkaichi Budokai Online", "Lobby", "Tournament", "Join by Address"};
+static char *sTbTitle[13] = {"Tenkaichi Budokai Online", "New Lobby", "Join", "Searching", "Profile", "Profile", "Quick Match",
+                             "Train While Waiting", "Tenkaichi Budokai Online", "Lobby", "Tournament", "Join by Address", "LAN Match"};
 
 /* ---- the screen reader (port/src/gs/a11y.c; silent unless the player has it on). The game's own screens are read
    from their state by port/src/a11y_game.c; these pages say what they show themselves: the page's title as it opens,
@@ -3676,6 +3775,12 @@ static void Tb_Speak(void) {
         }
         break;
     }
+    case TB_LAN:
+        Ps_Copy(focus, sTbLanLabel[sTb->lanCur], 160);
+        Tb_LanValue(part, sTb->lanCur);
+        Ps_Cat(focus, ": ", 160);
+        Ps_Cat(focus, part, 160);
+        break;
     case TB_JOIN:
         Tb_KeyFocus(focus, KEY_ROWS, sTbKeys, sTbJoinBtn, 4);
         Ps_Copy(now, sTb->code, 40);
@@ -3908,6 +4013,9 @@ static void Tb_Draw(void) {
     case TB_ADDR:
         Tb_DrawAddr();
         break;
+    case TB_LAN:
+        Tb_DrawLan();
+        break;
     case TB_WAIT:
         Tb_DrawWait();
         break;
@@ -3965,6 +4073,9 @@ static void Tb_DrawText(void) {
         break;
     case TB_ADDR:
         Tb_DrawAddrText();
+        break;
+    case TB_LAN:
+        Tb_DrawLanText();
         break;
     case TB_WAIT:
         Tb_DrawWaitText();
@@ -4094,6 +4205,9 @@ s32 PortTbo_Run(void) {
             break;
         case TB_ADDR:
             Tb_AddrUpdate(live);
+            break;
+        case TB_LAN:
+            Tb_LanUpdate(live);
             break;
         case TB_WAIT:
             Tb_WaitUpdate(live);

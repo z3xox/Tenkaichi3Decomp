@@ -4710,3 +4710,25 @@ the repository's own license). Its six files are `port/src/bt3_{zcounter2,bombar
   the fixes off and with them on (on, the CPU fighters never reach the Z Counter's movement input: no capture; the
   demo is not a replay). A fight with the fixes on, played by a person, is still to be done (the package's author did
   not play one either).
+
+## Tenkaichi Budokai Online: LAN Match (2026-11-13)
+
+Playing on one network without internet was already there (New Lobby's Host by Address, Join's By Address), behind
+names that do not say so. It has its own entry now; nothing in the netcode changed.
+
+- **The list** (src/menu/port_tbo.c) has ten entries: **LAN Match** (`HUB_LAN`) comes after Join. Its bars are 26
+  apart as before; the tenth, under the cursor, ends at y 324, the box begins at 326.
+- **LAN Match's page** (`TB_LAN`, drawn as New Lobby's): **Host a LAN Match** with the port (setting `net_port`,
+  7000 to begin with; left / right, L1 / R1 change it) opens the lobby by address (`Tb_LobbyCreate(0)`), whose page
+  shows the port and this PC's address on its network for the others to type; **Join a LAN Match** opens Join by
+  Address's keypad, with the address of last time. Back on that keypad goes to the page it was opened from
+  (`addrBack`: Join or LAN Match).
+- The flow follows the LAN mode of the user's truco-cpp (an entry to host, one to connect; the port to choose, the
+  address shown while waiting; the address typed by the one who joins). Its netcode is not used: a turn game over
+  TCP with the host deciding everything, where this is a deterministic fight over UDP with rollback.
+- Checked: the file compiles for the 64-bit target with `PORT` (syntax only, gcc); the PS2 build's view of it is
+  unchanged (`cpp -P` md5); `port/tools/tbo_strings.py` lists the new lines.
+- **Not checked: anything in the running game.** This checkout has no game data and no port build (and no clang), so
+  the page has not been seen or played: the list with ten bars, the page's two rows, hosting and joining through it,
+  Back from the keypad, the screen reader's lines. Also still open from before: a port that is taken when hosting,
+  an address nobody answers at, the whole way with the matchmaking service unreachable, two real PCs on one network.
