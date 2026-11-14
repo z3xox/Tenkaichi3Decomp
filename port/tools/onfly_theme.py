@@ -5,10 +5,10 @@
 
 The colours are the ones the company's public site uses (read from its style sheets, 2026-11-14): the blue #009EFB
 with its dark #0062AB and light #97CCFD, the orange of its buttons #FF5A05, the dark #192A3D and #121212, the cream
-#FAF9F5. The interface pieces keep their shapes, sizes and transparency: each is read as it is in the commit ORIGIN
-(the pictures the screens came with) and only its colours are drawn again, a pixel's brightness placed on a ramp
-dark - base - light (the picture's middle brightness lands on the base). The Dragon Radar keeps its drawing, turned
-from green to the blue. The background is drawn here: the blue, a globe's lines and flight paths.
+#FAF9F5. The interface pieces (bars, capsules, window, box) are drawn here from nothing, flat and round-ended as the site's
+buttons and cards are, at the sizes of the pictures the screens came with (so the screens' slicing of ends and
+corners still fits). The Dragon Radar keeps its drawing (read as it is in the commit ORIGIN), turned from green to
+the blue. The background is drawn here: the blue, a globe's lines and flight paths.
 The sizes do not change, so include/menu/tbo_sizes.h stays as it is.
 """
 import io
@@ -26,16 +26,6 @@ BLUE, BLUE_DARK, BLUE_LIGHT, BLUE_PALE = (0, 158, 251), (0, 98, 171), (151, 204,
 ORANGE, ORANGE_DARK = (255, 90, 5), (215, 54, 0)
 NAVY, INK, CREAM = (25, 42, 61), (18, 18, 18), (250, 249, 245)
 
-RAMPS = {  # picture: dark, base, light
-    "kit_bar": ((0, 44, 82), BLUE_DARK, BLUE_LIGHT),
-    "kit_sel": ((150, 40, 0), ORANGE, (255, 214, 184)),
-    "kit_gold": ((150, 40, 0), ORANGE, (255, 222, 198)),
-    "kit_steel": ((14, 40, 66), (36, 110, 170), BLUE_PALE),
-    "kit_window": ((8, 18, 30), NAVY, (70, 110, 150)),
-    "kit_dialog": ((6, 12, 20), (14, 28, 44), BLUE),
-}
-
-
 def original(name):
     data = subprocess.run(["git", "show", f"{ORIGIN}:port/tbo/ui/{name}.png"], cwd=ROOT, capture_output=True, check=True).stdout
     return Image.open(io.BytesIO(data)).convert("RGBA")
@@ -45,18 +35,37 @@ def lerp(a, b, t):
     return tuple(int(round(a[i] + (b[i] - a[i]) * t)) for i in range(3))
 
 
-def ramp(name, dark, base, light):
-    im = original(name)
-    px = im.load()
-    lum = sorted((0.299 * r + 0.587 * g + 0.114 * b) / 255.0 for r, g, b, a in im.getdata() if a > 128)
-    mid = min(max(lum[len(lum) // 2], 0.15), 0.85)
-    table = [lerp(dark, base, (i / 255.0) / mid) if i / 255.0 < mid else lerp(base, light, (i / 255.0 - mid) / (1.0 - mid)) for i in range(256)]
-    for y in range(im.height):
-        for x in range(im.width):
-            r, g, b, a = px[x, y]
-            if a:
-                px[x, y] = table[int(0.299 * r + 0.587 * g + 0.114 * b)] + (a,)
-    im.save(ART / f"{name}.png", optimize=True)
+SIZES = {"kit_bar": (1273, 100), "kit_sel": (1280, 107), "kit_gold": (306, 81), "kit_steel": (306, 75),
+         "kit_window": (465, 224), "kit_dialog": (1273, 204)}  # as the pictures the screens came with (tbo_sizes.h)
+K = 4  # drawn this many times larger and scaled down (smooth edges)
+
+
+def flat(name, fill, radius=None, border=None, ring=None):
+    """One flat rounded shape filling the picture: a bar (radius None: half its height) or a box. `border` a thin
+    line inside its edge, `ring` a white line round it (the chosen bar)."""
+    w, h = SIZES[name]
+    im = Image.new("RGBA", (w * K, h * K), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    m = 3 * K
+    r = (h * K - 2 * m) // 2 if radius is None else radius * K
+    if ring is not None:
+        d.rounded_rectangle((m, m, w * K - m, h * K - m), r, fill=ring)
+        m += 5 * K
+        r = max(r - 5 * K, 0)
+    d.rounded_rectangle((m, m, w * K - m, h * K - m), r, fill=fill)
+    if border is not None:
+        d.rounded_rectangle((m, m, w * K - m, h * K - m), r, outline=border, width=2 * K)
+    im.resize((w, h), Image.LANCZOS).save(ART / f"{name}.png", optimize=True)
+
+
+def kit():
+    # flat, round-ended, one colour each, as the site's buttons and cards are: no gloss, no pattern, no ornaments
+    flat("kit_bar", (30, 62, 96, 255))                                   # a row: a blue darker than the page
+    flat("kit_sel", ORANGE + (255,), ring=(255, 255, 255, 255))          # the chosen row: the site's button orange
+    flat("kit_gold", ORANGE_DARK + (255,))                               # a marked row, a dialog's button
+    flat("kit_steel", (87, 99, 113, 255))                                # a tag ("EM BREVE", "GESTOR")
+    flat("kit_window", (12, 24, 40, 242), radius=30, border=(151, 204, 253, 90))   # a card
+    flat("kit_dialog", (18, 18, 18, 236), radius=40, border=BLUE + (255,))
 
 
 def radar():
@@ -103,11 +112,10 @@ def background():
 
 
 def main():
-    for name, (dark, base, light) in RAMPS.items():
-        ramp(name, dark, base, light)
+    kit()
     radar()
     background()
-    print("port/tbo/ui: " + ", ".join(list(RAMPS) + ["radar", "bg"]))
+    print("port/tbo/ui: " + ", ".join(list(SIZES) + ["radar", "bg"]))
 
 
 if __name__ == "__main__":

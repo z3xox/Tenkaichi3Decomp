@@ -4240,7 +4240,9 @@ s32 PortTbo_Run(void) {
         Tb_Speak();
         Ps_PageSet();
         Tb_Backdrop();
-        IconWin_Draw(); /* the clouds in the corners, the emblem, the line under the title */
+        /* (the fork's look: the game's heading window, IconWin_Draw, with its cloud swirls in the corners is not
+           drawn; a plain line under the title stands for its line) */
+        Ps_Quad(Tb_TitleLeft(), 55.0f, 300.0f, 55.0f, Tb_TitleLeft(), 57.0f, 300.0f, 57.0f, 0x80FFFFFF, 0x00FFFFFF, 0x80FFFFFF, 0x00FFFFFF);
         Tb_Draw();
         Tb_DrawText();
         Ps_PromptsDraw();

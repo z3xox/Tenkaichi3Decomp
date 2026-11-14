@@ -1864,7 +1864,7 @@
     },
     "tbo/70839d1a": {
       "original": "Start Tournament",
-      "text": "Começar a Rinha",
+      "text": "Começar Rinha",
       "note": "a button of the lobby's page"
     },
     "tbo/c0dbd10e": {
@@ -1894,12 +1894,12 @@
     },
     "tbo/046de1ef": {
       "original": "Close Lobby",
-      "text": "Fechar Sala",
+      "text": "Fechar",
       "note": "a button of the lobby's page"
     },
     "tbo/9af3e8d8": {
       "original": "Leave Lobby",
-      "text": "Sair da Sala",
+      "text": "Sair",
       "note": "a button of the lobby's page"
     },
     "tbo/04a31c30": {
@@ -1969,12 +1969,12 @@
     },
     "tbo/02998b89": {
       "original": "Copy Code",
-      "text": "Copiar Localizador",
+      "text": "Copiar",
       "note": "in Tb_LobbyUpdate"
     },
     "tbo/7977315c": {
       "original": "Copy Address",
-      "text": "Copiar Endereço",
+      "text": "Copiar",
       "note": "in Tb_LobbyUpdate"
     },
     "tbo/d8276663": {

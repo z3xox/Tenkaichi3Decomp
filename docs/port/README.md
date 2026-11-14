@@ -4850,12 +4850,19 @@ and the font are the ones its public site uses, read from the site's style sheet
 #97CCFD, the orange of its buttons #FF5A05, the dark #192A3D, and Poppins.
 
 - **Pictures** (`port/tbo/ui`, made by `port/tools/onfly_theme.py`, which needs Pillow): the bars, the capsules, the
-  window and the hosts' box keep their shapes and sizes and are coloured again from their brightness (bars blue, the
-  chosen bar and the gold capsule orange, window and box dark blue); the Dragon Radar is turned from green to blue;
+  window and the hosts' box are drawn again from nothing, flat and round-ended as the site's buttons and cards are,
+  at the sizes they had (first they were only coloured again, and the user found they still looked like the game's:
+  the gloss, the wave pattern, the frames); a row is dark blue, the chosen row the orange with a white ring, a window
+  a dark card with a thin line; the Dragon Radar is turned from green to blue;
   the background (the tournament grounds) is replaced by one drawn by the tool, the blue with a globe's lines. The
   announcer, the buttons and the crest are as they were. No size changed (`tbo_sizes.h` untouched).
 - **Font.** Poppins SemiBold and Medium (SIL Open Font License, `port/third_party/fonts/poppins`) are first in
   `fonts.tsv` for the Menu and the Dialogue / UI uses, so the online screens' headings and buttons are lettered in
   Poppins while the Menu font is "Original". It is wider than Fira Sans Condensed, which it replaces there.
-- **Checked:** the first page in a window on macOS, a screenshot. **Not checked:** the other pages (a wider font
+- **The heading's window.** The game's `IconWin_Draw` (the cloud swirls in the corners and the line under the title)
+  is no longer called by these screens; a plain line that fades to the right is drawn under the title
+  (`src/menu/port_tbo.c`). Still the game's own: the message box at the foot (`MsgWin`, its meander corners and the
+  game's lettering), the title's lettering style, the announcer.
+- **Checked:** the first page, a lobby's page with four members and a bracket in a window on macOS, screenshots
+  (the lobby's footer was too wide in Portuguese: its labels are shorter now). **Not checked:** the other pages (a wider font
   and longer Portuguese lines may not fit a place), the search's radar, a release's archive.
