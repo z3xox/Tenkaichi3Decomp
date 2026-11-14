@@ -4866,3 +4866,24 @@ and the font are the ones its public site uses, read from the site's style sheet
 - **Checked:** the first page, a lobby's page with four members and a bracket in a window on macOS, screenshots
   (the lobby's footer was too wide in Portuguese: its labels are shorter now). **Not checked:** the other pages (a wider font
   and longer Portuguese lines may not fit a place), the search's radar, a release's archive.
+
+## Online screens: blue and white, green to confirm, red to remove (2026-11-14)
+
+The user's rule for the colours, after the orange of the first version: blue, with buttons in blue and white; what
+confirms is green, what deletes, removes, closes or leaves is red.
+
+- **The kit** (`port/tools/onfly_theme.py`): a row or button is the dark blue #0062AB with white letters; under the
+  cursor it is white with blue letters (`kit_sel` is a plain white bar now); a marked row and the champion's box the
+  bright blue #009EFB; windows and the hosts' box dark blue cards; the background a darker blue.
+- **Meaning** (`Ps_PillMean`, `Ps_MeanStyle`, src/menu/port_screen.c): a button that means something is the white
+  bar tinted (`Ps_PillTint`) green #1AAD6F, the company's, or red #E03131 (the company's site has no red of its
+  own: this one is chosen, to be replaced by the design system's), with white letters, and a white ring under the
+  cursor. `Tb_Mean` (port_tbo.c) says which by the button's English label: Start Match / Tournament / Next Match,
+  New Tournament, Ready, DONE, JOIN, Send, OK, Search... are green; DELETE, Remove from the Lobby, Close / Leave
+  Lobby, Cancel, Stop Watching, and "Yes" to closing, leaving or calling off, are red. Used by the keypads' buttons,
+  the lobby's buttons and its small menu, and the bracket's buttons.
+- **Letters** (`Ps_Text`): one colour each, no gradient; a thin dark blue line. The cursor's style (1) is blue for
+  the white bar, so the places that used it as a highlight away from the cursor use the value's light blue now.
+- **Checked:** the first page and a lobby's page (four members, Tournament: "Começar Rinha" green) in a window on
+  macOS. **Not checked:** a red button on the screen (the keypads' DELETE, the leave window), the bracket's buttons,
+  the pages with rows that are not lobby rows (a value's light blue on a white bar may be hard to read there).

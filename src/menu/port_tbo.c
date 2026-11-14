@@ -601,6 +601,28 @@ static void Tb_BlockUpdate(s32 live) {
     }
 }
 
+/* What a button means, by its label (the English one, before it is translated): PS_MEAN_YES for one that confirms
+   or starts, PS_MEAN_NO for one that deletes, removes, closes or leaves, 0 for the others (include/menu/port_screen.h). */
+static s32 Tb_Mean(const char *label) {
+    static const char *const yes[] = {"OK", "DONE", "JOIN", "Send", "Start Match", "Start Tournament", "Start Next Match",
+                                      "New Tournament", "Ready", "Search", "Start Training", "Enter", "Next"};
+    static const char *const no[] = {"DELETE", "Delete", "Remove from the Lobby", "Close Lobby", "Leave Lobby", "Cancel",
+                                     "Stop Watching", "Close the Lobby", "Leave the Lobby"};
+    s32 k;
+
+    for (k = 0; k < (s32)(sizeof(yes) / sizeof(yes[0])); k++) {
+        if (strcmp(label, yes[k]) == 0) {
+            return PS_MEAN_YES;
+        }
+    }
+    for (k = 0; k < (s32)(sizeof(no) / sizeof(no[0])); k++) {
+        if (strcmp(label, no[k]) == 0) {
+            return PS_MEAN_NO;
+        }
+    }
+    return 0;
+}
+
 /* ---------------------------------------------------------------------------------------------- the search */
 /* The waiting page, for whatever was begun. */
 static void Tb_Searching(s32 host) {
@@ -1166,10 +1188,10 @@ static void Tb_Keypad(f32 x, f32 y, s32 rows, char (*keys)[KEY_COLS + 1], const 
         f32 y0 = by + step * (f32)b[k].row;
         s32 on = sTb->keyRow == rows + b[k].row && sTb->keyCol >= b[k].c0 && sTb->keyCol <= b[k].c1;
 
-        /* (JOIN and DONE as the others: gold is the one the cursor is on) */
-        Ps_Pill(on ? TBO_KIT_SEL : TBO_KIT_BAR, x0, y0, x1, y0 + 28.0f, 0x80);
+        /* (JOIN and DONE green, DELETE red: what they mean) */
+        Ps_PillMean(Tb_Mean(b[k].label), on, x0, y0, x1, y0 + 28.0f, 0x80);
         Ps_Align(1);
-        Ps_Text((x0 + x1) * 0.5f, Ps_TextTop(y0 + 14.0f, 0.6f), b[k].label, 0.6f, x1 - x0 - 12.0f, on ? 1 : 0);
+        Ps_Text((x0 + x1) * 0.5f, Ps_TextTop(y0 + 14.0f, 0.6f), b[k].label, 0.6f, x1 - x0 - 12.0f, Ps_MeanStyle(Tb_Mean(b[k].label), on, 0));
         Ps_Align(0);
     }
 }
@@ -1770,7 +1792,7 @@ static void Tb_DrawWaitText(void) {
 
         Ps_Text(22.0f, 94.0f, "QUICK MATCH", 0.56f, 0.0f, 0);
         Ps_Align(1);
-        Ps_Text(95.0f, 124.0f, sTb->queue ? "TEAMS" : "ONE ON ONE", 0.86f, 156.0f, 1);
+        Ps_Text(95.0f, 124.0f, sTb->queue ? "TEAMS" : "ONE ON ONE", 0.86f, 156.0f, 3);
         Ps_Align(0);
         s32 widen = Port_LobbyWiden(), y = 214;
         const char *from = Port_LobbyRivalRegion();
@@ -1823,7 +1845,7 @@ static void Tb_DrawWaitText(void) {
 static void Tb_DrawBlock(void) {
     Ps_Panel(TBO_KIT_WINDOW, 60.0f, 96.0f, 452.0f, 316.0f, 0x80);
     Tb_Hosts(TBO_HOSTS_PUZZLED, 404.0f, 120.0f, 92.0f);
-    Ps_Pill(TBO_KIT_GOLD, 206.0f, 282.0f, 306.0f, 306.0f, 0x80);
+    Ps_PillMean(0, 1, 206.0f, 282.0f, 306.0f, 306.0f, 0x80); /* (BACK: under the cursor, the only button) */
 }
 
 static void Tb_DrawBlockText(void) {
@@ -1868,7 +1890,7 @@ static void Tb_DrawName(void) {
     Ps_Pill(TBO_KIT_BAR, 84.0f, 94.0f, 428.0f, 124.0f, 0x80);
     Ps_Copy(line, sTb->typed, 40);
     Ps_Cat(line, (sTb->frames / 16) & 1 ? "_" : " ", 40);
-    Ps_Text(100.0f, 97.0f, line, 0.86f, 310.0f, 1);
+    Ps_Text(100.0f, 97.0f, line, 0.86f, 310.0f, 3);
     Tb_Keypad(94.0f, 134.0f, NAME_ROWS, sTbNameKeys[sTb->lower], sTbNameBtn, 4, 34.0f);
 }
 
@@ -1921,7 +1943,7 @@ static void Tb_DrawQuickText(void) {
     for (q = 0; q < 2; q++) {
         s32 n = Port_LobbyQueueWaiting(q);
 
-        Ps_Text(36.0f, 262.0f + 22.0f * (f32)q, q ? "Teams" : "One on One", 0.56f, 120.0f, q == sTb->queue ? 1 : 0);
+        Ps_Text(36.0f, 262.0f + 22.0f * (f32)q, q ? "Teams" : "One on One", 0.56f, 120.0f, q == sTb->queue ? 3 : 0);
         if (n < 0) {
             sprintf(line, "...");
         } else {
@@ -2827,11 +2849,7 @@ static void Tb_DrawLobby(void) {
             continue;
         }
         Tb_LobbyBtnBox(k, &x0, &y0, &x1, &y1);
-        if (on) {
-            Ps_Pill(TBO_KIT_SEL, x0 - 2.0f, y0 - 2.0f, x1 + 2.0f, y1 + 2.0f, 0x80);
-        } else {
-            Ps_Pill(TBO_KIT_BAR, x0, y0, x1, y1, act == LB_ACT_START && !Tb_LobbyCanStart() ? 0x58 : 0x80);
-        }
+        Ps_PillMean(Tb_Mean(Tb_LobbyActName(act)), on, x0, y0, x1, y1, !on && act == LB_ACT_START && !Tb_LobbyCanStart() ? 0x58 : 0x80);
     }
     Tb_LobbyHostsOut();
 }
@@ -2928,7 +2946,7 @@ static void Tb_DrawLobbyText(void) {
         Ps_Text(282.0f, Ps_TextTop(mid, 0.54f), Tb_RuleName(i), 0.54f, 92.0f, on ? 1 : 0); /* (inside its bar as the places' names are) */
         Tb_RuleValue(line, i);
         Ps_Align(2);
-        Ps_Text(on && v->owner && v->phase == 0 && !Tb_RuleFixed(i) ? 456.0f : 482.0f, Ps_TextTop(mid, 0.46f), line, 0.46f, 124.0f, i == 0 && v->mode ? 1 : 3);
+        Ps_Text(on && v->owner && v->phase == 0 && !Tb_RuleFixed(i) ? 456.0f : 482.0f, Ps_TextTop(mid, 0.46f), line, 0.46f, 124.0f, on ? 1 : 3); /* (on the white bar under the cursor: the blue) */
         Ps_Align(0);
     }
     /* the buttons */
@@ -2946,7 +2964,7 @@ static void Tb_DrawLobbyText(void) {
         Tb_LobbyBtnBox(k, &x0, &y0, &x1, &y1);
         Ps_Align(1);
         Ps_Text((x0 + x1) * 0.5f, Ps_TextTop((y0 + y1) * 0.5f, 0.56f), Tb_LobbyActName(act), 0.56f, x1 - x0 - 14.0f,
-                on ? 1 : act == LB_ACT_START && !Tb_LobbyCanStart() ? 4 : 0);
+                Ps_MeanStyle(Tb_Mean(Tb_LobbyActName(act)), on, act == LB_ACT_START && !Tb_LobbyCanStart() ? 4 : 0));
         Ps_Align(0);
     }
 }
@@ -3034,12 +3052,10 @@ static void Tb_DrawLobbyWin(void) {
             f32 y = y0 + top + 28.0f * (f32)i;
             s32 on = i == sTb->lbPopCur;
 
-            if (on) {
-                Ps_Pill(TBO_KIT_SEL, x0 + 10.0f, y - 2.0f, x1 - 10.0f, y + 24.0f, 0x80);
-            } else {
-                Ps_Pill(TBO_KIT_BAR, x0 + 12.0f, y, x1 - 12.0f, y + 22.0f, 0x80);
-            }
-            Ps_Text(x0 + 28.0f, Ps_TextTop(y + 11.0f, 0.6f), Tb_LobbyPopItem(i), 0.6f, x1 - x0 - 56.0f, on ? 1 : 0);
+            s32 mean = ask && strcmp(Tb_LobbyPopItem(i), "Yes") == 0 ? PS_MEAN_NO : Tb_Mean(Tb_LobbyPopItem(i));
+
+            Ps_PillMean(mean, on, x0 + 12.0f, y, x1 - 12.0f, y + 22.0f, 0x80);
+            Ps_Text(x0 + 28.0f, Ps_TextTop(y + 11.0f, 0.6f), Tb_LobbyPopItem(i), 0.6f, x1 - x0 - 56.0f, Ps_MeanStyle(mean, on, 0));
         }
         Ps_SetShift(0.0f);
     }
@@ -3055,7 +3071,7 @@ static void Tb_DrawLobbyWin(void) {
         while (typed[from] != 0 && Ps_TextWidth(typed + from, 0.66f) > 312.0f) { /* (the end of a long line) */
             from++;
         }
-        Ps_Text(100.0f, Ps_TextTop(109.0f, 0.66f), typed + from, 0.66f, 0.0f, 1);
+        Ps_Text(100.0f, Ps_TextTop(109.0f, 0.66f), typed + from, 0.66f, 0.0f, 0);
         Tb_Keypad(94.0f, 134.0f, NAME_ROWS, sTbNameKeys[sTb->lower], sTbNameBtn, 4, 34.0f);
     }
 }
@@ -3516,11 +3532,8 @@ static void Tb_DrawBracket(void) {
         s32 act = Tb_BracketAct(k);
 
         Tb_BrBtnBox(k, &x0, &x1);
-        if (k == sTb->brCur) {
-            Ps_Pill(TBO_KIT_SEL, x0 - 2.0f, BR_BTN_Y - 2.0f, x1 + 2.0f, BR_BTN_Y + 26.0f, 0x80);
-        } else {
-            Ps_Pill(TBO_KIT_BAR, x0, BR_BTN_Y, x1, BR_BTN_Y + 24.0f, act == BR_ACT_START && !Tb_BracketCanStart() ? 0x58 : 0x80);
-        }
+        Ps_PillMean(Tb_Mean(Tb_BracketActName(act)), k == sTb->brCur, x0, BR_BTN_Y, x1, BR_BTN_Y + 24.0f,
+                    k != sTb->brCur && act == BR_ACT_START && !Tb_BracketCanStart() ? 0x58 : 0x80);
     }
 }
 
@@ -3558,7 +3571,7 @@ static void Tb_DrawBracketText(void) {
 
             sprintf(away, Tb_Fmt("DISCONNECTED %d:%02d"), (int)(v->tourDrop[e] / 60), (int)(v->tourDrop[e] % 60));
             Ps_Text(half ? x1 - 12.0f : x0 + 12.0f, Ps_TextTop(y - 5.0f, 0.44f), v->tourName[e], 0.44f, x1 - x0 - 24.0f, 4);
-            Ps_Text(half ? x1 - 12.0f : x0 + 12.0f, Ps_TextTop(y + 6.0f, 0.38f), away, 0.38f, x1 - x0 - 24.0f, 1);
+            Ps_Text(half ? x1 - 12.0f : x0 + 12.0f, Ps_TextTop(y + 6.0f, 0.38f), away, 0.38f, x1 - x0 - 24.0f, 3);
         } else {
             Ps_Text(half ? x1 - 12.0f : x0 + 12.0f, Ps_TextTop(y, 0.54f), v->tourName[e], 0.54f, room,
                     on ? 1 : v->tourGone[e] || Tb_BrOut(e) ? 4 : e == v->tourMe ? 3 : 0);
@@ -3577,7 +3590,7 @@ static void Tb_DrawBracketText(void) {
     } else {
         Ps_Text(256.0f, Ps_TextTop((BR_CH_Y0 + BR_CH_Y1) * 0.5f, 0.6f), "?", 0.6f, 0.0f, 4);
     }
-    Ps_Text(256.0f, Ps_TextTop(Tb_BrMid() + 15.0f, 0.42f), "FINAL", 0.42f, 80.0f, focus == size - 2 && v->tour == 1 ? 1 : 4);
+    Ps_Text(256.0f, Ps_TextTop(Tb_BrMid() + 15.0f, 0.42f), "FINAL", 0.42f, 80.0f, focus == size - 2 && v->tour == 1 ? 3 : 4);
     if (v->tourChoose >= 0 && !v->phase) {
         Ps_Text(256.0f, Ps_TextTop(BR_BTN_Y - 9.0f, 0.42f), v->owner ? "THE TWO GAMES DISAGREE ON THIS MATCH: CHOOSE THE WINNER" : "THE OWNER IS CHOOSING THE WINNER",
                 0.42f, 440.0f, 1);
@@ -3589,7 +3602,7 @@ static void Tb_DrawBracketText(void) {
 
         Tb_BrBtnBox(k, &x0, &x1);
         Ps_Text((x0 + x1) * 0.5f, Ps_TextTop(BR_BTN_Y + 12.0f, 0.54f), Tb_BracketActName(act), 0.54f, x1 - x0 - 14.0f,
-                k == sTb->brCur ? 1 : act == BR_ACT_START && !Tb_BracketCanStart() ? 4 : 0);
+                Ps_MeanStyle(Tb_Mean(Tb_BracketActName(act)), k == sTb->brCur, act == BR_ACT_START && !Tb_BracketCanStart() ? 4 : 0));
     }
     Ps_Align(0);
 }
@@ -4105,7 +4118,7 @@ static void Tb_DrawText(void) {
     }
     /* (no status and no title under it: "ONLINE" was not whether the game is connected, and the title is the
        screen's heading) */
-    Ps_Text(322.0f, Ps_TextTop(27.0f, 0.6f), (char *)Port_NetNameGet(), 0.6f, 166.0f, 1);
+    Ps_Text(322.0f, Ps_TextTop(27.0f, 0.6f), (char *)Port_NetNameGet(), 0.6f, 166.0f, 0);
     if (sTb->mode == TB_BLOCK) {
         Tb_DrawBlockText();
     }
@@ -4344,7 +4357,7 @@ static void Tb_SpecLine(void) {
     Ps_Panel(TBO_KIT_DIALOG, 136.0f, y, 376.0f, y + 52.0f, 0x60);
     Tb_Subst(line, 128, "Spectating %s vs %s", Port_NetName(0), Port_NetName(1), 0);
     Ps_Align(1);
-    Ps_Text(256.0f, y + 4.0f, line, 0.56f, 220.0f, 1);
+    Ps_Text(256.0f, y + 4.0f, line, 0.56f, 220.0f, 3);
     if (known && st[0] >= 0) {
         sprintf(line, Tb_Fmt("CATCHING UP WITH THE MATCH... %d%%"), (int)st[0]);
         Ps_Text(256.0f, y + 26.0f, line, 0.46f, 220.0f, 5);

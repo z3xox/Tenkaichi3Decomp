@@ -269,6 +269,34 @@ void Ps_Icon(s32 id, f32 cx, f32 cy, f32 height, s32 alpha) {
 
 /* A piece of the kit as a bar: its round ends keep their shape, its middle stretches. */
 void Ps_Pill(s32 id, f32 x0, f32 y0, f32 x1, f32 y1, s32 alpha) {
+    Ps_PillTint(id, x0, y0, x1, y1, PS_PLAIN, alpha);
+}
+
+/* The colours of meaning, as tints of the white bar (a tint of 0x80 leaves a colour as it is): the company's green
+   #1AAD6F; a red (its site has none of its own: #E03131). */
+#define PS_TINT_GREEN 0x37560D
+#define PS_TINT_RED 0x181870
+
+void Ps_PillMean(s32 mean, s32 on, f32 x0, f32 y0, f32 x1, f32 y1, s32 alpha) {
+    if (mean == 0) {
+        if (on) {
+            Ps_Pill(TBO_KIT_SEL, x0 - 2.0f, y0 - 2.0f, x1 + 2.0f, y1 + 2.0f, alpha);
+        } else {
+            Ps_Pill(TBO_KIT_BAR, x0, y0, x1, y1, alpha);
+        }
+        return;
+    }
+    if (on) {
+        Ps_Pill(TBO_KIT_SEL, x0 - 2.0f, y0 - 2.0f, x1 + 2.0f, y1 + 2.0f, alpha); /* the white ring */
+    }
+    Ps_PillTint(TBO_KIT_SEL, x0, y0, x1, y1, mean == PS_MEAN_YES ? PS_TINT_GREEN : PS_TINT_RED, alpha);
+}
+
+s32 Ps_MeanStyle(s32 mean, s32 on, s32 off) {
+    return mean != 0 ? (off == 4 ? 4 : 0) : on ? 1 : off; /* (white on green and red, the cursor's blue on white) */
+}
+
+void Ps_PillTint(s32 id, f32 x0, f32 y0, f32 x1, f32 y1, u32 tint, s32 alpha) {
     f32 w = Ps_PicW(id);
     f32 h = Ps_PicH(id);
     f32 c = (f32)sTboSize[id][2];
@@ -278,9 +306,9 @@ void Ps_Pill(s32 id, f32 x0, f32 y0, f32 x1, f32 y1, s32 alpha) {
     if (cap * 2.0f > x1 - x0) {
         cap = (x1 - x0) * 0.5f;
     }
-    Ps_Sprite(id, x0, y0, x0 + cap, y1, 0.0f, 0.0f, cu, 1.0f, PS_PLAIN, alpha);
-    Ps_Sprite(id, x0 + cap, y0, x1 - cap, y1, cu, 0.0f, 1.0f - cu, 1.0f, PS_PLAIN, alpha);
-    Ps_Sprite(id, x1 - cap, y0, x1, y1, 1.0f - cu, 0.0f, 1.0f, 1.0f, PS_PLAIN, alpha);
+    Ps_Sprite(id, x0, y0, x0 + cap, y1, 0.0f, 0.0f, cu, 1.0f, tint, alpha);
+    Ps_Sprite(id, x0 + cap, y0, x1 - cap, y1, cu, 0.0f, 1.0f - cu, 1.0f, tint, alpha);
+    Ps_Sprite(id, x1 - cap, y0, x1, y1, 1.0f - cu, 0.0f, 1.0f, 1.0f, tint, alpha);
 }
 
 /* A piece of the kit as a box: its corners keep their shape, its sides and middle stretch. (kit_window's inside is
@@ -582,25 +610,25 @@ void Ps_PromptsDraw(void) {
     }
 }
 
+/* The letters' styles: one colour each (no gradient), a thin dark blue line round the light ones. */
 void Ps_Text(f32 x, f32 y, char *s, f32 scale, f32 width, s32 style) {
+    u32 line = Ps_Rgba(0x00, 0x26, 0x4A, 0x80);
+
     switch (style) {
-    case 1: /* gold: under the cursor */
-        Ps_TextEx(x, y, s, scale, width, Ps_Rgba(0xFF, 0xEC, 0xB8, 0x80), Ps_Rgba(0xFF, 0x94, 0x30, 0x80), Ps_Rgba(0x5C, 0x24, 0x08, 0x80));
+    case 1: /* under the cursor: the blue, on the white bar */
+        Ps_TextEx(x, y, s, scale, width, Ps_Rgba(0x00, 0x62, 0xAB, 0x80), Ps_Rgba(0x00, 0x62, 0xAB, 0x80), Ps_Rgba(0xFF, 0xFF, 0xFF, 0x80));
         break;
-    case 2: /* a heading: as the lines (gold is the cursor's alone, as in the game's menus) */
-        Ps_TextEx(x, y, s, scale, width, Ps_Rgba(0xFF, 0xFF, 0xFF, 0x80), Ps_Rgba(0xE4, 0xD8, 0xFF, 0x80), Ps_Rgba(0x40, 0x14, 0x64, 0x80));
-        break;
-    case 3: /* cyan: a value */
-        Ps_TextEx(x, y, s, scale, width, Ps_Rgba(0xD0, 0xFC, 0xFF, 0x80), Ps_Rgba(0x70, 0xE0, 0xFF, 0x80), Ps_Rgba(0x08, 0x28, 0x50, 0x80));
+    case 3: /* a value: the light blue */
+        Ps_TextEx(x, y, s, scale, width, Ps_Rgba(0x97, 0xCC, 0xFD, 0x80), Ps_Rgba(0x97, 0xCC, 0xFD, 0x80), line);
         break;
     case 4: /* grey: not open yet */
-        Ps_TextEx(x, y, s, scale, width, Ps_Rgba(0xC8, 0xC8, 0xD4, 0x80), Ps_Rgba(0x98, 0x98, 0xAC, 0x80), Ps_Rgba(0x30, 0x30, 0x44, 0x80));
+        Ps_TextEx(x, y, s, scale, width, Ps_Rgba(0xB1, 0xB1, 0xB1, 0x80), Ps_Rgba(0xB1, 0xB1, 0xB1, 0x80), line);
         break;
-    case 5: /* green: online */
-        Ps_TextEx(x, y, s, scale, width, Ps_Rgba(0xD8, 0xFF, 0xC0, 0x80), Ps_Rgba(0x60, 0xE8, 0x50, 0x80), Ps_Rgba(0x08, 0x40, 0x10, 0x80));
+    case 5: /* green: online, going well */
+        Ps_TextEx(x, y, s, scale, width, Ps_Rgba(0x4F, 0xE0, 0xA0, 0x80), Ps_Rgba(0x4F, 0xE0, 0xA0, 0x80), line);
         break;
-    default:
-        Ps_TextEx(x, y, s, scale, width, Ps_Rgba(0xFF, 0xFF, 0xFF, 0x80), Ps_Rgba(0xE4, 0xD8, 0xFF, 0x80), Ps_Rgba(0x40, 0x14, 0x64, 0x80));
+    default: /* a line, a heading (2): white */
+        Ps_TextEx(x, y, s, scale, width, Ps_Rgba(0xFF, 0xFF, 0xFF, 0x80), Ps_Rgba(0xFF, 0xFF, 0xFF, 0x80), line);
         break;
     }
 }

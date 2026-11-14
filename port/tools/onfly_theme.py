@@ -59,13 +59,14 @@ def flat(name, fill, radius=None, border=None, ring=None):
 
 
 def kit():
-    # flat, round-ended, one colour each, as the site's buttons and cards are: no gloss, no pattern, no ornaments
-    flat("kit_bar", (30, 62, 96, 255))                                   # a row: a blue darker than the page
-    flat("kit_sel", ORANGE + (255,), ring=(255, 255, 255, 255))          # the chosen row: the site's button orange
-    flat("kit_gold", ORANGE_DARK + (255,))                               # a marked row, a dialog's button
-    flat("kit_steel", (87, 99, 113, 255))                                # a tag ("EM BREVE", "GESTOR")
-    flat("kit_window", (12, 24, 40, 242), radius=30, border=(151, 204, 253, 90))   # a card
-    flat("kit_dialog", (18, 18, 18, 236), radius=40, border=BLUE + (255,))
+    # flat, round-ended, one colour each, as the site's buttons and cards are: no gloss, no pattern, no ornaments.
+    # Blue and white only: green and red are the screens' own, for what a button means (Ps_PillMean tints the white bar)
+    flat("kit_bar", BLUE_DARK + (255,), border=(151, 204, 253, 70))      # a row, a button: the dark blue, white letters
+    flat("kit_sel", (255, 255, 255, 255))                                # under the cursor: white, blue letters
+    flat("kit_gold", BLUE + (255,))                                      # a marked row, the champion: the bright blue
+    flat("kit_steel", (0, 48, 92, 255), border=(151, 204, 253, 120))     # a tag ("EM BREVE", "GESTOR")
+    flat("kit_window", (0, 30, 60, 240), radius=30, border=(151, 204, 253, 90))    # a card
+    flat("kit_dialog", (0, 30, 60, 240), radius=40, border=BLUE + (255,))
 
 
 def radar():
@@ -83,7 +84,7 @@ def background():
     for y in range(H * K):
         for x in range(0, W * K):
             t = min(max((0.35 * x / (W * K) + 0.65 * y / (H * K)), 0.0), 1.0)
-            px[x, y] = lerp((0, 70, 128), BLUE, t)
+            px[x, y] = lerp((0, 44, 86), (0, 110, 190), t)
     lines = Image.new("RGBA", im.size, (0, 0, 0, 0))
     d = ImageDraw.Draw(lines)
     cx, cy, r = int(0.72 * W * K), int(0.46 * H * K), int(0.36 * H * K)
