@@ -117,6 +117,25 @@ void Port_NetOptions(int rollback, int delay) {
 #define NAME_LEN 20
 static char sNames[2][NAME_LEN], sMyName[NAME_LEN] = "Player";
 
+/* The name as the others are sent it: the player's squad's tag before it, "[APR] Henrique" (gs/squads.c), cut to
+   the name's NAME_LEN bytes; without a squad, or when the name has a tag already, the name itself. */
+static const char *name_sent(void) {
+    extern const char *PortSquad_MyTag(void);
+    extern int PortSquad_NameTag(const char *name, char *out);
+    static char sent[NAME_LEN];
+    const char *tag = PortSquad_MyTag();
+    char had[8];
+
+    memset(sent, 0, sizeof(sent));
+    if (tag[0] == '\0' || PortSquad_NameTag(sMyName, had)) {
+        memcpy(sent, sMyName, NAME_LEN);
+        sent[NAME_LEN - 1] = '\0';
+    } else {
+        snprintf(sent, sizeof(sent), "[%s] %s", tag, sMyName);
+    }
+    return sent;
+}
+
 void Port_NetNameSet(const char *name) {
     /* (through a copy: the menus pass the buffer of Port_NetNameGet(), this one, and snprintf into its own source is
        undefined: glibc left it empty, the name gone from a quick match on Linux until the next start) */
@@ -1522,7 +1541,7 @@ static void spec_hello_send(const struct sockaddr_in *to, int asking) {
         hello[5] = (uint32_t)fp;
         hello[6] = (uint32_t)(fp >> 32);
     }
-    memcpy(&hello[7], sMyName, NAME_LEN);
+    memcpy(&hello[7], name_sent(), NAME_LEN);
     hello[7 + NAME_LEN / 4] = (uint32_t)asking;
     net_send(hello, sizeof(hello), to);
 }
@@ -1651,7 +1670,7 @@ static int receive(void) {
         } else if (type == T_HELLO && sMode == 1) {
             uint32_t ack[8 + NAME_LEN / 4] = {MAGIC, T_HELLO_ACK, (uint32_t)sDelay, (uint32_t)sRollMax, NET_VERSION, sRules};
             ack[7 + NAME_LEN / 4] = sSeed;
-            memcpy(&ack[6], sMyName, NAME_LEN);
+            memcpy(&ack[6], name_sent(), NAME_LEN);
             ack[6 + NAME_LEN / 4] = sOpts[0];
             if (n >= 12 + NAME_LEN) { /* the other player's name came with the greeting */
                 memcpy(sNames[1], pkt + 12, NAME_LEN);
@@ -1676,7 +1695,7 @@ static int receive(void) {
                 }
                 ack[5] = sRules;
             }
-            memcpy(sNames[0], sMyName, NAME_LEN);
+            memcpy(sNames[0], name_sent(), NAME_LEN);
             sPeer = from; /* the host learns the other side's address from its greeting */
             sConnected = 1;
             net_send(ack, sizeof(ack), &sPeer);
@@ -1704,7 +1723,7 @@ static int receive(void) {
                 if (n >= 32 + NAME_LEN) {
                     memcpy(&sSeed, pkt + 28 + NAME_LEN, 4);
                 }
-                memcpy(sNames[1], sMyName, NAME_LEN);
+                memcpy(sNames[1], name_sent(), NAME_LEN);
                 sCfgGot = 1;
                 sConnected = 1;
             }
@@ -1902,7 +1921,7 @@ static void net_start(int role, const char *host, const char *join) {
         Port_NetNameSet(getenv("BT3_NET_NAME"));
     }
     memset(sNames, 0, sizeof(sNames));
-    memcpy(sNames[sMe], sMyName, NAME_LEN);
+    memcpy(sNames[sMe], name_sent(), NAME_LEN);
     memset(sOpts, 0, sizeof(sOpts));
     if (sMode != 3) {
         sOpts[sMe] = own_options();
@@ -2067,7 +2086,7 @@ static void net_start(int role, const char *host, const char *join) {
         }
         if (sMode == 2 && now - last > 100000000ull) {
             uint32_t hello[5 + NAME_LEN / 4] = {MAGIC, T_HELLO, NET_VERSION};
-            memcpy(&hello[3], sMyName, NAME_LEN);
+            memcpy(&hello[3], name_sent(), NAME_LEN);
             hello[3 + NAME_LEN / 4] = sOpts[1];
             hello[4 + NAME_LEN / 4] = CAP_MARK | 3;
             fprint_send(&sPeer);
@@ -2135,7 +2154,7 @@ static void net_start(int role, const char *host, const char *join) {
             if (now - lastCfg >= 50000000ull) {
                 uint32_t cfg[8 + NAME_LEN / 4] = {MAGIC, T_CONFIG, (uint32_t)sDelay, (uint32_t)sRollMax, NET_VERSION, sRules};
                 cfg[7 + NAME_LEN / 4] = sSeed;
-                memcpy(&cfg[6], sMyName, NAME_LEN);
+                memcpy(&cfg[6], name_sent(), NAME_LEN);
                 cfg[6 + NAME_LEN / 4] = sOpts[0];
                 net_send(cfg, sizeof(cfg), &sPeer);
                 fprint_send(&sPeer); /* (again with each: the other side refuses a match it had none for, FP_PEER_REQUIRED) */
@@ -3511,7 +3530,7 @@ int Port_LobbyStartCode(int host, const char *code) {
     sKnockGen = -1;
     memset(sKnockUntil, 0, sizeof(sKnockUntil));
     snprintf(sCodeAsked, sizeof(sCodeAsked), "%s", sQuickQueue < 0 && code != NULL ? code : "");
-    Match_Begin(sQuickQueue >= 0 ? 3 : sWatchByCode ? 4 : sLobbyRole, sSock, sCodeLocalPort, sQuickQueue >= 0 ? kMatchQueues[sQuickQueue] : code, sMyName, NET_VERSION);
+    Match_Begin(sQuickQueue >= 0 ? 3 : sWatchByCode ? 4 : sLobbyRole, sSock, sCodeLocalPort, sQuickQueue >= 0 ? kMatchQueues[sQuickQueue] : code, name_sent(), NET_VERSION);
     return sLobby;
 }
 
@@ -4159,7 +4178,7 @@ int NetIo_FingerprintRequired(void) {
 }
 
 const char *NetIo_MyName(void) {
-    return sMyName;
+    return name_sent();
 }
 
 void NetIo_WatchService(void) {

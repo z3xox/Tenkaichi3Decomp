@@ -110,6 +110,7 @@ PT = {
     "RIVALS NEAR YOU FIRST, THEN ANYWHERE": "RIVAIS PERTO PRIMEIRO, DEPOIS QUALQUER LUGAR",
     "THE NEXT RIVAL, WHEREVER: THE FASTEST": "O PRÓXIMO RIVAL, DE ONDE FOR: O MAIS RÁPIDO",
     "Name": "Nome", "PLAYER CARD": "CARTÃO DE EMBARQUE",
+    "Group": "Grupo", "Squad": "Squad", "None": "Nenhum",
     "SINGLE BATTLE": "LUTA INDIVIDUAL", "TEAM BATTLE": "LUTA EM EQUIPE",
     "DP BATTLE: 10 DP": "LUTA DP: 10 DP", "DP BATTLE: 15 DP": "LUTA DP: 15 DP", "DP BATTLE: 20 DP": "LUTA DP: 20 DP",
     "Mode": "Modo", "Time Limit": "Tempo", "Game Speed": "Velocidade", "Rollback": "Rollback", "Input Delay": "Atraso",

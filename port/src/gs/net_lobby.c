@@ -375,6 +375,7 @@ static int t_next(void) {
 /* ---- the window's copy ---- */
 
 static const char *av_of(uint32_t id); /* (a member's picture, below) */
+static void result_post(void);         /* (a finished tournament, told to the service: below) */
 
 static void view_update(int force) {
     uint64_t now = now_ns();
@@ -1041,6 +1042,7 @@ static void t_resolve(void) {
         sL.t.champ = sL.t.win[m];
         SDL_snprintf(text, sizeof(text), "%s is the champion!", sL.t.name[sL.t.champ]);
         note_set(text);
+        result_post();
     }
     t_tokens();
     sL.dirty = 1;
@@ -1102,6 +1104,35 @@ static void t_new(void) {
             sL.t.leaf[i] = order[s++];
         }
     }
+    /* Squads (gs/squads.c: the tag a name begins with): where the draw put two of one squad against each other in
+       the first round and a swap with a later (else an earlier) leaf parts them without pairing two of another
+       squad, the swap is made. With one squad, or none, the draw stays as the shuffle made it. */
+    for (i = 0; i + 1 < sL.t.size; i += 2) {
+        extern int PortSquad_NameTag(const char *name, char *out);
+        char ta[8], tb[8], tc[8], td[8];
+        int a = sL.t.leaf[i], b = sL.t.leaf[i + 1], pass, j;
+        if (a < 0 || b < 0 || !PortSquad_NameTag(sL.t.name[a], ta) || !PortSquad_NameTag(sL.t.name[b], tb) || strcmp(ta, tb) != 0) {
+            continue;
+        }
+        for (pass = 0; pass < 2 && sL.t.leaf[i + 1] == b; pass++) {
+            for (j = pass == 0 ? i + 2 : 0; j < (pass == 0 ? sL.t.size : i); j++) {
+                int c = sL.t.leaf[j], d = sL.t.leaf[j ^ 1];
+                if (c < 0) {
+                    continue;
+                }
+                PortSquad_NameTag(sL.t.name[c], tc);
+                if (strcmp(tc, ta) == 0) {
+                    continue; /* (it would meet `a` as one of its own squad again) */
+                }
+                if (d >= 0 && PortSquad_NameTag(sL.t.name[d], td) && strcmp(td, tb) == 0) {
+                    continue; /* (`b` would meet one of its own there) */
+                }
+                sL.t.leaf[i + 1] = c;
+                sL.t.leaf[j] = b;
+                break;
+            }
+        }
+    }
     for (i = 0; i < TOUR - 1; i++) {
         sL.t.win[i] = -1;
     }
@@ -1115,6 +1146,62 @@ static void t_new(void) {
     }
     fprintf(stderr, "bt3: lobby: tournament %u drawn (seed %08x)\n", (unsigned)sL.t.gen, (unsigned)sL.t.seed);
     t_resolve();
+}
+
+/* ---- a finished tournament, told to the matchmaking service for its ranking (port/matchmaking/supabase: POST
+   /v1/result): the champion and each match that was played or won by walkover, by the names the bracket has. Sent by
+   the owner's game alone, once, on a thread (the answer is not waited for by the game). BT3_NO_RESULT=1: not sent. ---- */
+extern int Match_Post(const char *what, const char *json, char *out, size_t size); /* gs/net_match.c */
+extern const char *PortSquad_MyGroupId(void);                                       /* gs/squads.c */
+
+static int SDLCALL result_thread(void *json) {
+    char out[256] = "";
+    int ok = Match_Post("result", (const char *)json, out, sizeof(out));
+    fprintf(stderr, "bt3: lobby: the tournament's result %s\n", ok && strstr(out, "\"ok\"") != NULL ? "was sent for the ranking" : "could not be sent for the ranking");
+    SDL_free(json);
+    return 0;
+}
+
+static int json_name(char *out, int room, const char *name) { /* a name as a JSON string's inside; the bytes written */
+    int n = 0;
+    for (; *name != '\0' && n < room - 2; name++) {
+        if (*name == '"' || *name == '\\') {
+            out[n++] = '\\';
+        }
+        if ((unsigned char)*name >= 32 && *name != 127) {
+            out[n++] = *name;
+        }
+    }
+    out[n] = '\0';
+    return n;
+}
+
+static void result_post(void) {
+    char *json, a[48], b[48], w[48];
+    int m, n, count = 0;
+    SDL_Thread *t;
+
+    if (sL.on != 1 || sL.t.champ < 0 || getenv("BT3_NO_RESULT") != NULL || (json = (char *)SDL_malloc(2048)) == NULL) {
+        return;
+    }
+    json_name(w, sizeof(w), sL.t.name[sL.t.champ]);
+    n = SDL_snprintf(json, 2048, "{\"grp\":\"%s\",\"champion\":\"%s\",\"entrants\":%d,\"matches\":[", PortSquad_MyGroupId(), w, sL.t.count);
+    for (m = 0; m < t_matches(); m++) {
+        int ea = t_part(m, 0), eb = t_part(m, 1);
+        if (ea < 0 || eb < 0 || sL.t.win[m] < 0 || sL.t.how[m] == HOW_BYE) {
+            continue;
+        }
+        json_name(a, sizeof(a), sL.t.name[ea]);
+        json_name(b, sizeof(b), sL.t.name[eb]);
+        n += SDL_snprintf(json + n, 2048 - (size_t)n, "%s{\"a\":\"%s\",\"b\":\"%s\",\"w\":\"%s\"}", count++ ? "," : "", a, b, sL.t.win[m] == ea ? a : b);
+    }
+    SDL_snprintf(json + n, 2048 - (size_t)n, "]}");
+    t = count > 0 ? SDL_CreateThread(result_thread, "bt3-result", json) : NULL;
+    if (t != NULL) {
+        SDL_DetachThread(t);
+    } else {
+        SDL_free(json);
+    }
 }
 
 static int member_by_id(uint32_t id) {

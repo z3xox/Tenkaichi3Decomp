@@ -329,7 +329,9 @@ extern void Port_SettingsWrite(void);
 /* Profile's rows */
 /* (the input delay and the rollback are the lobby's: its owner sets them; a quick match has its own) */
 #define PR_NAME 0
-#define PR_COUNT 1
+#define PR_GROUP 1 /* the group the player plays with (port/src/gs/squads.c), */
+#define PR_SQUAD 2 /* ... and their squad in it: its tag goes before the name */
+#define PR_COUNT 3
 
 #define TB_CHAT_MAX 60 /* a line of the lobby's chat */
 #define KEY_COLS 9
@@ -1396,15 +1398,56 @@ static void Tb_AddrUpdate(s32 live) {
 }
 
 /* ---------------------------------------------------------------------------------------------- Profile */
+extern int PortSquad_Groups(void); /* port/src/gs/squads.c: group 0 is "no group" */
+extern const char *PortSquad_GroupName(int g);
+extern int PortSquad_Count(int g);
+extern const char *PortSquad_Name(int g, int s);
+extern const char *PortSquad_Tag(int g, int s);
+extern void PortSquad_Mine(int *g, int *s);
+extern void PortSquad_Choose(int g, int s);
+extern int PortSquad_NameTag(const char *name, char *out);
+extern int PortSquad_NameColour(const char *name);
+
+/* The colour of the squad a name's tag names, as a dot centred on (cx, cy); 0 when the name has no squad's tag. */
+static s32 Tb_SquadDot(const char *name, f32 cx, f32 cy, f32 r, s32 alpha) {
+    s32 rgb = PortSquad_NameColour(name);
+    u32 c;
+
+    if (rgb < 0) {
+        return 0;
+    }
+    c = Ps_Rgba((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF, alpha);
+    Ps_Disc(cx, cy, r + 1.2f, Ps_Rgba(0xFF, 0xFF, 0xFF, alpha), Ps_Rgba(0xFF, 0xFF, 0xFF, alpha)); /* (a white edge: seen on any bar) */
+    Ps_Disc(cx, cy, r, c, c);
+    return 1;
+}
+
 static void Tb_ProfileUpdate(s32 live) {
     Pad *pad = &gPad[0];
 
-    Ps_Prompt(0, "Type Name");
+    if (sTb->prCur == PR_NAME) {
+        Ps_Prompt(0, "Type Name");
+    } else {
+        Ps_Prompt(3, "Change");
+    }
     Ps_Prompt(2, "Back");
     if (!live) {
         return;
     }
     Ps_Move(&sTb->prCur, PR_COUNT);
+    if (sTb->prCur != PR_NAME && Ps_Side() != 0) { /* left / right: another group, another of its squads */
+        s32 g;
+        s32 q;
+
+        PortSquad_Mine(&g, &q);
+        if (sTb->prCur == PR_GROUP) {
+            PortSquad_Choose((g + Ps_Side() + PortSquad_Groups()) % PortSquad_Groups(), 0);
+            Snd_PlaySe(1, 0);
+        } else if (PortSquad_Count(g) > 1) {
+            PortSquad_Choose(g, (q + Ps_Side() + PortSquad_Count(g)) % PortSquad_Count(g));
+            Snd_PlaySe(1, 0);
+        }
+    }
     if ((pad->gamePressed & PADG_CROSS) && sTb->prCur == PR_NAME) {
         Snd_PlaySe(1, 1);
         Ps_Copy(sTb->typed, Port_NetNameGet(), 20);
@@ -1966,17 +2009,30 @@ static void Tb_DrawProfile(void) {
 
 static void Tb_DrawProfileText(void) {
     static char value[PR_COUNT][32];
-    static char *label[PR_COUNT] = {"Name"};
+    static char *label[PR_COUNT] = {"Name", "Group", "Squad"};
     s32 i;
+    s32 g;
+    s32 q;
 
+    PortSquad_Mine(&g, &q);
     Ps_Copy(value[PR_NAME], Port_NetNameGet(), 32);
+    Ps_Copy(value[PR_GROUP], g == 0 ? "None" : PortSquad_GroupName(g), 32);
+    value[PR_SQUAD][0] = 0;
+    if (PortSquad_Count(g) > 0) { /* "Approval [APR]": the squad, and the tag the others see before the name */
+        Ps_Copy(value[PR_SQUAD], PortSquad_Name(g, q), 32);
+        Ps_Cat(value[PR_SQUAD], " [", 32);
+        Ps_Cat(value[PR_SQUAD], PortSquad_Tag(g, q), 32);
+        Ps_Cat(value[PR_SQUAD], "]", 32);
+    } else {
+        Ps_Copy(value[PR_SQUAD], "None", 32);
+    }
     Ps_Text(26.0f, 76.0f, "PLAYER CARD", 0.62f, 0.0f, 2);
     for (i = 0; i < PR_COUNT; i++) {
         f32 y = 110.0f + 34.0f * (f32)i;
 
         Ps_Text(36.0f, Ps_TextTop(y + 13.0f, 0.66f), label[i], 0.66f, 110.0f, i == sTb->prCur ? 1 : 0);
         Ps_Align(2);
-        Ps_Text(266.0f, Ps_TextTop(y + 13.0f, 0.54f), value[i], 0.54f, 140.0f, 3);
+        Ps_Text(266.0f, Ps_TextTop(y + 13.0f, 0.54f), value[i], 0.54f, 140.0f, i == sTb->prCur ? 1 : 3);
         Ps_Align(0);
     }
 }
@@ -2892,7 +2948,9 @@ static void Tb_DrawLobbyText(void) {
         Ps_Text(37.0f, Ps_TextTop(mid, 0.5f), tag, 0.5f, 0.0f, on ? 1 : 4);
         Ps_Align(0);
         if (v->taken[i]) {
-            Ps_Text(54.0f, Ps_TextTop(mid, 0.6f), v->name[i], 0.6f, v->isOwner[i] || i == v->me ? 102.0f : 140.0f, on ? 1 : i == v->me ? 3 : 0);
+            f32 nx = Tb_SquadDot(v->name[i], 57.0f, mid, 4.0f, 0x80) ? 66.0f : 54.0f; /* the squad's colour, then the name */
+
+            Ps_Text(nx, Ps_TextTop(mid, 0.6f), v->name[i], 0.6f, (v->isOwner[i] || i == v->me ? 102.0f : 140.0f) - (nx - 54.0f), on ? 1 : i == v->me ? 3 : 0);
             if (v->isOwner[i] || i == v->me) {
                 Ps_Align(1);
                 Ps_Text(180.0f, Ps_TextTop(mid, 0.34f), v->isOwner[i] ? "OWNER" : "YOU", 0.34f, 36.0f, 0);
@@ -3564,6 +3622,58 @@ static void Tb_DrawBracketText(void) {
     }
     sprintf(line, Tb_Fmt("%d ENTRANTS"), (int)v->tourCount);
     Ps_Text(26.0f, Ps_TextTop(66.0f, 0.46f), line, 0.46f, 160.0f, 2);
+    {   /* the score by squad: a squad's wins over the others' entrants so far ("APR 2  EXP 1"); with fewer than two
+           squads in the bracket there is none */
+        static char score[64];
+        char tags[LOBBY_TOUR][8];
+        s32 wins[LOBBY_TOUR];
+        s32 squads = 0;
+        s32 e;
+        s32 m;
+        s32 t;
+
+        for (e = 0; e < v->tourCount && e < LOBBY_TOUR; e++) {
+            char tag[8];
+
+            if (!PortSquad_NameTag(v->tourName[e], tag)) {
+                continue;
+            }
+            for (t = 0; t < squads && strcmp(tags[t], tag) != 0; t++) {
+            }
+            if (t == squads) {
+                Ps_Copy(tags[squads], tag, 8);
+                wins[squads++] = 0;
+            }
+        }
+        for (m = 0; m < size - 1; m++) {
+            char ta[8];
+            char tb[8];
+            s32 a = v->tourA[m];
+            s32 b = v->tourB[m];
+
+            if (a < 0 || b < 0 || v->tourWin[m] < 0 || !PortSquad_NameTag(v->tourName[a], ta) || !PortSquad_NameTag(v->tourName[b], tb) ||
+                strcmp(ta, tb) == 0) {
+                continue;
+            }
+            for (t = 0; t < squads; t++) {
+                wins[t] += strcmp(tags[t], v->tourWin[m] == a ? ta : tb) == 0;
+            }
+        }
+        if (squads >= 2) {
+            score[0] = 0;
+            for (t = 0; t < squads; t++) {
+                char num[8];
+
+                sprintf(num, " %d", (int)wins[t]);
+                Ps_Cat(score, t ? "   " : "", 64);
+                Ps_Cat(score, tags[t], 64);
+                Ps_Cat(score, num, 64);
+            }
+            Ps_Align(1);
+            Ps_Text(256.0f, Ps_TextTop(66.0f, 0.46f), score, 0.46f, 180.0f, 3);
+            Ps_Align(0);
+        }
+    }
     Ps_Align(2);
     Ps_Text(486.0f, Ps_TextTop(66.0f, 0.46f), v->tourOn >= 0 ? "A MATCH IS ON" : v->tour == 2 ? "TOURNAMENT OVER" : "TOURNAMENT ON", 0.46f, 160.0f, v->tour == 2 ? 4 : 5);
     Ps_Align(0);
@@ -3577,8 +3687,10 @@ static void Tb_DrawBracketText(void) {
         s32 tag = e >= 0 && v->tourDrop[e] == 0 && (v->tourGone[e] || e == v->tourMe);
         f32 room = x1 - x0 - (tag ? 50.0f : 24.0f);
         /* the entrant's picture at the box's outer end, its name after it */
-        s32 pic = e >= 0 ? Tb_Avatar(v->tourAvatar[e], half ? x1 - 13.0f : x0 + 13.0f, y, 26.0f, v->tourGone[e] || Tb_BrOut(e) ? 0x50 : 0x80) : 0;
-        f32 in = pic ? 29.0f : 12.0f;
+        s32 dim = e >= 0 && (v->tourGone[e] || Tb_BrOut(e)) ? 0x50 : 0x80;
+        s32 dot = e >= 0 ? Tb_SquadDot(v->tourName[e], half ? x1 - 13.0f : x0 + 13.0f, y, 13.5f, dim) : 0; /* the squad's colour: a ring round the picture */
+        s32 pic = e >= 0 ? Tb_Avatar(v->tourAvatar[e], half ? x1 - 13.0f : x0 + 13.0f, y, dot ? 22.0f : 26.0f, dim) : 0; /* (smaller inside a ring) */
+        f32 in = pic || dot ? 29.0f : 12.0f;
 
         room -= in - 12.0f;
         Ps_Align(half ? 2 : 0);
@@ -4209,6 +4321,10 @@ s32 PortTbo_Run(void) {
         Ps_Copy(sTb->code, sTbBgCode, CODE_LEN + 1);
         sTb->waitBack = TB_HUB;
         Tb_SetMode(TB_WAIT);
+    } else if (getenv("BT3_TBO_PAGE") != NULL) { /* (testing: the screens open on that page, TB_PROFILE is 4; with
+                                                    BT3_TBO_ROW the cursor on that row of it) */
+        Tb_SetMode(atoi(getenv("BT3_TBO_PAGE")));
+        sTb->prCur = getenv("BT3_TBO_ROW") != NULL ? atoi(getenv("BT3_TBO_ROW")) : 0;
     }
     Port_EscQuit(0);
     Tb_WinInit();

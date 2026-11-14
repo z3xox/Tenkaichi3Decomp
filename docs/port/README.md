@@ -4918,3 +4918,34 @@ profile picture: nobody uploads anything, and no picture travels between the gam
 The fork calls the game "Approvaldokai Manegekaichi 3" (the user's name for it: the Approval and Management teams).
 The game's window and the setup window say so; the program's files keep the project's names (the updater and the
 setup go by them).
+
+## Squads (2026-11-14)
+
+Asked by the user: squads in full, for a company's teams and for friends outside it (a Discord group of the user's,
+"BSK", among them). A player belongs to a group and to one of its squads; a player without a group plays as before.
+
+- **The list** (`gs/squads.c`): groups and their squads (tag of 1 to 4 capitals or digits, name, colour). Built in:
+  Onfly (APR Approval, EXP Expense, TRV Travel, MGT Management) and BSK (one squad, BSK, until its own are named). The
+  matchmaking service keeps the list that counts (`GET <service>/squads`, the tables `bt3.groups` and `bt3.squads`
+  of port/matchmaking/supabase): a row added there is in every game at its next start, no build needed. It is fetched
+  once per start on a thread and kept in `squads.tsv` beside the program.
+- **Choosing** (the Player Card, `src/menu/port_tbo.c`): two rows under Name, Group and Squad, changed with left /
+  right; settings `squad_group`, `squad_tag`. `BT3_SQUAD=<TAG>` for tests.
+- **What travels** is the name: `name_sent` (net.c) puts the squad's tag before it, "[APR] Henrique", cut to the
+  name's 20 bytes. No packet changed; a copy without squads shows the tag as part of the name.
+- **Colour**: every copy reads the tag back out of a name (`PortSquad_NameColour`): a dot before the name on a
+  lobby's rows, a ring round the entrant's picture on the bracket.
+- **Squad against squad** is a lobby's tournament, on one network or online alike. The draw (`net_lobby.c`) parts
+  two of one squad in the first round where a swap can; the bracket's heading shows the score by squad, a squad's
+  wins over other squads' entrants ("APR 2   EXP 1"), counted by every copy from the bracket it has. Later rounds
+  are the knockout's: two of one squad can meet there.
+- **Ranking**: when a tournament ends its owner's game posts the champion and the matches to the service
+  (`POST /v1/result`, `result_post`; `BT3_NO_RESULT=1` not), which keeps them (`bt3.results`) and shows titles, wins
+  and losses by squad and by player at `<service>/ranking` (a page) and `/ranking.json`. Anyone who knows the
+  address can post a result: thirty an hour from one address, and its shape, are the only limits.
+- **Checked** (macOS): the service's routes with curl (the list, a result refused for its shape, one taken, the
+  ranking counting it); the Player Card with a group and squad set, the list fetched from the service; four copies
+  on one Mac, two squads of two: the tags before the names on every copy's log, the draw crossing the squads, the
+  score line and the coloured rings on the owner's bracket.
+- **Not checked:** left / right on the Player Card pressed by hand, a tournament played to its end (so the score
+  counting and the result's post from the game), the dots on a lobby's rows, two machines, Windows and Linux.

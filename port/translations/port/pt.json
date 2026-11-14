@@ -2,7 +2,7 @@
   "schema_version": 1,
   "labels_version": 1,
   "translation_version": 1,
-  "labels_count": 531,
+  "labels_count": 534,
   "locale": "pt",
   "name": "Português (Onfly)",
   "order": 2,
@@ -1097,6 +1097,116 @@
       "text": "Voltar",
       "note": "in Tb_BlockUpdate"
     },
+    "tbo/85e4b82f": {
+      "original": "OK",
+      "text": "OK",
+      "note": "in Tb_Mean"
+    },
+    "tbo/100e2fb1": {
+      "original": "DONE",
+      "text": "PRONTO",
+      "note": "in Tb_Mean"
+    },
+    "tbo/74b902f9": {
+      "original": "JOIN",
+      "text": "CHECK-IN",
+      "note": "in Tb_Mean"
+    },
+    "tbo/f28e14cf": {
+      "original": "Send",
+      "text": "Enviar",
+      "note": "in Tb_Mean"
+    },
+    "tbo/c0dbd10e": {
+      "original": "Start Match",
+      "text": "Decolar",
+      "note": "in Tb_Mean"
+    },
+    "tbo/70839d1a": {
+      "original": "Start Tournament",
+      "text": "Começar Rinha",
+      "note": "in Tb_Mean"
+    },
+    "tbo/60eb85f1": {
+      "original": "Start Next Match",
+      "text": "Próxima Decolagem",
+      "note": "in Tb_Mean"
+    },
+    "tbo/8dbf37f0": {
+      "original": "New Tournament",
+      "text": "Nova Rinha",
+      "note": "in Tb_Mean"
+    },
+    "tbo/0bca3294": {
+      "original": "Ready",
+      "text": "Check-in Feito",
+      "note": "in Tb_Mean"
+    },
+    "tbo/c646a2c9": {
+      "original": "Search",
+      "text": "Buscar",
+      "note": "in Tb_Mean"
+    },
+    "tbo/cc33bb3f": {
+      "original": "Start Training",
+      "text": "Começar o Treino",
+      "note": "in Tb_Mean"
+    },
+    "tbo/aff863ad": {
+      "original": "Enter",
+      "text": "Entrar",
+      "note": "in Tb_Mean"
+    },
+    "tbo/dce2da08": {
+      "original": "Next",
+      "text": "Avançar",
+      "note": "in Tb_Mean"
+    },
+    "tbo/f8718eca": {
+      "original": "DELETE",
+      "text": "APAGAR",
+      "note": "in Tb_Mean"
+    },
+    "tbo/5797ea6a": {
+      "original": "Delete",
+      "text": "Apagar",
+      "note": "in Tb_Mean"
+    },
+    "tbo/8b4c2738": {
+      "original": "Remove from the Lobby",
+      "text": "Cancelar a Reserva",
+      "note": "in Tb_Mean"
+    },
+    "tbo/046de1ef": {
+      "original": "Close Lobby",
+      "text": "Fechar",
+      "note": "in Tb_Mean"
+    },
+    "tbo/9af3e8d8": {
+      "original": "Leave Lobby",
+      "text": "Sair",
+      "note": "in Tb_Mean"
+    },
+    "tbo/35afca3b": {
+      "original": "Cancel",
+      "text": "Cancelar",
+      "note": "in Tb_Mean"
+    },
+    "tbo/d6a2e9ba": {
+      "original": "Stop Watching",
+      "text": "Parar de Assistir",
+      "note": "in Tb_Mean"
+    },
+    "tbo/65fcffe0": {
+      "original": "Close the Lobby",
+      "text": "Fechar a Sala",
+      "note": "in Tb_Mean"
+    },
+    "tbo/819bf3f7": {
+      "original": "Leave the Lobby",
+      "text": "Sair da Sala",
+      "note": "in Tb_Mean"
+    },
     "tbo/6a4bf6dc": {
       "original": "THE NETWORK COULD NOT BE OPENED ON THIS PC",
       "text": "NÃO FOI POSSÍVEL ABRIR A REDE NESTE PC",
@@ -1137,39 +1247,14 @@
       "text": "Treinar na Espera",
       "note": "in Tb_WaitUpdate"
     },
-    "tbo/35afca3b": {
-      "original": "Cancel",
-      "text": "Cancelar",
-      "note": "in Tb_WaitUpdate"
-    },
     "tbo/a1de2fdd": {
       "original": "Change",
       "text": "Alterar",
       "note": "in Tb_SparUpdate"
     },
-    "tbo/cc33bb3f": {
-      "original": "Start Training",
-      "text": "Começar o Treino",
-      "note": "in Tb_SparUpdate"
-    },
-    "tbo/dce2da08": {
-      "original": "Next",
-      "text": "Avançar",
-      "note": "in Tb_SparUpdate"
-    },
-    "tbo/c646a2c9": {
-      "original": "Search",
-      "text": "Buscar",
-      "note": "in Tb_QuickUpdate"
-    },
     "tbo/69760784": {
       "original": "Update available. Online servers are unreachable until you update.",
       "text": "Atualização disponível. O online fica fora do ar até você atualizar.",
-      "note": "in Tb_HubUpdate"
-    },
-    "tbo/aff863ad": {
-      "original": "Enter",
-      "text": "Entrar",
       "note": "in Tb_HubUpdate"
     },
     "tbo/36e2ae69": {
@@ -1187,19 +1272,9 @@
       "text": "Abrir por Endereço",
       "note": "in Tb_CreateUpdate"
     },
-    "tbo/f8718eca": {
-      "original": "DELETE",
-      "text": "APAGAR",
-      "note": "a table of the online menu"
-    },
     "tbo/75b29508": {
       "original": "PASTE",
       "text": "COLAR",
-      "note": "a table of the online menu"
-    },
-    "tbo/74b902f9": {
-      "original": "JOIN",
-      "text": "CHECK-IN",
       "note": "a table of the online menu"
     },
     "tbo/5d38deec": {
@@ -1212,11 +1287,6 @@
       "text": "ESPAÇO",
       "note": "a table of the online menu"
     },
-    "tbo/100e2fb1": {
-      "original": "DONE",
-      "text": "PRONTO",
-      "note": "a table of the online menu"
-    },
     "tbo/7dcdd869": {
       "original": "A LOBBY'S CODE HAS SIX LETTERS AND NUMBERS",
       "text": "O LOCALIZADOR TEM SEIS LETRAS E NÚMEROS",
@@ -1226,11 +1296,6 @@
       "original": "Host",
       "text": "Abrir",
       "note": "in Tb_LanUpdate"
-    },
-    "tbo/5797ea6a": {
-      "original": "Delete",
-      "text": "Apagar",
-      "note": "in Tb_JoinUpdate"
     },
     "tbo/475365d4": {
       "original": "Type Name",
@@ -1530,6 +1595,21 @@
     "tbo/0fe07306": {
       "original": "Name",
       "text": "Nome",
+      "note": "in Tb_DrawProfileText"
+    },
+    "tbo/0574902c": {
+      "original": "Group",
+      "text": "Grupo",
+      "note": "in Tb_DrawProfileText"
+    },
+    "tbo/fb7afd51": {
+      "original": "Squad",
+      "text": "Squad",
+      "note": "in Tb_DrawProfileText"
+    },
+    "tbo/304ff7fb": {
+      "original": "None",
+      "text": "Nenhum",
       "note": "in Tb_DrawProfileText"
     },
     "tbo/ddd36d5e": {
@@ -1852,26 +1932,6 @@
       "text": "Luta em Curso",
       "note": "a button of the lobby's page"
     },
-    "tbo/60eb85f1": {
-      "original": "Start Next Match",
-      "text": "Próxima Decolagem",
-      "note": "a button of the lobby's page"
-    },
-    "tbo/8dbf37f0": {
-      "original": "New Tournament",
-      "text": "Nova Rinha",
-      "note": "a button of the lobby's page"
-    },
-    "tbo/70839d1a": {
-      "original": "Start Tournament",
-      "text": "Começar Rinha",
-      "note": "a button of the lobby's page"
-    },
-    "tbo/c0dbd10e": {
-      "original": "Start Match",
-      "text": "Decolar",
-      "note": "a button of the lobby's page"
-    },
     "tbo/f6157c13": {
       "original": "Bracket",
       "text": "Itinerário",
@@ -1882,24 +1942,9 @@
       "text": "Sem Check-in",
       "note": "a button of the lobby's page"
     },
-    "tbo/0bca3294": {
-      "original": "Ready",
-      "text": "Check-in Feito",
-      "note": "a button of the lobby's page"
-    },
     "tbo/2279d8cb": {
       "original": "Chat",
       "text": "Chat",
-      "note": "a button of the lobby's page"
-    },
-    "tbo/046de1ef": {
-      "original": "Close Lobby",
-      "text": "Fechar",
-      "note": "a button of the lobby's page"
-    },
-    "tbo/9af3e8d8": {
-      "original": "Leave Lobby",
-      "text": "Sair",
       "note": "a button of the lobby's page"
     },
     "tbo/04a31c30": {
@@ -1932,11 +1977,6 @@
       "text": "COLOQUE PELO MENOS DOIS VIAJANTES NOS ASSENTOS",
       "note": "message on the lobby's page"
     },
-    "tbo/f28e14cf": {
-      "original": "Send",
-      "text": "Enviar",
-      "note": "in Tb_ChatUpdate"
-    },
     "tbo/b3a43630": {
       "original": "Yes",
       "text": "Sim",
@@ -1951,16 +1991,6 @@
       "original": "Move",
       "text": "Remarcar",
       "note": "a choice in a window over the lobby's page"
-    },
-    "tbo/8b4c2738": {
-      "original": "Remove from the Lobby",
-      "text": "Cancelar a Reserva",
-      "note": "a choice in a window over the lobby's page"
-    },
-    "tbo/85e4b82f": {
-      "original": "OK",
-      "text": "OK",
-      "note": "in Tb_LobbyUpdate"
     },
     "tbo/9a81788a": {
       "original": "Move Here",
@@ -2631,21 +2661,6 @@
       "original": "Player 1",
       "text": "Viajante 1",
       "note": "a spectator's view of the match, in its pause menu (after \"View: \")"
-    },
-    "tbo/d6a2e9ba": {
-      "original": "Stop Watching",
-      "text": "Parar de Assistir",
-      "note": "an item of a spectator's own pause menu (the battle's pause menu box)"
-    },
-    "tbo/65fcffe0": {
-      "original": "Close the Lobby",
-      "text": "Fechar a Sala",
-      "note": "an item of a spectator's own pause menu (the battle's pause menu box)"
-    },
-    "tbo/819bf3f7": {
-      "original": "Leave the Lobby",
-      "text": "Sair da Sala",
-      "note": "an item of a spectator's own pause menu (the battle's pause menu box)"
     },
     "tbo/d720e6b8": {
       "original": "Your screen only: the fight goes on",

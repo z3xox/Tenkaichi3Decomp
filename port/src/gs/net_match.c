@@ -116,6 +116,11 @@ static const char *match_url(void) {
     return e != NULL && e[0] != '\0' ? e : MATCH_URL_DEFAULT;
 }
 
+/* For the port's other questions to the service (gs/squads.c). */
+const char *Match_Url(void) {
+    return match_url();
+}
+
 static void set_state(int state, const char *error) {
     if ((int)(intptr_t)SDL_GetTLS(&sMine) != SDL_GetAtomicInt(&sM.gen)) {
         return;
@@ -346,6 +351,12 @@ static int http_post(const char *what, const char *json, char *out, size_t size)
         ok = http_post_once(what, json, out, size);
     }
     return ok;
+}
+
+/* For the port's other posts to the service (a tournament's result, gs/net_lobby.c): as the searches', signed the
+   same way. Waits for the answer: call it from a thread. */
+int Match_Post(const char *what, const char *json, char *out, size_t size) {
+    return http_post(what, json, out, size);
 }
 
 /* What the window says when the service lets only official releases in (its REQUIRE_KEY) and refused this program:
