@@ -4732,3 +4732,34 @@ names that do not say so. It has its own entry now; nothing in the netcode chang
   the page has not been seen or played: the list with ten bars, the page's two rows, hosting and joining through it,
   Back from the keypad, the screen reader's lines. Also still open from before: a port that is taken when hosting,
   an address nobody answers at, the whole way with the matchmaking service unreachable, two real PCs on one network.
+
+## Discord: the activity on the profile, and a Join button (2026-11-14)
+
+Asked by the user: starting a match with friends who are in a Discord call should not need a code read out and
+typed. `port/src/gs/discord.c` (new) shows what the player is doing on their Discord profile and, in a lobby with a
+room code, a Join button; nothing in the netcode changed.
+
+- **How.** No library: the Discord program on the same computer listens on a local socket (`discord-ipc-0` .. `9`
+  in the runtime or temporary folder; a named pipe on Windows), and the file speaks its small protocol (two 32-bit
+  numbers and JSON) from a thread of its own, so the game never waits for Discord. Without a running Discord it
+  looks again every ten seconds and does nothing else.
+- **The application.** Discord shows an activity under the name of a Discord application (free,
+  discord.com/developers). This fork's number is in the file (`DISCORD_APP_DEFAULT`); the text setting
+  `discord_app_id` or `BT3_DISCORD_APP` names another ("0": none, and the thread is never started). `discord` 0
+  turns it off, `discord_join` 0 keeps the activity and leaves out the Join button.
+- **What is shown** (once a second from `Port_LobbyView`, sent when it changes and at most every four seconds):
+  "Online lobby" / "Tournament lobby" with "Waiting for players" or "A vs B", "Tournament: N entrants", "Tournament
+  over" with the champion, the lobby's places taken of eight; "Online match" in a session without a lobby; else "In
+  the menus".
+- **Join.** The activity's join secret is "c:" and the lobby's room code, given only while a place is free; a lobby
+  by address has no code and no button. Discord hands the secret to the friend's running game (`ACTIVITY_JOIN`),
+  which looks the code up as the window's Join does (`Port_LobbyStartCode`, `Port_LobbyPoll`; state 5: a member, and
+  the main menu opens the lobby's screen). In a lobby or a match already: a notice, nothing done. Only a secret of
+  that shape is taken (4 to 7 capitals and digits), and a message longer than the buffer is passed over.
+- **Checked** (macOS arm64, the file alone with stand-ins for the game's functions and a stand-in for Discord on a
+  socket, `BT3_DISCORD_IPC`, undefined-behaviour sanitizer on): the greeting, a 40,000-byte message passed over, a
+  message arriving in two pieces, the ping answered, the activity sent once and again only when it changed, a name
+  with quotes, an accent and broken UTF-8, a Join with a secret of another shape ignored and one of the right shape
+  started and ended as a member.
+- **Not checked: the real Discord, and anything in the running game** (no build here yet: no disc image). Also not
+  compiled for Windows (the named pipe's half) or Linux.

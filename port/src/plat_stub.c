@@ -358,6 +358,10 @@ void Port_VBlank(void) {
         extern void Port_LobbyAuto(void); /* gs/net.c: BT3_LOBBY, the room-code lobby without its window (tests) */
         Port_LobbyAuto();
     }
+    {
+        extern void Discord_Pump(void); /* gs/discord.c: the Discord profile's activity and its Join button */
+        Discord_Pump();
+    }
     /* BT3_PACED=1: real-time pacing without a window too (sound tests) */
     {
         extern int Port_NetSession(void), Port_NetWarp(void); /* gs/net.c */
