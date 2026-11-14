@@ -33,7 +33,9 @@
 #include <unistd.h>
 #endif
 
-#define MATCH_URL_DEFAULT "https://odd-surf-0af7.bt3decomp.workers.dev"
+/* This fork's own copy of the service (port/matchmaking/supabase: the Worker as a Supabase Edge Function). The
+   project's is https://odd-surf-0af7.bt3decomp.workers.dev, which may refuse a build without a release's key. */
+#define MATCH_URL_DEFAULT "https://ysnxikkijwwdkouccnxx.supabase.co/functions/v1/bt3"
 #include "net_match.h"
 #include "../port_release.h"
 #include "net_relay.h"

@@ -4763,3 +4763,24 @@ room code, a Join button; nothing in the netcode changed.
   started and ended as a member.
 - **Not checked: the real Discord, and anything in the running game** (no build here yet: no disc image). Also not
   compiled for Windows (the named pipe's half) or Linux.
+
+## Matchmaking: this fork's own service, on Supabase (2026-11-14)
+
+A build from the source carries no release's build key, so the project's matchmaking service may refuse its room
+codes ("The build key"), and the user wanted the service's data where a ranking can be kept later. The fork asks its
+own copy now: `MATCH_URL_DEFAULT` (net_match.c) is a Supabase Edge Function. `BT3_MATCH_URL` still names another.
+
+- **The Worker's code is unchanged.** `port/matchmaking/supabase/index.ts` gives `worker.js` what Cloudflare gave
+  it: `env.DB` with D1's prepare / bind / first / all / run over the project's Postgres (`?` to `$n`, the tables in
+  the schema `bt3`, `SET n = used.n + 1` for the counter, bigint read as numbers), the caller's address from
+  x-forwarded-for as cf-connecting-ip, and the path cut to `/v1/<what>`. `schema.pg.sql` is `schema.sql` with
+  SQLite's rowid as a column. JWT verification is off (the game sends no key); the tables are in no schema the
+  project's API serves, with row level security on.
+- **What it does not have.** No relay (no TURN key is set: two players whose routers do not let them reach each
+  other cannot play by code), no place of a request (a quick match pairs by waiting time), no timer for the relay's
+  measuring. No build keys are set: any copy of the game may ask. A free Supabase project is paused after a time
+  without use: room codes then fail until it is started again in the dashboard (by address still works).
+- **Checked** (curl against the deployed function): `/`, hello, host, join, a second join refused ("full"), poll
+  with the joiner's addresses and the address it was seen at, watch, the host's poll listing the watcher, a code
+  that names no room, leave, and a lobby's room with two members listed to its owner.
+- **Not checked: the game itself against it** (no build here yet), and the limits per address.
