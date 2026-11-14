@@ -9,5 +9,5 @@
    Where releases are published: the game asks GitHub for the newest one once per start and can install it
    (gs/net_update.c, "Check for updates") and opens this repository's release page from the settings window. A fork that publishes
    its own releases names its own repository here. */
-#define PORT_UPDATE_REPO "z3xox/Tenkaichi3Decomp"
+#define PORT_UPDATE_REPO "bidwolf/Tenkaichi3Decomp" /* (the project's: z3xox/Tenkaichi3Decomp) */
 #endif

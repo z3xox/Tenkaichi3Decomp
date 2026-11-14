@@ -4784,3 +4784,11 @@ own copy now: `MATCH_URL_DEFAULT` (net_match.c) is a Supabase Edge Function. `BT
   with the joiner's addresses and the address it was seen at, watch, the host's poll listing the watcher, a code
   that names no room, leave, and a lobby's room with two members listed to its owner.
 - **Not checked: the game itself against it** (no build here yet), and the limits per address.
+
+## Updates: this fork's own releases (2026-11-14)
+
+`PORT_UPDATE_REPO` (port_release.h) names this fork, so that a game built from it is not offered the project's
+release, which has neither its Discord activity nor its matchmaking address. The fork has published no release yet
+(the check finds none), and its archives are not signed (`port/src/update_key.h` holds the project's public key):
+until the fork has a key pair of its own, a game says a newer release exists and does not install it by itself.
+Not checked in the running game.
