@@ -4842,3 +4842,20 @@ lines; the 162 left are the fighters' names and words that are the same in both 
   screenshot): the ten entries, the "EM BREVE" tags and the talk box in Portuguese, accents drawn.
 - **Not checked:** every other page (a lobby's, the bracket, the keypads), where a longer Portuguese line may not
   fit its place; the main menu's labels and the game's own text are still English.
+
+## The online screens in the company's colours and font (2026-11-14)
+
+Asked by the user: the colours of the company's design system. Its design system itself was not at hand; the colours
+and the font are the ones its public site uses, read from the site's style sheets: the blue #009EFB with #0062AB and
+#97CCFD, the orange of its buttons #FF5A05, the dark #192A3D, and Poppins.
+
+- **Pictures** (`port/tbo/ui`, made by `port/tools/onfly_theme.py`, which needs Pillow): the bars, the capsules, the
+  window and the hosts' box keep their shapes and sizes and are coloured again from their brightness (bars blue, the
+  chosen bar and the gold capsule orange, window and box dark blue); the Dragon Radar is turned from green to blue;
+  the background (the tournament grounds) is replaced by one drawn by the tool, the blue with a globe's lines. The
+  announcer, the buttons and the crest are as they were. No size changed (`tbo_sizes.h` untouched).
+- **Font.** Poppins SemiBold and Medium (SIL Open Font License, `port/third_party/fonts/poppins`) are first in
+  `fonts.tsv` for the Menu and the Dialogue / UI uses, so the online screens' headings and buttons are lettered in
+  Poppins while the Menu font is "Original". It is wider than Fira Sans Condensed, which it replaces there.
+- **Checked:** the first page in a window on macOS, a screenshot. **Not checked:** the other pages (a wider font
+  and longer Portuguese lines may not fit a place), the search's radar, a release's archive.
