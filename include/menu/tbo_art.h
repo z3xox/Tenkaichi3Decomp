@@ -41,6 +41,10 @@ enum { TBO_ART_LIST(TBO_ART_ENUM) TBO_ART_COUNT };
    the screens write, the picture made from a TrueType font of the font list. */
 #define TBO_TEXT_BASE 0x100
 #define TBO_TEXT_SLOTS 128
+/* The players' pictures (port/src/gs/avatar.c), drawn the same way: numbers TBO_AVATAR_BASE and on, one per picture
+   kept. */
+#define TBO_AVATAR_BASE 0x200
+#define TBO_AVATAR_SLOTS 16
 
 /* Native artwork for the first-run language selector, decoded from the player's EU disc. */
 #define TBO_LANG_BG 0x200

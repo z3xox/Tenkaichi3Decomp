@@ -3537,6 +3537,20 @@ static void Tb_DrawBracket(void) {
     }
 }
 
+/* A player's picture (port/src/gs/avatar.c: the Discord profile's, by its reference) as a round badge centred on
+   (cx, cy), `height` units tall. 0 when there is none, or it is not here yet: nothing is drawn. */
+static s32 Tb_Avatar(const char *ref, f32 cx, f32 cy, f32 height, s32 alpha) {
+    extern int PortAvatar_Id(const char *ref);
+    s32 id = ref[0] != 0 ? PortAvatar_Id(ref) : -1;
+    f32 w = height * PS_UNIT_X;
+
+    if (id < 0) {
+        return 0;
+    }
+    Ps_Sprite(id, cx - w * 0.5f, cy - height * 0.5f, cx + w * 0.5f, cy + height * 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, PS_PLAIN, alpha);
+    return 1;
+}
+
 static void Tb_DrawBracketText(void) {
     static char line[96];
     PortLobbyView *v = &sTbLv;
@@ -3562,7 +3576,11 @@ static void Tb_DrawBracketText(void) {
         s32 on = e >= 0 && focus >= 0 && (v->tourA[focus] == e || v->tourB[focus] == e) && e != v->tourChamp;
         s32 tag = e >= 0 && v->tourDrop[e] == 0 && (v->tourGone[e] || e == v->tourMe);
         f32 room = x1 - x0 - (tag ? 50.0f : 24.0f);
+        /* the entrant's picture at the box's outer end, its name after it */
+        s32 pic = e >= 0 ? Tb_Avatar(v->tourAvatar[e], half ? x1 - 13.0f : x0 + 13.0f, y, 26.0f, v->tourGone[e] || Tb_BrOut(e) ? 0x50 : 0x80) : 0;
+        f32 in = pic ? 29.0f : 12.0f;
 
+        room -= in - 12.0f;
         Ps_Align(half ? 2 : 0);
         if (e < 0) {
             Ps_Text(half ? x1 - 12.0f : x0 + 12.0f, Ps_TextTop(y, 0.5f), "BYE", 0.5f, 0.0f, 4);
@@ -3570,23 +3588,25 @@ static void Tb_DrawBracketText(void) {
             static char away[48];
 
             sprintf(away, Tb_Fmt("DISCONNECTED %d:%02d"), (int)(v->tourDrop[e] / 60), (int)(v->tourDrop[e] % 60));
-            Ps_Text(half ? x1 - 12.0f : x0 + 12.0f, Ps_TextTop(y - 5.0f, 0.44f), v->tourName[e], 0.44f, x1 - x0 - 24.0f, 4);
-            Ps_Text(half ? x1 - 12.0f : x0 + 12.0f, Ps_TextTop(y + 6.0f, 0.38f), away, 0.38f, x1 - x0 - 24.0f, 3);
+            Ps_Text(half ? x1 - in : x0 + in, Ps_TextTop(y - 5.0f, 0.44f), v->tourName[e], 0.44f, x1 - x0 - 12.0f - in, 4);
+            Ps_Text(half ? x1 - in : x0 + in, Ps_TextTop(y + 6.0f, 0.38f), away, 0.38f, x1 - x0 - 12.0f - in, 3);
         } else {
-            Ps_Text(half ? x1 - 12.0f : x0 + 12.0f, Ps_TextTop(y, 0.54f), v->tourName[e], 0.54f, room,
+            Ps_Text(half ? x1 - in : x0 + in, Ps_TextTop(y, 0.54f), v->tourName[e], 0.54f, room,
                     on ? 1 : v->tourGone[e] || Tb_BrOut(e) ? 4 : e == v->tourMe ? 3 : 0);
         }
         Ps_Align(0);
         if (tag) {
             Ps_Align(1);
-            Ps_Text(half ? x0 + 22.0f : x1 - 22.0f, Ps_TextTop(y, 0.34f), v->tourGone[e] ? "LEFT" : "YOU", 0.34f, 30.0f, v->tourGone[e] ? 4 : 0);
+            Ps_Text(half ? x0 + 22.0f : x1 - 22.0f, Ps_TextTop(y, 0.34f), v->tourGone[e] ? "LEFT" : "YOU", 0.34f, 30.0f, v->tourGone[e] ? 4 : on ? 1 : 0);
             Ps_Align(0);
         }
     }
     Ps_Align(1);
     Ps_Text(256.0f, Ps_TextTop(BR_CH_Y0 - 11.0f, 0.46f), "CHAMPION", 0.46f, 160.0f, 2);
     if (v->tourChamp >= 0) {
-        Ps_Text(256.0f, Ps_TextTop((BR_CH_Y0 + BR_CH_Y1) * 0.5f, 0.7f), v->tourName[v->tourChamp], 0.7f, 124.0f, 0);
+        s32 pic = Tb_Avatar(v->tourAvatar[v->tourChamp], 204.0f, (BR_CH_Y0 + BR_CH_Y1) * 0.5f, 32.0f, 0x80); /* at the box's left end */
+
+        Ps_Text(pic ? 268.0f : 256.0f, Ps_TextTop((BR_CH_Y0 + BR_CH_Y1) * 0.5f, 0.7f), v->tourName[v->tourChamp], 0.7f, pic ? 96.0f : 124.0f, 0);
     } else {
         Ps_Text(256.0f, Ps_TextTop((BR_CH_Y0 + BR_CH_Y1) * 0.5f, 0.6f), "?", 0.6f, 0.0f, 4);
     }

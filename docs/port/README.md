@@ -4887,3 +4887,34 @@ confirms is green, what deletes, removes, closes or leaves is red.
 - **Checked:** the first page and a lobby's page (four members, Tournament: "Começar Rinha" green) in a window on
   macOS. **Not checked:** a red button on the screen (the keypads' DELETE, the leave window), the bracket's buttons,
   the pages with rows that are not lobby rows (a value's light blue on a white bar may be hard to read there).
+
+## Players' pictures on the bracket (2026-11-14)
+
+Asked by the user: each player's profile picture shown on the knockout bracket. The picture is the player's Discord
+profile picture: nobody uploads anything, and no picture travels between the games.
+
+- **Whose picture.** `gs/discord.c` reads the signed-in user's number and picture hash from Discord's READY
+  (`Discord_Avatar`: "<number>/<hash>", "" without Discord or without a picture; `BT3_AVATAR` for tests).
+- **Between the games** (`gs/net_lobby.c`): two new packet types after the lobby's, T_L_AVATAR (a member tells the
+  owner its reference, every 3 s) and T_L_AVATARS (the owner tells every member everyone's, by member id, those in
+  the places and a bracket's entrants). The owner takes a reference only from the member that has that address and
+  id. `T_LOBBY_LAST` is 43; `LOBBY_VERSION` is unchanged (a copy without pictures ignores the two types, not tried).
+  `PortLobbyView` has `avatar[place]` and `tourAvatar[entrant]`.
+- **The picture itself** (`gs/avatar.c`): fetched by each game from Discord's picture server and from nowhere else
+  (`https://cdn.discordapp.com/avatars/<reference>.png?size=128`), on a thread of its own, through the updater's
+  download (`Port_HttpGetMem`, net_update.c). A reference is taken only as digits, a slash and 32 hex digits ("a_"
+  before them for an animated one), so another game cannot name any other address. Kept as a round cut of 96 x 96,
+  sixteen at most; drawn as the screens' other pictures are (numbers from `TBO_AVATAR_BASE`, gs_draw.c).
+- **On the bracket** (`src/menu/port_tbo.c`, `Tb_Avatar`): at the outer end of each entrant's box, the name after
+  it, dimmed for one who is out; at the left end of the champion's box. Without a picture the box is as before.
+- **Checked** (macOS, a window): four copies on one Mac with test references and pictures from files
+  (`BT3_AVATAR_BASE=file://...`): the members' references reached the owner and all four pictures are on its
+  bracket; and the owner with the real Discord program: its own profile picture, fetched from Discord's server.
+- **Not checked:** a member's screen (the members had no window), the champion's box, a player changing picture,
+  two machines, Windows and Linux (the download there is WinHTTP / libcurl, not the curl program).
+
+## The game's name on its windows (2026-11-14)
+
+The fork calls the game "Approvaldokai Manegekaichi 3" (the user's name for it: the Approval and Management teams).
+The game's window and the setup window say so; the program's files keep the project's names (the updater and the
+setup go by them).

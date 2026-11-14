@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-enum { T_LOBBY_FIRST = 30, T_LOBBY_LAST = 41 }; /* the lobby's packet types (net_lobby.c); a release without lobbies ignores them */
+enum { T_LOBBY_FIRST = 30, T_LOBBY_LAST = 43 }; /* the lobby's packet types (net_lobby.c); a release without lobbies ignores them */
 
 #ifndef __cplusplus
 struct sockaddr_in;
@@ -106,6 +106,9 @@ typedef struct PortLobbyView {
     int tourOn;                 /* the match being played now, -1 none */
     int tourChamp;              /* the champion (an entrant), -1 none yet */
     int tourChoose;             /* the match whose winner the owner chooses (its two games disagreed twice), -1 none */
+    /* the players' pictures (gs/avatar.c): the reference of the one in each place and of each entrant, "" none */
+    char avatar[LOBBY_SLOTS][64];
+    char tourAvatar[LOBBY_TOUR][64];
     int readyCount;             /* places marked ready */
     int entrants;               /* the player places: 2 (versus: 1P, 2P), a tournament's Entrants rule 2..8 */
     int entrantCount;           /* of them taken (a tournament started now has these) */

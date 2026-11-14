@@ -389,6 +389,11 @@ static int http_get(const char *url, int json, const char *path, char **mem, siz
     return ok;
 }
 
+/* For the port's other small downloads (gs/avatar.c): GET `url` into *mem (SDL_free it), at most `max` bytes. */
+int Port_HttpGetMem(const char *url, char **mem, size_t *memLen, size_t max) {
+    return http_get(url, 0, NULL, mem, memLen, max);
+}
+
 /* ---- just enough JSON for GitHub's answer ---- */
 static const char *js_ws(const char *p) {
     while (*p == ' ' || *p == '\n' || *p == '\r' || *p == '\t') {

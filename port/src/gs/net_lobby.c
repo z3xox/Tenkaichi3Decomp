@@ -91,7 +91,11 @@
 
 #define MAGIC 0x4E335442u
 enum { T_HELLO = 1, T_HELLO_ACK = 2, T_SPEC_HELLO = 20, T_SPEC_NO = 22, SPEC_NO_VERSION = 1 };
-enum { T_L_HELLO = 30, T_L_NO, T_L_STATE, T_L_ALIVE, T_L_GO, T_L_BACK, T_L_LEAVE, T_L_CLOSE, T_L_CHAT, T_L_SAID, T_L_INVITE, T_L_TOKEN };
+enum { T_L_HELLO = 30, T_L_NO, T_L_STATE, T_L_ALIVE, T_L_GO, T_L_BACK, T_L_LEAVE, T_L_CLOSE, T_L_CHAT, T_L_SAID, T_L_INVITE, T_L_TOKEN,
+       T_L_AVATAR,  /* member -> owner  {its id, its picture's reference (AVB bytes)}: every few seconds while it has one */
+       T_L_AVATARS  /* owner -> member  {count, count x (a member's id, its reference)}: the pictures of everyone in the lobby.
+                       Both are outside what a copy without pictures knows: it ignores them, and LOBBY_VERSION stays */
+     };
 enum { LOBBY_VERSION = 3, /* 2: STATE carries the member's nonce (its greeting's), which a member connecting asks for; 3: tournaments (the bracket in STATE, results in ALIVE, the rejoin token in HELLO, TOKEN) */ FP_MARK = 0x46505231, LOBBY_CAP = 0x4C4F4231 /* "1BOL": a game's 1v1 greeting says it knows lobbies */ };
 enum { LNO_VERSION = 1, LNO_DATA = 2, LNO_FULL = 3 };
 enum { CLOSE_CLOSED = 1, CLOSE_KICKED = 2 };
@@ -370,6 +374,8 @@ static int t_next(void) {
 
 /* ---- the window's copy ---- */
 
+static const char *av_of(uint32_t id); /* (a member's picture, below) */
+
 static void view_update(int force) {
     uint64_t now = now_ns();
     int i;
@@ -395,6 +401,7 @@ static void view_update(int force) {
         sView.ready[i] = sL.ready[i];
         sView.isOwner[i] = sL.ids[i] != 0 && sL.ids[i] == sL.ownerId;
         SDL_strlcpy(sView.name[i], sL.ids[i] != 0 ? sL.names[i] : "", LOBBY_NAME);
+        SDL_strlcpy(sView.avatar[i], av_of(sL.ids[i]), sizeof(sView.avatar[i]));
         if (sL.ids[i] != 0 && sL.ids[i] == sL.myId) {
             sView.me = i;
         }
@@ -434,6 +441,7 @@ static void view_update(int force) {
     for (i = 0; i < TOUR; i++) {
         int on = sView.tour != 0 && i < sL.t.count;
         SDL_strlcpy(sView.tourName[i], on ? sL.t.name[i] : "", LOBBY_NAME);
+        SDL_strlcpy(sView.tourAvatar[i], on ? av_of(sL.t.id[i]) : "", sizeof(sView.tourAvatar[i]));
         sView.tourGone[i] = on && sL.t.gone[i];
         sView.tourDrop[i] = on && !sL.t.gone[i] ? sL.t.dropSecs[i] : 0;
         sView.tourLeaf[i] = sView.tour != 0 && i < sL.t.size ? sL.t.leaf[i] : -1;
@@ -661,6 +669,58 @@ static void tour_get(const uint8_t *p) {
     if (sL.t.cur >= size - 1) { sL.t.cur = -1; }
     if (sL.t.champ >= count) { sL.t.champ = -1; }
     if (sL.t.playing >= size - 1) { sL.t.playing = -1; }
+}
+
+/* ---- the players' pictures: who has which, by the member's id (the pictures themselves: gs/avatar.c) ---- */
+#define AVB 64
+#define AV_EVERY_NS (3 * SEC)
+enum { AV_KEPT = 16 };
+extern void Discord_Avatar(char *out, int size); /* gs/discord.c: this player's own reference, "" none */
+extern int Avatar_RefOk(const char *ref);        /* gs/avatar.c */
+static struct { uint32_t id; char ref[AVB]; } sAv[AV_KEPT];
+static uint64_t sAvNs;
+
+static const char *av_of(uint32_t id) {
+    int i;
+    for (i = 0; id != 0 && i < AV_KEPT; i++) {
+        if (sAv[i].id == id) {
+            return sAv[i].ref;
+        }
+    }
+    return "";
+}
+
+/* A member's reference, kept only if it is one ("": it has none now). */
+static void av_set(uint32_t id, const char *ref) {
+    int i, spare = -1;
+    if (id == 0) {
+        return;
+    }
+    for (i = 0; i < AV_KEPT; i++) {
+        if (sAv[i].id == id) {
+            spare = i;
+            break;
+        }
+        if (sAv[i].id == 0 && spare < 0) {
+            spare = i;
+        }
+    }
+    if (spare < 0) {
+        return;
+    }
+    if (!Avatar_RefOk(ref)) {
+        memset(&sAv[spare], 0, sizeof(sAv[spare]));
+        return;
+    }
+    sAv[spare].id = id;
+    SDL_strlcpy(sAv[spare].ref, ref, AVB);
+}
+
+static void av_packet_one(const uint8_t *pkt, uint32_t id) { /* (an entry of AVB bytes at pkt, ended here whatever came) */
+    char ref[AVB];
+    memcpy(ref, pkt, AVB);
+    ref[AVB - 1] = '\0';
+    av_set(id, ref);
 }
 
 static void state_send(int k) {
@@ -1385,9 +1445,75 @@ static void owner_hello(const uint8_t *pkt, int n, const struct sockaddr_in *fro
 
 static void owner_say(int k, const char *text);
 
+/* Every few seconds in a lobby: a member tells the owner its picture, the owner tells every member everyone's. */
+static void av_tick(void) {
+    uint64_t now = now_ns();
+    char own[AVB];
+    int k, s, e;
+
+    if (sL.on == 0 || sL.state != 2 || now - sAvNs < AV_EVERY_NS) {
+        return;
+    }
+    sAvNs = now;
+    Discord_Avatar(own, (int)sizeof(own));
+    if (sL.on == 2) {
+        uint8_t p[12 + AVB];
+        if (sL.myId == 0 || !Avatar_RefOk(own)) {
+            return;
+        }
+        memset(p, 0, sizeof(p));
+        put(p, 0, MAGIC);
+        put(p, 1, T_L_AVATAR);
+        put(p, 2, sL.myId);
+        SDL_strlcpy((char *)p + 12, own, AVB);
+        send_to(p, (int)sizeof(p), &sL.owner);
+        return;
+    }
+    {
+        uint8_t p[12 + AV_KEPT * (4 + AVB)];
+        uint32_t ids[AV_KEPT];
+        int count = 0, i;
+
+        av_set(sL.m[0].id, own);
+        for (s = 0; s < LOBBY_SLOTS; s++) { /* those in the places, */
+            if (sL.ids[s] != 0 && av_of(sL.ids[s])[0] != '\0' && count < AV_KEPT) {
+                ids[count++] = sL.ids[s];
+            }
+        }
+        for (e = 0; sL.t.state != 0 && e < sL.t.count && e < TOUR; e++) { /* ... and a bracket's entrants who are no longer in one */
+            for (i = 0; i < count && ids[i] != sL.t.id[e]; i++) {
+            }
+            if (i == count && av_of(sL.t.id[e])[0] != '\0' && count < AV_KEPT) {
+                ids[count++] = sL.t.id[e];
+            }
+        }
+        memset(p, 0, sizeof(p));
+        put(p, 0, MAGIC);
+        put(p, 1, T_L_AVATARS);
+        put(p, 2, (uint32_t)count);
+        for (i = 0; i < count; i++) {
+            memcpy(p + 12 + i * (4 + AVB), &ids[i], 4);
+            SDL_strlcpy((char *)p + 12 + i * (4 + AVB) + 4, av_of(ids[i]), AVB);
+        }
+        for (k = 1; k < LOBBY_SLOTS; k++) {
+            if (sL.m[k].on) {
+                send_to(p, 12 + count * (4 + AVB), &sL.m[k].addr);
+            }
+        }
+    }
+}
+
 /* The owner: a packet of a member. */
 static void owner_packet(const uint8_t *pkt, int n, const struct sockaddr_in *from, uint32_t type) {
     int k;
+    if (type == T_L_AVATAR) { /* a member's picture: taken from the member that has this address and this id, and no other */
+        for (k = 1; n >= 12 + AVB && k < LOBBY_SLOTS; k++) {
+            if (sL.m[k].on && same(from, &sL.m[k].addr) && sL.m[k].id == get(pkt, 2)) {
+                av_packet_one(pkt + 12, sL.m[k].id);
+            }
+        }
+        return;
+    }
     if (type == T_L_HELLO) {
         owner_hello(pkt, n, from);
         return;
@@ -1800,6 +1926,18 @@ static void member_packet(const uint8_t *pkt, int n, const struct sockaddr_in *f
         return;
     }
     sL.heardNs = now_ns();
+    if (type == T_L_AVATARS && n >= 12) { /* everyone's pictures, as the owner has them: this copy's list is the owner's */
+        uint32_t count = get(pkt, 2), i;
+        if (count <= AV_KEPT && (uint32_t)n >= 12 + count * (4 + AVB)) {
+            memset(sAv, 0, sizeof(sAv));
+            for (i = 0; i < count; i++) {
+                uint32_t id;
+                memcpy(&id, pkt + 12 + i * (4 + AVB), 4);
+                av_packet_one(pkt + 12 + i * (4 + AVB) + 4, id);
+            }
+        }
+        return;
+    }
     if (type == T_L_STATE && n >= STATE_BYTES) {
         uint32_t seq = get(pkt, 2), r = get(pkt, 7), o = get(pkt, 8), noteSeq = get(pkt, 9);
         int s, changed = 0;
@@ -1959,6 +2097,7 @@ static void lobby_off(void) {
     if (NetIo_SessionMode() == 0 && !NetIo_SessionStarting()) {
         NetIo_Close();
     }
+    memset(sAv, 0, sizeof(sAv));
     view_update(1);
 }
 
@@ -2039,6 +2178,7 @@ static void result_watch(uint32_t gen) {
 static void timers(void) {
     uint64_t now = now_ns();
     int k;
+    av_tick();
     if (NetIo_SessionMode() != 0) {
         result_watch(sL.on == 1 ? (sL.phase == 1 ? sL.gen : 0) : sL.inGen);
     }

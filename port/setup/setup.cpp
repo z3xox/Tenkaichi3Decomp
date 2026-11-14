@@ -25,6 +25,7 @@
 #include "ui.h" // UiA11y_*: the focused control said to the screen reader (port/src/gs/ui_a11y.cpp)
 
 #define GAME "Tenkaichi3Decomp" /* the program this sets up: GAME, GAME.dat; this program is GAME-setup */
+#define TITLE "Approvaldokai Manegekaichi 3" /* the fork's name for the game, on the window (the files keep GAME) */
 
 // The screen reader, as in the game: through Prism when prism.dll is beside this program (port/src/gs/a11y.c, with
 // its settings in bt3_settings.txt when there is one: a11y=0 turns it off). ui_a11y.cpp says the focused control;
@@ -864,7 +865,7 @@ int main(int argc, char **argv) {
         bool wantGl = api != NULL && (strcmp(api, "gl") == 0 || strcmp(api, "opengl") == 0);
         std::string why;
         if (!wantGl) {
-            sWindow = SDL_CreateWindow(GAME " - Setup", 760, 560, SDL_WINDOW_HIGH_PIXEL_DENSITY);
+            sWindow = SDL_CreateWindow(TITLE " - Setup", 760, 560, SDL_WINDOW_HIGH_PIXEL_DENSITY);
             sDevice = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXIL | SDL_GPU_SHADERFORMAT_MSL, false, NULL);
             if (sWindow == NULL || sDevice == NULL || !SDL_ClaimWindowForGPUDevice(sDevice, sWindow)) {
                 why = SDL_GetError();
@@ -895,7 +896,7 @@ int main(int argc, char **argv) {
                 glsl = attempt == 0 ? "#version 330" : "#version 130";
 #endif
                 SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-                sWindow = SDL_CreateWindow(GAME " - Setup", 760, 560, SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_OPENGL);
+                sWindow = SDL_CreateWindow(TITLE " - Setup", 760, 560, SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_OPENGL);
                 sGl = sWindow != NULL ? SDL_GL_CreateContext(sWindow) : NULL;
                 if (sGl == NULL && sWindow != NULL) {
                     SDL_DestroyWindow(sWindow);

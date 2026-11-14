@@ -92,7 +92,7 @@ void GsGpu_TitlePoll(void) {
     extern int Port_DataState(void);
     static int done;
     if (!done && sWindow != NULL && Port_DataState() == 2) {
-        SDL_SetWindowTitle(sWindow, "Tenkaichi3Decomp [modified game data]");
+        SDL_SetWindowTitle(sWindow, "Approvaldokai Manegekaichi 3 [modified game data]");
         done = 1;
     }
 }
@@ -517,6 +517,37 @@ static GsTex tbo_text_texture(uint32_t id) {
     return tex;
 }
 
+/* The players' pictures (gs/avatar.c): a texture per place, made again when the place has another picture. */
+extern uint32_t Avatar_Version(uint32_t id);
+extern uint32_t *Avatar_Pixels(uint32_t id, uint32_t *version, uint32_t *w, uint32_t *h);
+static struct {
+    GsTex tex;
+    uint32_t version;
+} sTboAvatar[TBO_AVATAR_SLOTS];
+
+static GsTex tbo_avatar_texture(uint32_t id) {
+    uint32_t slot = id - TBO_AVATAR_BASE, version = Avatar_Version(id), w, h, *px;
+    GsTex tex;
+
+    if (sTboAvatar[slot].tex != 0 && sTboAvatar[slot].version == version) {
+        return sTboAvatar[slot].tex;
+    }
+    if (sBackend->texSlotsLeft() <= 0) {
+        return sTboAvatar[slot].tex != 0 ? sTboAvatar[slot].tex : gsWhite;
+    }
+    px = Avatar_Pixels(id, &version, &w, &h);
+    tex = px != NULL ? tbo_upload(px, w, h) : 0;
+    if (tex == 0) {
+        return sTboAvatar[slot].tex != 0 ? sTboAvatar[slot].tex : gsWhite;
+    }
+    if (sTboAvatar[slot].tex != 0) {
+        sBackend->texDestroy(sTboAvatar[slot].tex);
+    }
+    sTboAvatar[slot].tex = tex;
+    sTboAvatar[slot].version = version;
+    return tex;
+}
+
 static GsTex tbo_texture(uint32_t id) {
     char path[1024] = {0};
     SDL_Surface *png = NULL, *rgba = NULL;
@@ -531,6 +562,9 @@ static GsTex tbo_texture(uint32_t id) {
 
     if (id >= TBO_TEXT_BASE && id < TBO_TEXT_BASE + TBO_TEXT_SLOTS) {
         return tbo_text_texture(id);
+    }
+    if (id >= TBO_AVATAR_BASE && id < TBO_AVATAR_BASE + TBO_AVATAR_SLOTS) {
+        return tbo_avatar_texture(id);
     }
     if (id >= TBO_ART_COUNT && !languageArt) {
         return gsWhite;
@@ -2507,7 +2541,7 @@ SDL_Window *GsDraw_WindowCreate(int opengl) {
     pick = getenv("BT3_DISPLAY") != NULL ? atoi(getenv("BT3_DISPLAY")) : sDisplaySetting;
     sFullscreen = (getenv("BT3_FULLSCREEN") != NULL ? atoi(getenv("BT3_FULLSCREEN")) : Port_Setting("fullscreen", 0)) != 0;
     sWantAspect = want;
-    SDL_SetStringProperty(props, SDL_PROP_WINDOW_CREATE_TITLE_STRING, "Tenkaichi3Decomp");
+    SDL_SetStringProperty(props, SDL_PROP_WINDOW_CREATE_TITLE_STRING, "Approvaldokai Manegekaichi 3"); /* (the fork's name for the game; the files keep the project's) */
     SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, w);
     SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, h);
     SDL_SetBooleanProperty(props, SDL_PROP_WINDOW_CREATE_RESIZABLE_BOOLEAN, true);

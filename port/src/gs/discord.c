@@ -84,6 +84,7 @@ static unsigned sWantGen;    /* ... counted up with each change */
 static char sJoinCode[CODE_MAX + 1]; /* a Join's code, until the game's thread takes it */
 static char sApp[24];
 static int sLog;
+static char sAvatar[64];     /* this player's Discord picture, "<user's number>/<picture's hash>" ("" none, or not known yet) */
 static long long sStarted;   /* the program's start (unix seconds): "elapsed" on the profile */
 
 /* ------------------------------------------------------------------------------------------------ the socket */
@@ -395,6 +396,16 @@ static int frame_take(uint32_t op, char *json, int *ready) {
         return 1;
     }
     if (strcmp(evt, "READY") == 0) {
+        const char *user = strstr(json, "\"user\"");
+        char id[24], hash[40], both[64];
+        /* who is signed in to Discord here: the number and the picture's hash name the profile picture, which the
+           lobby shows beside this player's name (gs/avatar.c, which takes nothing but digits and hex) */
+        if (user != NULL && json_get(user, "id", id, sizeof(id)) && json_get(user, "avatar", hash, sizeof(hash))) {
+            snprintf(both, sizeof(both), "%s/%s", id, hash);
+            SDL_LockSpinlock(&sLock);
+            snprintf(sAvatar, sizeof(sAvatar), "%s", both);
+            SDL_UnlockSpinlock(&sLock);
+        }
         *ready = 1;
         fprintf(stderr, "bt3: discord: connected\n");
         return frame_send(OP_FRAME, "{\"cmd\":\"SUBSCRIBE\",\"evt\":\"ACTIVITY_JOIN\",\"nonce\":\"s1\"}");
@@ -607,6 +618,18 @@ static void join_pump(void) {
         }
         joining = 0;
     }
+}
+
+/* This player's picture as the lobby hands it on ("" none): BT3_AVATAR (tests), else the Discord profile's. */
+void Discord_Avatar(char *out, int size) {
+    const char *env = getenv("BT3_AVATAR");
+    if (env != NULL) {
+        snprintf(out, (size_t)size, "%s", env);
+        return;
+    }
+    SDL_LockSpinlock(&sLock);
+    snprintf(out, (size_t)size, "%s", sAvatar);
+    SDL_UnlockSpinlock(&sLock);
 }
 
 /* Once a blank (plat_stub.c: Port_VBlank). */
