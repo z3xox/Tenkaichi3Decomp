@@ -4792,3 +4792,17 @@ release, which has neither its Discord activity nor its matchmaking address. The
 (the check finds none), and its archives are not signed (`port/src/update_key.h` holds the project's public key):
 until the fork has a key pair of its own, a game says a newer release exists and does not install it by itself.
 Not checked in the running game.
+
+## The fork's Discord and matchmaking on a Mac build (2026-11-14)
+
+The first build with the three changes above (`install.py` on macOS arm64, the USA disc: the demo fight ran to its
+end), and GitHub's Mac build of the branch passed.
+
+- **Matchmaking, from the game.** Two copies without a window on one Mac, `BT3_LOBBY=lobby` and
+  `BT3_LOBBY=join:<code>`: the owner got its code from the Supabase function, the member was handed the owner's
+  addresses (public and on the network) and joined ("Amigo joined the lobby", P1 and P2 on both sides). The owner
+  asked for a relay address after eight seconds without the member, and there is none; the member came directly.
+- **Discord, the real program.** One of those copies ran with the application's number and a Discord running on
+  the Mac: "discord: connected" (Discord's READY for this application). The activity as it looks on a profile and
+  the Join button between two accounts have still not been looked at.
+- **Not checked:** a match played, anything with a window, two machines.
