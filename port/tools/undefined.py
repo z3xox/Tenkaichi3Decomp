@@ -244,6 +244,9 @@ def main():
     bars = "".join(f"static const unsigned char kBars{n.capitalize()}Png[] = {{" + ",".join(str(b) for b in (ROOT / "port/assets/bars" / (n + ".png")).read_bytes()) + "};\n"
                    for n in ("trim", "fill"))
     (gen / "bars_png.h").write_text("/* generated from port/assets/bars by port/tools/undefined.py */\n" + bars)
+    # the window's icon (port/assets/icon), the same way
+    icon = "static const unsigned char kIconPng[] = {" + ",".join(str(b) for b in (ROOT / "port/assets/icon/icon.png").read_bytes()) + "};\n"
+    (gen / "icon_png.h").write_text("/* generated from port/assets/icon by port/tools/undefined.py */\n" + icon)
     (gen / "shaders.h").write_text("/* generated from port/src/gs/shaders by port/tools/undefined.py */\n" + "".join(arrays))
     for f in sorted((ROOT / "port/src/gs").glob("*.c")):
         o = OBJ / ("gs_" + f.stem + ".o")

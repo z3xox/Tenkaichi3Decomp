@@ -29,6 +29,7 @@
 #include "menu_labels.h"      /* European menu art and native language selector pictures */
 #include "mods.h"             /* the look script mods ask for (bt3.look) */
 #include <math.h>
+#include "icon_png.h"         /* generated: the window's icon as bytes (port/tools/undefined.py) */
 
 /* Stage-name overlay: defined here (C) so both the renderer (gs_gpu.c) and the game's menu (menu_c_e.c) can
    reach them without C++ name mangling. Where they mean is in ui.h. */
@@ -2523,6 +2524,13 @@ SDL_Window *GsDraw_WindowCreate(int opengl) {
     sWindow = SDL_CreateWindowWithProperties(props);
     SDL_DestroyProperties(props);
     SDL_free(displays);
+    if (sWindow != NULL) { /* the window's icon (the taskbar's on Windows and Linux, the Dock's on macOS): port/assets/icon */
+        SDL_Surface *icon = SDL_LoadPNG_IO(SDL_IOFromConstMem(kIconPng, sizeof(kIconPng)), true);
+        if (icon != NULL) {
+            SDL_SetWindowIcon(sWindow, icon);
+            SDL_DestroySurface(icon);
+        }
+    }
     if (sWindow != NULL && !sFullscreen) {
         SDL_SetWindowSize(sWindow, (int)((float)h * want + 0.5f), h); /* (the height BT3_WINDOW asked for, at the picture's shape) */
     }
