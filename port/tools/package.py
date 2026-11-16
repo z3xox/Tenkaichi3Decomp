@@ -251,6 +251,7 @@ def main_win():
     take_translations(out)
     shutil.copy2(setup, out / "Tenkaichi3Decomp-setup.exe")
     shutil.copy2(dll, out / "SDL3.dll")
+    shutil.copy2(ROOT / "recomplauncher.json", out / "recomplauncher.json")  # (RecompLauncher's setup file)
     (out / "README.txt").write_text(WIN_README.replace("\n", "\r\n"))
     lic = out / "licenses"
     lic.mkdir()
@@ -304,6 +305,7 @@ def main_mac():
     take_lang(out)
     take_translations(out)
     shutil.copy2(setup, out / "Tenkaichi3Decomp-setup")
+    shutil.copy2(ROOT / "recomplauncher.json", out / "recomplauncher.json")  # (RecompLauncher's setup file)
     (out / "lib").mkdir()
     shutil.copy2(dylib.resolve(), out / "lib/libSDL3.0.dylib")
     (out / "lib/libSDL3.0.dylib").chmod(0o755)
@@ -388,6 +390,7 @@ def main():
     take_lang(OUT)
     take_translations(OUT)
     shutil.copy2(setup, OUT / "Tenkaichi3Decomp-setup")
+    shutil.copy2(ROOT / "recomplauncher.json", OUT / "recomplauncher.json")  # (RecompLauncher's setup file)
     (OUT / "lib").mkdir()
     lib = next((p for d in ("/usr/local/lib", "/usr/lib", "/usr/lib64", "/usr/lib/x86_64-linux-gnu") for p in sorted(pathlib.Path(d).glob("libSDL3.so.0"))), None)
     if lib is None:

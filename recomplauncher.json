@@ -1,0 +1,241 @@
+{
+    "$schema": "https://recomplauncher.com/schema/recomplauncher.json",
+    "format": 1,
+    "repo": "z3xox/Tenkaichi3Decomp",
+    "game": {
+        "kind": "iso",
+        "label": "Your disc image (.iso) of the USA PlayStation 2 release, serial SLUS-21678.",
+        "check": {
+            "iso9660": "SLUS_216.78"
+        }
+    },
+    "prepare": {
+        "program": [
+            "Tenkaichi3Decomp-setup.exe",
+            "Tenkaichi3Decomp-setup"
+        ],
+        "args": [
+            "--install",
+            "{game}"
+        ],
+        "label": "Game data unpacked from your disc",
+        "timeout": 1800
+    },
+    "start": {
+        "program": [
+            "Tenkaichi3Decomp.exe",
+            "Tenkaichi3Decomp"
+        ]
+    },
+    "config": [
+        {
+            "id": "main",
+            "format": "ini",
+            "file": [
+                {
+                    "path": "{install}/bt3_settings.txt"
+                }
+            ]
+        }
+    ],
+    "saves": [
+        "{install}/saves"
+    ],
+    "folders": {
+        "saves": [
+            {
+                "path": "{install}/saves"
+            }
+        ]
+    },
+    "settings": [
+        {
+            "id": "fullscreen",
+            "label": "Full screen",
+            "help": "Fills your screen with the game.",
+            "choices": [
+                {
+                    "label": "Off",
+                    "set": {
+                        "fullscreen": "0"
+                    }
+                },
+                {
+                    "label": "On",
+                    "set": {
+                        "fullscreen": "1"
+                    }
+                }
+            ],
+            "defaults": {
+                "fullscreen": "0"
+            }
+        },
+        {
+            "id": "resolution",
+            "label": "Resolution",
+            "help": "What the game draws at.",
+            "choices": [
+                {
+                    "label": "448p (original)",
+                    "set": {
+                        "scale": "1"
+                    }
+                },
+                {
+                    "label": "896p",
+                    "set": {
+                        "scale": "2"
+                    }
+                },
+                {
+                    "label": "1344p",
+                    "set": {
+                        "scale": "3"
+                    }
+                },
+                {
+                    "label": "1792p",
+                    "set": {
+                        "scale": "4"
+                    }
+                },
+                {
+                    "label": "2688p",
+                    "set": {
+                        "scale": "6"
+                    }
+                },
+                {
+                    "label": "3584p",
+                    "set": {
+                        "scale": "8"
+                    }
+                }
+            ],
+            "defaults": {
+                "scale": "2"
+            }
+        },
+        {
+            "id": "aspect",
+            "label": "Screen shape",
+            "help": "Wider shapes show more of the fight without stretching it.",
+            "choices": [
+                {
+                    "label": "4:3 (original)",
+                    "set": {
+                        "aspect_milli": "1333"
+                    }
+                },
+                {
+                    "label": "16:10",
+                    "set": {
+                        "aspect_milli": "1600"
+                    }
+                },
+                {
+                    "label": "16:9",
+                    "set": {
+                        "aspect_milli": "1778"
+                    }
+                },
+                {
+                    "label": "21:9",
+                    "set": {
+                        "aspect_milli": "2389"
+                    }
+                },
+                {
+                    "label": "32:9",
+                    "set": {
+                        "aspect_milli": "3556"
+                    }
+                }
+            ],
+            "defaults": {
+                "aspect_milli": "1333"
+            }
+        },
+        {
+            "id": "vsync",
+            "label": "V-Sync",
+            "help": "Stops screen tearing.",
+            "choices": [
+                {
+                    "label": "Off",
+                    "set": {
+                        "vsync": "0"
+                    }
+                },
+                {
+                    "label": "On",
+                    "set": {
+                        "vsync": "1"
+                    }
+                }
+            ],
+            "defaults": {
+                "vsync": "0"
+            }
+        },
+        {
+            "id": "renderer",
+            "label": "Renderer",
+            "help": "Vulkan is faster. OpenGL is for PCs where Vulkan doesn't work.",
+            "choices": [
+                {
+                    "label": "Vulkan",
+                    "set": {
+                        "gpu_api": "0"
+                    }
+                },
+                {
+                    "label": "OpenGL",
+                    "set": {
+                        "gpu_api": "1"
+                    }
+                }
+            ],
+            "defaults": {
+                "gpu_api": "0"
+            }
+        },
+        {
+            "id": "skip_intro",
+            "label": "Skip intro video",
+            "help": "Starts without the opening movie.",
+            "choices": [
+                {
+                    "label": "Off",
+                    "set": {
+                        "skip_intro": "0"
+                    }
+                },
+                {
+                    "label": "On",
+                    "set": {
+                        "skip_intro": "1"
+                    }
+                }
+            ],
+            "defaults": {
+                "skip_intro": "0"
+            }
+        }
+    ],
+    "actions": [
+        {
+            "id": "saves",
+            "label": "Saves",
+            "help": "Your saves. They stay when the game updates.",
+            "open": "saves"
+        }
+    ],
+    "requires": [
+        "start",
+        "setup",
+        "settings.ini",
+        "settings.choices"
+    ]
+}
